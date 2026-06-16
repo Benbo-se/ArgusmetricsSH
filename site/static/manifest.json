@@ -9,15 +9,15 @@
   "orientation": "any",
   "icons": [
     {
-      "src": "/static/img/ArgusEyefavicon3.png",
-      "sizes": "1024x1024",
+      "src": "/static/img/icon-180.png",
+      "sizes": "180x180",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/static/favicon.ico",
+      "src": "/static/img/favicon-32.png",
       "sizes": "32x32",
-      "type": "image/x-icon"
+      "type": "image/png"
     }
   ],
   "categories": ["analytics", "productivity", "business"],

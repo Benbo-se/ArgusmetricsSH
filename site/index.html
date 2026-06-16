@@ -16,13 +16,15 @@
     <meta property="og:url" content="https://argusmetrics.io/">
     <meta property="og:title" content="Argusmetrics - Privacy-First Web Analytics">
     <meta property="og:description" content="Simple, privacy-focused web analytics. GDPR compliant by default. No cookies, no tracking.">
-    <meta property="og:image" content="https://argusmetrics.io/static/img/ArgusEyefavicon3.png">
+    <meta property="og:image" content="https://argusmetrics.io/static/img/og-image.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
 
     <!-- Twitter Card Meta Tags -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="Argusmetrics - Privacy-First Web Analytics">
     <meta name="twitter:description" content="Simple, privacy-focused web analytics. GDPR compliant by default. No cookies, no tracking.">
-    <meta name="twitter:image" content="https://argusmetrics.io/static/img/ArgusEyefavicon3.png">
+    <meta name="twitter:image" content="https://argusmetrics.io/static/img/og-image.png">
 
     <!-- Schema.org Structured Data -->
     <script type="application/ld+json">
@@ -36,17 +38,13 @@
       "offers": {
         "@type": "Offer",
         "price": "0",
-        "priceCurrency": "EUR",
-        "priceValidUntil": "2026-12-31"
+        "priceCurrency": "USD"
       },
-      "description": "Simple, privacy-focused web analytics. GDPR compliant by default. No cookies, no tracking.",
+      "license": "https://www.gnu.org/licenses/agpl-3.0.html",
+      "isAccessibleForFree": true,
+      "description": "Free, open-source, self-hosted privacy-focused web analytics. GDPR-friendly by default. No cookies, no tracking.",
       "url": "https://argusmetrics.io",
-      "screenshot": "https://argusmetrics.io/static/img/ArgusEyefavicon3.png",
-      "aggregateRating": {
-        "@type": "AggregateRating",
-        "ratingValue": "5",
-        "ratingCount": "1"
-      },
+      "screenshot": "https://argusmetrics.io/static/img/og-image.png",
       "featureList": [
         "Privacy-focused analytics",
         "GDPR compliant by default",
@@ -66,9 +64,8 @@
 
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="static/favicon.ico">
-    <link rel="icon" type="image/png" sizes="32x32" href="static/img/ArgusEyefavicon3.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="static/img/ArgusEyefavicon3.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="static/img/ArgusEyefavicon3.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="static/img/favicon-32.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="static/img/icon-180.png">
 
     <!-- PWA Manifest -->
     <link rel="manifest" href="static/manifest.json">
@@ -80,17 +77,12 @@
     <!-- Tailwind CSS -->
     <link rel="stylesheet" href="static/css/tailwind.min.css">
 
-    <!-- HTMX (local) -->
-    <script src="static/js/htmx.min.js"></script>
-
-    <!-- Alpine.js -->
+    <!-- Alpine.js (deferred, non-blocking) -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.5/dist/cdn.min.js"></script>
 
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Font Awesome (loaded non-render-blocking) -->
+    <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
 
     <!-- Chatbot styles -->
     <link rel="stylesheet" href="static/css/chatbot.css">
@@ -128,7 +120,7 @@
                 <!-- Logo -->
                 <div class="flex items-center">
                     <a href="index.html" class="flex items-center space-x-2">
-                        <img src="static/img/ArgusEyefavicon3.png" alt="Argusmetrics" class="h-10 w-10">
+                        <img src="static/img/logo-96.png" alt="Argusmetrics" width="40" height="40" class="h-10 w-10">
                         <span class="text-xl font-bold text-gray-900">Argusmetrics</span>
                     </a>
                 </div>
@@ -644,7 +636,7 @@
             <div class="grid md:grid-cols-4 gap-8 mb-8">
                 <div>
                     <div class="flex items-center space-x-3 mb-4">
-                        <img src="static/img/ArgusEyefavicon3.png" alt="Argusmetrics" class="h-12 w-12">
+                        <img src="static/img/logo-96.png" alt="Argusmetrics" width="48" height="48" class="h-12 w-12">
                         <h3 class="text-white font-bold text-lg">Argusmetrics</h3>
                     </div>
                     <p class="text-sm text-gray-400">Free, open-source, self-hosted privacy-first web analytics.</p>
