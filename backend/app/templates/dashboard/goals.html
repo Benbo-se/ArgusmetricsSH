@@ -1,0 +1,382 @@
+{% extends "base.html" %}
+
+{% block title %}{{ website.name }} - Goals{% endblock %}
+
+{% block extra_head %}
+<script>
+    // Store website ID for use in API calls.
+    // Auth uses the httponly session_token cookie (SameSite=Lax mitigates CSRF) sent
+    // automatically with same-origin fetch; no token is exposed to JS.
+    window.WEBSITE_ID = {{ website.id }};
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Header -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900">Goals Management</h1>
+        <p class="mt-2 text-gray-600">{{ website.name }} - Track conversions and important events</p>
+    </div>
+
+    <!-- Goals List Section -->
+    <div class="bg-white rounded-lg shadow p-6 mb-8"
+         x-data="{
+             goals: {{ goals | tojson | safe }},
+             showCreateModal: false,
+             showDeleteModal: false,
+             editingGoal: null,
+             deletingGoal: null,
+             formData: {
+                 name: '',
+                 event_name: ''
+             },
+             loading: false,
+             error: null,
+
+             resetForm() {
+                 this.formData = { name: '', event_name: '' };
+                 this.editingGoal = null;
+                 this.error = null;
+             },
+
+             openCreateModal() {
+                 this.resetForm();
+                 this.showCreateModal = true;
+             },
+
+             openEditModal(goal) {
+                 this.editingGoal = goal;
+                 this.formData = {
+                     name: goal.name,
+                     event_name: goal.event_name
+                 };
+                 this.showCreateModal = true;
+             },
+
+             openDeleteModal(goal) {
+                 this.deletingGoal = goal;
+                 this.showDeleteModal = true;
+             },
+
+             async saveGoal() {
+                 this.loading = true;
+                 this.error = null;
+
+                 try {
+                     const url = this.editingGoal
+                         ? `/api/v1/analytics/goals/${this.editingGoal.id}?website_id=${window.WEBSITE_ID}`
+                         : `/api/v1/analytics/goals?website_id=${window.WEBSITE_ID}`;
+
+                     const method = this.editingGoal ? 'PUT' : 'POST';
+
+                     const response = await fetch(url, {
+                         method: method,
+                         credentials: 'same-origin',
+                         headers: {
+                             'Content-Type': 'application/json'
+                         },
+                         body: JSON.stringify(this.formData)
+                     });
+
+                     const data = await response.json();
+
+                     if (response.ok) {
+                         // Update or add goal to list
+                         if (this.editingGoal) {
+                             const index = this.goals.findIndex(g => g.id === this.editingGoal.id);
+                             if (index !== -1) {
+                                 this.goals[index] = data;
+                             }
+                         } else {
+                             this.goals.unshift(data);
+                         }
+
+                         this.showCreateModal = false;
+                         this.resetForm();
+
+                         // Show success toast
+                         window.dispatchEvent(new CustomEvent('toast', {
+                             detail: { message: this.editingGoal ? 'Goal updated successfully' : 'Goal created successfully' }
+                         }));
+                     } else {
+                         this.error = data.detail || 'Failed to save goal';
+                     }
+                 } catch (error) {
+                     console.error('Error saving goal:', error);
+                     this.error = 'Failed to save goal. Please try again.';
+                 } finally {
+                     this.loading = false;
+                 }
+             },
+
+             async deleteGoal() {
+                 this.loading = true;
+
+                 try {
+                     const response = await fetch(`/api/v1/analytics/goals/${this.deletingGoal.id}?website_id=${window.WEBSITE_ID}`, {
+                         method: 'DELETE',
+                         credentials: 'same-origin'
+                     });
+
+                     if (response.ok) {
+                         // Remove from list
+                         this.goals = this.goals.filter(g => g.id !== this.deletingGoal.id);
+                         this.showDeleteModal = false;
+                         this.deletingGoal = null;
+
+                         // Show success toast
+                         window.dispatchEvent(new CustomEvent('toast', {
+                             detail: { message: 'Goal deleted successfully' }
+                         }));
+                     } else {
+                         const data = await response.json();
+                         alert('Failed to delete goal: ' + (data.detail || 'Unknown error'));
+                     }
+                 } catch (error) {
+                     console.error('Error deleting goal:', error);
+                     alert('Failed to delete goal. Please try again.');
+                 } finally {
+                     this.loading = false;
+                 }
+             },
+
+             generateEventName() {
+                 if (this.formData.name && !this.formData.event_name) {
+                     this.formData.event_name = this.formData.name
+                         .toLowerCase()
+                         .replace(/[^a-z0-9]+/g, '_')
+                         .replace(/^_+|_+$/g, '');
+                 }
+             }
+         }">
+
+        <!-- Header with Create Button -->
+        <div class="flex items-center justify-between mb-6">
+            <h2 class="text-lg font-semibold text-gray-900">Your Goals</h2>
+            <button @click="openCreateModal()"
+                    class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                Create New Goal
+            </button>
+        </div>
+
+        <!-- Goals Table -->
+        <template x-if="goals.length > 0">
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead>
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Goal Name</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Event Name</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        <template x-for="goal in goals" :key="goal.id">
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm font-medium text-gray-900" x-text="goal.name"></div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm text-gray-700 font-mono" x-text="goal.event_name"></div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    <span x-text="new Date(goal.created_at).toLocaleDateString()"></span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                    <button @click="openEditModal(goal)"
+                                            class="text-blue-600 hover:text-blue-900 mr-4">
+                                        Edit
+                                    </button>
+                                    <button @click="openDeleteModal(goal)"
+                                            class="text-red-600 hover:text-red-900">
+                                        Delete
+                                    </button>
+                                </td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+            </div>
+        </template>
+
+        <!-- Empty State -->
+        <template x-if="goals.length === 0">
+            <div class="text-center py-12">
+                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
+                </svg>
+                <h3 class="mt-2 text-sm font-medium text-gray-900">No goals yet</h3>
+                <p class="mt-1 text-sm text-gray-500">Get started by creating your first goal.</p>
+                <div class="mt-6">
+                    <button @click="openCreateModal()"
+                            class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+                        Create New Goal
+                    </button>
+                </div>
+            </div>
+        </template>
+
+        <!-- Create/Edit Modal -->
+        <div x-show="showCreateModal"
+             x-cloak
+             @click.away="showCreateModal = false"
+             class="fixed inset-0 z-50 overflow-y-auto"
+             style="display: none;">
+            <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+                <!-- Background overlay -->
+                <div class="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"></div>
+
+                <!-- Modal panel -->
+                <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                    <form @submit.prevent="saveGoal()">
+                        <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                            <h3 class="text-lg font-medium text-gray-900 mb-4" x-text="editingGoal ? 'Edit Goal' : 'Create New Goal'"></h3>
+
+                            <!-- Error Message -->
+                            <div x-show="error" class="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+                                <p class="text-sm text-red-800" x-text="error"></p>
+                            </div>
+
+                            <!-- Goal Name -->
+                            <div class="mb-4">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                    Goal Name <span class="text-red-500">*</span>
+                                </label>
+                                <input type="text"
+                                       x-model="formData.name"
+                                       @input="generateEventName()"
+                                       required
+                                       placeholder="e.g., Newsletter Signup"
+                                       class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                                <p class="mt-1 text-xs text-gray-500">A human-readable name for this goal</p>
+                            </div>
+
+                            <!-- Event Name -->
+                            <div class="mb-4">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                    Event Name <span class="text-red-500">*</span>
+                                </label>
+                                <input type="text"
+                                       x-model="formData.event_name"
+                                       required
+                                       placeholder="e.g., newsletter_signup"
+                                       pattern="[a-z0-9_]+"
+                                       class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 font-mono">
+                                <p class="mt-1 text-xs text-gray-500">Lowercase letters, numbers, and underscores only. Used in tracking code.</p>
+                            </div>
+                        </div>
+
+                        <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                            <button type="submit"
+                                    :disabled="loading"
+                                    :class="loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'"
+                                    class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 text-base font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm">
+                                <span x-show="!loading" x-text="editingGoal ? 'Update Goal' : 'Create Goal'"></span>
+                                <span x-show="loading">Saving...</span>
+                            </button>
+                            <button type="button"
+                                    @click="showCreateModal = false; resetForm()"
+                                    :disabled="loading"
+                                    class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                                Cancel
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Delete Confirmation Modal -->
+        <div x-show="showDeleteModal"
+             x-cloak
+             @click.away="showDeleteModal = false"
+             class="fixed inset-0 z-50 overflow-y-auto"
+             style="display: none;">
+            <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+                <!-- Background overlay -->
+                <div class="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"></div>
+
+                <!-- Modal panel -->
+                <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                    <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                        <div class="sm:flex sm:items-start">
+                            <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
+                                <svg class="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                                </svg>
+                            </div>
+                            <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                                <h3 class="text-lg leading-6 font-medium text-gray-900">Delete Goal</h3>
+                                <div class="mt-2">
+                                    <p class="text-sm text-gray-500">
+                                        Are you sure you want to delete "<span x-text="deletingGoal?.name"></span>"?
+                                        This will also delete all conversion data for this goal. This action cannot be undone.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                        <button @click="deleteGoal()"
+                                :disabled="loading"
+                                :class="loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-red-600 hover:bg-red-700'"
+                                class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 text-base font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm">
+                            <span x-show="!loading">Delete</span>
+                            <span x-show="loading">Deleting...</span>
+                        </button>
+                        <button @click="showDeleteModal = false; deletingGoal = null"
+                                :disabled="loading"
+                                class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:w-auto sm:text-sm">
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tracking Instructions -->
+    <div class="bg-white rounded-lg shadow p-6 mb-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">How to Track Goals</h2>
+        <p class="text-sm text-gray-600 mb-4">
+            To track goal conversions, add this JavaScript code to your website where the conversion happens (e.g., on button click, form submission):
+        </p>
+
+        <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+            <pre class="text-sm text-gray-900 overflow-x-auto"><code>&lt;button onclick="argus.trackEvent('<span class="text-blue-600">your_event_name</span>')"&gt;
+  Sign Up
+&lt;/button&gt;</code></pre>
+        </div>
+
+        <div class="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <h3 class="text-sm font-medium text-blue-900 mb-2">Example Usage:</h3>
+            <div class="text-sm text-blue-800 space-y-2">
+                <p><span class="font-mono bg-white px-2 py-1 rounded">argus.trackEvent('newsletter_signup')</span> - Track newsletter signups</p>
+                <p><span class="font-mono bg-white px-2 py-1 rounded">argus.trackEvent('purchase_completed')</span> - Track purchases</p>
+                <p><span class="font-mono bg-white px-2 py-1 rounded">argus.trackEvent('download_clicked')</span> - Track downloads</p>
+            </div>
+        </div>
+
+        <div class="mt-4 text-sm text-gray-600">
+            <p>Make sure the tracking script is installed on your website first. The event name must match the "Event Name" field in your goal configuration.</p>
+        </div>
+    </div>
+
+    <!-- Back to Dashboard -->
+    <div class="mt-6">
+        <a href="/dashboard/website/{{ website.id }}"
+           class="inline-flex items-center text-sm text-blue-600 hover:text-blue-800">
+            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+            Back to Analytics
+        </a>
+    </div>
+</div>
+
+<style>
+    [x-cloak] { display: none !important; }
+</style>
+{% endblock %}

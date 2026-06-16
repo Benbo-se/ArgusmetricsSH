@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy by Design - Argusmetrics</title>
+    <meta name="theme-color" content="#2563eb">
+    <link rel="canonical" href="https://argusmetrics.io/data">
+    <meta name="description" content="How Argusmetrics handles visitor data — no cookies, no fingerprints, GDPR compliant by design. Full transparency on what we collect and what we never touch.">
+    <meta property="og:site_name" content="Argusmetrics">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://argusmetrics.io/data">
+    <meta property="og:title" content="Privacy by Design - Argusmetrics">
+    <meta property="og:description" content="How Argusmetrics handles visitor data — no cookies, no fingerprints, GDPR compliant by design. Full transparency on what we collect and what we never touch.">
+    <meta property="og:image" content="https://argusmetrics.io/static/img/ArgusEyefavicon3.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Privacy by Design - Argusmetrics">
+    <meta name="twitter:description" content="How Argusmetrics handles visitor data — no cookies, no fingerprints, GDPR compliant by design.">
+    <meta name="twitter:image" content="https://argusmetrics.io/static/img/ArgusEyefavicon3.png">
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/img/ArgusEyefavicon3.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/img/ArgusEyefavicon3.png">
+    <link rel="manifest" href="/static/manifest.json">
+    <link rel="stylesheet" href="/static/css/tailwind.min.css">
+    <script src="/static/js/htmx.min.js"></script>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.5/dist/cdn.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-50 text-gray-900 antialiased">
+
+    <nav class="bg-white shadow-sm fixed top-0 left-0 right-0 z-10" x-data="{ mobileMenuOpen: false, productOpen: false, compareOpen: false, resourcesOpen: false }">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <!-- Logo -->
+                <div class="flex items-center">
+                    <a href="/" class="flex items-center space-x-2">
+                        <img src="/static/img/ArgusEyefavicon3.png" alt="Argusmetrics" class="h-10 w-10">
+                        <span class="text-xl font-bold text-gray-900">Argusmetrics</span>
+                    </a>
+                </div>
+
+                <!-- Desktop navigation -->
+                <div class="hidden md:flex md:items-center md:space-x-1">
+
+                    <!-- Product dropdown -->
+                    <div class="relative" @mouseenter="productOpen = true" @mouseleave="productOpen = false">
+                        <button class="flex items-center gap-1 text-gray-600 hover:text-gray-900 text-sm font-medium px-3 py-2 rounded-md hover:bg-gray-50 transition-colors">
+                            Product
+                            <svg class="w-3.5 h-3.5 transition-transform duration-150" :class="productOpen ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                        </button>
+                        <div x-show="productOpen"
+                             x-transition:enter="transition ease-out duration-100"
+                             x-transition:enter-start="opacity-0 translate-y-1"
+                             x-transition:enter-end="opacity-100 translate-y-0"
+                             x-transition:leave="transition ease-in duration-75"
+                             x-transition:leave-start="opacity-100 translate-y-0"
+                             x-transition:leave-end="opacity-0 translate-y-1"
+                             class="absolute top-full left-0 mt-1 w-56 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50">
+                            <a href="/#features" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
+                                <i class="fas fa-bolt w-4 text-blue-500 text-xs"></i> Features
+                            </a>
+                            <a href="/data" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
+                                <i class="fas fa-shield-alt w-4 text-green-500 text-xs"></i> Privacy by Design
+                            </a>
+                            <a href="/about" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
+                                <i class="fas fa-info-circle w-4 text-purple-500 text-xs"></i> About Us
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Compare dropdown -->
+                    <div class="relative" @mouseenter="compareOpen = true" @mouseleave="compareOpen = false">
+                        <button class="flex items-center gap-1 text-gray-600 hover:text-gray-900 text-sm font-medium px-3 py-2 rounded-md hover:bg-gray-50 transition-colors">
+                            Compare
+                            <svg class="w-3.5 h-3.5 transition-transform duration-150" :class="compareOpen ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                        </button>
+                        <div x-show="compareOpen"
+                             x-transition:enter="transition ease-out duration-100"
+                             x-transition:enter-start="opacity-0 translate-y-1"
+                             x-transition:enter-end="opacity-100 translate-y-0"
+                             x-transition:leave="transition ease-in duration-75"
+                             x-transition:leave-start="opacity-100 translate-y-0"
+                             x-transition:leave-end="opacity-0 translate-y-1"
+                             class="absolute top-full left-0 mt-1 w-64 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50">
+                            <div class="px-4 py-1.5 text-xs font-semibold text-gray-400 uppercase tracking-wider">Argusmetrics vs</div>
+                            <a href="/compare/google-analytics" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
+                                <i class="fab fa-google w-4 text-red-500 text-xs"></i> Google Analytics
+                            </a>
+                            <a href="/compare/plausible" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
+                                <i class="fas fa-chart-bar w-4 text-purple-500 text-xs"></i> Plausible
+                            </a>
+                            <a href="/compare/matomo" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
+                                <i class="fas fa-chart-pie w-4 text-orange-500 text-xs"></i> Matomo
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Resources dropdown -->
+                    <div class="relative" @mouseenter="resourcesOpen = true" @mouseleave="resourcesOpen = false">
+                        <button class="flex items-center gap-1 text-gray-600 hover:text-gray-900 text-sm font-medium px-3 py-2 rounded-md hover:bg-gray-50 transition-colors">
+                            Resources
+                            <svg class="w-3.5 h-3.5 transition-transform duration-150" :class="resourcesOpen ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                        </button>
+                        <div x-show="resourcesOpen"
+                             x-transition:enter="transition ease-out duration-100"
+                             x-transition:enter-start="opacity-0 translate-y-1"
+                             x-transition:enter-end="opacity-100 translate-y-0"
+                             x-transition:leave="transition ease-in duration-75"
+                             x-transition:leave-start="opacity-100 translate-y-0"
+                             x-transition:leave-end="opacity-0 translate-y-1"
+                             class="absolute top-full left-0 mt-1 w-56 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50">
+                            <a href="/docs" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
+                                <i class="fas fa-book w-4 text-blue-500 text-xs"></i> Documentation
+                            </a>
+                            <a href="/changelog" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
+                                <i class="fas fa-list-ul w-4 text-green-500 text-xs"></i> Changelog
+                            </a>
+                            <a href="https://github.com/Benbo-se/argusmetrics.io" target="_blank" rel="noopener noreferrer" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
+                                <i class="fab fa-github w-4 text-gray-700 text-xs"></i> GitHub
+                            </a>
+                        </div>
+                    </div>
+
+                    <a href="/#pricing" class="text-gray-600 hover:text-gray-900 text-sm font-medium px-3 py-2 rounded-md hover:bg-gray-50 transition-colors">Pricing</a>
+
+                    <div class="w-px h-5 bg-gray-200 mx-1"></div>
+
+                    <a href="https://app.argusmetrics.io/login" class="text-gray-600 hover:text-gray-900 text-sm font-medium px-3 py-2 rounded-md hover:bg-gray-50 transition-colors">Log In</a>
+                    <a href="https://app.argusmetrics.io/signup" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors">
+                        Get Started Free
+                    </a>
+                </div>
+
+                <!-- Mobile menu button -->
+                <div class="flex items-center md:hidden">
+                    <button @click="mobileMenuOpen = !mobileMenuOpen"
+                            class="text-gray-600 hover:text-gray-900 p-2 rounded-md hover:bg-gray-100 transition"
+                            aria-label="Toggle menu">
+                        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path x-show="!mobileMenuOpen" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                            <path x-show="mobileMenuOpen" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile menu -->
+        <div x-show="mobileMenuOpen"
+             @click.away="mobileMenuOpen = false"
+             @keydown.escape.window="mobileMenuOpen = false"
+             x-transition:enter="transition ease-out duration-200"
+             x-transition:enter-start="opacity-0 transform -translate-y-2"
+             x-transition:enter-end="opacity-100 transform translate-y-0"
+             x-transition:leave="transition ease-in duration-150"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0"
+             class="md:hidden border-t border-gray-200 bg-white shadow-lg">
+            <div class="px-2 pt-2 pb-3 space-y-1">
+                <div class="px-3 py-1 text-xs font-semibold text-gray-400 uppercase tracking-wider">Product</div>
+                <a href="/#features" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">Features</a>
+                <a href="/data" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">Privacy by Design</a>
+                <a href="/about" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">About Us</a>
+                <div class="px-3 py-1 mt-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">Compare</div>
+                <a href="/compare/google-analytics" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">vs Google Analytics</a>
+                <a href="/compare/plausible" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">vs Plausible</a>
+                <a href="/compare/matomo" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">vs Matomo</a>
+                <div class="px-3 py-1 mt-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">Resources</div>
+                <a href="/docs" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">Documentation</a>
+                <a href="/changelog" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">Changelog</a>
+                <a href="https://github.com/Benbo-se/argusmetrics.io" target="_blank" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">GitHub</a>
+                <div class="border-t border-gray-100 mt-2 pt-2">
+                    <a href="/#pricing" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">Pricing</a>
+                    <a href="https://app.argusmetrics.io/login" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">Log In</a>
+                    <a href="https://app.argusmetrics.io/signup" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md text-center">Get Started Free</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="pt-16">
+
+        <!-- Hero -->
+        <section class="bg-white border-b border-gray-100">
+            <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
+                <div class="inline-flex items-center gap-2 bg-green-50 text-green-700 text-sm font-medium px-4 py-1.5 rounded-full mb-6 border border-green-100">
+                    <i class="fas fa-shield-alt text-xs"></i>
+                    GDPR Compliant by Default
+                </div>
+                <h1 class="text-4xl sm:text-5xl font-extrabold text-gray-900 mb-6 leading-tight">
+                    Privacy by Design —<br>Not as an Afterthought
+                </h1>
+                <p class="text-xl text-gray-500 max-w-2xl mx-auto">
+                    Most analytics tools were built to collect as much data as possible, then retrofitted with privacy settings. Argusmetrics was designed the other way around: privacy is the foundation, not the feature.
+                </p>
+            </div>
+        </section>
+
+        <!-- What we collect -->
+        <section class="py-16 bg-gray-50">
+            <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+                <h2 class="text-3xl font-bold text-gray-900 mb-3">What we collect</h2>
+                <p class="text-gray-500 mb-10">Every data point we collect serves a specific analytical purpose. Nothing more. All data is aggregated — there are no individual visitor records.</p>
+                <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div class="bg-white rounded-xl border border-gray-100 p-5 flex items-start gap-4">
+                        <div class="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
+                            <i class="fas fa-link text-blue-600 text-sm"></i>
+                        </div>
+                        <div>
+                            <div class="font-semibold text-gray-900 text-sm">Page URL</div>
+                            <div class="text-gray-500 text-xs mt-0.5">Which page was visited — without query strings that could contain personal data.</div>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-xl border border-gray-100 p-5 flex items-start gap-4">
+                        <div class="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
+                            <i class="fas fa-external-link-alt text-blue-600 text-sm"></i>
+                        </div>
+                        <div>
+                            <div class="font-semibold text-gray-900 text-sm">Referrer</div>
+                            <div class="text-gray-500 text-xs mt-0.5">Where visitors came from — search engines, social media, or direct.</div>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-xl border border-gray-100 p-5 flex items-start gap-4">
+                        <div class="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
+                            <i class="fas fa-globe text-blue-600 text-sm"></i>
+                        </div>
+                        <div>
+                            <div class="font-semibold text-gray-900 text-sm">Country</div>
+                            <div class="text-gray-500 text-xs mt-0.5">Country-level location only — never city, region, or precise location.</div>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-xl border border-gray-100 p-5 flex items-start gap-4">
+                        <div class="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
+                            <i class="fas fa-chrome text-blue-600 text-sm"></i>
+                        </div>
+                        <div>
+                            <div class="font-semibold text-gray-900 text-sm">Browser</div>
+                            <div class="text-gray-500 text-xs mt-0.5">Browser family (Chrome, Firefox, Safari) — not the full user-agent string.</div>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-xl border border-gray-100 p-5 flex items-start gap-4">
+                        <div class="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
+                            <i class="fas fa-mobile-alt text-blue-600 text-sm"></i>
+                        </div>
+                        <div>
+                            <div class="font-semibold text-gray-900 text-sm">Device type</div>
+                            <div class="text-gray-500 text-xs mt-0.5">Desktop, tablet, or mobile — nothing more specific.</div>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-xl border border-gray-100 p-5 flex items-start gap-4">
+                        <div class="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
+                            <i class="fas fa-expand-arrows-alt text-blue-600 text-sm"></i>
+                        </div>
+                        <div>
+                            <div class="font-semibold text-gray-900 text-sm">Screen size</div>
+                            <div class="text-gray-500 text-xs mt-0.5">Viewport width bucketed into ranges — not an exact pixel dimension.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- What we never collect -->
+        <section class="py-16 bg-white border-t border-gray-100">
+            <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+                <h2 class="text-3xl font-bold text-gray-900 mb-3">What we <span class="text-red-500">never</span> collect</h2>
+                <p class="text-gray-500 mb-10">These are hard technical constraints built into the system — not policy promises that could be changed by a terms update.</p>
+                <div class="grid sm:grid-cols-2 gap-3">
+                    <div class="flex items-start gap-3 p-4 rounded-xl bg-green-50 border border-green-100">
+                        <i class="fas fa-check-circle text-green-500 mt-0.5 flex-shrink-0"></i>
+                        <div>
+                            <div class="font-semibold text-gray-900 text-sm">No raw IP addresses</div>
+                            <div class="text-gray-500 text-xs mt-0.5">IP addresses are immediately truncated to a /24 subnet and are never stored in any log or database.</div>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-3 p-4 rounded-xl bg-green-50 border border-green-100">
+                        <i class="fas fa-check-circle text-green-500 mt-0.5 flex-shrink-0"></i>
+                        <div>
+                            <div class="font-semibold text-gray-900 text-sm">No cookies — ever</div>
+                            <div class="text-gray-500 text-xs mt-0.5">We set zero cookies. No session cookies, no tracking cookies, no preference cookies.</div>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-3 p-4 rounded-xl bg-green-50 border border-green-100">
+                        <i class="fas fa-check-circle text-green-500 mt-0.5 flex-shrink-0"></i>
+                        <div>
+                            <div class="font-semibold text-gray-900 text-sm">No device fingerprinting</div>
+                            <div class="text-gray-500 text-xs mt-0.5">We do not read canvas, WebGL, audio, font, or any other fingerprinting vector.</div>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-3 p-4 rounded-xl bg-green-50 border border-green-100">
+                        <i class="fas fa-check-circle text-green-500 mt-0.5 flex-shrink-0"></i>
+                        <div>
+                            <div class="font-semibold text-gray-900 text-sm">No cross-site tracking</div>
+                            <div class="text-gray-500 text-xs mt-0.5">Each site's data is siloed. A visitor on site A cannot be linked to a visit on site B.</div>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-3 p-4 rounded-xl bg-green-50 border border-green-100">
+                        <i class="fas fa-check-circle text-green-500 mt-0.5 flex-shrink-0"></i>
+                        <div>
+                            <div class="font-semibold text-gray-900 text-sm">No personal data</div>
+                            <div class="text-gray-500 text-xs mt-0.5">No names, email addresses, usernames, or any identifier that could be tied to a real person.</div>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-3 p-4 rounded-xl bg-green-50 border border-green-100">
+                        <i class="fas fa-check-circle text-green-500 mt-0.5 flex-shrink-0"></i>
+                        <div>
+                            <div class="font-semibold text-gray-900 text-sm">No persistent user IDs</div>
+                            <div class="text-gray-500 text-xs mt-0.5">Visitor hashes are non-persistent by design — they reset every 24 hours. See below for details.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- How visitor identification works -->
+        <section class="py-16 bg-gray-50 border-t border-gray-100">
+            <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex items-center gap-3 mb-3">
+                    <div class="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center flex-shrink-0">
+                        <i class="fas fa-fingerprint text-white text-sm"></i>
+                    </div>
+                    <h2 class="text-3xl font-bold text-gray-900">How visitor identification works</h2>
+                </div>
+                <p class="text-gray-500 mb-10 ml-13">To count unique visitors without cookies, we use a daily-salted hash. Here is exactly how it works — no magic, no hidden steps.</p>
+
+                <div class="space-y-4">
+                    <!-- Step 1 -->
+                    <div class="bg-white rounded-xl border border-gray-100 p-6 flex gap-5">
+                        <div class="w-8 h-8 rounded-full bg-blue-600 text-white text-sm font-bold flex items-center justify-center flex-shrink-0">1</div>
+                        <div>
+                            <div class="font-semibold text-gray-900 mb-1">IP address is truncated to /24 subnet</div>
+                            <p class="text-gray-500 text-sm">Before anything else, the last octet of the visitor's IP is zeroed out. <code class="bg-gray-100 px-1.5 py-0.5 rounded text-xs font-mono">203.0.113.42</code> becomes <code class="bg-gray-100 px-1.5 py-0.5 rounded text-xs font-mono">203.0.113.0</code>. This means up to 256 users on the same network subnet share the same starting point — making the hash far less precise, and impossible to reverse-map to an individual.</p>
+                        </div>
+                    </div>
+                    <!-- Step 2 -->
+                    <div class="bg-white rounded-xl border border-gray-100 p-6 flex gap-5">
+                        <div class="w-8 h-8 rounded-full bg-blue-600 text-white text-sm font-bold flex items-center justify-center flex-shrink-0">2</div>
+                        <div>
+                            <div class="font-semibold text-gray-900 mb-1">Combined with a daily salt that rotates every 24 hours UTC</div>
+                            <p class="text-gray-500 text-sm">A fresh random salt is generated at midnight UTC each day. Yesterday's salt is discarded and never stored. This means the same visitor produces a completely different hash on different days — making day-to-day tracking technically impossible, even with access to the database.</p>
+                        </div>
+                    </div>
+                    <!-- Step 3 -->
+                    <div class="bg-white rounded-xl border border-gray-100 p-6 flex gap-5">
+                        <div class="w-8 h-8 rounded-full bg-blue-600 text-white text-sm font-bold flex items-center justify-center flex-shrink-0">3</div>
+                        <div>
+                            <div class="font-semibold text-gray-900 mb-1">Combined with your site's domain</div>
+                            <p class="text-gray-500 text-sm">The domain of the site being tracked is included in the hash input. This guarantees that hashes are site-specific — a visitor to <em>shop.example.com</em> gets a different hash than the same visitor on <em>blog.example.com</em>. No cross-site data linkage is possible.</p>
+                        </div>
+                    </div>
+                    <!-- Step 4 -->
+                    <div class="bg-white rounded-xl border border-gray-100 p-6 flex gap-5">
+                        <div class="w-8 h-8 rounded-full bg-blue-600 text-white text-sm font-bold flex items-center justify-center flex-shrink-0">4</div>
+                        <div>
+                            <div class="font-semibold text-gray-900 mb-1">Combined with your account's SECRET_KEY</div>
+                            <p class="text-gray-500 text-sm">A server-side secret key, unique to each Argusmetrics installation, is added to the hash. Even if someone knows the algorithm, the daily salt, and the IP range, they cannot reproduce or reverse the hash without knowing this secret. It is never exposed to the browser or transmitted over the network.</p>
+                        </div>
+                    </div>
+                    <!-- Result -->
+                    <div class="bg-blue-600 rounded-xl p-6 flex gap-5">
+                        <div class="w-8 h-8 rounded-full bg-white text-blue-600 text-sm font-bold flex items-center justify-center flex-shrink-0">
+                            <i class="fas fa-check text-xs"></i>
+                        </div>
+                        <div>
+                            <div class="font-semibold text-white mb-1">Result: same visitor = same hash today; different hash tomorrow</div>
+                            <p class="text-blue-100 text-sm">This lets us accurately count unique visitors within a day while making it mathematically impossible to track the same person across multiple days. This approach is used by Plausible Analytics and has been reviewed and approved by CNIL, the French data protection authority.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- No consent banner needed -->
+        <section class="py-16 bg-white border-t border-gray-100">
+            <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="grid md:grid-cols-2 gap-12 items-center">
+                    <div>
+                        <div class="inline-flex items-center gap-2 bg-green-50 text-green-700 text-sm font-medium px-3 py-1 rounded-full mb-4 border border-green-100">
+                            <i class="fas fa-ban text-xs"></i>
+                            No cookie banner required
+                        </div>
+                        <h2 class="text-3xl font-bold text-gray-900 mb-4">Skip the consent banner</h2>
+                        <p class="text-gray-500 mb-4">Cookie consent banners are required under GDPR and ePrivacy Directive when you use cookies or similar tracking technologies. Argusmetrics uses neither.</p>
+                        <p class="text-gray-500 mb-4">Because we collect no personal data as defined by GDPR Article 4, and because our daily-salted hash cannot be used to identify or track any natural person, Argusmetrics analytics falls outside the scope of consent requirements.</p>
+                        <p class="text-gray-500">Your visitors get a cleaner experience. You get data you can actually trust (no consent bias). Everyone wins.</p>
+                    </div>
+                    <div class="bg-gray-50 rounded-2xl border border-gray-100 p-8">
+                        <div class="text-center mb-6">
+                            <div class="text-5xl mb-3">🚫</div>
+                            <div class="font-bold text-gray-900">No annoying popups.</div>
+                            <div class="text-gray-500 text-sm mt-1">Users who dismiss cookie banners are not counted — giving you skewed data. With Argusmetrics, every visit is measured equally.</div>
+                        </div>
+                        <div class="space-y-3">
+                            <div class="flex items-center gap-3 text-sm">
+                                <i class="fas fa-check-circle text-green-500 flex-shrink-0"></i>
+                                <span class="text-gray-700">No cookies set</span>
+                            </div>
+                            <div class="flex items-center gap-3 text-sm">
+                                <i class="fas fa-check-circle text-green-500 flex-shrink-0"></i>
+                                <span class="text-gray-700">No personal data collected</span>
+                            </div>
+                            <div class="flex items-center gap-3 text-sm">
+                                <i class="fas fa-check-circle text-green-500 flex-shrink-0"></i>
+                                <span class="text-gray-700">No consent mechanism required</span>
+                            </div>
+                            <div class="flex items-center gap-3 text-sm">
+                                <i class="fas fa-check-circle text-green-500 flex-shrink-0"></i>
+                                <span class="text-gray-700">Compliant with GDPR, ePrivacy Directive, CCPA</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Where your data lives -->
+        <section class="py-16 bg-gray-50 border-t border-gray-100">
+            <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+                <h2 class="text-3xl font-bold text-gray-900 mb-3">Where your data lives</h2>
+                <p class="text-gray-500 mb-10">Infrastructure transparency matters. Here's what's under the hood.</p>
+                <div class="grid md:grid-cols-3 gap-6">
+                    <div class="bg-white rounded-xl border border-gray-100 p-6 text-center">
+                        <div class="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-server text-blue-600"></i>
+                        </div>
+                        <div class="font-semibold text-gray-900 mb-2">Railway — EU Region</div>
+                        <p class="text-gray-500 text-sm">All compute and database infrastructure runs on Railway in the EU region. Your analytics data never leaves European jurisdiction.</p>
+                    </div>
+                    <div class="bg-white rounded-xl border border-gray-100 p-6 text-center">
+                        <div class="w-12 h-12 rounded-xl bg-green-50 flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-database text-green-600"></i>
+                        </div>
+                        <div class="font-semibold text-gray-900 mb-2">PostgreSQL 16</div>
+                        <p class="text-gray-500 text-sm">Data is stored in a managed PostgreSQL database with automated backups. Only aggregated event data is persisted — no raw visitor records.</p>
+                    </div>
+                    <div class="bg-white rounded-xl border border-gray-100 p-6 text-center">
+                        <div class="w-12 h-12 rounded-xl bg-purple-50 flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-lock text-purple-600"></i>
+                        </div>
+                        <div class="font-semibold text-gray-900 mb-2">Encrypted in Transit</div>
+                        <p class="text-gray-500 text-sm">All data in transit is encrypted via TLS 1.3. The tracking script communicates with the backend over HTTPS exclusively.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- GDPR compliance -->
+        <section class="py-16 bg-white border-t border-gray-100">
+            <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+                <h2 class="text-3xl font-bold text-gray-900 mb-3">GDPR compliance</h2>
+                <p class="text-gray-500 mb-10">We've thought through the legal framework so you don't have to spend hours with your DPO.</p>
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div class="border border-gray-100 rounded-xl p-6">
+                        <div class="font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                            <i class="fas fa-building text-blue-500 text-sm"></i>
+                            Data Controller
+                        </div>
+                        <p class="text-gray-500 text-sm">You are the data controller for your website's analytics. Argusmetrics acts as a data processor on your behalf, processing only what is strictly necessary to provide the service.</p>
+                    </div>
+                    <div class="border border-gray-100 rounded-xl p-6">
+                        <div class="font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                            <i class="fas fa-file-contract text-blue-500 text-sm"></i>
+                            Data Processing Agreement
+                        </div>
+                        <p class="text-gray-500 text-sm">A standard Data Processing Agreement (DPA) is available to all customers on request. Enterprise customers can request a signed DPA as part of onboarding.</p>
+                    </div>
+                    <div class="border border-gray-100 rounded-xl p-6">
+                        <div class="font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                            <i class="fas fa-trash-alt text-blue-500 text-sm"></i>
+                            Right to Erasure
+                        </div>
+                        <p class="text-gray-500 text-sm">Because we store no personal data, there is nothing to erase for individual visitors. Site owners can delete their entire analytics dataset from the dashboard at any time, with immediate effect.</p>
+                    </div>
+                    <div class="border border-gray-100 rounded-xl p-6">
+                        <div class="font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                            <i class="fas fa-balance-scale text-blue-500 text-sm"></i>
+                            Legitimate Interest Basis
+                        </div>
+                        <p class="text-gray-500 text-sm">Because Argusmetrics collects no personal data, you can rely on Legitimate Interest as your lawful basis — removing the need for consent-based data collection entirely.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- CTA -->
+        <section class="py-20 bg-blue-600">
+            <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                <h2 class="text-3xl font-bold text-white mb-4">Ready to analyze without compromising privacy?</h2>
+                <p class="text-blue-100 text-lg mb-8">Start your free trial today. No credit card required. Setup takes under 5 minutes.</p>
+                <a href="https://app.argusmetrics.io/signup" class="inline-flex items-center gap-2 bg-white text-blue-600 hover:bg-blue-50 font-semibold px-8 py-3 rounded-lg transition-colors text-lg">
+                    Start free trial <i class="fas fa-arrow-right text-sm"></i>
+                </a>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-gray-400 py-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-8 mb-10">
+                <div class="col-span-2 md:col-span-1">
+                    <a href="/" class="flex items-center space-x-2 mb-3">
+                        <img src="/static/img/ArgusEyefavicon3.png" alt="Argusmetrics" class="h-8 w-8">
+                        <span class="text-white font-bold">Argusmetrics</span>
+                    </a>
+                    <p class="text-sm">Privacy-first web analytics. No cookies. No consent banner. GDPR compliant by default.</p>
+                </div>
+                <div>
+                    <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Product</div>
+                    <ul class="space-y-2 text-sm">
+                        <li><a href="/#features" class="hover:text-white transition-colors">Features</a></li>
+                        <li><a href="/#pricing" class="hover:text-white transition-colors">Pricing</a></li>
+                        <li><a href="/data" class="hover:text-white transition-colors">Privacy by Design</a></li>
+                        <li><a href="/changelog" class="hover:text-white transition-colors">Changelog</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Compare</div>
+                    <ul class="space-y-2 text-sm">
+                        <li><a href="/compare/google-analytics" class="hover:text-white transition-colors">vs Google Analytics</a></li>
+                        <li><a href="/compare/plausible" class="hover:text-white transition-colors">vs Plausible</a></li>
+                        <li><a href="/compare/matomo" class="hover:text-white transition-colors">vs Matomo</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Company</div>
+                    <ul class="space-y-2 text-sm">
+                        <li><a href="/about" class="hover:text-white transition-colors">About</a></li>
+                        <li><a href="/docs" class="hover:text-white transition-colors">Docs</a></li>
+                        <li><a href="/privacy" class="hover:text-white transition-colors">Privacy Policy</a></li>
+                        <li><a href="/terms" class="hover:text-white transition-colors">Terms</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="border-t border-gray-800 pt-6 flex flex-col sm:flex-row justify-between items-center gap-4">
+                <p class="text-sm">&copy; 2026 Argusmetrics. All rights reserved.</p>
+                <p class="text-sm">Made in Sweden &middot; Data stored in the EU</p>
+            </div>
+        </div>
+    </footer>
+
+</body>
+</html>

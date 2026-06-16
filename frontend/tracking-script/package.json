@@ -1,0 +1,15 @@
+{
+  "name": "argus-tracking-script",
+  "version": "1.0.0",
+  "description": "Argusmetrics tracking script - privacy-first analytics",
+  "scripts": {
+    "build": "npm run build:original && npm run build:optimized",
+    "build:original": "terser src/tracker.js --config-file terser.config.json -o dist/tracker.min.js",
+    "build:optimized": "terser src/tracker.prod.js --config-file terser.config.json -o dist/tracker.prod.min.js",
+    "build:script": "npm run build:optimized",
+    "size": "wc -c src/tracker.js src/tracker.prod.js dist/tracker.min.js dist/tracker.prod.min.js"
+  },
+  "devDependencies": {
+    "terser": "^5.44.0"
+  }
+}

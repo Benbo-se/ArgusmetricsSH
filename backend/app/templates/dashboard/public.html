@@ -1,0 +1,856 @@
+{% extends "base.html" %}
+
+{% block title %}{{ website.name }} - Public Analytics Dashboard{% endblock %}
+
+{% block extra_head %}
+<script>
+    // Store website ID for use in dashboard.js
+    window.WEBSITE_ID = {{ website.id }};
+    window.WEBSITE_NAME = "{{ website.name }}";
+</script>
+{% endblock %}
+
+{% block navbar %}
+<!-- Public Dashboard Navigation -->
+<nav class="bg-white shadow-sm fixed top-0 left-0 right-0 z-10" x-data="{ mobileMenuOpen: false }">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between items-center h-16">
+            <!-- Logo -->
+            <div class="flex items-center">
+                <a href="/" class="flex items-center space-x-2">
+                    <img src="/static/img/ArgusEyefavicon3.png" alt="Argusmetrics" class="h-10 w-10">
+                    <span class="text-xl font-bold text-gray-900">Argusmetrics</span>
+                </a>
+                <span class="ml-4 px-3 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full hidden sm:inline-block">
+                    Public Dashboard
+                </span>
+            </div>
+
+            <!-- Desktop navigation -->
+            <div class="hidden md:flex md:items-center md:space-x-4">
+                <a href="/" class="text-gray-600 hover:text-gray-900 text-sm font-medium">
+                    Home
+                </a>
+                <a href="/login" class="text-gray-600 hover:text-gray-900 text-sm font-medium">
+                    Log In
+                </a>
+                <a href="/signup" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors">
+                    Try Argusmetrics
+                </a>
+            </div>
+
+            <!-- Mobile menu button -->
+            <div class="flex items-center md:hidden">
+                <button @click="mobileMenuOpen = !mobileMenuOpen"
+                        class="text-gray-600 hover:text-gray-900 p-2 rounded-md hover:bg-gray-100 transition"
+                        aria-label="Toggle menu">
+                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path x-show="!mobileMenuOpen" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                        <path x-show="mobileMenuOpen" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile menu -->
+    <div x-show="mobileMenuOpen"
+         @click.away="mobileMenuOpen = false"
+         @keydown.escape.window="mobileMenuOpen = false"
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="opacity-0 transform -translate-y-2"
+         x-transition:enter-end="opacity-100 transform translate-y-0"
+         x-transition:leave="transition ease-in duration-150"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         class="md:hidden border-t border-gray-200 bg-white shadow-lg">
+        <div class="px-2 pt-2 pb-3 space-y-1">
+            <a href="/"
+               @click="mobileMenuOpen = false"
+               class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">
+                Home
+            </a>
+            <a href="/login"
+               @click="mobileMenuOpen = false"
+               class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">
+                Log In
+            </a>
+            <a href="/signup"
+               @click="mobileMenuOpen = false"
+               class="block px-3 py-2 text-base font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md text-center">
+                Try Argusmetrics
+            </a>
+        </div>
+    </div>
+</nav>
+{% endblock %}
+
+{% block content %}
+<!-- Public Dashboard Banner -->
+<div class="bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 mt-16">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center">
+                <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/>
+                    <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"/>
+                </svg>
+                <span class="text-sm font-medium">Public Analytics Dashboard</span>
+            </div>
+            <div class="text-xs">
+                View-only access
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Demo Intro Banner -->
+    <div class="bg-blue-50 border-l-4 border-blue-600 p-4 rounded-lg mb-6">
+        <p class="text-sm text-gray-700">
+            <span class="font-semibold">👀 Live Demo:</span> This is how Argusmetrics tracks analytics for {{ website.domain }}. Explore all features below!
+        </p>
+    </div>
+
+    <!-- Header with date range selector -->
+    <div class="mb-8 flex flex-col md:flex-row md:items-center md:justify-between">
+        <div class="flex-1">
+            <h1 class="text-3xl font-bold text-gray-900">{{ website.name }}</h1>
+            <p class="mt-1 text-sm text-gray-500">{{ website.domain }}</p>
+        </div>
+
+        <!-- Date range selector -->
+        <div class="mt-4 md:mt-0" x-data="{
+            open: false,
+            range: '{{ selected_range }}',
+            rangeText: '{% if selected_range == "30d" %}Last 30 days{% elif selected_range == "90d" %}Last 90 days{% elif selected_range == "365d" %}Last 12 months{% else %}Last 7 days{% endif %}'
+        }">
+            <div class="relative">
+                <button @click="open = !open"
+                        class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    <span x-text="rangeText"></span>
+                    <svg class="ml-2 -mr-1 h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                    </svg>
+                </button>
+
+                <!-- Dropdown menu -->
+                <div x-show="open"
+                     @click.away="open = false"
+                     x-transition:enter="transition ease-out duration-100"
+                     x-transition:enter-start="transform opacity-0 scale-95"
+                     x-transition:enter-end="transform opacity-100 scale-100"
+                     x-transition:leave="transition ease-in duration-75"
+                     x-transition:leave-start="transform opacity-100 scale-100"
+                     x-transition:leave-end="transform opacity-0 scale-95"
+                     class="origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
+                    <div class="py-1">
+                        <a href="?range=7d" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Last 7 days</a>
+                        <a href="?range=30d" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Last 30 days</a>
+                        <a href="?range=90d" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Last 90 days</a>
+                        <a href="?range=365d" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Last 12 months</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div class="bg-white rounded-lg shadow p-6">
+            <p class="text-sm font-medium text-gray-600 mb-1">Total Pageviews</p>
+            <div class="flex items-baseline gap-3">
+                <p class="text-3xl font-bold text-gray-900">{{ stats.total_pageviews | default(0) | format_number }}</p>
+                {% if stats.comparison and stats.comparison.pageviews_change is not none %}
+                    <span class="text-sm font-medium {% if stats.comparison.pageviews_change >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
+                        {% if stats.comparison.pageviews_change >= 0 %}▲{% else %}▼{% endif %}
+                        {{ "%.1f"|format(stats.comparison.pageviews_change|abs) }}%
+                    </span>
+                {% endif %}
+            </div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6">
+            <p class="text-sm font-medium text-gray-600 mb-1">Unique Visitors</p>
+            <div class="flex items-baseline gap-3">
+                <p class="text-3xl font-bold text-gray-900">{{ stats.unique_visitors | default(0) | format_number }}</p>
+                {% if stats.comparison and stats.comparison.visitors_change is not none %}
+                    <span class="text-sm font-medium {% if stats.comparison.visitors_change >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
+                        {% if stats.comparison.visitors_change >= 0 %}▲{% else %}▼{% endif %}
+                        {{ "%.1f"|format(stats.comparison.visitors_change|abs) }}%
+                    </span>
+                {% endif %}
+            </div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6">
+            <p class="text-sm font-medium text-gray-600 mb-1">Avg. Views/Visitor</p>
+            <div class="flex items-baseline gap-3">
+                <p class="text-3xl font-bold text-gray-900">
+                    {% if stats.unique_visitors and stats.unique_visitors > 0 %}
+                        {{ "%.1f"|format(stats.total_pageviews / stats.unique_visitors) }}
+                    {% else %}
+                        0
+                    {% endif %}
+                </p>
+                {% if stats.comparison and stats.comparison.avg_views_change is not none %}
+                    <span class="text-sm font-medium {% if stats.comparison.avg_views_change >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
+                        {% if stats.comparison.avg_views_change >= 0 %}▲{% else %}▼{% endif %}
+                        {{ "%.1f"|format(stats.comparison.avg_views_change|abs) }}%
+                    </span>
+                {% endif %}
+            </div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center justify-between mb-1">
+                <p class="text-sm font-medium text-gray-600">Online Now</p>
+                <span class="inline-block w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+            </div>
+            <p class="text-3xl font-bold text-green-600">{{ live_visitors | default(0) }}</p>
+        </div>
+    </div>
+
+    <!-- Main graph -->
+    <div class="bg-white rounded-lg shadow p-6 mb-8">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Pageviews Over Time</h2>
+        <div class="relative h-80">
+            <canvas id="pageviews-chart"></canvas>
+        </div>
+    </div>
+
+    <!-- Two column layout -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+        <!-- Top Pages with Tabs -->
+        <div class="bg-white rounded-lg shadow p-6" x-data="{ pageTab: 'top' }">
+            <div class="flex gap-2 mb-4">
+                <button @click="pageTab = 'top'"
+                        :class="pageTab === 'top' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
+                        class="px-3 py-1.5 text-sm font-medium rounded">
+                    Top Pages
+                </button>
+                <button @click="pageTab = 'entry'"
+                        :class="pageTab === 'entry' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
+                        class="px-3 py-1.5 text-sm font-medium rounded">
+                    Entry Pages
+                </button>
+                <button @click="pageTab = 'exit'"
+                        :class="pageTab === 'exit' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
+                        class="px-3 py-1.5 text-sm font-medium rounded">
+                    Exit Pages
+                </button>
+            </div>
+
+            <!-- Top Pages Tab -->
+            <div x-show="pageTab === 'top'">
+                {% if stats.top_pages and stats.top_pages|length > 0 %}
+                <div class="space-y-3">
+                    {% for page in stats.top_pages %}
+                    <div class="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-medium text-gray-900 truncate">{{ page.path }}</p>
+                        </div>
+                        <div class="ml-4 flex items-center">
+                            <span class="text-sm font-semibold text-gray-900">{{ page.views }}</span>
+                            <span class="ml-2 text-xs text-gray-500">
+                                ({% if stats.total_pageviews > 0 %}{{ "%.0f"|format((page.views / stats.total_pageviews) * 100) }}{% else %}0{% endif %}%)
+                            </span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-gray-500 text-center py-8">No page data yet</p>
+                {% endif %}
+            </div>
+
+            <!-- Entry Pages Tab -->
+            <div x-show="pageTab === 'entry'">
+                {% if stats.entry_pages and stats.entry_pages|length > 0 %}
+                <div class="space-y-3">
+                    {% for page in stats.entry_pages %}
+                    <div class="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-medium text-gray-900 truncate">{{ page.path }}</p>
+                            <p class="text-xs text-gray-500 mt-0.5">First page visitors see</p>
+                        </div>
+                        <div class="ml-4 flex items-center">
+                            <span class="text-sm font-semibold text-gray-900">{{ page.entries }}</span>
+                            <span class="ml-2 text-xs text-gray-500">entries</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-gray-500 text-center py-8">No entry page data yet</p>
+                {% endif %}
+            </div>
+
+            <!-- Exit Pages Tab -->
+            <div x-show="pageTab === 'exit'">
+                {% if stats.exit_pages and stats.exit_pages|length > 0 %}
+                <div class="space-y-3">
+                    {% for page in stats.exit_pages %}
+                    <div class="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-medium text-gray-900 truncate">{{ page.path }}</p>
+                            <p class="text-xs text-gray-500 mt-0.5">Last page before leaving</p>
+                        </div>
+                        <div class="ml-4 flex items-center">
+                            <span class="text-sm font-semibold text-gray-900">{{ page.exits }}</span>
+                            <span class="ml-2 text-xs text-gray-500">exits</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-gray-500 text-center py-8">No exit page data yet</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Top Referrers -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Top Referrers</h2>
+            {% if stats.top_referrers and stats.top_referrers|length > 0 %}
+            <div class="space-y-3">
+                {% for referrer in stats.top_referrers %}
+                <div class="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+                    <div class="flex-1 min-w-0 flex items-center gap-2">
+                        <span class="text-lg flex-shrink-0">{% if 'google' in referrer.referrer.lower() %}🔍{% elif 'facebook' in referrer.referrer.lower() or 'fb.com' in referrer.referrer.lower() %}📘{% elif 'twitter' in referrer.referrer.lower() or 't.co' in referrer.referrer.lower() %}🐦{% elif 'linkedin' in referrer.referrer.lower() %}💼{% elif 'github' in referrer.referrer.lower() %}⚙️{% elif referrer.referrer == '(Direct)' or referrer.referrer == 'Direct' %}➡️{% else %}🌐{% endif %}</span>
+                        <p class="text-sm font-medium text-gray-900 truncate">{{ referrer.referrer }}</p>
+                    </div>
+                    <div class="ml-4 flex items-center">
+                        <span class="text-sm font-semibold text-gray-900">{{ referrer.views }}</span>
+                        <span class="ml-2 text-xs text-gray-500">
+                            ({% if stats.total_pageviews > 0 %}{{ "%.0f"|format((referrer.views / stats.total_pageviews) * 100) }}{% else %}0{% endif %}%)
+                        </span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-gray-500 text-center py-8">No referrer data yet</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Traffic Channels -->
+    {% if stats.traffic_channels and stats.traffic_channels|length > 0 %}
+    <div class="bg-white rounded-lg shadow p-6 mb-8">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Traffic Channels</h2>
+        <p class="text-sm text-gray-600 mb-4">Traffic grouped by source type</p>
+        <div class="space-y-3">
+            {% for channel in stats.traffic_channels %}
+            <div class="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">
+                <div class="flex items-center gap-3">
+                    {% if channel.channel == 'Organic Search' %}
+                    <span class="text-2xl">🔍</span>
+                    {% elif channel.channel == 'Social' %}
+                    <span class="text-2xl">📱</span>
+                    {% elif channel.channel == 'Direct' %}
+                    <span class="text-2xl">➡️</span>
+                    {% elif channel.channel == 'Email' %}
+                    <span class="text-2xl">📧</span>
+                    {% elif channel.channel == 'Paid' %}
+                    <span class="text-2xl">💰</span>
+                    {% elif channel.channel == 'Referral' %}
+                    <span class="text-2xl">🔗</span>
+                    {% else %}
+                    <span class="text-2xl">🌐</span>
+                    {% endif %}
+                    <div>
+                        <p class="text-sm font-semibold text-gray-900">{{ channel.channel }}</p>
+                        <p class="text-xs text-gray-500">
+                            {% if channel.channel == 'Organic Search' %}From search engines
+                            {% elif channel.channel == 'Social' %}From social media
+                            {% elif channel.channel == 'Direct' %}Direct visits
+                            {% elif channel.channel == 'Email' %}From email campaigns
+                            {% elif channel.channel == 'Paid' %}From paid advertising
+                            {% elif channel.channel == 'Referral' %}From other websites
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <div class="text-sm font-bold text-gray-900">{{ channel.views }}</div>
+                    <div class="text-xs text-gray-500">
+                        {% if stats.total_pageviews > 0 %}{{ "%.1f"|format((channel.views / stats.total_pageviews) * 100) }}%{% else %}0%{% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Campaign Sources (UTM Tracking) -->
+    <div class="bg-white rounded-lg shadow p-6 mb-8">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Campaign Sources (UTM Tracking)</h2>
+        <p class="text-sm text-gray-600 mb-4">Track marketing campaign performance using UTM parameters</p>
+        {% if stats.utm_campaigns and stats.utm_campaigns|length > 0 %}
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Source
+                        </th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Medium
+                        </th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Campaign
+                        </th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Views
+                        </th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Percentage
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for campaign in stats.utm_campaigns %}
+                    <tr>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                            {{ campaign.utm_source or '-' }}
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                            {{ campaign.utm_medium or '-' }}
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                            {{ campaign.utm_campaign or '-' }}
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm font-semibold text-gray-900 text-right">
+                            {{ campaign.views }}
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500 text-right">
+                            {% if stats.total_pageviews > 0 %}{{ "%.1f"|format((campaign.views / stats.total_pageviews) * 100) }}%{% else %}0%{% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-gray-500 text-center py-8">No UTM campaign data yet. Add ?utm_source=google&utm_medium=cpc&utm_campaign=spring to your URLs to track campaigns.</p>
+        {% endif %}
+    </div>
+
+    <!-- Goals Section -->
+    <div class="bg-white rounded-lg shadow p-6 mb-8">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-semibold text-gray-900">Goals & Conversions</h2>
+        </div>
+        <p class="text-sm text-gray-600 mb-4">Track custom conversion goals and measure success rates</p>
+        {% if stats.goals and stats.goals|length > 0 %}
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead>
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Goal Name
+                        </th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Conversions
+                        </th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Conversion Rate
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for goal in stats.goals %}
+                    <tr>
+                        <td class="px-4 py-3 whitespace-nowrap">
+                            <div class="text-sm font-medium text-gray-900">{{ goal.name }}</div>
+                            <div class="text-xs text-gray-500 font-mono">{{ goal.event_name }}</div>
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm font-semibold text-gray-900 text-right">
+                            {{ goal.conversions }}
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-right">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if goal.conversion_rate >= 5 %}bg-green-100 text-green-800{% elif goal.conversion_rate >= 2 %}bg-yellow-100 text-yellow-800{% else %}bg-gray-100 text-gray-800{% endif %}">
+                                {{ goal.conversion_rate }}%
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% if stats.total_visitors > 0 %}
+        <p class="mt-4 text-xs text-gray-500">
+            Based on {{ stats.total_visitors }} unique visitors in this period
+        </p>
+        {% endif %}
+        {% else %}
+        <p class="text-gray-500 text-center py-8 mb-4">No conversion goals configured yet. Create goals to track signups, purchases, downloads, and other important actions.</p>
+        <div class="mt-4 p-4 bg-blue-50 rounded-md">
+            <p class="text-sm text-gray-700">
+                <strong>How it works:</strong> Create goals in your dashboard to track page visits (e.g., /thank-you) or custom events. Goals automatically calculate conversion rates based on your traffic.
+            </p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Outbound Links Section -->
+    <div class="bg-white rounded-lg shadow p-6 mb-8">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-semibold text-gray-900">Outbound Links</h2>
+            <span class="text-sm text-gray-500">External destinations clicked by visitors</span>
+        </div>
+        {% if stats.outbound_links and stats.outbound_links|length > 0 %}
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead>
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Destination URL
+                        </th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Link Text
+                        </th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Clicks
+                        </th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Percentage
+                        </th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            From Page
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for link in stats.outbound_links %}
+                    <tr class="hover:bg-gray-50 transition-colors">
+                        <td class="px-4 py-3 text-sm text-gray-900 max-w-md">
+                            <a href="{{ link.url }}" target="_blank" rel="noopener noreferrer"
+                               class="text-blue-600 hover:text-blue-800 hover:underline truncate block"
+                               title="{{ link.url }}">
+                                {{ link.url }}
+                            </a>
+                        </td>
+                        <td class="px-4 py-3 text-sm text-gray-700 max-w-xs truncate" title="{{ link.text }}">
+                            {{ link.text }}
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm font-semibold text-gray-900 text-right">
+                            {{ link.clicks }}
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500 text-right">
+                            {{ link.percentage }}%
+                        </td>
+                        <td class="px-4 py-3 text-sm text-gray-700 max-w-xs truncate" title="{{ link.from_page }}">
+                            {{ link.from_page }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="mt-4 text-xs text-gray-500">
+            <p>Automatically tracked external links clicked by your visitors. Includes links with different domains or target="_blank".</p>
+        </div>
+        {% else %}
+        <p class="text-gray-500 text-center py-8">No outbound link clicks yet. External links are automatically tracked when visitors click them.</p>
+        {% endif %}
+    </div>
+
+    <!-- File Downloads Section -->
+    <div class="bg-white rounded-lg shadow p-6 mb-8">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-semibold text-gray-900">File Downloads</h2>
+            <span class="text-sm text-gray-500">Track file downloads automatically</span>
+        </div>
+        <p class="text-sm text-gray-600 mb-4">Monitor downloads of PDF, ZIP, DOC, XLS, and other file types</p>
+        {% if stats.file_downloads and stats.file_downloads|length > 0 %}
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead>
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Filename
+                        </th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Type
+                        </th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Downloads
+                        </th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Unique Visitors
+                        </th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            From Page
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for download in stats.file_downloads %}
+                    <tr class="hover:bg-gray-50 transition-colors">
+                        <td class="px-4 py-3 text-sm text-gray-900 max-w-md">
+                            <a href="{{ download.url }}" target="_blank" rel="noopener noreferrer"
+                               class="text-blue-600 hover:text-blue-800 hover:underline truncate block font-medium"
+                               title="{{ download.filename }}">
+                                {{ download.filename }}
+                            </a>
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                                .{{ download.file_type }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm font-semibold text-gray-900 text-right">
+                            {{ download.downloads }}
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500 text-right">
+                            {{ download.unique_visitors }}
+                        </td>
+                        <td class="px-4 py-3 text-sm text-gray-700 max-w-xs truncate" title="{{ download.from_page }}">
+                            {{ download.from_page }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="mt-4 text-xs text-gray-500">
+            <p>Automatically tracked file downloads (PDF, ZIP, DOC, XLS, etc). No setup required - just add download links to your site.</p>
+        </div>
+        {% else %}
+        <p class="text-gray-500 text-center py-8">No file downloads tracked yet. File downloads are automatically tracked when visitors download PDF, ZIP, DOC, XLS, and other file types from your site.</p>
+        {% endif %}
+    </div>
+
+    <!-- Custom Events Section -->
+    <div class="bg-white rounded-lg shadow p-6 mb-8">
+        <div class="flex items-center justify-between mb-4">
+            <div>
+                <h2 class="text-lg font-semibold text-gray-900">Custom Events</h2>
+                <p class="text-sm text-gray-600 mt-1">Track custom events with flexible properties</p>
+            </div>
+            {% if custom_events and custom_events.events and custom_events.events|length > 0 %}
+            <span class="text-sm text-gray-500">{{ custom_events.total_events }} total events</span>
+            {% endif %}
+        </div>
+        {% if custom_events and custom_events.events and custom_events.events|length > 0 %}
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead>
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Event Name
+                        </th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Count
+                        </th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Unique Users
+                        </th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Avg/User
+                        </th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Top Properties</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for event in custom_events.events %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-4 py-3 whitespace-nowrap">
+                            <span class="text-sm font-medium text-gray-900">
+                                {{ event.event_name }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm font-semibold text-gray-900 text-right">
+                            {{ event.count }}
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600 text-right">
+                            {{ event.unique_users }}
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600 text-right">
+                            {{ event.avg_per_user }}
+                        </td>
+                        <td class="px-4 py-3 text-sm text-gray-600">
+                            {% if event.top_properties and event.top_properties|length > 0 %}
+                                <div class="flex flex-wrap gap-1">
+                                    {% for prop in event.top_properties[:3] %}
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                                        {{ prop }}
+                                    </span>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <span class="text-gray-400">No properties</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-gray-500 text-center py-8 mb-4">No custom events tracked yet. Start tracking user interactions like button clicks, video plays, form submissions, and more.</p>
+        {% endif %}
+        <div class="mt-4 p-4 bg-blue-50 rounded-md">
+            <h3 class="text-sm font-medium text-gray-900 mb-2">Track Custom Events</h3>
+            <p class="text-sm text-gray-600 mb-2">
+                Track any event with custom properties using the JavaScript API:
+            </p>
+            <pre class="text-xs bg-gray-800 text-gray-100 p-3 rounded overflow-x-auto"><code>// Track a custom event with properties
+argus.trackEvent('button_click', {
+  button: 'signup',
+  variant: 'blue',
+  page: 'home'
+});</code></pre>
+        </div>
+    </div>
+
+    <!-- 404 Errors Section -->
+    <div class="bg-white rounded-lg shadow p-6 mb-8">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">404 Errors</h2>
+        <p class="text-sm text-gray-600 mb-4">
+            Pages that returned 404 errors. Fix broken links to improve user experience.
+        </p>
+        {% if errors_404 and errors_404|length > 0 %}
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead>
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Path
+                        </th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Errors
+                        </th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Referred From</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Last Seen
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for error in errors_404 %}
+                    <tr class="{% if error.error_count > 10 %}bg-red-50{% elif error.error_count >= 5 %}bg-yellow-50{% endif %}">
+                        <td class="px-4 py-3 whitespace-nowrap">
+                            <div class="text-sm font-mono text-gray-900">{{ error.path }}</div>
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap text-right">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if error.error_count > 10 %}bg-red-100 text-red-800{% elif error.error_count >= 5 %}bg-yellow-100 text-yellow-800{% else %}bg-gray-100 text-gray-800{% endif %}">
+                                {{ error.error_count }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3">
+                            {% if error.referrers and error.referrers|length > 0 %}
+                            <div class="text-xs text-gray-600 space-y-1">
+                                {% for referrer in error.referrers[:3] %}
+                                <div class="truncate max-w-xs">{{ referrer }}</div>
+                                {% endfor %}
+                                {% if error.referrers|length > 3 %}
+                                <div class="text-gray-400">+{{ error.referrers|length - 3 }} more</div>
+                                {% endif %}
+                            </div>
+                            {% else %}
+                            <span class="text-xs text-gray-400">Direct</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap text-right text-xs text-gray-500">
+                            {{ error.last_seen[:10] if error.last_seen else '-' }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-gray-500 text-center py-8">No 404 errors detected yet. Broken links and missing pages are automatically tracked to help you maintain a healthy site.</p>
+        {% endif %}
+    </div>
+
+    <!-- Three column layout -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+        <!-- Countries -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Countries</h2>
+            {% if stats.top_countries and stats.top_countries|length > 0 %}
+            <div class="space-y-3">
+                {% for country in stats.top_countries %}
+                <div class="flex items-center justify-between py-2">
+                    <div class="flex items-center space-x-2">
+                        <span class="text-xl">{{ country.country | country_flag }}</span>
+                        <span class="text-sm text-gray-700">{{ country.country }}</span>
+                    </div>
+                    <div class="text-sm font-semibold text-gray-900">
+                        {% if stats.total_pageviews > 0 %}{{ "%.0f"|format((country.views / stats.total_pageviews) * 100) }}%{% else %}0%{% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-gray-500 text-center py-8">No country data yet</p>
+            {% endif %}
+        </div>
+
+        <!-- Devices -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Devices</h2>
+            <div class="relative h-48 mb-4">
+                <canvas id="devices-chart"></canvas>
+            </div>
+            {% if stats.devices %}
+            <div class="space-y-2">
+                {% for device, count in stats.devices.items() %}
+                <div class="flex items-center justify-between text-sm py-2">
+                    <span class="text-gray-700 capitalize">{{ device }}</span>
+                    <span class="font-semibold text-gray-900">{{ count }}</span>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Browsers -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Browsers</h2>
+            {% if stats.top_browsers and stats.top_browsers|length > 0 %}
+            <div class="space-y-3">
+                {% for browser in stats.top_browsers %}
+                <div class="flex items-center justify-between py-2">
+                    <div class="flex items-center gap-2">
+                        <span class="text-lg">{% if 'Chrome' in browser.browser %}🌐{% elif 'Firefox' in browser.browser %}🦊{% elif 'Safari' in browser.browser %}🧭{% elif 'Edge' in browser.browser %}ⓔ{% else %}🌐{% endif %}</span>
+                        <span class="text-sm text-gray-700">{{ browser.browser }}</span>
+                    </div>
+                    <span class="text-sm font-semibold text-gray-900">{{ browser.views }}</span>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-gray-500 text-center py-8">No browser data yet</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Powered by footer -->
+    <div class="mt-12 pt-8 border-t border-gray-200">
+        <div class="text-center">
+            <p class="text-sm text-gray-600">
+                Powered by <a href="https://argusmetrics.io" class="font-medium text-blue-600 hover:text-blue-800" target="_blank">Argusmetrics</a>
+            </p>
+            <p class="mt-1 text-xs text-gray-500">
+                Privacy-first analytics for modern websites
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- Initialize charts -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize pageviews chart
+        const timeseriesData = {{ stats.timeseries | tojson | safe }};
+        initPageviewsChart(timeseriesData);
+
+        // Initialize devices chart
+        const devicesData = {{ stats.devices | tojson | safe }};
+        initDevicesChart(devicesData);
+    });
+</script>
+{% endblock %}

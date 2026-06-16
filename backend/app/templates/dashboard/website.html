@@ -1,0 +1,1343 @@
+{% extends "base.html" %}
+
+{% block title %}{{ website.name }} - Analytics{% endblock %}
+
+{% block extra_head %}
+<script>
+    // Store website ID for use in dashboard.js
+    window.WEBSITE_ID = {{ website.id }};
+    window.WEBSITE_NAME = "{{ website.name }}";
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" x-data="{
+    range: '{{ selected_range }}',
+    compareEnabled: {{ 'true' if compare_enabled else 'false' }},
+    dropdownOpen: false,
+    pageTab: 'top',
+    propertyDropdownOpen: false,
+    filters: {
+        country: '{{ active_filters.country if active_filters.country else '' }}',
+        device: '{{ active_filters.device if active_filters.device else '' }}',
+        browser: '{{ active_filters.browser if active_filters.browser else '' }}',
+        page: '{{ active_filters.page if active_filters.page else '' }}',
+        referrer: '{{ active_filters.referrer if active_filters.referrer else '' }}',
+        properties: {{ active_filters.properties|tojson if active_filters.properties else '{}' }}
+    },
+    get rangeText() {
+        switch(this.range) {
+            case '30d': return 'Last 30 days';
+            case '90d': return 'Last 90 days';
+            case '365d': return 'Last 12 months';
+            default: return 'Last 7 days';
+        }
+    },
+    get hasFilters() {
+        return this.filters.country || this.filters.device || this.filters.browser || this.filters.page || this.filters.referrer || Object.keys(this.filters.properties).length > 0;
+    },
+    get filterCount() {
+        let count = 0;
+        if (this.filters.country) count++;
+        if (this.filters.device) count++;
+        if (this.filters.browser) count++;
+        if (this.filters.page) count++;
+        if (this.filters.referrer) count++;
+        count += Object.keys(this.filters.properties).length;
+        return count;
+    },
+    applyFilter(filterType, value) {
+        this.filters[filterType] = value;
+        this.updateDashboard();
+    },
+    removeFilter(filterType) {
+        this.filters[filterType] = '';
+        this.updateDashboard();
+    },
+    applyPropertyFilter(key, value) {
+        this.filters.properties[key] = value;
+        this.propertyDropdownOpen = false;
+        this.updateDashboard();
+    },
+    removePropertyFilter(key) {
+        delete this.filters.properties[key];
+        this.filters.properties = {...this.filters.properties}; // Trigger reactivity
+        this.updateDashboard();
+    },
+    clearAllFilters() {
+        this.filters.country = '';
+        this.filters.device = '';
+        this.filters.browser = '';
+        this.filters.page = '';
+        this.filters.referrer = '';
+        this.filters.properties = {};
+        this.updateDashboard();
+    },
+    updateDashboard() {
+        const url = new URL(window.location.href);
+        url.searchParams.set('range', this.range);
+        url.searchParams.set('compare', this.compareEnabled ? 'true' : 'false');
+
+        // Set or remove filter params
+        if (this.filters.country) {
+            url.searchParams.set('country', this.filters.country);
+        } else {
+            url.searchParams.delete('country');
+        }
+        if (this.filters.device) {
+            url.searchParams.set('device', this.filters.device);
+        } else {
+            url.searchParams.delete('device');
+        }
+        if (this.filters.browser) {
+            url.searchParams.set('browser', this.filters.browser);
+        } else {
+            url.searchParams.delete('browser');
+        }
+        if (this.filters.page) {
+            url.searchParams.set('page', this.filters.page);
+        } else {
+            url.searchParams.delete('page');
+        }
+        if (this.filters.referrer) {
+            url.searchParams.set('referrer', this.filters.referrer);
+        } else {
+            url.searchParams.delete('referrer');
+        }
+        if (Object.keys(this.filters.properties).length > 0) {
+            url.searchParams.set('properties', JSON.stringify(this.filters.properties));
+        } else {
+            url.searchParams.delete('properties');
+        }
+
+        window.location.href = url.toString();
+    }
+}">
+    <!-- Active Filters Bar -->
+    <div x-show="hasFilters" class="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center flex-wrap gap-2">
+                <span class="text-sm font-medium text-gray-700">Active Filters:</span>
+
+                <!-- Country Filter Badge -->
+                <template x-if="filters.country">
+                    <div class="inline-flex items-center gap-1.5 px-3 py-1 bg-white border border-gray-300 rounded-full text-sm">
+                        <span class="text-lg">🌍</span>
+                        <span class="font-medium" x-text="filters.country"></span>
+                        <button @click="removeFilter('country')" class="ml-1 text-gray-500 hover:text-red-600">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+                </template>
+
+                <!-- Device Filter Badge -->
+                <template x-if="filters.device">
+                    <div class="inline-flex items-center gap-1.5 px-3 py-1 bg-white border border-gray-300 rounded-full text-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                        </svg>
+                        <span class="font-medium capitalize" x-text="filters.device"></span>
+                        <button @click="removeFilter('device')" class="ml-1 text-gray-500 hover:text-red-600">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+                </template>
+
+                <!-- Browser Filter Badge -->
+                <template x-if="filters.browser">
+                    <div class="inline-flex items-center gap-1.5 px-3 py-1 bg-white border border-gray-300 rounded-full text-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"/>
+                        </svg>
+                        <span class="font-medium" x-text="filters.browser"></span>
+                        <button @click="removeFilter('browser')" class="ml-1 text-gray-500 hover:text-red-600">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+                </template>
+
+                <!-- Page Filter Badge -->
+                <template x-if="filters.page">
+                    <div class="inline-flex items-center gap-1.5 px-3 py-1 bg-white border border-gray-300 rounded-full text-sm max-w-xs">
+                        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                        </svg>
+                        <span class="font-medium truncate" x-text="filters.page"></span>
+                        <button @click="removeFilter('page')" class="ml-1 text-gray-500 hover:text-red-600 flex-shrink-0">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+                </template>
+
+                <!-- Referrer Filter Badge -->
+                <template x-if="filters.referrer">
+                    <div class="inline-flex items-center gap-1.5 px-3 py-1 bg-white border border-gray-300 rounded-full text-sm max-w-xs">
+                        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+                        </svg>
+                        <span class="font-medium truncate" x-text="filters.referrer"></span>
+                        <button @click="removeFilter('referrer')" class="ml-1 text-gray-500 hover:text-red-600 flex-shrink-0">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+                </template>
+
+                <!-- Property Filter Badges -->
+                <template x-for="(value, key) in filters.properties" :key="key">
+                    <div class="inline-flex items-center gap-1.5 px-3 py-1 bg-purple-100 border border-purple-300 rounded-full text-sm">
+                        <svg class="w-4 h-4 flex-shrink-0 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
+                        </svg>
+                        <span class="font-medium text-purple-800"><span x-text="key"></span>: <span x-text="value"></span></span>
+                        <button @click="removePropertyFilter(key)" class="ml-1 text-purple-600 hover:text-red-600 flex-shrink-0">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+                </template>
+            </div>
+
+            <button @click="clearAllFilters" class="flex-shrink-0 px-3 py-1 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-md transition-colors">
+                Clear All
+            </button>
+        </div>
+    </div>
+
+    <!-- Header with date range selector -->
+    <div class="mb-8 flex flex-col md:flex-row md:items-center md:justify-between">
+        <div class="flex-1">
+            <div class="flex items-center gap-4">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900">{{ website.name }}</h1>
+                    <p class="mt-1 text-sm text-gray-500">{{ website.domain }}</p>
+                </div>
+                <div class="flex gap-2">
+                    <a href="/dashboard/website/{{ website.id }}/export-csv?range={{ selected_range }}"
+                       class="inline-flex items-center px-3 py-1.5 border border-blue-300 rounded-md text-sm font-medium text-blue-700 bg-blue-50 hover:bg-blue-100"
+                       title="Download analytics data as CSV">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        Export CSV
+                    </a>
+                    <a href="/dashboard/website/{{ website.id }}/team"
+                       class="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                        </svg>
+                        Team
+                    </a>
+                    <a href="/dashboard/website/{{ website.id }}/goals"
+                       class="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                        Goals
+                    </a>
+                    <a href="/dashboard/website/{{ website.id }}/revenue"
+                       class="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        Revenue
+                    </a>
+                    <a href="/dashboard/website/{{ website.id }}/settings"
+                       class="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                        Settings
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Date range selector -->
+        <div class="mt-4 md:mt-0">
+            <div class="flex items-center gap-2">
+                <!-- Quick select buttons -->
+                <div class="inline-flex rounded-md shadow-sm" role="group">
+                    <button @click="range='7d'; updateDashboard()"
+                            :class="range === '7d' ? 'bg-blue-50 text-blue-700 border-blue-300' : 'bg-white text-gray-700 border-gray-300'"
+                            class="px-3 py-2 text-sm font-medium border hover:bg-gray-50 rounded-l-md transition-colors">
+                        7D
+                    </button>
+                    <button @click="range='30d'; updateDashboard()"
+                            :class="range === '30d' ? 'bg-blue-50 text-blue-700 border-blue-300' : 'bg-white text-gray-700 border-gray-300'"
+                            class="px-3 py-2 text-sm font-medium border-t border-b border-r hover:bg-gray-50 transition-colors">
+                        30D
+                    </button>
+                    <button @click="range='90d'; updateDashboard()"
+                            :class="range === '90d' ? 'bg-blue-50 text-blue-700 border-blue-300' : 'bg-white text-gray-700 border-gray-300'"
+                            class="px-3 py-2 text-sm font-medium border-t border-b border-r hover:bg-gray-50 rounded-r-md transition-colors">
+                        90D
+                    </button>
+                </div>
+
+                <!-- More options dropdown -->
+                <div class="relative">
+                    <button @click="dropdownOpen = !dropdownOpen"
+                            class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        <span x-text="rangeText"></span>
+                        <svg class="ml-2 -mr-1 h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                        </svg>
+                    </button>
+
+                <!-- Dropdown menu -->
+                <div x-show="dropdownOpen"
+                     @click.away="dropdownOpen = false"
+                     x-transition:enter="transition ease-out duration-100"
+                     x-transition:enter-start="transform opacity-0 scale-95"
+                     x-transition:enter-end="transform opacity-100 scale-100"
+                     x-transition:leave="transition ease-in duration-75"
+                     x-transition:leave-start="transform opacity-100 scale-100"
+                     x-transition:leave-end="transform opacity-0 scale-95"
+                     class="origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
+                    <div class="py-1">
+                        <button @click="range='7d'; dropdownOpen=false; updateDashboard()"
+                                class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Last 7 days</button>
+                        <button @click="range='30d'; dropdownOpen=false; updateDashboard()"
+                                class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Last 30 days</button>
+                        <button @click="range='90d'; dropdownOpen=false; updateDashboard()"
+                                class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Last 90 days</button>
+                        <button @click="range='365d'; dropdownOpen=false; updateDashboard()"
+                                class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Last 12 months</button>
+                    </div>
+                </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Comparison checkbox and Property filter -->
+    <div class="mb-6 flex items-center gap-6">
+        <label class="inline-flex items-center cursor-pointer">
+            <input type="checkbox"
+                   x-model="compareEnabled"
+                   @change="updateDashboard()"
+                   class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2">
+            <span class="ml-2 text-sm font-medium text-gray-700">Compare to previous period</span>
+        </label>
+
+        <!-- Property Filter Dropdown -->
+        <div class="relative" x-data="{
+            showPropertyDialog: false,
+            propertyKey: '',
+            propertyValue: '',
+            addProperty() {
+                if (this.propertyKey && this.propertyValue) {
+                    $el.closest('[x-data]').__x.$data.applyPropertyFilter(this.propertyKey, this.propertyValue);
+                    this.propertyKey = '';
+                    this.propertyValue = '';
+                    this.showPropertyDialog = false;
+                }
+            }
+        }">
+            <button @click="showPropertyDialog = !showPropertyDialog"
+                    type="button"
+                    class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-purple-700 bg-purple-50 border border-purple-300 rounded-lg hover:bg-purple-100 focus:ring-2 focus:ring-purple-500">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
+                </svg>
+                Add Property Filter
+            </button>
+
+            <!-- Property input dialog -->
+            <div x-show="showPropertyDialog"
+                 @click.away="showPropertyDialog = false"
+                 x-transition
+                 class="absolute left-0 top-full mt-2 w-80 bg-white border border-gray-200 rounded-lg shadow-lg p-4 z-50">
+                <h3 class="text-sm font-semibold text-gray-900 mb-3">Filter by Custom Property</h3>
+
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Property Key</label>
+                        <input type="text"
+                               x-model="propertyKey"
+                               @keydown.enter="addProperty()"
+                               placeholder="e.g., userId, plan, experiment"
+                               class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Property Value</label>
+                        <input type="text"
+                               x-model="propertyValue"
+                               @keydown.enter="addProperty()"
+                               placeholder="e.g., 123, pro, variant-A"
+                               class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                    </div>
+
+                    <button @click="addProperty()"
+                            type="button"
+                            class="w-full px-3 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700 focus:ring-2 focus:ring-purple-500">
+                        Apply Filter
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats cards with auto-refresh -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <!-- First 3 stats -->
+        <div id="stats-basic"
+             hx-get="/dashboard/website/{{ website.id }}/stats-basic?range={{ selected_range }}&compare={{ 'true' if compare_enabled else 'false' }}{% if active_filters.country %}&country={{ active_filters.country }}{% endif %}{% if active_filters.device %}&device={{ active_filters.device }}{% endif %}{% if active_filters.browser %}&browser={{ active_filters.browser }}{% endif %}{% if active_filters.page %}&page={{ active_filters.page }}{% endif %}{% if active_filters.referrer %}&referrer={{ active_filters.referrer }}{% endif %}"
+             hx-trigger="every 10s"
+             hx-swap="innerHTML"
+             class="contents">
+            <div class="bg-white rounded-lg shadow p-6">
+                <p class="text-sm font-medium text-gray-600 mb-1">Total Pageviews</p>
+                <div class="flex items-baseline gap-3">
+                    <p class="text-3xl font-bold text-gray-900">{{ stats.total_pageviews | default(0) | format_number }}</p>
+                    {% if stats.comparison and stats.comparison.pageviews_change is not none %}
+                        <span class="text-sm font-medium {% if stats.comparison.pageviews_change >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
+                            {% if stats.comparison.pageviews_change >= 0 %}▲{% else %}▼{% endif %}
+                            {{ "%.1f"|format(stats.comparison.pageviews_change|abs) }}%
+                        </span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="bg-white rounded-lg shadow p-6">
+                <p class="text-sm font-medium text-gray-600 mb-1">Unique Visitors</p>
+                <div class="flex items-baseline gap-3">
+                    <p class="text-3xl font-bold text-gray-900">{{ stats.unique_visitors | default(0) | format_number }}</p>
+                    {% if stats.comparison and stats.comparison.visitors_change is not none %}
+                        <span class="text-sm font-medium {% if stats.comparison.visitors_change >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
+                            {% if stats.comparison.visitors_change >= 0 %}▲{% else %}▼{% endif %}
+                            {{ "%.1f"|format(stats.comparison.visitors_change|abs) }}%
+                        </span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="bg-white rounded-lg shadow p-6">
+                <p class="text-sm font-medium text-gray-600 mb-1">Avg. Views/Visitor</p>
+                <div class="flex items-baseline gap-3">
+                    <p class="text-3xl font-bold text-gray-900">
+                        {% if stats.unique_visitors and stats.unique_visitors > 0 %}
+                            {{ "%.1f"|format(stats.total_pageviews / stats.unique_visitors) }}
+                        {% else %}
+                            0
+                        {% endif %}
+                    </p>
+                    {% if stats.comparison and stats.comparison.avg_views_change is not none %}
+                        <span class="text-sm font-medium {% if stats.comparison.avg_views_change >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
+                            {% if stats.comparison.avg_views_change >= 0 %}▲{% else %}▼{% endif %}
+                            {{ "%.1f"|format(stats.comparison.avg_views_change|abs) }}%
+                        </span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Live visitors - separate auto-refresh -->
+        <div class="bg-white rounded-lg shadow p-6"
+             hx-get="/dashboard/website/{{ website.id }}/live"
+             hx-trigger="every 5s"
+             hx-swap="innerHTML">
+            <div class="flex items-center justify-between mb-1">
+                <p class="text-sm font-medium text-gray-600">Online Now</p>
+                <span class="inline-block w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+            </div>
+            <p class="text-3xl font-bold text-green-600">{{ live_visitors | default(0) }}</p>
+        </div>
+    </div>
+
+    <!-- Anomaly Alerts -->
+    <div class="bg-white rounded-lg shadow p-6 mb-8" x-data="{
+        anomalies: [],
+        loading: true,
+        error: null,
+        dismissedAlerts: [],
+        async fetchAnomalies() {
+            try {
+                this.loading = true;
+                const response = await fetch(`/api/v1/anomalies/{{ website.id }}`);
+                const data = await response.json();
+
+                if (response.ok) {
+                    this.anomalies = data.anomalies || [];
+                } else if (response.status === 402) {
+                    this.error = 'AI quota exhausted';
+                } else {
+                    this.error = data.detail || 'Failed to fetch anomalies';
+                }
+            } catch (err) {
+                this.error = 'Network error';
+            } finally {
+                this.loading = false;
+            }
+        },
+        dismissAlert(index) {
+            this.dismissedAlerts.push(index);
+        },
+        getSeverityClasses(severity) {
+            if (severity === 'high') return 'border-red-200 bg-red-50';
+            if (severity === 'medium') return 'border-yellow-200 bg-yellow-50';
+            return 'border-blue-200 bg-blue-50';
+        },
+        getSeverityBadgeClasses(severity) {
+            if (severity === 'high') return 'bg-red-100 text-red-800';
+            if (severity === 'medium') return 'bg-yellow-100 text-yellow-800';
+            return 'bg-blue-100 text-blue-800';
+        },
+        getSeverityIcon(severity) {
+            if (severity === 'high') return '⚠️';
+            if (severity === 'medium') return '⚡';
+            return 'ℹ️';
+        },
+        getTypeLabel(type) {
+            const labels = {
+                'traffic_spike': 'Traffic Spike',
+                'bot_attack': 'Bot Attack',
+                'geographic_anomaly': 'Geographic Anomaly',
+                'referrer_spam': 'Referrer Spam'
+            };
+            return labels[type] || type;
+        },
+        formatTimestamp(timestamp) {
+            if (!timestamp) return '';
+            const date = new Date(timestamp);
+            return date.toLocaleString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+    }" x-init="fetchAnomalies()">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                <svg class="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                </svg>
+                Anomaly Alerts
+            </h2>
+            <button @click="fetchAnomalies()"
+                    :disabled="loading"
+                    class="text-sm text-gray-600 hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed">
+                <svg class="w-4 h-4 inline" :class="{ 'animate-spin': loading }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                </svg>
+            </button>
+        </div>
+
+        <!-- Loading State -->
+        <div x-show="loading" class="text-center py-8">
+            <svg class="animate-spin h-8 w-8 mx-auto text-gray-400" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <p class="text-sm text-gray-500 mt-2">Analyzing traffic patterns...</p>
+        </div>
+
+        <!-- Error State -->
+        <div x-show="!loading && error" class="text-center py-8">
+            <svg class="w-12 h-12 mx-auto text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <p class="text-sm text-red-600 mt-2" x-text="error"></p>
+        </div>
+
+        <!-- Anomalies List -->
+        <div x-show="!loading && !error && anomalies.length > 0" class="space-y-3">
+            <template x-for="(anomaly, index) in anomalies" :key="index">
+                <div x-show="!dismissedAlerts.includes(index)"
+                     :class="getSeverityClasses(anomaly.severity)"
+                     class="border-l-4 p-4 rounded-r-lg transition-all duration-200 hover:shadow-md">
+                    <div class="flex items-start justify-between">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2 mb-2">
+                                <span x-text="getSeverityIcon(anomaly.severity)" class="text-xl"></span>
+                                <span :class="getSeverityBadgeClasses(anomaly.severity)"
+                                      class="px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase"
+                                      x-text="getTypeLabel(anomaly.type)">
+                                </span>
+                                <span :class="getSeverityBadgeClasses(anomaly.severity)"
+                                      class="px-2 py-0.5 rounded text-xs font-medium"
+                                      x-text="anomaly.severity">
+                                </span>
+                            </div>
+                            <p class="text-sm font-medium text-gray-900 mb-1" x-text="anomaly.message"></p>
+                            <div class="text-xs text-gray-600 space-y-1">
+                                <template x-if="anomaly.current_pageviews">
+                                    <div>Current: <span class="font-semibold" x-text="anomaly.current_pageviews"></span> pageviews</div>
+                                </template>
+                                <template x-if="anomaly.baseline_avg">
+                                    <div>Baseline: <span class="font-semibold" x-text="anomaly.baseline_avg.toFixed(1)"></span> avg</div>
+                                </template>
+                                <template x-if="anomaly.spike_ratio">
+                                    <div>Spike ratio: <span class="font-semibold" x-text="anomaly.spike_ratio.toFixed(2) + 'x'"></span></div>
+                                </template>
+                                <template x-if="anomaly.visitor_count">
+                                    <div>Suspicious visitors: <span class="font-semibold" x-text="anomaly.visitor_count"></span></div>
+                                </template>
+                                <template x-if="anomaly.country">
+                                    <div>Country: <span class="font-semibold" x-text="anomaly.country"></span></div>
+                                </template>
+                                <template x-if="anomaly.timestamp">
+                                    <div class="text-gray-500 mt-1">
+                                        <svg class="w-3 h-3 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                        </svg>
+                                        <span x-text="formatTimestamp(anomaly.timestamp)"></span>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                        <button @click="dismissAlert(index)"
+                                class="ml-4 text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0"
+                                title="Dismiss alert">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </template>
+        </div>
+
+        <!-- No Anomalies State -->
+        <div x-show="!loading && !error && anomalies.length === 0"
+             class="text-center py-8 bg-green-50 rounded-lg border border-green-200">
+            <svg class="w-12 h-12 mx-auto text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <p class="text-sm font-medium text-green-800 mt-2">No anomalies detected</p>
+            <p class="text-xs text-green-600 mt-1">Your website traffic looks normal</p>
+        </div>
+    </div>
+
+    <!-- Main graph -->
+    <div class="bg-white rounded-lg shadow p-6 mb-8">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Pageviews Over Time</h2>
+        <div class="relative h-80">
+            <canvas id="pageviews-chart"></canvas>
+        </div>
+    </div>
+
+    <!-- Two column layout -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+        <!-- Top Pages with Tabs -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex gap-2">
+                    <button @click="pageTab = 'top'"
+                            :class="pageTab === 'top' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
+                            class="px-3 py-1.5 text-sm font-medium rounded">
+                        Top Pages
+                    </button>
+                    <button @click="pageTab = 'entry'"
+                            :class="pageTab === 'entry' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
+                            class="px-3 py-1.5 text-sm font-medium rounded">
+                        Entry Pages
+                    </button>
+                    <button @click="pageTab = 'exit'"
+                            :class="pageTab === 'exit' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
+                            class="px-3 py-1.5 text-sm font-medium rounded">
+                        Exit Pages
+                    </button>
+                </div>
+                <span x-show="filters.page && pageTab === 'top'" class="text-sm font-normal text-blue-600">(filtered)</span>
+            </div>
+
+            <!-- Top Pages Tab Content -->
+            <div x-show="pageTab === 'top'">
+                {% if stats.top_pages and stats.top_pages|length > 0 %}
+                <!-- Data injected as JSON so visitor-controlled paths are not interpolated
+                     into inline Alpine JS expressions (XSS-safe via |tojson). -->
+                <div class="space-y-3" x-data="{ topPages: {{ stats.top_pages|tojson }} }">
+                    <template x-for="page in topPages" :key="page.path">
+                        <div @click="applyFilter('page', page.path)"
+                             class="flex items-center justify-between py-2 border-b border-gray-100 last:border-0 cursor-pointer hover:bg-gray-50 transition-colors rounded px-2 -mx-2"
+                             :class="{ 'bg-blue-50 border-blue-200': filters.page === page.path }">
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium text-gray-900 truncate" x-text="page.path"></p>
+                            </div>
+                            <div class="ml-4 flex items-center">
+                                <span class="text-sm font-semibold text-gray-900" x-text="page.views"></span>
+                                <span class="ml-2 text-xs text-gray-500"
+                                      x-text="'(' + ({{ stats.total_pageviews }} > 0 ? Math.round((page.views / {{ stats.total_pageviews }}) * 100) : 0) + '%)'"></span>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+                {% else %}
+                <p class="text-gray-500 text-center py-8">No page data yet</p>
+                {% endif %}
+            </div>
+
+            <!-- Entry Pages Tab Content -->
+            <div x-show="pageTab === 'entry'">
+                {% if stats.entry_pages and stats.entry_pages|length > 0 %}
+                <div class="space-y-3">
+                    {% for page in stats.entry_pages %}
+                    <div class="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-medium text-gray-900 truncate">{{ page.path }}</p>
+                            <p class="text-xs text-gray-500 mt-0.5">First page visitors see</p>
+                        </div>
+                        <div class="ml-4 flex items-center">
+                            <span class="text-sm font-semibold text-gray-900">{{ page.entries }}</span>
+                            <span class="ml-2 text-xs text-gray-500">entries</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-gray-500 text-center py-8">No entry page data yet</p>
+                {% endif %}
+            </div>
+
+            <!-- Exit Pages Tab Content -->
+            <div x-show="pageTab === 'exit'">
+                {% if stats.exit_pages and stats.exit_pages|length > 0 %}
+                <div class="space-y-3">
+                    {% for page in stats.exit_pages %}
+                    <div class="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-medium text-gray-900 truncate">{{ page.path }}</p>
+                            <p class="text-xs text-gray-500 mt-0.5">Last page before leaving</p>
+                        </div>
+                        <div class="ml-4 flex items-center">
+                            <span class="text-sm font-semibold text-gray-900">{{ page.exits }}</span>
+                            <span class="ml-2 text-xs text-gray-500">exits</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-gray-500 text-center py-8">No exit page data yet</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Top Referrers -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">
+                Top Referrers
+                <span x-show="filters.referrer" class="ml-2 text-sm font-normal text-blue-600">(filtered)</span>
+            </h2>
+            {% if stats.top_referrers and stats.top_referrers|length > 0 %}
+            <!-- Data injected as JSON so visitor-controlled referrers are not interpolated
+                 into inline Alpine JS expressions (XSS-safe via |tojson). -->
+            <div class="space-y-3" x-data="{
+                topReferrers: {{ stats.top_referrers|tojson }},
+                referrerIcon(referrer) {
+                    const r = (referrer || '').toLowerCase();
+                    if (r.includes('google')) return '🔍';
+                    if (r.includes('facebook') || r.includes('fb.com')) return '📘';
+                    if (r.includes('twitter') || r.includes('t.co')) return '🐦';
+                    if (r.includes('linkedin')) return '💼';
+                    if (r.includes('github')) return '⚙️';
+                    if (referrer === '(Direct)' || referrer === 'Direct') return '➡️';
+                    return '🌐';
+                }
+            }">
+                <template x-for="referrer in topReferrers" :key="referrer.referrer">
+                    <div @click="applyFilter('referrer', referrer.referrer)"
+                         class="flex items-center justify-between py-2 border-b border-gray-100 last:border-0 cursor-pointer hover:bg-gray-50 transition-colors rounded px-2 -mx-2"
+                         :class="{ 'bg-blue-50 border-blue-200': filters.referrer === referrer.referrer }">
+                        <div class="flex-1 min-w-0 flex items-center gap-2">
+                            <span class="text-lg flex-shrink-0" x-text="referrerIcon(referrer.referrer)"></span>
+                            <p class="text-sm font-medium text-gray-900 truncate" x-text="referrer.referrer"></p>
+                        </div>
+                        <div class="ml-4 flex items-center">
+                            <span class="text-sm font-semibold text-gray-900" x-text="referrer.views"></span>
+                            <span class="ml-2 text-xs text-gray-500"
+                                  x-text="'(' + ({{ stats.total_pageviews }} > 0 ? Math.round((referrer.views / {{ stats.total_pageviews }}) * 100) : 0) + '%)'"></span>
+                        </div>
+                    </div>
+                </template>
+            </div>
+            {% else %}
+            <p class="text-gray-500 text-center py-8">No referrer data yet</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Traffic Channels -->
+    {% if stats.traffic_channels and stats.traffic_channels|length > 0 %}
+    <div class="bg-white rounded-lg shadow p-6 mb-8">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Traffic Channels</h2>
+        <p class="text-sm text-gray-600 mb-4">Traffic grouped by source type</p>
+        <div class="space-y-3">
+            {% for channel in stats.traffic_channels %}
+            <div class="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">
+                <div class="flex items-center gap-3">
+                    {% if channel.channel == 'Organic Search' %}
+                    <span class="text-2xl">🔍</span>
+                    {% elif channel.channel == 'Social' %}
+                    <span class="text-2xl">📱</span>
+                    {% elif channel.channel == 'Direct' %}
+                    <span class="text-2xl">➡️</span>
+                    {% elif channel.channel == 'Email' %}
+                    <span class="text-2xl">📧</span>
+                    {% elif channel.channel == 'Paid' %}
+                    <span class="text-2xl">💰</span>
+                    {% elif channel.channel == 'Referral' %}
+                    <span class="text-2xl">🔗</span>
+                    {% else %}
+                    <span class="text-2xl">🌐</span>
+                    {% endif %}
+                    <div>
+                        <p class="text-sm font-semibold text-gray-900">{{ channel.channel }}</p>
+                        <p class="text-xs text-gray-500">
+                            {% if channel.channel == 'Organic Search' %}From search engines (Google, Bing, etc)
+                            {% elif channel.channel == 'Social' %}From social media (Facebook, Twitter, LinkedIn)
+                            {% elif channel.channel == 'Direct' %}Direct visits (no referrer)
+                            {% elif channel.channel == 'Email' %}From email campaigns (utm_medium=email)
+                            {% elif channel.channel == 'Paid' %}From paid advertising (utm_medium=cpc/ppc)
+                            {% elif channel.channel == 'Referral' %}From other websites
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <div class="text-sm font-bold text-gray-900">{{ channel.views }}</div>
+                    <div class="text-xs text-gray-500">
+                        {% if stats.total_pageviews > 0 %}{{ "%.1f"|format((channel.views / stats.total_pageviews) * 100) }}%{% else %}0%{% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Campaign Sources (UTM Tracking) -->
+    {% if stats.utm_campaigns and stats.utm_campaigns|length > 0 %}
+    <div class="bg-white rounded-lg shadow p-6 mb-8">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Campaign Sources</h2>
+        <div class="overflow-x-auto" x-data="sortableTable()">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th @click="sortTable(0)" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
+                            Source <span x-text="getSortIcon(0)"></span>
+                        </th>
+                        <th @click="sortTable(1)" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
+                            Medium <span x-text="getSortIcon(1)"></span>
+                        </th>
+                        <th @click="sortTable(2)" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
+                            Campaign <span x-text="getSortIcon(2)"></span>
+                        </th>
+                        <th @click="sortTable(3, true)" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
+                            Views <span x-text="getSortIcon(3)"></span>
+                        </th>
+                        <th @click="sortTable(4, true)" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
+                            Percentage <span x-text="getSortIcon(4)"></span>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for campaign in stats.utm_campaigns %}
+                    <tr>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                            {{ campaign.utm_source or '-' }}
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                            {{ campaign.utm_medium or '-' }}
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                            {{ campaign.utm_campaign or '-' }}
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm font-semibold text-gray-900 text-right">
+                            {{ campaign.views }}
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500 text-right">
+                            {% if stats.total_pageviews > 0 %}{{ "%.1f"|format((campaign.views / stats.total_pageviews) * 100) }}%{% else %}0%{% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Goals Section -->
+    {% if stats.goals and stats.goals|length > 0 %}
+    <div class="bg-white rounded-lg shadow p-6 mb-8">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-semibold text-gray-900">Goals & Conversions</h2>
+            <a href="/dashboard/website/{{ website.id }}/goals"
+               class="text-sm text-blue-600 hover:text-blue-800 font-medium">
+                Manage Goals →
+            </a>
+        </div>
+        <div class="overflow-x-auto" x-data="sortableTable()">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead>
+                    <tr>
+                        <th @click="sortTable(0)" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
+                            Goal Name <span x-text="getSortIcon(0)"></span>
+                        </th>
+                        <th @click="sortTable(1, true)" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
+                            Conversions <span x-text="getSortIcon(1)"></span>
+                        </th>
+                        <th @click="sortTable(2, true)" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
+                            Conversion Rate <span x-text="getSortIcon(2)"></span>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for goal in stats.goals %}
+                    <tr>
+                        <td class="px-4 py-3 whitespace-nowrap">
+                            <div class="text-sm font-medium text-gray-900">{{ goal.name }}</div>
+                            <div class="text-xs text-gray-500 font-mono">{{ goal.event_name }}</div>
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm font-semibold text-gray-900 text-right">
+                            {{ goal.conversions }}
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-right">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if goal.conversion_rate >= 5 %}bg-green-100 text-green-800{% elif goal.conversion_rate >= 2 %}bg-yellow-100 text-yellow-800{% else %}bg-gray-100 text-gray-800{% endif %}">
+                                {{ goal.conversion_rate }}%
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% if stats.total_visitors > 0 %}
+        <p class="mt-4 text-xs text-gray-500">
+            Based on {{ stats.total_visitors }} unique visitors in this period
+        </p>
+        {% endif %}
+    </div>
+    {% elif stats.goals is defined %}
+    <!-- Empty State for Goals -->
+    <div class="bg-white rounded-lg shadow p-6 mb-8">
+        <div class="text-center py-8">
+            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
+            </svg>
+            <h3 class="mt-2 text-sm font-medium text-gray-900">No goals configured</h3>
+            <p class="mt-1 text-sm text-gray-500">Track conversions by creating your first goal.</p>
+            <div class="mt-6">
+                <a href="/dashboard/website/{{ website.id }}/goals"
+                   class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+                    Create Your First Goal
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Outbound Links Section -->
+    {% if stats.outbound_links and stats.outbound_links|length > 0 %}
+    <div class="bg-white rounded-lg shadow p-6 mb-8">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-semibold text-gray-900">Outbound Links</h2>
+            <span class="text-sm text-gray-500">Top 20 external destinations</span>
+        </div>
+        <div class="overflow-x-auto" x-data="sortableTable()">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead>
+                    <tr>
+                        <th @click="sortTable(0)" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
+                            Destination URL <span x-text="getSortIcon(0)"></span>
+                        </th>
+                        <th @click="sortTable(1)" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
+                            Link Text <span x-text="getSortIcon(1)"></span>
+                        </th>
+                        <th @click="sortTable(2, true)" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
+                            Clicks <span x-text="getSortIcon(2)"></span>
+                        </th>
+                        <th @click="sortTable(3, true)" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
+                            Percentage <span x-text="getSortIcon(3)"></span>
+                        </th>
+                        <th @click="sortTable(4)" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
+                            From Page <span x-text="getSortIcon(4)"></span>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for link in stats.outbound_links %}
+                    <tr class="hover:bg-gray-50 transition-colors">
+                        <td class="px-4 py-3 text-sm text-gray-900 max-w-md">
+                            <a href="{{ link.url }}" target="_blank" rel="noopener noreferrer"
+                               class="text-blue-600 hover:text-blue-800 hover:underline truncate block"
+                               title="{{ link.url }}">
+                                {{ link.url }}
+                            </a>
+                        </td>
+                        <td class="px-4 py-3 text-sm text-gray-700 max-w-xs truncate" title="{{ link.text }}">
+                            {{ link.text }}
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm font-semibold text-gray-900 text-right">
+                            {{ link.clicks }}
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500 text-right">
+                            {{ link.percentage }}%
+                        </td>
+                        <td class="px-4 py-3 text-sm text-gray-700 max-w-xs truncate" title="{{ link.from_page }}">
+                            {{ link.from_page }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="mt-4 text-xs text-gray-500">
+            <p>Automatically tracked external links clicked by your visitors. Includes links with different domains or target="_blank".</p>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- File Downloads Section -->
+    {% if stats.file_downloads and stats.file_downloads|length > 0 %}
+    <div class="bg-white rounded-lg shadow p-6 mb-8">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-semibold text-gray-900">File Downloads</h2>
+            <span class="text-sm text-gray-500">Top 50 downloaded files</span>
+        </div>
+        <div class="overflow-x-auto" x-data="sortableTable()">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead>
+                    <tr>
+                        <th @click="sortTable(0)" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
+                            Filename <span x-text="getSortIcon(0)"></span>
+                        </th>
+                        <th @click="sortTable(1)" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
+                            Type <span x-text="getSortIcon(1)"></span>
+                        </th>
+                        <th @click="sortTable(2, true)" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
+                            Downloads <span x-text="getSortIcon(2)"></span>
+                        </th>
+                        <th @click="sortTable(3, true)" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
+                            Unique Visitors <span x-text="getSortIcon(3)"></span>
+                        </th>
+                        <th @click="sortTable(4)" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
+                            From Page <span x-text="getSortIcon(4)"></span>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for download in stats.file_downloads %}
+                    <tr class="hover:bg-gray-50 transition-colors">
+                        <td class="px-4 py-3 text-sm text-gray-900 max-w-md">
+                            <a href="{{ download.url }}" target="_blank" rel="noopener noreferrer"
+                               class="text-blue-600 hover:text-blue-800 hover:underline truncate block font-medium"
+                               title="{{ download.filename }}">
+                                {{ download.filename }}
+                            </a>
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                                .{{ download.file_type }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm font-semibold text-gray-900 text-right">
+                            {{ download.downloads }}
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500 text-right">
+                            {{ download.unique_visitors }}
+                        </td>
+                        <td class="px-4 py-3 text-sm text-gray-700 max-w-xs truncate" title="{{ download.from_page }}">
+                            {{ download.from_page }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="mt-4 text-xs text-gray-500">
+            <p>Automatically tracked file downloads (PDF, ZIP, DOC, XLS, etc). No setup required - just add download links to your site.</p>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Custom Events Section -->
+    {% if custom_events and custom_events.events and custom_events.events|length > 0 %}
+    <div class="bg-white rounded-lg shadow p-6 mb-8">
+        <div class="flex items-center justify-between mb-4">
+            <div>
+                <h2 class="text-lg font-semibold text-gray-900">Custom Events</h2>
+                <p class="text-sm text-gray-600 mt-1">Track custom events with flexible properties</p>
+            </div>
+            <span class="text-sm text-gray-500">{{ custom_events.total_events }} total events</span>
+        </div>
+        <div class="overflow-x-auto" x-data="sortableTable()">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead>
+                    <tr>
+                        <th @click="sortTable(0)" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
+                            Event Name <span x-text="getSortIcon(0)"></span>
+                        </th>
+                        <th @click="sortTable(1, true)" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
+                            Count <span x-text="getSortIcon(1)"></span>
+                        </th>
+                        <th @click="sortTable(2, true)" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
+                            Unique Users <span x-text="getSortIcon(2)"></span>
+                        </th>
+                        <th @click="sortTable(3, true)" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
+                            Avg/User <span x-text="getSortIcon(3)"></span>
+                        </th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Top Properties</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for event in custom_events.events %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-4 py-3 whitespace-nowrap">
+                            <a href="/dashboard/website/{{ website.id }}/events/{{ event.event_name }}"
+                               class="text-sm font-medium text-blue-600 hover:text-blue-800">
+                                {{ event.event_name }}
+                            </a>
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm font-semibold text-gray-900 text-right">
+                            {{ event.count }}
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600 text-right">
+                            {{ event.unique_users }}
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600 text-right">
+                            {{ event.avg_per_user }}
+                        </td>
+                        <td class="px-4 py-3 text-sm text-gray-600">
+                            {% if event.top_properties and event.top_properties|length > 0 %}
+                                <div class="flex flex-wrap gap-1">
+                                    {% for prop in event.top_properties[:3] %}
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                                        {{ prop }}
+                                    </span>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <span class="text-gray-400">No properties</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="mt-4 p-4 bg-blue-50 rounded-md">
+            <h3 class="text-sm font-medium text-gray-900 mb-2">Track Custom Events</h3>
+            <p class="text-sm text-gray-600 mb-2">
+                Track any event with custom properties using the JavaScript API:
+            </p>
+            <pre class="text-xs bg-gray-800 text-gray-100 p-3 rounded overflow-x-auto"><code>// Track a custom event with properties
+argus.trackEvent('button_click', {
+  button: 'signup',
+  variant: 'blue',
+  page: 'home'
+});</code></pre>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 404 Errors Section -->
+    {% if errors_404 and errors_404|length > 0 %}
+    <div class="bg-white rounded-lg shadow p-6 mb-8">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">404 Errors</h2>
+        <p class="text-sm text-gray-600 mb-4">
+            Pages that returned 404 errors. Fix broken links to improve user experience.
+        </p>
+        <div class="overflow-x-auto" x-data="sortableTable()">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead>
+                    <tr>
+                        <th @click="sortTable(0)" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
+                            Path <span x-text="getSortIcon(0)"></span>
+                        </th>
+                        <th @click="sortTable(1, true)" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
+                            Errors <span x-text="getSortIcon(1)"></span>
+                        </th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Referred From</th>
+                        <th @click="sortTable(3)" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
+                            Last Seen <span x-text="getSortIcon(3)"></span>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for error in errors_404 %}
+                    <tr class="{% if error.error_count > 10 %}bg-red-50{% elif error.error_count >= 5 %}bg-yellow-50{% endif %}">
+                        <td class="px-4 py-3 whitespace-nowrap">
+                            <div class="text-sm font-mono text-gray-900">{{ error.path }}</div>
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap text-right">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if error.error_count > 10 %}bg-red-100 text-red-800{% elif error.error_count >= 5 %}bg-yellow-100 text-yellow-800{% else %}bg-gray-100 text-gray-800{% endif %}">
+                                {{ error.error_count }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3">
+                            {% if error.referrers and error.referrers|length > 0 %}
+                            <div class="text-xs text-gray-600 space-y-1">
+                                {% for referrer in error.referrers[:3] %}
+                                <div class="truncate max-w-xs">{{ referrer }}</div>
+                                {% endfor %}
+                                {% if error.referrers|length > 3 %}
+                                <div class="text-gray-400">+{{ error.referrers|length - 3 }} more</div>
+                                {% endif %}
+                            </div>
+                            {% else %}
+                            <span class="text-xs text-gray-400">Direct</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap text-right text-xs text-gray-500">
+                            {{ error.last_seen[:10] if error.last_seen else '-' }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <p class="text-sm text-blue-800">
+                <strong>How to track 404 errors:</strong> Add the tracking code to your 404 error page template.
+                <a href="/dashboard/website/{{ website.id }}/settings" class="underline hover:text-blue-900">View setup instructions</a>
+            </p>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Three column layout -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+        <!-- Countries -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">
+                Countries
+                <span x-show="filters.country" class="ml-2 text-sm font-normal text-blue-600">(filtered)</span>
+            </h2>
+            {% if stats.top_countries and stats.top_countries|length > 0 %}
+            <div class="space-y-3">
+                {% for country in stats.top_countries %}
+                <div @click="applyFilter('country', '{{ country.country }}')"
+                     class="flex items-center justify-between py-2 cursor-pointer hover:bg-gray-50 transition-colors rounded px-2 -mx-2"
+                     :class="{ 'bg-blue-50 border-l-4 border-blue-500': filters.country === '{{ country.country }}' }">
+                    <div class="flex items-center space-x-2">
+                        <span class="text-xl">{{ country.country | country_flag }}</span>
+                        <span class="text-sm text-gray-700">{{ country.country }}</span>
+                    </div>
+                    <div class="text-sm font-semibold text-gray-900">
+                        {% if stats.total_pageviews > 0 %}{{ "%.0f"|format((country.views / stats.total_pageviews) * 100) }}%{% else %}0%{% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-gray-500 text-center py-8">No country data yet</p>
+            {% endif %}
+        </div>
+
+        <!-- Devices -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">
+                Devices
+                <span x-show="filters.device" class="ml-2 text-sm font-normal text-blue-600">(filtered)</span>
+            </h2>
+            <div class="relative h-48 mb-4">
+                <canvas id="devices-chart"></canvas>
+            </div>
+            {% if stats.devices %}
+            <div class="space-y-2">
+                {% for device, count in stats.devices.items() %}
+                <div @click="applyFilter('device', '{{ device }}')"
+                     class="flex items-center justify-between text-sm py-2 px-2 -mx-2 cursor-pointer hover:bg-gray-50 transition-colors rounded"
+                     :class="{ 'bg-blue-50 border-l-4 border-blue-500': filters.device === '{{ device }}' }">
+                    <span class="text-gray-700 capitalize">{{ device }}</span>
+                    <span class="font-semibold text-gray-900">{{ count }}</span>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Browsers -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">
+                Browsers
+                <span x-show="filters.browser" class="ml-2 text-sm font-normal text-blue-600">(filtered)</span>
+            </h2>
+            {% if stats.top_browsers and stats.top_browsers|length > 0 %}
+            <div class="space-y-3">
+                {% for browser in stats.top_browsers %}
+                <div @click="applyFilter('browser', '{{ browser.browser }}')"
+                     class="flex items-center justify-between py-2 px-2 -mx-2 cursor-pointer hover:bg-gray-50 transition-colors rounded"
+                     :class="{ 'bg-blue-50 border-l-4 border-blue-500': filters.browser === '{{ browser.browser }}' }">
+                    <div class="flex items-center gap-2">
+                        {%- if 'Chrome' in browser.browser and 'Chromium' not in browser.browser -%}
+                            <i class="fab fa-chrome text-lg" style="color: #4285f4;"></i>
+                        {%- elif 'Firefox' in browser.browser -%}
+                            <i class="fab fa-firefox-browser text-lg" style="color: #ff7139;"></i>
+                        {%- elif 'Safari' in browser.browser -%}
+                            <i class="fab fa-safari text-lg" style="color: #006cff;"></i>
+                        {%- elif 'Edge' in browser.browser -%}
+                            <i class="fab fa-edge text-lg" style="color: #0078d7;"></i>
+                        {%- elif 'Opera' in browser.browser -%}
+                            <i class="fab fa-opera text-lg" style="color: #ff1b2d;"></i>
+                        {%- elif 'Brave' in browser.browser -%}
+                            <i class="fab fa-brave text-lg" style="color: #fb542b;"></i>
+                        {%- elif 'Chromium' in browser.browser -%}
+                            <i class="fas fa-circle-notch text-lg" style="color: #4a90e2;"></i>
+                        {%- elif 'IE' in browser.browser or 'Internet Explorer' in browser.browser -%}
+                            <i class="fab fa-internet-explorer text-lg" style="color: #0076d7;"></i>
+                        {%- elif 'Android' in browser.browser -%}
+                            <i class="fab fa-android text-lg" style="color: #3ddc84;"></i>
+                        {%- elif 'Samsung' in browser.browser -%}
+                            <i class="fas fa-mobile-alt text-lg" style="color: #1428a0;"></i>
+                        {%- else -%}
+                            <i class="fas fa-globe text-lg text-gray-600"></i>
+                        {%- endif -%}
+                        <span class="text-sm text-gray-700">{{ browser.browser }}</span>
+                    </div>
+                    <span class="text-sm font-semibold text-gray-900">{{ browser.views }}</span>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-gray-500 text-center py-8">No browser data yet</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Live Visitors Section -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+            <span class="inline-block w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></span>
+            Live Visitors
+        </h2>
+        <div id="live-visitors-list"
+             hx-get="/dashboard/website/{{ website.id }}/live-list"
+             hx-trigger="every 5s"
+             hx-swap="innerHTML">
+            <!-- Will be populated by HTMX -->
+            <div class="text-center py-8 text-gray-500">Loading...</div>
+        </div>
+    </div>
+</div>
+
+<!-- Initialize charts -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize pageviews chart
+        const timeseriesData = {{ stats.timeseries | tojson | safe }};
+        const previousPeriodData = {{ stats.timeseries_previous | tojson | safe if stats.timeseries_previous else 'null' }};
+        initPageviewsChart(timeseriesData, previousPeriodData);
+
+        // Initialize devices chart
+        const devicesData = {{ stats.devices | tojson | safe }};
+        initDevicesChart(devicesData);
+    });
+
+    function updateDashboard(range, compare) {
+        // Reload page with new date range and comparison setting
+        const url = new URL(window.location.href);
+        url.searchParams.set('range', range);
+        if (compare !== undefined) {
+            url.searchParams.set('compare', compare ? 'true' : 'false');
+        }
+        window.location.href = url.toString();
+    }
+</script>
+{% endblock %}

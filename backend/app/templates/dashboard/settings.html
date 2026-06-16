@@ -1,0 +1,703 @@
+{% extends "base.html" %}
+
+{% block title %}{{ website.name }} - Settings{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900">Website Settings</h1>
+        <p class="mt-2 text-gray-600">{{ website.name }} - {{ website.domain }}</p>
+    </div>
+
+    <!-- Domain Verification Section -->
+    <div class="bg-white rounded-lg shadow border-l-4 {% if website.is_verified %}border-green-500{% else %}border-yellow-500{% endif %} p-6 mb-6"
+         x-data="{
+             verified: {{ 'true' if website.is_verified else 'false' }},
+             verifying: false,
+             instructions: null,
+             showInstructions: {{ 'false' if website.is_verified else 'true' }},
+             copied: false,
+             async fetchInstructions() {
+                 try {
+                     // Auth via httponly session_token cookie (SameSite=Lax mitigates CSRF)
+                     const response = await fetch('/api/v1/websites/{{ website.id }}/verification-instructions', {
+                         credentials: 'same-origin'
+                     });
+                     const data = await response.json();
+                     if (response.ok) {
+                         this.instructions = data;
+                         console.log('Verification instructions loaded:', data);
+                     } else {
+                         console.error('Failed to load instructions:', data);
+                         alert('Failed to load instructions: ' + (data.message || data.detail || 'Unknown error'));
+                     }
+                 } catch (error) {
+                     console.error('Error fetching instructions:', error);
+                     alert('Failed to load verification instructions. Check console for details.');
+                 }
+             },
+             async verifyDomain() {
+                 this.verifying = true;
+                 try {
+                     // Auth via httponly session_token cookie (SameSite=Lax mitigates CSRF)
+                     const response = await fetch('/api/v1/websites/{{ website.id }}/verify-domain', {
+                         method: 'POST',
+                         credentials: 'same-origin'
+                     });
+                     const data = await response.json();
+                     if (response.ok) {
+                         if (data.verified) {
+                             this.verified = true;
+                             this.showInstructions = false;
+                             alert('✅ ' + data.message + '\\n\\nTracking is now enabled! Please reload the page.');
+                             setTimeout(() => window.location.reload(), 1500);
+                         } else {
+                             alert('❌ Verification failed\\n\\n' + data.message);
+                         }
+                     } else {
+                         alert('Error: ' + (data.message || data.detail || 'Unknown error'));
+                     }
+                 } catch (error) {
+                     console.error('Error verifying domain:', error);
+                     alert('Failed to verify domain. Please try again.');
+                 } finally {
+                     this.verifying = false;
+                 }
+             },
+             init() {
+                 if (!this.verified) {
+                     setTimeout(() => this.fetchInstructions(), 100);
+                 }
+             }
+         }">
+        <div class="flex items-start justify-between">
+            <div class="flex-1">
+                <div class="flex items-center">
+                    <h2 class="text-lg font-semibold text-gray-900">Domain Verification</h2>
+                    {% if website.is_verified %}
+                    <span class="ml-3 inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                        <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                        </svg>
+                        Verified
+                    </span>
+                    {% else %}
+                    <span class="ml-3 inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
+                        <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                        </svg>
+                        Unverified
+                    </span>
+                    {% endif %}
+                </div>
+
+                {% if website.is_verified %}
+                <p class="mt-2 text-sm text-gray-600">
+                    ✅ Domain ownership verified on {{ website.verified_at.strftime('%B %d, %Y at %I:%M %p') if website.verified_at else 'Unknown date' }}
+                </p>
+                <p class="mt-1 text-sm text-green-600 font-medium">
+                    Tracking is enabled for this domain.
+                </p>
+                {% else %}
+                <p class="mt-2 text-sm text-gray-600">
+                    ⚠️ You must verify domain ownership before tracking will work.
+                    <span class="font-medium text-yellow-700">Tracking is currently blocked.</span>
+                </p>
+                <button @click="showInstructions = !showInstructions; if (!instructions) await fetchInstructions()"
+                        class="mt-3 text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center">
+                    <svg x-show="!showInstructions" class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                    <svg x-show="showInstructions" class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/>
+                    </svg>
+                    <span x-text="showInstructions ? 'Hide verification instructions' : 'Show verification instructions'"></span>
+                </button>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Verification Instructions (shown when not verified) -->
+        <div x-show="showInstructions && !verified" class="mt-4 pt-4 border-t border-gray-200">
+            <template x-if="instructions">
+                <div>
+                    <h3 class="text-sm font-medium text-gray-900 mb-3">Add this DNS TXT record to verify ownership:</h3>
+
+                    <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-3">
+                        <div class="grid grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-xs font-medium text-gray-500">Record Type</label>
+                                <p class="mt-1 text-sm font-mono text-gray-900" x-text="instructions.record_type"></p>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-500">Name</label>
+                                <p class="mt-1 text-sm font-mono text-gray-900" x-text="instructions.dns_record.split('.')[0]"></p>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-500">Host/Name</label>
+                                <p class="mt-1 text-sm font-mono text-gray-900 break-all" x-text="instructions.dns_record"></p>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="flex items-center justify-between">
+                                <label class="block text-xs font-medium text-gray-500">Value</label>
+                                <button @click="navigator.clipboard.writeText(instructions.record_value); copied = true; setTimeout(() => copied = false, 2000)"
+                                        class="text-xs px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">
+                                    <span x-show="!copied">Copy</span>
+                                    <span x-show="copied">Copied!</span>
+                                </button>
+                            </div>
+                            <p class="mt-1 text-sm font-mono text-gray-900 break-all bg-white p-2 rounded border border-gray-300" x-text="instructions.record_value"></p>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <h4 class="text-sm font-medium text-blue-900 mb-2">📝 Step-by-step guide:</h4>
+                        <ol class="text-sm text-blue-800 space-y-1 list-decimal list-inside">
+                            <li>Log in to your DNS provider (e.g., DigitalOcean, Cloudflare, GoDaddy)</li>
+                            <li>Go to DNS management for <span class="font-mono" x-text="'{{ website.domain }}'.replace('https://', '').replace('http://', '')"></span></li>
+                            <li>Add a new TXT record with the values shown above</li>
+                            <li>Wait 5-10 minutes for DNS propagation</li>
+                            <li>Click the "Verify Domain" button below</li>
+                        </ol>
+                        <p class="mt-2 text-xs text-blue-700">
+                            ℹ️ DNS changes usually propagate within minutes, but can take up to 48 hours.
+                        </p>
+                    </div>
+
+                    <div class="mt-4">
+                        <button @click="await verifyDomain()"
+                                :disabled="verifying"
+                                :class="verifying ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'"
+                                class="w-full px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                            <span x-show="!verifying">🔍 Verify Domain Now</span>
+                            <span x-show="verifying">⏳ Checking DNS...</span>
+                        </button>
+                    </div>
+                </div>
+            </template>
+
+            <template x-if="!instructions">
+                <div class="text-center py-4">
+                    <p class="text-sm text-gray-500">Loading instructions...</p>
+                </div>
+            </template>
+        </div>
+    </div>
+
+    <!-- Tracking Code Section -->
+    <div class="bg-white rounded-lg shadow p-6 mb-6">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-semibold text-gray-900">Tracking Code</h2>
+            <a href="{{ base_url }}/docs#installation"
+               target="_blank"
+               class="inline-flex items-center gap-1 px-3 py-1 text-sm font-medium text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                Installation Guides
+            </a>
+        </div>
+        <p class="text-sm text-gray-600 mb-4">
+            Copy this code and paste it in your website's &lt;head&gt; section, right before &lt;/head&gt;.
+        </p>
+
+        <div class="relative" x-data="{ copied: false }">
+            <pre class="bg-gray-50 border border-gray-200 rounded-lg p-4 text-sm overflow-x-auto"><code id="tracking-code">&lt;script src="{{ base_url }}/static/tracker.min.js" data-tracking-code="{{ website.tracking_code }}" defer&gt;&lt;/script&gt;</code></pre>
+            <button @click="copyTrackingCode(); copied = true; setTimeout(() => copied = false, 2000)"
+                    class="absolute top-2 right-2 px-3 py-1 text-xs font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                <span x-show="!copied">Copy</span>
+                <span x-show="copied">Copied!</span>
+            </button>
+        </div>
+
+        <div class="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <h3 class="text-sm font-semibold text-blue-900 mb-2">📚 Platform-Specific Instructions</h3>
+            <p class="text-sm text-blue-800 mb-3">
+                Need help installing on WordPress, React, Next.js, or static HTML? Click "Installation Guides" above for copy-paste ready code examples!
+            </p>
+            <div class="flex flex-wrap gap-2">
+                <span class="px-2 py-1 text-xs font-medium bg-white text-blue-700 rounded">WordPress Plugin</span>
+                <span class="px-2 py-1 text-xs font-medium bg-white text-blue-700 rounded">Next.js 13+</span>
+                <span class="px-2 py-1 text-xs font-medium bg-white text-blue-700 rounded">React</span>
+                <span class="px-2 py-1 text-xs font-medium bg-white text-blue-700 rounded">Static HTML</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 404 Error Tracking Section -->
+    <div class="bg-white rounded-lg shadow p-6 mb-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Track 404 Errors</h2>
+        <p class="text-sm text-gray-600 mb-4">
+            Automatically track which pages return 404 errors to find and fix broken links.
+        </p>
+
+        <div class="space-y-4">
+            <!-- Benefits -->
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h3 class="text-sm font-semibold text-blue-900 mb-2">Benefits</h3>
+                <ul class="text-sm text-blue-800 space-y-1 list-disc list-inside">
+                    <li>Find broken internal links before they hurt user experience</li>
+                    <li>Discover broken external links pointing to your site</li>
+                    <li>Track which pages users expected to find</li>
+                    <li>See referrers that lead to 404 errors</li>
+                </ul>
+            </div>
+
+            <!-- Setup Instructions -->
+            <div>
+                <h3 class="text-sm font-semibold text-gray-900 mb-2">Setup Instructions</h3>
+                <p class="text-sm text-gray-600 mb-3">
+                    Add this code to your 404 error page template (usually <code class="px-1 py-0.5 bg-gray-100 rounded text-xs font-mono">404.html</code> or <code class="px-1 py-0.5 bg-gray-100 rounded text-xs font-mono">404.php</code>):
+                </p>
+
+                <div class="relative" x-data="{ copied: false }">
+                    <pre class="bg-gray-50 border border-gray-200 rounded-lg p-4 text-xs overflow-x-auto"><code>&lt;script&gt;
+  if (window.argus) {
+    argus.trackEvent('404 Error', {
+      path: window.location.pathname,
+      referrer: document.referrer
+    });
+  }
+&lt;/script&gt;</code></pre>
+                    <button @click="navigator.clipboard.writeText(`<script>\n  if (window.argus) {\n    argus.trackEvent('404 Error', {\n      path: window.location.pathname,\n      referrer: document.referrer\n    });\n  }\n</script>`); copied = true; setTimeout(() => copied = false, 2000)"
+                            class="absolute top-2 right-2 px-3 py-1 text-xs font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        <span x-show="!copied">Copy</span>
+                        <span x-show="copied">Copied!</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Platform-Specific Examples -->
+            <div>
+                <h3 class="text-sm font-semibold text-gray-900 mb-2">Platform-Specific Examples</h3>
+                <div class="space-y-3">
+                    <!-- WordPress -->
+                    <details class="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                        <summary class="text-sm font-medium text-gray-900 cursor-pointer">WordPress</summary>
+                        <div class="mt-2 text-sm text-gray-600">
+                            <p class="mb-2">Add to your theme's <code class="px-1 py-0.5 bg-gray-100 rounded text-xs font-mono">404.php</code> file:</p>
+                            <pre class="bg-white border border-gray-300 rounded p-2 text-xs overflow-x-auto"><code>&lt;?php if ( ! defined( 'ABSPATH' ) ) exit; ?&gt;
+&lt;?php get_header(); ?&gt;
+
+&lt;!-- Your 404 page content --&gt;
+
+&lt;script&gt;
+  if (window.argus) {
+    argus.trackEvent('404 Error', {
+      path: window.location.pathname,
+      referrer: document.referrer
+    });
+  }
+&lt;/script&gt;
+
+&lt;?php get_footer(); ?&gt;</code></pre>
+                        </div>
+                    </details>
+
+                    <!-- Next.js -->
+                    <details class="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                        <summary class="text-sm font-medium text-gray-900 cursor-pointer">Next.js</summary>
+                        <div class="mt-2 text-sm text-gray-600">
+                            <p class="mb-2">Add to your <code class="px-1 py-0.5 bg-gray-100 rounded text-xs font-mono">pages/404.js</code> file:</p>
+                            <pre class="bg-white border border-gray-300 rounded p-2 text-xs overflow-x-auto"><code>import { useEffect } from 'react';
+
+export default function Custom404() {
+  useEffect(() => {
+    if (window.argus) {
+      window.argus.trackEvent('404 Error', {
+        path: window.location.pathname,
+        referrer: document.referrer
+      });
+    }
+  }, []);
+
+  return &lt;h1&gt;404 - Page Not Found&lt;/h1&gt;;
+}</code></pre>
+                        </div>
+                    </details>
+
+                    <!-- Static HTML -->
+                    <details class="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                        <summary class="text-sm font-medium text-gray-900 cursor-pointer">Static HTML / Other</summary>
+                        <div class="mt-2 text-sm text-gray-600">
+                            <p class="mb-2">Add to your <code class="px-1 py-0.5 bg-gray-100 rounded text-xs font-mono">404.html</code> file before closing <code class="px-1 py-0.5 bg-gray-100 rounded text-xs font-mono">&lt;/body&gt;</code> tag:</p>
+                            <pre class="bg-white border border-gray-300 rounded p-2 text-xs overflow-x-auto"><code>&lt;!-- Your 404 page content --&gt;
+
+&lt;script&gt;
+  if (window.argus) {
+    argus.trackEvent('404 Error', {
+      path: window.location.pathname,
+      referrer: document.referrer
+    });
+  }
+&lt;/script&gt;
+&lt;/body&gt;</code></pre>
+                        </div>
+                    </details>
+                </div>
+            </div>
+
+            <!-- Important Notes -->
+            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <div class="flex">
+                    <svg class="w-5 h-5 text-yellow-600 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                    </svg>
+                    <div class="text-sm text-yellow-800">
+                        <p class="font-medium mb-1">Important Notes:</p>
+                        <ul class="list-disc list-inside space-y-1">
+                            <li>Make sure the tracking script is already loaded on your 404 page</li>
+                            <li>This requires manual setup - 404 errors are not tracked automatically</li>
+                            <li>Check your 404 errors in the dashboard Analytics section</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Public Dashboard Section -->
+    <div class="bg-white rounded-lg shadow p-6 mb-6"
+         x-data="{
+             isPublic: {{ 'true' if website.is_public else 'false' }},
+             publicUrl: '{{ base_url }}/public/{{ website.public_share_token if website.public_share_token else '' }}',
+             updating: false,
+             linkCopied: false,
+             async togglePublicAccess() {
+                 this.updating = true;
+                 try {
+                     // Auth via httponly session_token cookie (SameSite=Lax mitigates CSRF)
+                     const response = await fetch('/api/v1/websites/{{ website.id }}/public-access', {
+                         method: 'PUT',
+                         credentials: 'same-origin',
+                         headers: {
+                             'Content-Type': 'application/json'
+                         },
+                         body: JSON.stringify({ is_public: !this.isPublic })
+                     });
+                     const data = await response.json();
+                     if (response.ok) {
+                         this.isPublic = data.is_public;
+                         if (data.public_url) {
+                             this.publicUrl = data.public_url;
+                         }
+                         alert(this.isPublic ? 'Public dashboard enabled!' : 'Public dashboard disabled');
+                     } else {
+                         alert('Error: ' + (data.detail || 'Unknown error'));
+                     }
+                 } catch (error) {
+                     console.error('Error toggling public access:', error);
+                     alert('Failed to update public access. Please try again.');
+                 } finally {
+                     this.updating = false;
+                 }
+             },
+             copyPublicLink() {
+                 navigator.clipboard.writeText(this.publicUrl);
+                 this.linkCopied = true;
+                 setTimeout(() => this.linkCopied = false, 2000);
+             }
+         }">
+        <div class="flex items-start justify-between mb-4">
+            <div>
+                <h2 class="text-lg font-semibold text-gray-900">Public Dashboard</h2>
+                <p class="mt-1 text-sm text-gray-600">Share your analytics with clients and stakeholders</p>
+            </div>
+            <button @click="await togglePublicAccess()"
+                    :disabled="updating"
+                    :class="isPublic ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-200 hover:bg-gray-300'"
+                    class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                <span class="sr-only">Enable public access</span>
+                <span :class="isPublic ? 'translate-x-5' : 'translate-x-0'"
+                      class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"></span>
+            </button>
+        </div>
+
+        <div x-show="isPublic" class="space-y-4">
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <p class="text-sm text-blue-900 font-medium mb-2">Your public dashboard is active</p>
+                <div class="relative">
+                    <input type="text"
+                           :value="publicUrl"
+                           readonly
+                           class="block w-full px-3 py-2 pr-20 border border-blue-300 rounded-md bg-white text-sm font-mono text-gray-900">
+                    <button @click="copyPublicLink()"
+                            class="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1 text-xs font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700">
+                        <span x-show="!linkCopied">Copy Link</span>
+                        <span x-show="linkCopied">Copied!</span>
+                    </button>
+                </div>
+                <a :href="publicUrl"
+                   target="_blank"
+                   class="mt-2 inline-flex items-center text-sm text-blue-700 hover:text-blue-800 font-medium">
+                    View Public Dashboard
+                    <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                    </svg>
+                </a>
+            </div>
+            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <div class="flex">
+                    <svg class="w-5 h-5 text-yellow-600 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                    </svg>
+                    <p class="text-sm text-yellow-800">Anyone with this link can view your analytics data. No login required.</p>
+                </div>
+            </div>
+        </div>
+
+        <div x-show="!isPublic" class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+            <div class="flex items-start">
+                <svg class="w-5 h-5 text-gray-400 mr-2 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                </svg>
+                <div>
+                    <p class="text-sm text-gray-700 font-medium">Your dashboard is private</p>
+                    <p class="mt-1 text-sm text-gray-600">Enable public access to share your analytics with clients and stakeholders. You can disable it at any time.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Email Reports Section -->
+    <div class="bg-white rounded-lg shadow p-6 mb-6"
+         x-data="{
+             enabled: {{ 'true' if website.email_reports_enabled else 'false' }},
+             frequency: '{{ website.email_reports_frequency or 'weekly' }}',
+             recipient: '{{ website.email_reports_recipient or '' }}',
+             day: {{ website.email_reports_day or 1 }},
+             saving: false,
+             showSuccess: false,
+             errorMessage: '',
+
+             get dayOptions() {
+                 if (this.frequency === 'weekly') {
+                     return [
+                         { value: 1, label: 'Monday' },
+                         { value: 2, label: 'Tuesday' },
+                         { value: 3, label: 'Wednesday' },
+                         { value: 4, label: 'Thursday' },
+                         { value: 5, label: 'Friday' },
+                         { value: 6, label: 'Saturday' },
+                         { value: 7, label: 'Sunday' }
+                     ];
+                 } else {
+                     return Array.from({ length: 31 }, (_, i) => ({
+                         value: i + 1,
+                         label: `Day ${i + 1}`
+                     }));
+                 }
+             },
+
+             async saveEmailReports() {
+                 this.saving = true;
+                 this.errorMessage = '';
+                 this.showSuccess = false;
+
+                 try {
+                     // Auth via httponly session_token cookie (SameSite=Lax mitigates CSRF)
+                     const response = await fetch('/api/v1/websites/{{ website.id }}/email-reports', {
+                         method: 'PUT',
+                         credentials: 'same-origin',
+                         headers: {
+                             'Content-Type': 'application/json'
+                         },
+                         body: JSON.stringify({
+                             enabled: this.enabled,
+                             frequency: this.frequency,
+                             recipient: this.recipient || '{{ user_email }}',
+                             day: parseInt(this.day)
+                         })
+                     });
+
+                     const data = await response.json();
+
+                     if (response.ok) {
+                         this.showSuccess = true;
+                         setTimeout(() => this.showSuccess = false, 3000);
+                     } else {
+                         this.errorMessage = data.detail || 'Failed to save settings';
+                     }
+                 } catch (error) {
+                     console.error('Error saving email reports:', error);
+                     this.errorMessage = 'Network error. Please try again.';
+                 } finally {
+                     this.saving = false;
+                 }
+             }
+         }">
+        <div class="flex items-center justify-between mb-4">
+            <div>
+                <h2 class="text-lg font-semibold text-gray-900">Email Reports</h2>
+                <p class="text-sm text-gray-600 mt-1">
+                    Receive automated analytics reports via email
+                </p>
+            </div>
+        </div>
+
+        <div class="space-y-4">
+            <!-- Enable/Disable Toggle -->
+            <div class="flex items-center">
+                <input type="checkbox"
+                       id="email-reports-enabled"
+                       x-model="enabled"
+                       class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                <label for="email-reports-enabled" class="ml-2 block text-sm text-gray-900 font-medium">
+                    Enable email reports
+                </label>
+            </div>
+
+            <!-- Configuration (shown when enabled) -->
+            <div x-show="enabled" class="pt-4 border-t border-gray-200 space-y-4">
+                <!-- Frequency Selection -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Report Frequency</label>
+                    <div class="flex gap-4">
+                        <label class="flex items-center">
+                            <input type="radio"
+                                   name="frequency"
+                                   value="weekly"
+                                   x-model="frequency"
+                                   @change="day = 1"
+                                   class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300">
+                            <span class="ml-2 text-sm text-gray-700">Weekly</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="radio"
+                                   name="frequency"
+                                   value="monthly"
+                                   x-model="frequency"
+                                   @change="day = 1"
+                                   class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300">
+                            <span class="ml-2 text-sm text-gray-700">Monthly</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Day Selection -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <span x-show="frequency === 'weekly'">Send every</span>
+                        <span x-show="frequency === 'monthly'">Send on</span>
+                    </label>
+                    <select x-model="day"
+                            class="block w-full max-w-xs px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        <template x-for="option in dayOptions" :key="option.value">
+                            <option :value="option.value" x-text="option.label"></option>
+                        </template>
+                    </select>
+                </div>
+
+                <!-- Email Recipient -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Send reports to</label>
+                    <input type="email"
+                           x-model="recipient"
+                           placeholder="{{ user_email }}"
+                           class="block w-full max-w-md px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    <p class="mt-1 text-xs text-gray-500">Leave blank to use your account email</p>
+                </div>
+            </div>
+
+            <!-- Success Message -->
+            <div x-show="showSuccess"
+                 x-transition
+                 class="rounded-md bg-green-50 p-4">
+                <div class="flex">
+                    <svg class="h-5 w-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                    </svg>
+                    <p class="ml-3 text-sm font-medium text-green-800">
+                        Email reports settings saved successfully!
+                    </p>
+                </div>
+            </div>
+
+            <!-- Error Message -->
+            <div x-show="errorMessage"
+                 x-transition
+                 class="rounded-md bg-red-50 p-4">
+                <div class="flex">
+                    <svg class="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                    </svg>
+                    <p class="ml-3 text-sm font-medium text-red-800" x-text="errorMessage"></p>
+                </div>
+            </div>
+
+            <!-- Save Button -->
+            <div class="pt-4">
+                <button @click="await saveEmailReports()"
+                        :disabled="saving"
+                        :class="saving ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'"
+                        class="px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    <span x-show="!saving">Save Settings</span>
+                    <span x-show="saving">Saving...</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Website Details -->
+    <div class="bg-white rounded-lg shadow p-6 mb-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Website Details</h2>
+        <form class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Website Name</label>
+                <input type="text" value="{{ website.name }}" readonly
+                       class="block w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-600 cursor-not-allowed">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Domain</label>
+                <input type="text" value="{{ website.domain }}" readonly
+                       class="block w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-600 cursor-not-allowed">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Tracking Code</label>
+                <input type="text" value="{{ website.tracking_code }}" readonly
+                       class="block w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-600 cursor-not-allowed">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Created</label>
+                <input type="text" value="{{ website.created_at.strftime('%B %d, %Y at %I:%M %p') if website.created_at else 'N/A' }}" readonly
+                       class="block w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-600 cursor-not-allowed">
+            </div>
+        </form>
+    </div>
+
+    <!-- Danger Zone -->
+    <div class="bg-white rounded-lg shadow border-2 border-red-200 p-6">
+        <h2 class="text-lg font-semibold text-red-900 mb-4">Danger Zone</h2>
+        <p class="text-sm text-gray-600 mb-4">
+            Deleting this website will permanently remove all analytics data. This action cannot be undone.
+        </p>
+        <button onclick="alert('Delete functionality coming soon!')"
+                class="px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+            Delete Website
+        </button>
+    </div>
+
+    <!-- Back to Dashboard -->
+    <div class="mt-6">
+        <a href="/dashboard/website/{{ website.id }}"
+           class="inline-flex items-center text-sm text-blue-600 hover:text-blue-800">
+            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+            Back to Analytics
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Copy tracking code to clipboard
+    function copyTrackingCode() {
+        const code = document.getElementById('tracking-code').textContent;
+        navigator.clipboard.writeText(code);
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Argusmetrics - Tracking Script Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        h1 { color: #2563eb; }
+        h2 { color: #1e40af; margin-top: 30px; }
+        .test-section {
+            background: #f3f4f6;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #1d4ed8;
+        }
+        .link-test {
+            margin: 10px 0;
+            padding: 10px;
+            background: white;
+            border-radius: 4px;
+        }
+        .link-test a {
+            color: #2563eb;
+            text-decoration: none;
+            padding: 5px 10px;
+            border: 1px solid #2563eb;
+            border-radius: 4px;
+            display: inline-block;
+            margin: 5px;
+        }
+        .link-test a:hover {
+            background: #eff6ff;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        .info {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        pre {
+            background: #1f2937;
+            color: #f9fafb;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+        }
+        #console-output {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Argusmetrics Tracking Script Test</h1>
+
+    <div class="status info">
+        Testing optimized minified script: <strong>tracker.prod.min.js</strong> (2.9KB)
+    </div>
+
+    <h2>1. Automatic Pageview Tracking</h2>
+    <div class="test-section">
+        <p>A pageview should be automatically tracked when this page loads.</p>
+        <p class="status success">Check browser console for: "[Argusmetrics] Pageview tracked"</p>
+    </div>
+
+    <h2>2. Manual Pageview Tracking</h2>
+    <div class="test-section">
+        <p>Click the button below to manually trigger a pageview track:</p>
+        <button onclick="testManualPageview()">Track Manual Pageview</button>
+        <div id="manual-result"></div>
+    </div>
+
+    <h2>3. Custom Event Tracking (Goals)</h2>
+    <div class="test-section">
+        <p>Test simple goal tracking (event without properties):</p>
+        <button onclick="testSimpleEvent()">Track "signup" Goal</button>
+        <button onclick="testSimpleEvent2()">Track "purchase" Goal</button>
+        <div id="event-result"></div>
+    </div>
+
+    <h2>4. Custom Event with Properties</h2>
+    <div class="test-section">
+        <p>Test custom events with properties:</p>
+        <button onclick="testEventWithProps()">Track Button Click Event</button>
+        <button onclick="testComplexEvent()">Track Form Submit Event</button>
+        <div id="props-result"></div>
+    </div>
+
+    <h2>5. Outbound Link Tracking</h2>
+    <div class="test-section">
+        <p>Click these links to test automatic outbound tracking:</p>
+        <div class="link-test">
+            <a href="https://google.com" target="_blank">Google (target=_blank)</a>
+            <a href="https://github.com">GitHub (external)</a>
+            <a href="/?test=123">Internal Link (should NOT track)</a>
+        </div>
+        <p class="status info">Outbound clicks should auto-track as "Outbound Link" events</p>
+    </div>
+
+    <h2>6. UTM Parameter Tracking</h2>
+    <div class="test-section">
+        <p>Current URL has these UTM parameters:</p>
+        <pre id="utm-params"></pre>
+        <p>Try adding UTM params to URL: <code>?utm_source=test&utm_campaign=optimization</code></p>
+    </div>
+
+    <h2>7. SPA Navigation Test</h2>
+    <div class="test-section">
+        <p>Test Single Page App navigation tracking:</p>
+        <button onclick="testSPANavigation()">Simulate SPA Navigation</button>
+        <div id="spa-result"></div>
+    </div>
+
+    <h2>8. Dynamic Link Test</h2>
+    <div class="test-section">
+        <p>Test that dynamically added links are tracked:</p>
+        <button onclick="addDynamicLink()">Add Dynamic Outbound Link</button>
+        <div id="dynamic-links"></div>
+    </div>
+
+    <h2>9. Console Output</h2>
+    <div class="test-section">
+        <pre id="console-output">Open browser console (F12) to see tracking events...</pre>
+    </div>
+
+    <h2>File Size Comparison</h2>
+    <div class="test-section">
+        <pre>Original Source:      13.2 KB
+Optimized Source:      5.7 KB  (56% reduction)
+Original Minified:     5.3 KB
+Optimized Minified:    2.9 KB  (78% reduction from original)
+Gzipped (optimized):   1.4 KB  (89% reduction from original)</pre>
+    </div>
+
+    <!-- Load the optimized tracking script -->
+    <script src="dist/tracker.prod.min.js" data-tracking-code="TEST-12345" defer></script>
+
+    <script>
+        // Display UTM parameters
+        const params = new URLSearchParams(window.location.search);
+        const utmParams = {
+            utm_source: params.get('utm_source'),
+            utm_medium: params.get('utm_medium'),
+            utm_campaign: params.get('utm_campaign'),
+            utm_content: params.get('utm_content'),
+            utm_term: params.get('utm_term')
+        };
+        document.getElementById('utm-params').textContent = JSON.stringify(utmParams, null, 2);
+
+        // Test functions
+        function testManualPageview() {
+            window.argus.track();
+            document.getElementById('manual-result').innerHTML =
+                '<p class="status success">Manual pageview tracked! Check console.</p>';
+        }
+
+        function testSimpleEvent() {
+            window.argus.trackEvent('signup');
+            document.getElementById('event-result').innerHTML =
+                '<p class="status success">Event "signup" tracked! Check console.</p>';
+        }
+
+        function testSimpleEvent2() {
+            window.argus.trackEvent('purchase');
+            document.getElementById('event-result').innerHTML =
+                '<p class="status success">Event "purchase" tracked! Check console.</p>';
+        }
+
+        function testEventWithProps() {
+            window.argus.trackEvent('button_click', {
+                button_text: 'Track Button Click Event',
+                location: 'test_page',
+                color: 'blue'
+            });
+            document.getElementById('props-result').innerHTML =
+                '<p class="status success">Event with properties tracked! Check console.</p>';
+        }
+
+        function testComplexEvent() {
+            window.argus.trackEvent('form_submit', {
+                form_name: 'newsletter',
+                page: '/test',
+                user_type: 'visitor'
+            });
+            document.getElementById('props-result').innerHTML =
+                '<p class="status success">Complex event tracked! Check console.</p>';
+        }
+
+        function testSPANavigation() {
+            history.pushState({}, '', '/virtual-page-1');
+            setTimeout(() => {
+                document.getElementById('spa-result').innerHTML =
+                    '<p class="status success">SPA navigation simulated! Check console for auto-tracked pageview.</p>';
+            }, 100);
+        }
+
+        function addDynamicLink() {
+            const container = document.getElementById('dynamic-links');
+            const link = document.createElement('a');
+            link.href = 'https://twitter.com';
+            link.target = '_blank';
+            link.textContent = 'Twitter (dynamically added)';
+            link.style.cssText = 'display: inline-block; margin: 10px 0; padding: 10px; background: #1da1f2; color: white; text-decoration: none; border-radius: 4px;';
+            container.appendChild(link);
+            container.innerHTML += '<p class="status success">Dynamic link added! Click it to test auto-tracking.</p>';
+        }
+
+        // Intercept console.log to display in page
+        const originalLog = console.log;
+        const originalWarn = console.warn;
+        const consoleOutput = document.getElementById('console-output');
+
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            const msg = args.map(a => typeof a === 'object' ? JSON.stringify(a) : a).join(' ');
+            if (msg.includes('[Argus')) {
+                consoleOutput.textContent += msg + '\n';
+            }
+        };
+
+        console.warn = function(...args) {
+            originalWarn.apply(console, args);
+            const msg = args.map(a => typeof a === 'object' ? JSON.stringify(a) : a).join(' ');
+            if (msg.includes('[Argus')) {
+                consoleOutput.textContent += msg + '\n';
+            }
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,25 @@
+{
+  "name": "Argusmetrics - Privacy-First Web Analytics",
+  "short_name": "Argusmetrics",
+  "description": "Simple, privacy-focused web analytics. GDPR compliant by default. No cookies, no tracking.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/static/img/ArgusEyefavicon3.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/favicon.ico",
+      "sizes": "32x32",
+      "type": "image/x-icon"
+    }
+  ],
+  "categories": ["analytics", "productivity", "business"],
+  "screenshots": []
+}

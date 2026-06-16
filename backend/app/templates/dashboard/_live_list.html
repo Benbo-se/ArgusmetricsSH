@@ -1,0 +1,21 @@
+{# Live visitors list partial (HTMX).
+   Rendered through Jinja2 so visitor-controlled `path` and `country` are
+   autoescaped (fixes stored XSS H9 / L19). `visitors` is a list of dicts with
+   keys: country, path, time_ago. The country flag uses the country_flag filter. #}
+{% if visitors %}
+<div class="space-y-3">
+    {% for visitor in visitors %}
+    <div class="flex items-center justify-between py-2 border-b border-gray-100">
+        <div class="flex items-center space-x-3">
+            <span class="text-2xl">{{ (visitor.country | country_flag) if visitor.country else "🌍" }}</span>
+            <div>
+                <p class="text-sm font-medium text-gray-900">{{ visitor.path }}</p>
+                <p class="text-xs text-gray-500">{{ visitor.country }} • {{ visitor.time_ago }}</p>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<p class="text-center py-8 text-gray-500">No visitors online right now</p>
+{% endif %}

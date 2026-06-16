@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block title %}Contact Us - Argusmetrics{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+    <!-- Header -->
+    <div class="text-center mb-12">
+        <h1 class="text-4xl font-bold text-gray-900 mb-4">Get in Touch</h1>
+        <p class="text-xl text-gray-600">We'd love to hear from you</p>
+    </div>
+
+    <!-- Contact Info -->
+    <div class="bg-white rounded-lg shadow-lg p-8 mb-8">
+        <h2 class="text-2xl font-bold text-gray-900 mb-6">Contact Information</h2>
+        
+        <div class="space-y-4">
+            <div class="flex items-start">
+                <div class="flex-shrink-0">
+                    <svg class="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm font-medium text-gray-900">Email</p>
+                    <a href="mailto:reda@argusmetrics.io" class="text-blue-600 hover:text-blue-800">
+                        reda@argusmetrics.io
+                    </a>
+                </div>
+            </div>
+            
+            <div class="flex items-start">
+                <div class="flex-shrink-0">
+                    <svg class="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm font-medium text-gray-900">Response Time</p>
+                    <p class="text-gray-600">We typically respond within 24 hours</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contact Form -->
+    <div class="bg-white rounded-lg shadow-lg p-8">
+        <h2 class="text-2xl font-bold text-gray-900 mb-6">Send us a Message</h2>
+        
+        <form action="#" method="POST" class="space-y-6" onsubmit="event.preventDefault(); alert('Email functionality coming soon! Please email us directly at reda@argusmetrics.io');">
+            <div>
+                <label for="name" class="block text-sm font-medium text-gray-700 mb-2">
+                    Name
+                </label>
+                <input type="text" 
+                       id="name" 
+                       name="name" 
+                       required
+                       class="block w-full px-4 py-3 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+            </div>
+            
+            <div>
+                <label for="email" class="block text-sm font-medium text-gray-700 mb-2">
+                    Email
+                </label>
+                <input type="email" 
+                       id="email" 
+                       name="email" 
+                       required
+                       class="block w-full px-4 py-3 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+            </div>
+            
+            <div>
+                <label for="subject" class="block text-sm font-medium text-gray-700 mb-2">
+                    Subject
+                </label>
+                <input type="text" 
+                       id="subject" 
+                       name="subject" 
+                       required
+                       class="block w-full px-4 py-3 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+            </div>
+            
+            <div>
+                <label for="message" class="block text-sm font-medium text-gray-700 mb-2">
+                    Message
+                </label>
+                <textarea id="message" 
+                          name="message" 
+                          rows="6" 
+                          required
+                          class="block w-full px-4 py-3 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"></textarea>
+            </div>
+            
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <p class="text-sm text-blue-800">
+                    <strong>Note:</strong> Form submission is temporarily disabled while we configure email services.
+                    Please email us directly at <a href="mailto:reda@argusmetrics.io" class="underline">reda@argusmetrics.io</a>
+                </p>
+            </div>
+            
+            <div>
+                <button type="submit" 
+                        class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    Send Message
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Back Link -->
+    <div class="text-center mt-8">
+        <a href="/" class="text-blue-600 hover:text-blue-800">
+            ← Back to Home
+        </a>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,325 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" x-data="{ showAddModal: false }">
+    <div class="mb-8 flex items-center justify-between">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900">Your Websites</h1>
+            <p class="mt-2 text-gray-600">Manage and view analytics for all your tracked websites</p>
+        </div>
+        <div class="flex gap-3">
+            {% if websites and websites|length > 1 %}
+            <a href="/dashboard/cross-domain"
+               class="inline-flex items-center px-4 py-2 border border-blue-300 text-sm font-medium rounded-md text-blue-700 bg-blue-50 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                </svg>
+                Cross-Domain Analytics
+            </a>
+            {% endif %}
+            {% if current_user.plan == 'free' and websites and websites|length >= 1 %}
+            <!-- FREE user at website limit -->
+            <div class="relative group">
+                <button disabled
+                        class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-400 bg-gray-100 cursor-not-allowed">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                    </svg>
+                    Add Website
+                </button>
+                <div class="absolute right-0 bottom-full mb-2 hidden group-hover:block w-64 p-3 bg-gray-900 text-white text-sm rounded shadow-lg z-10">
+                    <p class="font-semibold mb-2">Upgrade Required</p>
+                    <p class="text-xs mb-2">FREE plan is limited to 1 website. Upgrade to add more!</p>
+                    <a href="/billing" class="text-blue-300 hover:text-blue-200 underline text-xs inline-block">View Plans →</a>
+                </div>
+            </div>
+            {% else %}
+            <!-- Normal add website button -->
+            <button @click="showAddModal = true"
+                    class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                Add Website
+            </button>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if current_user.plan == 'free' %}
+    <div class="mb-8 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6 shadow-sm">
+        <div class="flex items-start justify-between mb-4">
+            <div>
+                <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-chart-line text-blue-600 mr-2"></i>
+                    Monthly Usage
+                </h3>
+                <p class="text-sm text-gray-600 mt-1">Free tier: 10,000 pageviews per month</p>
+            </div>
+            {% if monthly_pageviews >= 8000 %}
+            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 border border-yellow-300">
+                <i class="fas fa-exclamation-triangle mr-1"></i>
+                Low on views
+            </span>
+            {% endif %}
+        </div>
+
+        <div class="flex items-center justify-between mb-2">
+            <span class="text-2xl font-bold text-gray-900">
+                {{ "{:,}".format(monthly_pageviews or 0) }}
+            </span>
+            <span class="text-sm text-gray-600">/ 10,000 views</span>
+        </div>
+
+        <div class="w-full bg-gray-200 rounded-full h-3 mb-4 overflow-hidden">
+            {% set usage_percent = ((monthly_pageviews or 0) / 10000 * 100)|round|int %}
+            {% set bar_color = 'bg-blue-600' if usage_percent < 80 else 'bg-yellow-500' if usage_percent < 95 else 'bg-red-600' %}
+            <div class="{{ bar_color }} h-3 rounded-full transition-all duration-500 ease-out"
+                 style="width: {{ [usage_percent, 100]|min }}%">
+            </div>
+        </div>
+
+        <div class="flex items-center justify-between">
+            <span class="text-sm font-medium text-gray-700">
+                {{ 100 - usage_percent if usage_percent < 100 else 0 }}% remaining
+            </span>
+            {% if monthly_pageviews >= 8000 %}
+            <a href="/billing" class="text-sm font-semibold text-blue-600 hover:text-blue-700 underline">
+                Upgrade to Pro →
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if websites and websites|length > 0 %}
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for website in websites %}
+        <a href="/dashboard/website/{{ website.id }}"
+           class="block bg-white rounded-lg shadow hover:shadow-lg transition-shadow p-6 border border-gray-200 hover:border-blue-500">
+            <div class="flex items-start justify-between mb-4">
+                <div class="flex-1">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-1">{{ website.name }}</h3>
+                    <p class="text-sm text-gray-500">{{ website.domain }}</p>
+                </div>
+                <div class="ml-4">
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        Active
+                    </span>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-between text-sm text-gray-600 mb-4">
+                <div>
+                    <span class="font-medium">Tracking Code:</span>
+                    <code class="ml-2 bg-gray-100 px-2 py-1 rounded text-xs">{{ website.tracking_code }}</code>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-between pt-4 border-t border-gray-200">
+                <div class="text-sm text-gray-500">
+                    Created {{ website.created_at.strftime('%b %d, %Y') if website.created_at else 'Recently' }}
+                </div>
+                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                </svg>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="bg-white rounded-lg shadow-sm border-2 border-dashed border-gray-300 p-12 text-center">
+        <div class="text-6xl mb-4">🌐</div>
+        <h3 class="text-lg font-medium text-gray-900 mb-2">No websites yet</h3>
+        <p class="text-gray-500 mb-6">Add your first website to start tracking analytics</p>
+        <button @click="showAddModal = true"
+                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+            Add Website
+        </button>
+    </div>
+    {% endif %}
+
+    <!-- Add Website Modal -->
+    <div x-show="showAddModal"
+         x-cloak
+         class="fixed inset-0 z-50 overflow-y-auto"
+         @keydown.escape.window="showAddModal = false">
+        <!-- Backdrop -->
+        <div class="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
+             @click="showAddModal = false"></div>
+
+        <!-- Modal -->
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full p-6"
+                 @click.away="showAddModal = false">
+                <!-- Close button -->
+                <button @click="showAddModal = false"
+                        class="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+
+                <h2 class="text-2xl font-bold text-gray-900 mb-6">Add Website</h2>
+
+                <!-- Form -->
+                <form id="add-website-form" onsubmit="handleAddWebsite(event)">
+                    <div class="space-y-4">
+                        <!-- Website Name -->
+                        <div>
+                            <label for="website-name" class="block text-sm font-medium text-gray-700 mb-2">
+                                Website Name
+                            </label>
+                            <input type="text"
+                                   id="website-name"
+                                   name="name"
+                                   required
+                                   placeholder="My Awesome Site"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+
+                        <!-- Domain -->
+                        <div>
+                            <label for="website-domain" class="block text-sm font-medium text-gray-700 mb-2">
+                                Domain
+                            </label>
+                            <input type="url"
+                                   id="website-domain"
+                                   name="domain"
+                                   required
+                                   placeholder="https://example.com"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                            <p class="mt-1 text-xs text-gray-500">Include https:// or http://</p>
+                        </div>
+
+                        <!-- Error message -->
+                        <div id="add-website-error" class="hidden p-3 bg-red-50 border border-red-200 rounded-md">
+                            <p class="text-sm text-red-600"></p>
+                        </div>
+                    </div>
+
+                    <!-- Buttons -->
+                    <div class="mt-6 flex gap-3">
+                        <button type="button"
+                                @click="showAddModal = false"
+                                class="flex-1 px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50">
+                            Cancel
+                        </button>
+                        <button type="submit"
+                                id="add-website-submit"
+                                class="flex-1 px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                            Add Website
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+async function handleAddWebsite(event) {
+    event.preventDefault();
+
+    const form = event.target;
+    const submitBtn = document.getElementById('add-website-submit');
+    const errorDiv = document.getElementById('add-website-error');
+    const name = form.name.value;
+    const domain = form.domain.value;
+
+    // Disable submit button
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Creating...';
+    errorDiv.classList.add('hidden');
+
+    try {
+        const response = await fetch('/api/v1/websites/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            credentials: 'include',  // Include cookies in request
+            body: JSON.stringify({ name, domain })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            // Success! Reload page to show new website
+            window.location.reload();
+        } else {
+            // Show error
+            errorDiv.querySelector('p').textContent = data.detail || data.message || 'Failed to add website';
+            errorDiv.classList.remove('hidden');
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Add Website';
+        }
+    } catch (error) {
+        console.error('Add website error:', error);
+        errorDiv.querySelector('p').textContent = 'Network error. Please try again.';
+        errorDiv.classList.remove('hidden');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Add Website';
+    }
+}
+
+// Auto-refresh monthly usage every 30 seconds
+async function updateMonthlyUsage() {
+    try {
+        const response = await fetch('/api/v1/auth/me/monthly-usage', {
+            credentials: 'include'
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+
+            // Update pageview count
+            const pageviewElement = document.querySelector('.text-2xl.font-bold.text-gray-900');
+            if (pageviewElement) {
+                pageviewElement.textContent = data.monthly_pageviews.toLocaleString();
+            }
+
+            // Update progress bar
+            const progressBar = document.querySelector('.h-3.rounded-full.transition-all');
+            if (progressBar) {
+                progressBar.style.width = Math.min(data.usage_percentage, 100) + '%';
+
+                // Update color based on usage
+                if (data.usage_percentage >= 95) {
+                    progressBar.className = 'bg-red-600 h-3 rounded-full transition-all duration-500 ease-out';
+                } else if (data.usage_percentage >= 80) {
+                    progressBar.className = 'bg-yellow-500 h-3 rounded-full transition-all duration-500 ease-out';
+                } else {
+                    progressBar.className = 'bg-blue-600 h-3 rounded-full transition-all duration-500 ease-out';
+                }
+            }
+
+            // Update percentage remaining
+            const remainingElement = document.querySelector('.text-sm.font-medium.text-gray-700');
+            if (remainingElement) {
+                const percentRemaining = 100 - Math.min(data.usage_percentage, 100);
+                remainingElement.textContent = percentRemaining + '% remaining';
+            }
+        }
+    } catch (error) {
+        console.error('Failed to update monthly usage:', error);
+    }
+}
+
+// Run on page load
+if (document.querySelector('.text-2xl.font-bold.text-gray-900')) {
+    // Initial update after 2 seconds
+    setTimeout(updateMonthlyUsage, 2000);
+
+    // Then update every 30 seconds
+    setInterval(updateMonthlyUsage, 30000);
+}
+</script>
+
+<style>
+[x-cloak] { display: none !important; }
+</style>
+
+{% endblock %}

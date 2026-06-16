@@ -1,0 +1,139 @@
+/**
+ * Argusmetrics - Admin Styles
+ */
+
+.argus-metrics-settings {
+    max-width: 1400px;
+}
+
+.argus-metrics-container {
+    display: flex;
+    gap: 30px;
+    margin-top: 20px;
+}
+
+.argus-metrics-main {
+    flex: 1;
+    min-width: 0;
+}
+
+.argus-metrics-sidebar {
+    width: 350px;
+    flex-shrink: 0;
+}
+
+/* Cards */
+.argus-card {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    border-radius: 4px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 1px 1px rgba(0,0,0,0.04);
+}
+
+.argus-card h2 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-size: 16px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+}
+
+.argus-card ol,
+.argus-card ul {
+    margin: 0;
+    padding-left: 20px;
+}
+
+.argus-card li {
+    margin-bottom: 8px;
+    line-height: 1.6;
+}
+
+.argus-feature-list {
+    list-style: none;
+    padding: 0;
+}
+
+.argus-feature-list li {
+    padding-left: 5px;
+}
+
+/* Status Messages */
+.argus-status-active {
+    color: #46b450;
+    font-weight: 600;
+    margin-top: 10px;
+}
+
+.argus-status-inactive {
+    color: #dc3232;
+    font-weight: 600;
+    margin-top: 10px;
+}
+
+/* Code Display */
+.argus-code {
+    width: 100%;
+    font-family: Consolas, Monaco, monospace;
+    font-size: 12px;
+    background: #f5f5f5;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    padding: 10px;
+    margin-top: 10px;
+    resize: vertical;
+}
+
+.argus-code:focus {
+    outline: none;
+    border-color: #2271b1;
+    background: #fff;
+}
+
+/* Required Field Indicator */
+.required {
+    color: #dc3232;
+}
+
+/* Form Table Improvements */
+.argus-metrics-settings .form-table th {
+    width: 200px;
+    padding: 20px 10px 20px 0;
+}
+
+.argus-metrics-settings .form-table td {
+    padding: 15px 10px;
+}
+
+.argus-metrics-settings input[type="text"],
+.argus-metrics-settings input[type="url"] {
+    font-family: Consolas, Monaco, monospace;
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+    .argus-metrics-container {
+        flex-direction: column;
+    }
+
+    .argus-metrics-sidebar {
+        width: 100%;
+    }
+}
+
+/* Link Styles */
+.argus-card a {
+    text-decoration: none;
+}
+
+.argus-card a:hover {
+    text-decoration: underline;
+}
+
+/* Button Improvements */
+.argus-card .button {
+    margin-top: 10px;
+    display: inline-block;
+}

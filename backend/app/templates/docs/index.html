@@ -1,0 +1,876 @@
+{% extends "base.html" %}
+
+{% block title %}Documentation - Argusmetrics{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- Navigation -->
+    <nav class="bg-white border-b border-gray-200" x-data="{ mobileMenuOpen: false }">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <a href="/" class="flex items-center space-x-3">
+                        <img src="/static/img/ArgusEyefavicon3.png" alt="Argusmetrics" class="h-10 w-10">
+                        <span class="text-xl font-bold text-gray-900">Argusmetrics</span>
+                    </a>
+                </div>
+
+                <!-- Desktop navigation -->
+                <div class="hidden md:flex md:items-center md:space-x-4">
+                    <a href="/" class="text-gray-700 hover:text-blue-600 px-3 py-2 text-sm font-medium">Home</a>
+                    <a href="/docs" class="text-blue-600 hover:text-blue-700 px-3 py-2 text-sm font-medium">Docs</a>
+                    <a href="/login" class="text-gray-700 hover:text-blue-600 px-3 py-2 text-sm font-medium">Log In</a>
+                </div>
+
+                <!-- Mobile menu button -->
+                <div class="flex items-center md:hidden">
+                    <button @click="mobileMenuOpen = !mobileMenuOpen"
+                            class="text-gray-600 hover:text-gray-900 p-2 rounded-md hover:bg-gray-100 transition"
+                            aria-label="Toggle menu">
+                        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path x-show="!mobileMenuOpen" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                            <path x-show="mobileMenuOpen" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile menu -->
+        <div x-show="mobileMenuOpen"
+             @click.away="mobileMenuOpen = false"
+             @keydown.escape.window="mobileMenuOpen = false"
+             x-transition:enter="transition ease-out duration-200"
+             x-transition:enter-start="opacity-0 transform -translate-y-2"
+             x-transition:enter-end="opacity-100 transform translate-y-0"
+             x-transition:leave="transition ease-in duration-150"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0"
+             class="md:hidden border-t border-gray-200 bg-white shadow-lg">
+            <div class="px-2 pt-2 pb-3 space-y-1">
+                <a href="/"
+                   @click="mobileMenuOpen = false"
+                   class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-md">
+                    Home
+                </a>
+                <a href="/docs"
+                   @click="mobileMenuOpen = false"
+                   class="block px-3 py-2 text-base font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md">
+                    Docs
+                </a>
+                <a href="/login"
+                   @click="mobileMenuOpen = false"
+                   class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-md">
+                    Log In
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div class="lg:grid lg:grid-cols-12 lg:gap-8">
+            <!-- Sidebar -->
+            <aside class="hidden lg:block lg:col-span-3">
+                <nav class="sticky top-8 space-y-1">
+                    <a href="#getting-started" class="block px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-md">
+                        Getting Started
+                    </a>
+                    <a href="#installation" class="block px-3 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-md">
+                        Installation
+                    </a>
+                    <a href="#custom-events" class="block px-3 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-md">
+                        Custom Events
+                    </a>
+                    <a href="#custom-properties" class="block px-3 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-md">
+                        Custom Properties
+                    </a>
+                    <a href="#goals" class="block px-3 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-md">
+                        Conversion Goals
+                    </a>
+                    <a href="#outbound-links" class="block px-3 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-md">
+                        Outbound Links
+                    </a>
+                    <a href="#404-tracking" class="block px-3 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-md">
+                        404 Error Tracking
+                    </a>
+                    <a href="#team-management" class="block px-3 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-md">
+                        Team Management
+                    </a>
+                    <a href="#api" class="block px-3 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-md">
+                        API Reference
+                    </a>
+                </nav>
+            </aside>
+
+            <!-- Main Content -->
+            <main class="lg:col-span-9">
+                <div class="bg-white rounded-lg shadow-sm p-8">
+                    <h1 class="text-4xl font-bold text-gray-900 mb-4">Documentation</h1>
+                    <p class="text-xl text-gray-600 mb-8">Everything you need to get started with Argusmetrics</p>
+
+                    <!-- Quick Start -->
+                    <div class="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg p-6 mb-8 text-white">
+                        <h2 class="text-2xl font-bold mb-3">Quick Start (30 seconds)</h2>
+                        <p class="mb-4 text-blue-100">Copy this code and paste it in your website's <code class="bg-blue-700 px-2 py-1 rounded">&lt;head&gt;</code> section:</p>
+                        <div class="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto">
+                            <pre><code>&lt;script
+  defer
+  data-tracking-code="YOUR_CODE"
+  src="https://argusmetrics.io/static/tracker.min.js"
+&gt;&lt;/script&gt;</code></pre>
+                        </div>
+                        <p class="mt-4 text-sm text-blue-100">
+                            Replace <code class="bg-blue-700 px-2 py-1 rounded">YOUR_CODE</code> with your tracking code from the dashboard. That's it!
+                        </p>
+                    </div>
+
+                    <!-- Getting Started -->
+                    <section id="getting-started" class="mb-12">
+                        <h2 class="text-3xl font-bold text-gray-900 mb-4 pb-2 border-b-2 border-blue-600">Getting Started</h2>
+                        <p class="text-gray-700 mb-4">
+                            Argusmetrics is a privacy-first web analytics platform. It takes less than 5 minutes to set up.
+                        </p>
+                        <ol class="list-decimal list-inside space-y-2 text-gray-700 ml-4">
+                            <li>Sign up for a free account</li>
+                            <li>Add your website</li>
+                            <li>Install the tracking script</li>
+                            <li>Start seeing data in real-time</li>
+                        </ol>
+                    </section>
+
+                    <!-- Installation -->
+                    <section id="installation" class="mb-12">
+                        <h2 class="text-3xl font-bold text-gray-900 mb-4 pb-2 border-b-2 border-blue-600">Installation</h2>
+
+                        <h3 class="text-xl font-semibold text-gray-900 mb-3 mt-6">Step 1: Get Your Tracking Code</h3>
+                        <p class="text-gray-700 mb-4">
+                            After adding a website in your dashboard, you'll receive a unique tracking code. It looks like this:
+                        </p>
+                        <div class="bg-gray-900 text-gray-100 p-4 rounded-lg mb-6 overflow-x-auto">
+                            <code>ABC123XYZ</code>
+                        </div>
+
+                        <h3 class="text-xl font-semibold text-gray-900 mb-3 mt-6">Step 2: Add Script to Your Website</h3>
+                        <p class="text-gray-700 mb-4">
+                            Add this snippet to the <code>&lt;head&gt;</code> section of your website, right before the closing <code>&lt;/head&gt;</code> tag:
+                        </p>
+                        <div class="bg-gray-900 text-gray-100 p-4 rounded-lg mb-6 overflow-x-auto">
+                            <pre><code>&lt;script
+  src="https://argusmetrics.io/static/tracker.min.js"
+  data-tracking-code="YOUR_TRACKING_CODE"
+  defer
+&gt;&lt;/script&gt;</code></pre>
+                        </div>
+                        <p class="text-sm text-gray-600 mb-4">
+                            Replace <code>YOUR_TRACKING_CODE</code> with your actual tracking code.
+                        </p>
+
+                        <h3 class="text-xl font-semibold text-gray-900 mb-3 mt-6">Platform-Specific Guides</h3>
+                        <p class="text-sm text-gray-600 mb-4">Click on your platform for step-by-step instructions:</p>
+
+                        <div class="space-y-3">
+                            <!-- Framer -->
+                            <div x-data="{ open: false }" class="border border-gray-200 rounded-lg overflow-hidden">
+                                <button @click="open = !open"
+                                        class="w-full px-5 py-4 text-left flex items-center justify-between hover:bg-gray-50 transition-colors">
+                                    <div class="flex items-center gap-3">
+                                        <i class="fas fa-layer-group text-purple-600 text-lg"></i>
+                                        <span class="font-semibold text-gray-900">Framer</span>
+                                        <span class="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full">No-Code</span>
+                                    </div>
+                                    <i class="fas fa-chevron-down text-gray-400 transition-transform duration-200"
+                                       :class="{ 'rotate-180': open }"></i>
+                                </button>
+
+                                <div x-show="open"
+                                     x-collapse
+                                     class="px-5 py-4 border-t border-gray-200 bg-gray-50">
+                                    <ol class="list-decimal list-inside space-y-2 text-gray-700 text-sm mb-4">
+                                        <li>Open your Framer project</li>
+                                        <li>Go to <strong>Site Settings → General → Custom Code</strong></li>
+                                        <li>Paste this code in <strong>"End of &lt;head&gt; tag"</strong>:</li>
+                                    </ol>
+
+                                    <div class="bg-gray-900 text-gray-100 p-3 rounded-lg overflow-x-auto text-sm mb-4">
+                                        <pre><code>&lt;script
+  defer
+  data-tracking-code="YOUR_CODE"
+  src="https://argusmetrics.io/static/tracker.min.js"
+&gt;&lt;/script&gt;</code></pre>
+                                    </div>
+
+                                    <ol start="4" class="list-decimal list-inside space-y-2 text-gray-700 text-sm mb-4">
+                                        <li>Replace <code class="bg-gray-200 px-1 rounded">YOUR_CODE</code> with your tracking code</li>
+                                        <li>Publish your site</li>
+                                    </ol>
+
+                                    <div class="bg-green-50 border-l-4 border-green-600 p-3 rounded">
+                                        <p class="text-sm text-green-800">
+                                            <strong>✓ Done!</strong> Analytics will start tracking within minutes.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Webflow -->
+                            <div x-data="{ open: false }" class="border border-gray-200 rounded-lg overflow-hidden">
+                                <button @click="open = !open"
+                                        class="w-full px-5 py-4 text-left flex items-center justify-between hover:bg-gray-50 transition-colors">
+                                    <div class="flex items-center gap-3">
+                                        <i class="fas fa-water text-blue-500 text-lg"></i>
+                                        <span class="font-semibold text-gray-900">Webflow</span>
+                                        <span class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">No-Code</span>
+                                    </div>
+                                    <i class="fas fa-chevron-down text-gray-400 transition-transform duration-200"
+                                       :class="{ 'rotate-180': open }"></i>
+                                </button>
+
+                                <div x-show="open"
+                                     x-collapse
+                                     class="px-5 py-4 border-t border-gray-200 bg-gray-50">
+                                    <ol class="list-decimal list-inside space-y-2 text-gray-700 text-sm mb-4">
+                                        <li>Open your Webflow project</li>
+                                        <li>Go to <strong>Project Settings → Custom Code</strong></li>
+                                        <li>Paste this code in <strong>"Head Code"</strong> section:</li>
+                                    </ol>
+
+                                    <div class="bg-gray-900 text-gray-100 p-3 rounded-lg overflow-x-auto text-sm mb-4">
+                                        <pre><code>&lt;script
+  defer
+  data-tracking-code="YOUR_CODE"
+  src="https://argusmetrics.io/static/tracker.min.js"
+&gt;&lt;/script&gt;</code></pre>
+                                    </div>
+
+                                    <ol start="4" class="list-decimal list-inside space-y-2 text-gray-700 text-sm mb-4">
+                                        <li>Replace <code class="bg-gray-200 px-1 rounded">YOUR_CODE</code> with your tracking code</li>
+                                        <li>Click <strong>Save Changes</strong></li>
+                                        <li>Publish your site</li>
+                                    </ol>
+
+                                    <div class="bg-green-50 border-l-4 border-green-600 p-3 rounded">
+                                        <p class="text-sm text-green-800">
+                                            <strong>✓ That's it!</strong> Your Webflow site is now being tracked.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Shopify -->
+                            <div x-data="{ open: false }" class="border border-gray-200 rounded-lg overflow-hidden">
+                                <button @click="open = !open"
+                                        class="w-full px-5 py-4 text-left flex items-center justify-between hover:bg-gray-50 transition-colors">
+                                    <div class="flex items-center gap-3">
+                                        <i class="fas fa-shopping-bag text-green-600 text-lg"></i>
+                                        <span class="font-semibold text-gray-900">Shopify</span>
+                                        <span class="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">E-commerce</span>
+                                    </div>
+                                    <i class="fas fa-chevron-down text-gray-400 transition-transform duration-200"
+                                       :class="{ 'rotate-180': open }"></i>
+                                </button>
+
+                                <div x-show="open"
+                                     x-collapse
+                                     class="px-5 py-4 border-t border-gray-200 bg-gray-50">
+                                    <ol class="list-decimal list-inside space-y-2 text-gray-700 text-sm mb-4">
+                                        <li>Go to <strong>Online Store → Themes</strong></li>
+                                        <li>Click <strong>Actions → Edit Code</strong> on your active theme</li>
+                                        <li>Find and open <strong>theme.liquid</strong> file</li>
+                                        <li>Locate the <code class="bg-gray-200 px-1 rounded">&lt;/head&gt;</code> tag</li>
+                                        <li>Paste this code <strong>just before</strong> <code class="bg-gray-200 px-1 rounded">&lt;/head&gt;</code>:</li>
+                                    </ol>
+
+                                    <div class="bg-gray-900 text-gray-100 p-3 rounded-lg overflow-x-auto text-sm mb-4">
+                                        <pre><code>&lt;script
+  defer
+  data-tracking-code="YOUR_CODE"
+  src="https://argusmetrics.io/static/tracker.min.js"
+&gt;&lt;/script&gt;</code></pre>
+                                    </div>
+
+                                    <ol start="6" class="list-decimal list-inside space-y-2 text-gray-700 text-sm mb-4">
+                                        <li>Replace <code class="bg-gray-200 px-1 rounded">YOUR_CODE</code> with your tracking code</li>
+                                        <li>Click <strong>Save</strong></li>
+                                    </ol>
+
+                                    <div class="bg-green-50 border-l-4 border-green-600 p-3 rounded">
+                                        <p class="text-sm text-green-800">
+                                            <strong>✓ Perfect!</strong> Your Shopify store is now tracking visitors and sales.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Squarespace -->
+                            <div x-data="{ open: false }" class="border border-gray-200 rounded-lg overflow-hidden">
+                                <button @click="open = !open"
+                                        class="w-full px-5 py-4 text-left flex items-center justify-between hover:bg-gray-50 transition-colors">
+                                    <div class="flex items-center gap-3">
+                                        <i class="fas fa-square text-gray-700 text-lg"></i>
+                                        <span class="font-semibold text-gray-900">Squarespace</span>
+                                        <span class="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-full">No-Code</span>
+                                    </div>
+                                    <i class="fas fa-chevron-down text-gray-400 transition-transform duration-200"
+                                       :class="{ 'rotate-180': open }"></i>
+                                </button>
+
+                                <div x-show="open"
+                                     x-collapse
+                                     class="px-5 py-4 border-t border-gray-200 bg-gray-50">
+                                    <ol class="list-decimal list-inside space-y-2 text-gray-700 text-sm mb-4">
+                                        <li>Go to <strong>Settings → Advanced → Code Injection</strong></li>
+                                        <li>Paste this code in the <strong>"Header"</strong> section:</li>
+                                    </ol>
+
+                                    <div class="bg-gray-900 text-gray-100 p-3 rounded-lg overflow-x-auto text-sm mb-4">
+                                        <pre><code>&lt;script
+  defer
+  data-tracking-code="YOUR_CODE"
+  src="https://argusmetrics.io/static/tracker.min.js"
+&gt;&lt;/script&gt;</code></pre>
+                                    </div>
+
+                                    <ol start="3" class="list-decimal list-inside space-y-2 text-gray-700 text-sm mb-4">
+                                        <li>Replace <code class="bg-gray-200 px-1 rounded">YOUR_CODE</code> with your tracking code</li>
+                                        <li>Click <strong>Save</strong></li>
+                                    </ol>
+
+                                    <div class="bg-green-50 border-l-4 border-green-600 p-3 rounded">
+                                        <p class="text-sm text-green-800">
+                                            <strong>✓ All set!</strong> Your Squarespace site is now tracking visitors.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- WordPress -->
+                            <div x-data="{ open: false }" class="border border-gray-200 rounded-lg overflow-hidden">
+                                <button @click="open = !open"
+                                        class="w-full px-5 py-4 text-left flex items-center justify-between hover:bg-gray-50 transition-colors">
+                                    <div class="flex items-center gap-3">
+                                        <i class="fab fa-wordpress text-blue-600 text-lg"></i>
+                                        <span class="font-semibold text-gray-900">WordPress</span>
+                                        <span class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">Plugin Available</span>
+                                    </div>
+                                    <i class="fas fa-chevron-down text-gray-400 transition-transform duration-200"
+                                       :class="{ 'rotate-180': open }"></i>
+                                </button>
+
+                                <div x-show="open"
+                                     x-collapse
+                                     class="px-5 py-4 border-t border-gray-200 bg-gray-50">
+                                    <div class="bg-green-50 border-l-4 border-green-600 p-3 mb-4">
+                                        <p class="text-sm text-green-900">
+                                            <strong>✅ Recommended:</strong> Use our official WordPress plugin for easy installation. No theme editing required!
+                                        </p>
+                                    </div>
+
+                                    <!-- Step 1: Create Account -->
+                                    <h4 class="font-semibold text-gray-900 mb-2 text-sm">Step 1: Create your Argusmetrics account</h4>
+                                    <ol class="list-decimal list-inside space-y-1 ml-4 mb-4 text-sm text-gray-700">
+                                        <li>Go to <a href="https://app.argusmetrics.io/signup" class="text-blue-600 hover:underline font-medium" target="_blank">app.argusmetrics.io/signup</a></li>
+                                        <li>Enter your email and select a plan (Hobby is free)</li>
+                                        <li>Check your inbox and click the magic link (valid for 15 min)</li>
+                                    </ol>
+
+                                    <!-- Step 2: Add Website -->
+                                    <h4 class="font-semibold text-gray-900 mb-2 text-sm">Step 2: Add your website</h4>
+                                    <ol class="list-decimal list-inside space-y-1 ml-4 mb-4 text-sm text-gray-700">
+                                        <li>On the dashboard, click <strong>"Add Website"</strong></li>
+                                        <li>Enter your website name and domain (e.g. <code class="bg-gray-200 px-1 rounded">https://yoursite.com</code>)</li>
+                                        <li>You will receive an <strong>8-character tracking code</strong></li>
+                                    </ol>
+
+                                    <!-- Step 3: Verify Domain -->
+                                    <h4 class="font-semibold text-gray-900 mb-2 text-sm">Step 3: Verify your domain</h4>
+                                    <div class="bg-blue-50 border-l-4 border-blue-500 p-3 mb-3">
+                                        <p class="text-sm text-blue-900">
+                                            Domain verification is required before tracking starts. This confirms you own the domain.
+                                        </p>
+                                    </div>
+                                    <ol class="list-decimal list-inside space-y-1 ml-4 mb-4 text-sm text-gray-700">
+                                        <li>Go to <strong>Settings</strong> for your website in the dashboard</li>
+                                        <li>Copy the DNS TXT record shown:
+                                            <div class="mt-1 mb-1 bg-gray-800 text-gray-100 p-2 rounded text-xs font-mono">
+                                                Type: TXT<br>
+                                                Host: _argusmetrics.yoursite.com<br>
+                                                Value: [your unique verification token]
+                                            </div>
+                                        </li>
+                                        <li>Add the TXT record at your DNS provider (Loopia, Cloudflare, GoDaddy, etc.)</li>
+                                        <li>Wait 1-5 minutes, then click <strong>"Verify Domain Now"</strong></li>
+                                    </ol>
+
+                                    <!-- Step 4: Install Plugin -->
+                                    <h4 class="font-semibold text-gray-900 mb-2 text-sm">Step 4: Install the WordPress plugin</h4>
+                                    <ol class="list-decimal list-inside space-y-1 ml-4 mb-4 text-sm text-gray-700">
+                                        <li>Download the plugin:
+                                            <a href="https://argusmetrics.io/static/downloads/argus-metrics-1.1.0.zip" class="text-blue-600 hover:underline font-medium">.zip</a>
+                                            or
+                                            <a href="https://argusmetrics.io/static/downloads/argus-metrics-1.1.0.tar.gz" class="text-blue-600 hover:underline">.tar.gz</a>
+                                        </li>
+                                        <li>In WordPress: <strong>Plugins → Add New → Upload Plugin</strong></li>
+                                        <li>Upload the .zip file and click <strong>Install Now</strong></li>
+                                        <li>Click <strong>Activate</strong></li>
+                                    </ol>
+
+                                    <!-- Step 5: Configure -->
+                                    <h4 class="font-semibold text-gray-900 mb-2 text-sm">Step 5: Configure the plugin</h4>
+                                    <ol class="list-decimal list-inside space-y-1 ml-4 mb-4 text-sm text-gray-700">
+                                        <li>Go to <strong>Settings → Argusmetrics</strong></li>
+                                        <li>Paste your <strong>8-character tracking code</strong></li>
+                                        <li>Check <strong>"Exclude Administrators"</strong> (so your own visits are not tracked)</li>
+                                        <li>Click <strong>Save Settings</strong></li>
+                                    </ol>
+
+                                    <div class="bg-green-50 border-l-4 border-green-600 p-3 mb-4">
+                                        <p class="text-sm text-green-900">
+                                            <strong>Done!</strong> Visit your site and check your <a href="https://app.argusmetrics.io/dashboard" class="text-green-700 underline" target="_blank">dashboard</a> — data appears in real-time.
+                                        </p>
+                                    </div>
+
+                                    <div class="bg-gray-100 border-l-4 border-gray-400 p-3 mb-4">
+                                        <p class="text-sm text-gray-700">
+                                            <strong>Tip:</strong> Argusmetrics is cookieless and GDPR-compliant — you can remove any cookie consent plugin (e.g. Complianz, CookieYes) since it is no longer needed.
+                                        </p>
+                                    </div>
+
+                                    <div class="bg-yellow-50 border-l-4 border-yellow-600 p-3 mb-4">
+                                        <p class="text-sm text-yellow-900">
+                                            <strong>⚠️ Avoid:</strong> Do NOT edit your theme's header.php directly - your changes will be lost when updating the theme!
+                                        </p>
+                                    </div>
+
+                                    <h4 class="font-semibold text-gray-900 mb-2 text-sm">Alternative: Child Theme (Advanced)</h4>
+                                    <p class="text-xs text-gray-600 mb-2">If you prefer not to use a plugin:</p>
+                                    <ol class="list-decimal list-inside space-y-1 ml-4 text-xs text-gray-700">
+                                        <li>Create a child theme (preserves code during theme updates)</li>
+                                        <li>Add the script to your child theme's <code class="bg-gray-200 px-1 rounded">header.php</code></li>
+                                        <li>Paste before <code class="bg-gray-200 px-1 rounded">&lt;/head&gt;</code></li>
+                                    </ol>
+                                </div>
+                            </div>
+
+                            <!-- Next.js / React -->
+                            <div x-data="{ open: false }" class="border border-gray-200 rounded-lg overflow-hidden">
+                                <button @click="open = !open"
+                                        class="w-full px-5 py-4 text-left flex items-center justify-between hover:bg-gray-50 transition-colors">
+                                    <div class="flex items-center gap-3">
+                                        <i class="fab fa-react text-cyan-500 text-lg"></i>
+                                        <span class="font-semibold text-gray-900">Next.js / React</span>
+                                        <span class="text-xs bg-cyan-100 text-cyan-700 px-2 py-1 rounded-full">Vercel</span>
+                                    </div>
+                                    <i class="fas fa-chevron-down text-gray-400 transition-transform duration-200"
+                                       :class="{ 'rotate-180': open }"></i>
+                                </button>
+
+                                <div x-show="open"
+                                     x-collapse
+                                     class="px-5 py-4 border-t border-gray-200 bg-gray-50">
+                                    <div class="bg-blue-50 border-l-4 border-blue-600 p-3 mb-4">
+                                        <p class="text-sm text-blue-900">
+                                            <strong>💡 Tip:</strong> Just copy-paste the code below into your project - it works out of the box!
+                                        </p>
+                                    </div>
+
+                                    <h4 class="font-semibold text-gray-900 mb-2 text-sm">Next.js 13+ (App Router)</h4>
+                                    <p class="text-xs text-gray-600 mb-2">Add to <code class="bg-gray-200 px-1 rounded">app/layout.js</code> or <code class="bg-gray-200 px-1 rounded">app/layout.tsx</code>:</p>
+                                    <div class="bg-gray-900 text-gray-100 p-3 rounded mt-2 overflow-x-auto text-sm">
+                                        <pre><code>export default function RootLayout({ children }) {
+  return (
+    &lt;html lang="en"&gt;
+      &lt;head&gt;
+        &lt;script
+          defer
+          data-tracking-code="YOUR_CODE"
+          src="https://argusmetrics.io/static/tracker.min.js"
+        &gt;&lt;/script&gt;
+      &lt;/head&gt;
+      &lt;body&gt;{children}&lt;/body&gt;
+    &lt;/html&gt;
+  );
+}</code></pre>
+                                    </div>
+
+                                    <h4 class="font-semibold text-gray-900 mb-2 mt-4 text-sm">Next.js 12 (Pages Router)</h4>
+                                    <p class="text-xs text-gray-600 mb-2">Add to <code class="bg-gray-200 px-1 rounded">pages/_document.js</code>:</p>
+                                    <div class="bg-gray-900 text-gray-100 p-3 rounded mt-2 overflow-x-auto text-sm">
+                                        <pre><code>import { Html, Head, Main, NextScript } from 'next/document';
+
+export default function Document() {
+  return (
+    &lt;Html&gt;
+      &lt;Head&gt;
+        &lt;script
+          defer
+          data-tracking-code="YOUR_CODE"
+          src="https://argusmetrics.io/static/tracker.min.js"
+        &gt;&lt;/script&gt;
+      &lt;/Head&gt;
+      &lt;body&gt;
+        &lt;Main /&gt;
+        &lt;NextScript /&gt;
+      &lt;/body&gt;
+    &lt;/Html&gt;
+  );
+}</code></pre>
+                                    </div>
+
+                                    <h4 class="font-semibold text-gray-900 mb-2 mt-4 text-sm">React (Create React App)</h4>
+                                    <p class="text-xs text-gray-600 mb-2">Add to <code class="bg-gray-200 px-1 rounded">public/index.html</code> inside <code class="bg-gray-200 px-1 rounded">&lt;head&gt;</code>:</p>
+                                    <div class="bg-gray-900 text-gray-100 p-3 rounded mt-2 overflow-x-auto text-sm">
+                                        <pre><code>&lt;script
+  defer
+  data-tracking-code="YOUR_CODE"
+  src="https://argusmetrics.io/static/tracker.min.js"
+&gt;&lt;/script&gt;</code></pre>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Static HTML -->
+                            <div x-data="{ open: false }" class="border border-gray-200 rounded-lg overflow-hidden">
+                                <button @click="open = !open"
+                                        class="w-full px-5 py-4 text-left flex items-center justify-between hover:bg-gray-50 transition-colors">
+                                    <div class="flex items-center gap-3">
+                                        <i class="fas fa-code text-orange-600 text-lg"></i>
+                                        <span class="font-semibold text-gray-900">Static HTML</span>
+                                        <span class="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded-full">Universal</span>
+                                    </div>
+                                    <i class="fas fa-chevron-down text-gray-400 transition-transform duration-200"
+                                       :class="{ 'rotate-180': open }"></i>
+                                </button>
+
+                                <div x-show="open"
+                                     x-collapse
+                                     class="px-5 py-4 border-t border-gray-200 bg-gray-50">
+                                    <p class="mb-3 text-sm text-gray-700">Paste this code in the <code class="bg-gray-200 px-1 rounded">&lt;head&gt;</code> section of every HTML page:</p>
+                                    <div class="bg-gray-900 text-gray-100 p-3 rounded mt-2 overflow-x-auto text-sm mb-4">
+                                        <pre><code>&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+&lt;head&gt;
+  &lt;meta charset="UTF-8"&gt;
+  &lt;title&gt;Your Website&lt;/title&gt;
+
+  &lt;!-- Argusmetrics Analytics --&gt;
+  &lt;script
+    defer
+    data-tracking-code="YOUR_CODE"
+    src="https://argusmetrics.io/static/tracker.min.js"
+  &gt;&lt;/script&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;!-- Your content --&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+                                    </div>
+                                    <div class="bg-green-50 border-l-4 border-green-600 p-3 rounded">
+                                        <p class="text-sm text-green-900">
+                                            <strong>✓ That's it!</strong> Copy the script tag and add it to all your HTML pages. Analytics will start tracking immediately.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <h3 class="text-xl font-semibold text-gray-900 mb-3 mt-6">Step 3: Verify Installation</h3>
+                        <p class="text-gray-700 mb-4">
+                            Visit your website and check your Argusmetrics dashboard. You should see a real-time visitor within seconds.
+                        </p>
+                    </section>
+
+                    <!-- Custom Events -->
+                    <section id="custom-events" class="mb-12">
+                        <h2 class="text-3xl font-bold text-gray-900 mb-4 pb-2 border-b-2 border-blue-600">Custom Events</h2>
+                        <p class="text-gray-700 mb-4">
+                            Track custom actions like button clicks, form submissions, purchases, or any user interaction.
+                        </p>
+
+                        <h3 class="text-xl font-semibold text-gray-900 mb-3 mt-6">Basic Event Tracking</h3>
+                        <div class="bg-gray-900 text-gray-100 p-4 rounded-lg mb-4 overflow-x-auto">
+                            <pre><code>window.argus.trackEvent('signup');</code></pre>
+                        </div>
+
+                        <h3 class="text-xl font-semibold text-gray-900 mb-3 mt-6">Events with Properties</h3>
+                        <p class="text-gray-700 mb-4">
+                            Add custom properties to track additional context:
+                        </p>
+                        <div class="bg-gray-900 text-gray-100 p-4 rounded-lg mb-4 overflow-x-auto">
+                            <pre><code>window.argus.trackEvent('purchase', {
+  plan: 'pro',
+  amount: 9,
+  currency: 'EUR'
+});</code></pre>
+                        </div>
+
+                        <h3 class="text-xl font-semibold text-gray-900 mb-3 mt-6">Example: Track Button Click</h3>
+                        <div class="bg-gray-900 text-gray-100 p-4 rounded-lg mb-4 overflow-x-auto">
+                            <pre><code>&lt;button onclick="window.argus.trackEvent('cta_click', {button: 'Get Started'})"&gt;
+  Get Started
+&lt;/button&gt;</code></pre>
+                        </div>
+                    </section>
+
+                    <!-- Custom Properties -->
+                    <section id="custom-properties" class="mb-12">
+                        <h2 class="text-3xl font-bold text-gray-900 mb-4 pb-2 border-b-2 border-blue-600">Custom Properties</h2>
+                        <p class="text-gray-700 mb-4">
+                            Segment your analytics by attaching custom properties to pageviews. Perfect for tracking user types, A/B tests, subscription plans, and more.
+                        </p>
+
+                        <div class="bg-purple-50 border-l-4 border-purple-600 p-4 mb-6">
+                            <p class="text-sm text-purple-900">
+                                <strong>🎯 Use Cases:</strong> Filter analytics by user plan (free/pro), A/B test variant, user ID, language, or any custom dimension specific to your business.
+                            </p>
+                        </div>
+
+                        <h3 class="text-xl font-semibold text-gray-900 mb-3 mt-6">Tracking Pageviews with Properties</h3>
+                        <p class="text-gray-700 mb-4">
+                            Pass custom properties when tracking pageviews:
+                        </p>
+                        <div class="bg-gray-900 text-gray-100 p-4 rounded-lg mb-4 overflow-x-auto">
+                            <pre><code>window.argus.track({
+  plan: 'pro',
+  userId: '12345',
+  experiment: 'variant-A'
+});</code></pre>
+                        </div>
+
+                        <h3 class="text-xl font-semibold text-gray-900 mb-3 mt-6">Example: Track User Plan</h3>
+                        <div class="bg-gray-900 text-gray-100 p-4 rounded-lg mb-4 overflow-x-auto">
+                            <pre><code>&lt;script&gt;
+  // Track pageview with user's subscription plan
+  window.argus.track({
+    plan: 'premium',
+    userId: '12345',
+    isLoggedIn: 'true'
+  });
+&lt;/script&gt;</code></pre>
+                        </div>
+
+                        <h3 class="text-xl font-semibold text-gray-900 mb-3 mt-6">Example: A/B Testing</h3>
+                        <div class="bg-gray-900 text-gray-100 p-4 rounded-lg mb-4 overflow-x-auto">
+                            <pre><code>&lt;script&gt;
+  // Track which A/B test variant the user sees
+  const variant = Math.random() &lt; 0.5 ? 'A' : 'B';
+
+  window.argus.track({
+    experiment: 'pricing-test',
+    variant: variant
+  });
+&lt;/script&gt;</code></pre>
+                        </div>
+
+                        <h3 class="text-xl font-semibold text-gray-900 mb-3 mt-6">Filtering by Properties in Dashboard</h3>
+                        <ol class="list-decimal list-inside space-y-2 text-gray-700 ml-4 mb-4">
+                            <li>Go to your website dashboard</li>
+                            <li>Click "Add Property Filter" button (purple button)</li>
+                            <li>Enter property key (e.g., "plan")</li>
+                            <li>Enter property value (e.g., "pro")</li>
+                            <li>Click "Apply Filter"</li>
+                            <li>Dashboard now shows analytics for only that segment</li>
+                        </ol>
+
+                        <div class="bg-blue-50 border-l-4 border-blue-600 p-4 mb-4">
+                            <p class="text-sm text-blue-900">
+                                <strong>💡 Pro Tip:</strong> You can apply multiple property filters simultaneously to drill down into specific user segments. For example, filter by <code>plan: pro</code> AND <code>experiment: variant-A</code> to see how premium users interact with your A/B test.
+                            </p>
+                        </div>
+
+                        <h3 class="text-xl font-semibold text-gray-900 mb-3 mt-6">Property Keys Best Practices</h3>
+                        <ul class="list-disc list-inside space-y-2 text-gray-700 ml-4 mb-4">
+                            <li><strong>plan</strong> - User subscription tier (free, starter, pro, business)</li>
+                            <li><strong>userId</strong> - Track individual user journeys</li>
+                            <li><strong>experiment</strong> - A/B test experiment name</li>
+                            <li><strong>variant</strong> - A/B test variant (A, B, control)</li>
+                            <li><strong>language</strong> - User language preference (en, sv, no, da)</li>
+                            <li><strong>isLoggedIn</strong> - Whether user is authenticated (true, false)</li>
+                            <li><strong>campaign</strong> - Marketing campaign identifier</li>
+                        </ul>
+
+                        <div class="bg-yellow-50 border-l-4 border-yellow-600 p-4 mb-4">
+                            <p class="text-sm text-yellow-900">
+                                <strong>⚠️ Privacy Note:</strong> Do not include personally identifiable information (PII) like names, emails, or addresses in properties. Use anonymized IDs instead.
+                            </p>
+                        </div>
+                    </section>
+
+                    <!-- Conversion Goals -->
+                    <section id="goals" class="mb-12">
+                        <h2 class="text-3xl font-bold text-gray-900 mb-4 pb-2 border-b-2 border-blue-600">Conversion Goals</h2>
+                        <p class="text-gray-700 mb-4">
+                            Track important business metrics like signups, purchases, or form submissions.
+                        </p>
+
+                        <h3 class="text-xl font-semibold text-gray-900 mb-3 mt-6">Setting Up Goals</h3>
+                        <ol class="list-decimal list-inside space-y-2 text-gray-700 ml-4 mb-4">
+                            <li>Go to your website dashboard</li>
+                            <li>Click "Goals" tab</li>
+                            <li>Click "Create Goal"</li>
+                            <li>Enter goal name (e.g., "signup", "purchase")</li>
+                            <li>Track events with that name</li>
+                        </ol>
+
+                        <div class="bg-blue-50 border-l-4 border-blue-600 p-4 mb-4">
+                            <p class="text-sm text-blue-900">
+                                <strong>💡 Tip:</strong> Goals automatically track custom events with matching names.
+                                Track "signup" events, create a "signup" goal, and see conversion rates instantly.
+                            </p>
+                        </div>
+                    </section>
+
+                    <!-- Outbound Links -->
+                    <section id="outbound-links" class="mb-12">
+                        <h2 class="text-3xl font-bold text-gray-900 mb-4 pb-2 border-b-2 border-blue-600">Outbound Link Tracking</h2>
+                        <p class="text-gray-700 mb-4">
+                            Argusmetrics automatically tracks clicks on external links. No configuration needed!
+                        </p>
+
+                        <h3 class="text-xl font-semibold text-gray-900 mb-3 mt-6">What Gets Tracked</h3>
+                        <ul class="list-disc list-inside space-y-2 text-gray-700 ml-4 mb-4">
+                            <li>Links to different domains (e.g., yoursite.com → google.com)</li>
+                            <li>Links with <code>target="_blank"</code></li>
+                            <li>HTTP and HTTPS links only</li>
+                        </ul>
+
+                        <h3 class="text-xl font-semibold text-gray-900 mb-3 mt-6">Excluding Domains</h3>
+                        <p class="text-gray-700 mb-4">
+                            To exclude certain domains from tracking (e.g., your own subdomains):
+                        </p>
+                        <div class="bg-gray-900 text-gray-100 p-4 rounded-lg mb-4 overflow-x-auto">
+                            <pre><code>&lt;script
+  src="https://argusmetrics.io/static/tracker.min.js"
+  data-tracking-code="YOUR_CODE"
+  data-exclude-outbound="stripe.com,paypal.com"
+  defer
+&gt;&lt;/script&gt;</code></pre>
+                        </div>
+                    </section>
+
+                    <!-- 404 Tracking -->
+                    <section id="404-tracking" class="mb-12">
+                        <h2 class="text-3xl font-bold text-gray-900 mb-4 pb-2 border-b-2 border-blue-600">404 Error Tracking</h2>
+                        <p class="text-gray-700 mb-4">
+                            Find and fix broken links by tracking 404 errors automatically.
+                        </p>
+
+                        <h3 class="text-xl font-semibold text-gray-900 mb-3 mt-6">Setup</h3>
+                        <p class="text-gray-700 mb-4">
+                            Add this code to your 404 error page:
+                        </p>
+                        <div class="bg-gray-900 text-gray-100 p-4 rounded-lg mb-4 overflow-x-auto">
+                            <pre><code>&lt;script&gt;
+  if (window.argus) {
+    window.argus.trackEvent('404 Error', {
+      path: window.location.pathname,
+      referrer: document.referrer || 'direct'
+    });
+  }
+&lt;/script&gt;</code></pre>
+                        </div>
+
+                        <p class="text-gray-700 mb-4">
+                            404 errors will appear in your dashboard's "404 Errors" section with:
+                        </p>
+                        <ul class="list-disc list-inside space-y-2 text-gray-700 ml-4">
+                            <li>Broken URL path</li>
+                            <li>Number of times accessed</li>
+                            <li>Referrer (where visitors came from)</li>
+                            <li>Last seen timestamp</li>
+                        </ul>
+                    </section>
+
+                    <!-- Team Management -->
+                    <section id="team-management" class="mb-12">
+                        <h2 class="text-3xl font-bold text-gray-900 mb-4 pb-2 border-b-2 border-blue-600">Team Management</h2>
+                        <p class="text-gray-700 mb-4">
+                            Collaborate with your team by inviting members with different permission levels.
+                        </p>
+
+                        <h3 class="text-xl font-semibold text-gray-900 mb-3 mt-6">Roles</h3>
+                        <div class="space-y-3 mb-6">
+                            <div class="bg-gray-50 p-4 rounded-lg">
+                                <h4 class="font-semibold text-gray-900 mb-2">👑 Owner</h4>
+                                <p class="text-sm text-gray-700">Full access. Can delete website, manage billing, and invite admins/viewers.</p>
+                            </div>
+                            <div class="bg-gray-50 p-4 rounded-lg">
+                                <h4 class="font-semibold text-gray-900 mb-2">⚙️ Admin</h4>
+                                <p class="text-sm text-gray-700">Can view analytics, edit settings, manage goals, and invite viewers.</p>
+                            </div>
+                            <div class="bg-gray-50 p-4 rounded-lg">
+                                <h4 class="font-semibold text-gray-900 mb-2">👁️ Viewer</h4>
+                                <p class="text-sm text-gray-700">Can only view analytics. No editing permissions.</p>
+                            </div>
+                        </div>
+
+                        <h3 class="text-xl font-semibold text-gray-900 mb-3 mt-6">Inviting Team Members</h3>
+                        <ol class="list-decimal list-inside space-y-2 text-gray-700 ml-4">
+                            <li>Go to your website dashboard</li>
+                            <li>Click "Team" tab</li>
+                            <li>Click "Invite Team Member"</li>
+                            <li>Enter email and select role</li>
+                            <li>They'll receive an invitation email</li>
+                        </ol>
+                    </section>
+
+                    <!-- API Reference -->
+                    <section id="api" class="mb-12">
+                        <h2 class="text-3xl font-bold text-gray-900 mb-4 pb-2 border-b-2 border-blue-600">API Reference</h2>
+                        <p class="text-gray-700 mb-4">
+                            Access your analytics data programmatically via our RESTful API.
+                        </p>
+
+                        <h3 class="text-xl font-semibold text-gray-900 mb-3 mt-6">Authentication</h3>
+                        <p class="text-gray-700 mb-4">
+                            Create an API token in your website settings and include it in requests:
+                        </p>
+                        <div class="bg-gray-900 text-gray-100 p-4 rounded-lg mb-6 overflow-x-auto">
+                            <pre><code>curl -H "Authorization: Bearer YOUR_API_TOKEN" \
+  https://app.argusmetrics.io/api/v1/dashboard/website/7/stats</code></pre>
+                        </div>
+
+                        <h3 class="text-xl font-semibold text-gray-900 mb-3 mt-6">Track Pageview</h3>
+                        <div class="bg-gray-900 text-gray-100 p-4 rounded-lg mb-6 overflow-x-auto">
+                            <pre><code>POST /api/v1/analytics/track
+Content-Type: application/json
+
+{
+  "tracking_code": "YOUR_CODE",
+  "path": "/about",
+  "referrer": "https://google.com",
+  "screen_width": 1920
+}</code></pre>
+                        </div>
+
+                        <h3 class="text-xl font-semibold text-gray-900 mb-3 mt-6">Track Custom Event</h3>
+                        <div class="bg-gray-900 text-gray-100 p-4 rounded-lg mb-6 overflow-x-auto">
+                            <pre><code>POST /api/v1/analytics/track-event
+Content-Type: application/json
+
+{
+  "tracking_code": "YOUR_CODE",
+  "event_name": "signup",
+  "properties": {
+    "plan": "pro",
+    "amount": 9
+  }
+}</code></pre>
+                        </div>
+                    </section>
+
+                    <!-- Support -->
+                    <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-8 rounded-lg mt-12">
+                        <h2 class="text-2xl font-bold text-gray-900 mb-4">Need Help?</h2>
+                        <p class="text-gray-700 mb-4">
+                            Can't find what you're looking for? We're here to help!
+                        </p>
+                        <a href="mailto:reda@argusmetrics.io" class="inline-block bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors">
+                            Contact Support
+                        </a>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+</div>
+{% endblock %}

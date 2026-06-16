@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: timescale/timescaledb:latest-pg16
+    container_name: argusmetrics-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-argusmetrics}
+      POSTGRES_USER: ${POSTGRES_USER:-argusmetrics}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    # Host port publishing removed for local dev hardening: Postgres is reachable
+    # only over the internal Docker network (backend -> postgres:5432), never from
+    # the host/LAN. Use `docker compose exec postgres psql ...` for direct access.
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-argusmetrics}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - argusmetrics-network
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ../backend
+      dockerfile: ../docker/Dockerfile
+    container_name: argusmetrics-backend
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-argusmetrics}:${POSTGRES_PASSWORD:-changeme}@postgres:5432/${POSTGRES_DB:-argusmetrics}
+      SECRET_KEY: ${SECRET_KEY:-dev-secret-key-change-in-production}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      DEBUG: ${DEBUG:-false}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:8020}
+    ports:
+      # Loopback-only: backend reachable from this host, never from the LAN.
+      - "127.0.0.1:8020:8020"
+    volumes:
+      - ../backend:/app
+      - static_files:/app/static
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - argusmetrics-network
+    restart: unless-stopped
+    # The app creates/updates its schema from the SQLAlchemy models on startup
+    # (create_all), so a fresh DB comes up complete with no manual step. The
+    # backend serves the app + static assets directly; no separate web server
+    # is needed for self-hosting. (Alembic migrations are available for anyone
+    # who wants versioned upgrades: `docker compose exec backend alembic ...`.)
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8020
+
+volumes:
+  postgres_data:
+    driver: local
+  static_files:
+    driver: local
+
+networks:
+  argusmetrics-network:
+    driver: bridge

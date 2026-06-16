@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terms of Service - Argusmetrics - Analytics Dashboard</title>
+
+    <!-- SEO Meta Tags -->
+    <meta name="theme-color" content="#2563eb">
+    <link rel="canonical" href="https://argusmetrics.io/terms">
+    <meta name="description" content="Terms of service for Argusmetrics web analytics platform. Review the terms governing your use of our privacy-first analytics service.">
+
+    <!-- OpenGraph Meta Tags -->
+    <meta property="og:site_name" content="Argusmetrics">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://argusmetrics.io/terms">
+    <meta property="og:title" content="Terms of Service - Argusmetrics">
+    <meta property="og:description" content="Terms of service for Argusmetrics. Review the terms governing your use of our privacy-first analytics service.">
+    <meta property="og:image" content="https://argusmetrics.io/static/img/ArgusEyefavicon3.png">
+
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Terms of Service - Argusmetrics">
+    <meta name="twitter:description" content="Terms of service for Argusmetrics. Review the terms governing your use of our privacy-first analytics service.">
+    <meta name="twitter:image" content="https://argusmetrics.io/static/img/ArgusEyefavicon3.png">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/img/ArgusEyefavicon3.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/static/img/ArgusEyefavicon3.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/img/ArgusEyefavicon3.png">
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/static/manifest.json">
+
+    <!-- Tailwind CSS -->
+    <link rel="stylesheet" href="/static/css/tailwind.min.css">
+
+    <!-- HTMX (local) -->
+    <script src="/static/js/htmx.min.js"></script>
+
+    <!-- Performance hints -->
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+    <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
+    <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
+
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.5/dist/cdn.min.js"></script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Chatbot styles -->
+    <link rel="stylesheet" href="/static/css/chatbot.css">
+
+    <style>
+        /* Custom loading spinner */
+        .htmx-indicator {
+            display: none;
+        }
+        .htmx-request .htmx-indicator {
+            display: inline-block;
+        }
+        /* CSS variables for chatbot */
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1e40af;
+            --success: #10b981;
+            --bg-light: #f9fafb;
+            --text-dark: #111827;
+            --text-light: #6b7280;
+            --border: #e5e7eb;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-900 antialiased">
+
+    <main>
+<div class="min-h-screen bg-gray-50">
+    <nav class="bg-white shadow-sm fixed top-0 left-0 right-0 z-10" x-data="{ mobileMenuOpen: false, productOpen: false, compareOpen: false, resourcesOpen: false }">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <!-- Logo -->
+                <div class="flex items-center">
+                    <a href="/" class="flex items-center space-x-2">
+                        <img src="/static/img/ArgusEyefavicon3.png" alt="Argusmetrics" class="h-10 w-10">
+                        <span class="text-xl font-bold text-gray-900">Argusmetrics</span>
+                    </a>
+                </div>
+
+                <!-- Desktop navigation -->
+                <div class="hidden md:flex md:items-center md:space-x-1">
+
+                    <!-- Product dropdown -->
+                    <div class="relative" @mouseenter="productOpen = true" @mouseleave="productOpen = false">
+                        <button class="flex items-center gap-1 text-gray-600 hover:text-gray-900 text-sm font-medium px-3 py-2 rounded-md hover:bg-gray-50 transition-colors">
+                            Product
+                            <svg class="w-3.5 h-3.5 transition-transform duration-150" :class="productOpen ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                        </button>
+                        <div x-show="productOpen"
+                             x-transition:enter="transition ease-out duration-100"
+                             x-transition:enter-start="opacity-0 translate-y-1"
+                             x-transition:enter-end="opacity-100 translate-y-0"
+                             x-transition:leave="transition ease-in duration-75"
+                             x-transition:leave-start="opacity-100 translate-y-0"
+                             x-transition:leave-end="opacity-0 translate-y-1"
+                             class="absolute top-full left-0 mt-1 w-56 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50">
+                            <a href="/#features" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
+                                <i class="fas fa-bolt w-4 text-blue-500 text-xs"></i> Features
+                            </a>
+                            <a href="/data" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
+                                <i class="fas fa-shield-alt w-4 text-green-500 text-xs"></i> Privacy by Design
+                            </a>
+                            <a href="/about" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
+                                <i class="fas fa-info-circle w-4 text-purple-500 text-xs"></i> About Us
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Compare dropdown -->
+                    <div class="relative" @mouseenter="compareOpen = true" @mouseleave="compareOpen = false">
+                        <button class="flex items-center gap-1 text-gray-600 hover:text-gray-900 text-sm font-medium px-3 py-2 rounded-md hover:bg-gray-50 transition-colors">
+                            Compare
+                            <svg class="w-3.5 h-3.5 transition-transform duration-150" :class="compareOpen ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                        </button>
+                        <div x-show="compareOpen"
+                             x-transition:enter="transition ease-out duration-100"
+                             x-transition:enter-start="opacity-0 translate-y-1"
+                             x-transition:enter-end="opacity-100 translate-y-0"
+                             x-transition:leave="transition ease-in duration-75"
+                             x-transition:leave-start="opacity-100 translate-y-0"
+                             x-transition:leave-end="opacity-0 translate-y-1"
+                             class="absolute top-full left-0 mt-1 w-64 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50">
+                            <div class="px-4 py-1.5 text-xs font-semibold text-gray-400 uppercase tracking-wider">Argusmetrics vs</div>
+                            <a href="/compare/google-analytics" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
+                                <i class="fab fa-google w-4 text-red-500 text-xs"></i> Google Analytics
+                            </a>
+                            <a href="/compare/plausible" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
+                                <i class="fas fa-chart-bar w-4 text-purple-500 text-xs"></i> Plausible
+                            </a>
+                            <a href="/compare/matomo" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
+                                <i class="fas fa-chart-pie w-4 text-orange-500 text-xs"></i> Matomo
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Resources dropdown -->
+                    <div class="relative" @mouseenter="resourcesOpen = true" @mouseleave="resourcesOpen = false">
+                        <button class="flex items-center gap-1 text-gray-600 hover:text-gray-900 text-sm font-medium px-3 py-2 rounded-md hover:bg-gray-50 transition-colors">
+                            Resources
+                            <svg class="w-3.5 h-3.5 transition-transform duration-150" :class="resourcesOpen ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                        </button>
+                        <div x-show="resourcesOpen"
+                             x-transition:enter="transition ease-out duration-100"
+                             x-transition:enter-start="opacity-0 translate-y-1"
+                             x-transition:enter-end="opacity-100 translate-y-0"
+                             x-transition:leave="transition ease-in duration-75"
+                             x-transition:leave-start="opacity-100 translate-y-0"
+                             x-transition:leave-end="opacity-0 translate-y-1"
+                             class="absolute top-full left-0 mt-1 w-56 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50">
+                            <a href="/docs" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
+                                <i class="fas fa-book w-4 text-blue-500 text-xs"></i> Documentation
+                            </a>
+                            <a href="/changelog" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
+                                <i class="fas fa-list-ul w-4 text-green-500 text-xs"></i> Changelog
+                            </a>
+                            <a href="https://github.com/Benbo-se/argusmetrics.io" target="_blank" rel="noopener noreferrer" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
+                                <i class="fab fa-github w-4 text-gray-700 text-xs"></i> GitHub
+                            </a>
+                        </div>
+                    </div>
+
+                    <a href="/#pricing" class="text-gray-600 hover:text-gray-900 text-sm font-medium px-3 py-2 rounded-md hover:bg-gray-50 transition-colors">Pricing</a>
+
+                    <div class="w-px h-5 bg-gray-200 mx-1"></div>
+
+                    <a href="https://app.argusmetrics.io/login" class="text-gray-600 hover:text-gray-900 text-sm font-medium px-3 py-2 rounded-md hover:bg-gray-50 transition-colors">Log In</a>
+                    <a href="https://app.argusmetrics.io/signup" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors">
+                        Get Started Free
+                    </a>
+                </div>
+
+                <!-- Mobile menu button -->
+                <div class="flex items-center md:hidden">
+                    <button @click="mobileMenuOpen = !mobileMenuOpen"
+                            class="text-gray-600 hover:text-gray-900 p-2 rounded-md hover:bg-gray-100 transition"
+                            aria-label="Toggle menu">
+                        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path x-show="!mobileMenuOpen" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                            <path x-show="mobileMenuOpen" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile menu -->
+        <div x-show="mobileMenuOpen"
+             @click.away="mobileMenuOpen = false"
+             @keydown.escape.window="mobileMenuOpen = false"
+             x-transition:enter="transition ease-out duration-200"
+             x-transition:enter-start="opacity-0 transform -translate-y-2"
+             x-transition:enter-end="opacity-100 transform translate-y-0"
+             x-transition:leave="transition ease-in duration-150"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0"
+             class="md:hidden border-t border-gray-200 bg-white shadow-lg">
+            <div class="px-2 pt-2 pb-3 space-y-1">
+                <div class="px-3 py-1 text-xs font-semibold text-gray-400 uppercase tracking-wider">Product</div>
+                <a href="/#features" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">Features</a>
+                <a href="/data" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">Privacy by Design</a>
+                <a href="/about" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">About Us</a>
+                <div class="px-3 py-1 mt-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">Compare</div>
+                <a href="/compare/google-analytics" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">vs Google Analytics</a>
+                <a href="/compare/plausible" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">vs Plausible</a>
+                <a href="/compare/matomo" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">vs Matomo</a>
+                <div class="px-3 py-1 mt-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">Resources</div>
+                <a href="/docs" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">Documentation</a>
+                <a href="/changelog" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">Changelog</a>
+                <a href="https://github.com/Benbo-se/argusmetrics.io" target="_blank" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">GitHub</a>
+                <div class="border-t border-gray-100 mt-2 pt-2">
+                    <a href="/#pricing" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">Pricing</a>
+                    <a href="https://app.argusmetrics.io/login" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">Log In</a>
+                    <a href="https://app.argusmetrics.io/signup" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md text-center">Get Started Free</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 pt-28">
+        <div class="bg-white rounded-lg shadow-sm p-8 md:p-12">
+            <h1 class="text-4xl font-bold text-gray-900 mb-4">Terms of Service</h1>
+            <p class="text-gray-600 mb-8">Last updated: October 29, 2025</p>
+
+            <div class="prose prose-blue max-w-none">
+                <!-- Introduction -->
+                <section class="mb-8">
+                    <h2 class="text-2xl font-bold text-gray-900 mb-4">1. Agreement to Terms</h2>
+                    <p class="text-gray-700 mb-4">
+                        By accessing or using Argusmetrics ("Service", "we", "us", or "our"), you agree to be bound by these Terms of Service ("Terms").
+                        If you do not agree to these Terms, please do not use our Service.
+                    </p>
+                </section>
+
+                <!-- Description of Service -->
+                <section class="mb-8">
+                    <h2 class="text-2xl font-bold text-gray-900 mb-4">2. Description of Service</h2>
+                    <p class="text-gray-700 mb-4">
+                        Argusmetrics is a privacy-first web analytics platform that provides:
+                    </p>
+                    <ul class="list-disc list-inside space-y-2 text-gray-700 ml-4 mb-4">
+                        <li>Website traffic analytics and statistics</li>
+                        <li>Custom event tracking</li>
+                        <li>Conversion goal monitoring</li>
+                        <li>Team collaboration tools</li>
+                        <li>API access for data integration</li>
+                    </ul>
+                    <p class="text-gray-700 mb-4">
+                        We reserve the right to modify or discontinue the Service (or any part thereof) at any time with or without notice.
+                    </p>
+                </section>
+
+                <!-- Account Registration -->
+                <section class="mb-8">
+                    <h2 class="text-2xl font-bold text-gray-900 mb-4">3. Account Registration</h2>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-3">3.1 Account Creation</h3>
+                    <p class="text-gray-700 mb-4">
+                        To use Argusmetrics, you must:
+                    </p>
+                    <ul class="list-disc list-inside space-y-2 text-gray-700 ml-4 mb-4">
+                        <li>Provide a valid email address</li>
+                        <li>Be at least 16 years old</li>
+                        <li>Provide accurate and complete information</li>
+                        <li>Keep your account credentials secure</li>
+                    </ul>
+
+                    <h3 class="text-xl font-semibold text-gray-900 mb-3 mt-6">3.2 Account Responsibilities</h3>
+                    <p class="text-gray-700 mb-4">
+                        You are responsible for:
+                    </p>
+                    <ul class="list-disc list-inside space-y-2 text-gray-700 ml-4 mb-4">
+                        <li>All activity that occurs under your account</li>
+                        <li>Maintaining the confidentiality of your account</li>
+                        <li>Notifying us immediately of any unauthorized access</li>
+                    </ul>
+                </section>
+
+                <!-- Acceptable Use -->
+                <section class="mb-8">
+                    <h2 class="text-2xl font-bold text-gray-900 mb-4">4. Acceptable Use Policy</h2>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-3">4.1 Permitted Use</h3>
+                    <p class="text-gray-700 mb-4">
+                        You may use Argusmetrics to track analytics on websites you own or have permission to monitor.
+                    </p>
+
+                    <h3 class="text-xl font-semibold text-gray-900 mb-3 mt-6">4.2 Prohibited Activities</h3>
+                    <p class="text-gray-700 mb-4">
+                        You agree NOT to:
+                    </p>
+                    <ul class="list-disc list-inside space-y-2 text-gray-700 ml-4 mb-4">
+                        <li>Use the Service for any illegal purposes</li>
+                        <li>Violate any applicable laws or regulations</li>
+                        <li>Track websites you don't own without permission</li>
+                        <li>Attempt to hack, disrupt, or damage the Service</li>
+                        <li>Scrape or harvest data from the Service</li>
+                        <li>Use the Service to collect personal data without consent</li>
+                        <li>Resell or redistribute the Service without authorization</li>
+                        <li>Create fake accounts or engage in fraudulent activity</li>
+                        <li>Spam or abuse our support channels</li>
+                    </ul>
+
+                    <div class="bg-red-50 border-l-4 border-red-600 p-4 mb-4">
+                        <p class="text-sm text-red-900">
+                            <strong>⚠️ Warning:</strong> Violation of these terms may result in immediate account suspension or termination without refund.
+                        </p>
+                    </div>
+                </section>
+
+                <!-- Pricing & Payment -->
+                <section class="mb-8">
+                    <h2 class="text-2xl font-bold text-gray-900 mb-4">5. Pricing & Payment</h2>
+
+                    <h3 class="text-xl font-semibold text-gray-900 mb-3">5.1 Subscription Plans</h3>
+                    <p class="text-gray-700 mb-4">
+                        Argusmetrics offers multiple subscription tiers:
+                    </p>
+                    <ul class="list-disc list-inside space-y-2 text-gray-700 ml-4 mb-4">
+                        <li><strong>Hobby (Free):</strong> 10,000 pageviews/month, 1 website</li>
+                        <li><strong>Pro (€9/month):</strong> 100,000 pageviews/month, 10 websites</li>
+                        <li><strong>Business (€29/month):</strong> 1,000,000 pageviews/month, unlimited websites</li>
+                    </ul>
+
+                    <h3 class="text-xl font-semibold text-gray-900 mb-3 mt-6">5.2 Billing</h3>
+                    <ul class="list-disc list-inside space-y-2 text-gray-700 ml-4 mb-4">
+                        <li>Subscriptions are billed monthly in advance</li>
+                        <li>Prices are in Euros (EUR)</li>
+                        <li>All prices are exclusive of applicable taxes</li>
+                        <li>You authorize us to charge your payment method automatically</li>
+                    </ul>
+
+                    <h3 class="text-xl font-semibold text-gray-900 mb-3 mt-6">5.3 Refunds & Cancellation</h3>
+                    <ul class="list-disc list-inside space-y-2 text-gray-700 ml-4 mb-4">
+                        <li>You can cancel your subscription at any time</li>
+                        <li>Cancellation takes effect at the end of the current billing period</li>
+                        <li>No refunds for partial months</li>
+                        <li>Free tier accounts can be deleted immediately</li>
+                    </ul>
+
+                    <h3 class="text-xl font-semibold text-gray-900 mb-3 mt-6">5.4 Overage</h3>
+                    <p class="text-gray-700 mb-4">
+                        If you exceed your plan's pageview limit, we will notify you and may:
+                    </p>
+                    <ul class="list-disc list-inside space-y-2 text-gray-700 ml-4 mb-4">
+                        <li>Suggest upgrading to a higher tier</li>
+                        <li>Temporarily stop tracking until the next billing cycle</li>
+                        <li>Charge overage fees as communicated</li>
+                    </ul>
+                </section>
+
+                <!-- Data & Privacy -->
+                <section class="mb-8">
+                    <h2 class="text-2xl font-bold text-gray-900 mb-4">6. Data & Privacy</h2>
+
+                    <h3 class="text-xl font-semibold text-gray-900 mb-3">6.1 Your Data</h3>
+                    <p class="text-gray-700 mb-4">
+                        You retain all rights to your analytics data. You can export or delete your data at any time.
+                    </p>
+
+                    <h3 class="text-xl font-semibold text-gray-900 mb-3 mt-6">6.2 Privacy Compliance</h3>
+                    <p class="text-gray-700 mb-4">
+                        You are responsible for ensuring your use of Argusmetrics complies with applicable privacy laws (GDPR, CCPA, etc.).
+                        Our <a href="/privacy" class="text-blue-600 hover:text-blue-700">Privacy Policy</a> describes how we handle data.
+                    </p>
+
+                    <h3 class="text-xl font-semibold text-gray-900 mb-3 mt-6">6.3 Data Retention</h3>
+                    <ul class="list-disc list-inside space-y-2 text-gray-700 ml-4 mb-4">
+                        <li>Analytics data is retained for 2 years by default</li>
+                        <li>You can delete data anytime from your dashboard</li>
+                        <li>Deleted data is permanently removed within 30 days</li>
+                    </ul>
+                </section>
+
+                <!-- Service Availability -->
+                <section class="mb-8">
+                    <h2 class="text-2xl font-bold text-gray-900 mb-4">7. Service Availability</h2>
+                    <p class="text-gray-700 mb-4">
+                        We strive for 99.9% uptime but do not guarantee uninterrupted access. We may:
+                    </p>
+                    <ul class="list-disc list-inside space-y-2 text-gray-700 ml-4 mb-4">
+                        <li>Perform scheduled maintenance with notice</li>
+                        <li>Experience unexpected downtime</li>
+                        <li>Temporarily suspend service for security reasons</li>
+                    </ul>
+                    <p class="text-gray-700 mb-4">
+                        We are not liable for any damages resulting from service interruptions.
+                    </p>
+                </section>
+
+                <!-- Intellectual Property -->
+                <section class="mb-8">
+                    <h2 class="text-2xl font-bold text-gray-900 mb-4">8. Intellectual Property</h2>
+                    <p class="text-gray-700 mb-4">
+                        The Service, including its design, features, and content, is owned by Argusmetrics and protected by copyright,
+                        trademark, and other intellectual property laws.
+                    </p>
+                    <p class="text-gray-700 mb-4">
+                        You may not:
+                    </p>
+                    <ul class="list-disc list-inside space-y-2 text-gray-700 ml-4 mb-4">
+                        <li>Copy, modify, or create derivative works of the Service</li>
+                        <li>Reverse engineer or decompile any part of the Service</li>
+                        <li>Remove any copyright or proprietary notices</li>
+                    </ul>
+                </section>
+
+                <!-- Limitation of Liability -->
+                <section class="mb-8">
+                    <h2 class="text-2xl font-bold text-gray-900 mb-4">9. Limitation of Liability</h2>
+                    <p class="text-gray-700 mb-4">
+                        TO THE MAXIMUM EXTENT PERMITTED BY LAW:
+                    </p>
+                    <ul class="list-disc list-inside space-y-2 text-gray-700 ml-4 mb-4">
+                        <li>The Service is provided "AS IS" without warranties of any kind</li>
+                        <li>We are not liable for any indirect, incidental, or consequential damages</li>
+                        <li>Our total liability shall not exceed the amount you paid in the last 12 months</li>
+                        <li>We are not responsible for data loss; you should backup important data</li>
+                    </ul>
+                </section>
+
+                <!-- Indemnification -->
+                <section class="mb-8">
+                    <h2 class="text-2xl font-bold text-gray-900 mb-4">10. Indemnification</h2>
+                    <p class="text-gray-700 mb-4">
+                        You agree to indemnify and hold harmless Argusmetrics from any claims, damages, or expenses arising from:
+                    </p>
+                    <ul class="list-disc list-inside space-y-2 text-gray-700 ml-4 mb-4">
+                        <li>Your use of the Service</li>
+                        <li>Your violation of these Terms</li>
+                        <li>Your violation of any third-party rights</li>
+                        <li>Data you collect using the Service</li>
+                    </ul>
+                </section>
+
+                <!-- Termination -->
+                <section class="mb-8">
+                    <h2 class="text-2xl font-bold text-gray-900 mb-4">11. Termination</h2>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-3">11.1 By You</h3>
+                    <p class="text-gray-700 mb-4">
+                        You may terminate your account at any time by deleting it from your dashboard or contacting support.
+                    </p>
+
+                    <h3 class="text-xl font-semibold text-gray-900 mb-3 mt-6">11.2 By Us</h3>
+                    <p class="text-gray-700 mb-4">
+                        We may suspend or terminate your account if:
+                    </p>
+                    <ul class="list-disc list-inside space-y-2 text-gray-700 ml-4 mb-4">
+                        <li>You violate these Terms</li>
+                        <li>Your account remains unpaid after 30 days</li>
+                        <li>We believe your account poses a security risk</li>
+                        <li>Required by law</li>
+                    </ul>
+
+                    <h3 class="text-xl font-semibold text-gray-900 mb-3 mt-6">11.3 Effect of Termination</h3>
+                    <p class="text-gray-700 mb-4">
+                        Upon termination:
+                    </p>
+                    <ul class="list-disc list-inside space-y-2 text-gray-700 ml-4 mb-4">
+                        <li>Your access to the Service will be revoked immediately</li>
+                        <li>Your data will be retained for 30 days then permanently deleted</li>
+                        <li>You can request a data export within 30 days</li>
+                    </ul>
+                </section>
+
+                <!-- Changes to Terms -->
+                <section class="mb-8">
+                    <h2 class="text-2xl font-bold text-gray-900 mb-4">12. Changes to Terms</h2>
+                    <p class="text-gray-700 mb-4">
+                        We may update these Terms from time to time. We will notify you of material changes via:
+                    </p>
+                    <ul class="list-disc list-inside space-y-2 text-gray-700 ml-4 mb-4">
+                        <li>Email notification</li>
+                        <li>In-app notification</li>
+                        <li>Posting on our website</li>
+                    </ul>
+                    <p class="text-gray-700 mb-4">
+                        Continued use after changes constitutes acceptance of the updated Terms.
+                    </p>
+                </section>
+
+                <!-- Governing Law -->
+                <section class="mb-8">
+                    <h2 class="text-2xl font-bold text-gray-900 mb-4">13. Governing Law</h2>
+                    <p class="text-gray-700 mb-4">
+                        These Terms are governed by the laws of Sweden. Any disputes shall be resolved in Swedish courts.
+                    </p>
+                </section>
+
+                <!-- Contact -->
+                <section class="mb-8">
+                    <h2 class="text-2xl font-bold text-gray-900 mb-4">14. Contact Information</h2>
+                    <p class="text-gray-700 mb-4">
+                        For questions about these Terms, contact us:
+                    </p>
+                    <div class="bg-gray-50 p-6 rounded-lg">
+                        <p class="text-gray-700 mb-2"><strong>Email:</strong> <a href="mailto:legal@argusmetrics.io" class="text-blue-600 hover:text-blue-700">legal@argusmetrics.io</a></p>
+                        <p class="text-gray-700 mb-2"><strong>Support:</strong> <a href="mailto:reda@argusmetrics.io" class="text-blue-600 hover:text-blue-700">reda@argusmetrics.io</a></p>
+                        <p class="text-gray-700"><strong>Address:</strong> Argusmetrics, Sweden</p>
+                    </div>
+                </section>
+
+                <!-- Summary -->
+                <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg mt-8">
+                    <h3 class="text-xl font-bold text-gray-900 mb-3">📋 Terms Summary</h3>
+                    <ul class="space-y-2 text-gray-700">
+                        <li>✓ Use the Service ethically and legally</li>
+                        <li>✓ Pay your subscription on time</li>
+                        <li>✓ You own your data, export anytime</li>
+                        <li>✓ We provide "AS IS" service with 99.9% uptime goal</li>
+                        <li>✓ Cancel anytime, no questions asked</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+    </main>
+
+    <!-- Toast notifications container -->
+    <div id="toast-container"
+         class="fixed bottom-4 right-4 z-50 space-y-2"
+         x-data="{ toasts: [] }"
+         @toast.window="toasts.push($event.detail); setTimeout(() => toasts.shift(), 5000)">
+        <template x-for="(toast, index) in toasts" :key="index">
+            <div class="bg-white border-l-4 border-blue-500 shadow-lg rounded-lg p-4 max-w-sm"
+                 x-transition:enter="transition ease-out duration-300"
+                 x-transition:enter-start="opacity-0 transform translate-x-8"
+                 x-transition:enter-end="opacity-100 transform translate-x-0"
+                 x-transition:leave="transition ease-in duration-200"
+                 x-transition:leave-start="opacity-100"
+                 x-transition:leave-end="opacity-0">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <svg class="h-5 w-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                        </svg>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm font-medium text-gray-900" x-text="toast.message"></p>
+                    </div>
+                </div>
+            </div>
+        </template>
+    </div>
+
+    <!-- Custom JavaScript -->
+    <script src="/static/js/dashboard.js"></script>
+
+    <!-- Chatbot JavaScript -->
+    <script src="/static/js/chatbot.js"></script>
+
+    <!-- Cookie Banner (centered at bottom) -->
+    <div id="cookie-banner" x-data="{ show: !localStorage.getItem('cookie-banner-dismissed') }" x-show="show" x-transition class="fixed bottom-4 left-1/2 transform -translate-x-1/2 w-full max-w-md px-4 md:px-0 z-50" style="display: none;">
+        <div class="flex items-start gap-3 bg-white border border-gray-200 rounded-lg shadow-lg p-4">
+            <div class="flex-shrink-0 text-2xl">🍪</div>
+            <div class="flex-1">
+                <h3 class="text-sm font-semibold text-gray-900 mb-1">We respect your privacy</h3>
+                <p class="text-sm text-gray-600">We don't use cookies or track you across websites. Your data stays private.</p>
+            </div>
+            <button @click="show = false; localStorage.setItem('cookie-banner-dismissed', 'true')" class="flex-shrink-0 text-gray-400 hover:text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+    </div>
+</body>
+</html>

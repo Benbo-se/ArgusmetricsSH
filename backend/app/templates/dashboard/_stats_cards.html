@@ -1,0 +1,25 @@
+<div class="bg-white rounded-lg shadow p-6">
+    <p class="text-sm font-medium text-gray-600 mb-1">Total Pageviews</p>
+    <p class="text-3xl font-bold text-gray-900">{{ stats.total_pageviews | default(0) }}</p>
+</div>
+<div class="bg-white rounded-lg shadow p-6">
+    <p class="text-sm font-medium text-gray-600 mb-1">Unique Visitors</p>
+    <p class="text-3xl font-bold text-gray-900">{{ stats.unique_visitors | default(0) }}</p>
+</div>
+<div class="bg-white rounded-lg shadow p-6">
+    <p class="text-sm font-medium text-gray-600 mb-1">Avg. Views/Visitor</p>
+    <p class="text-3xl font-bold text-gray-900">
+        {% if stats.unique_visitors and stats.unique_visitors > 0 %}
+            {{ "%.1f"|format(stats.total_pageviews / stats.unique_visitors) }}
+        {% else %}
+            0
+        {% endif %}
+    </p>
+</div>
+<div class="bg-white rounded-lg shadow p-6">
+    <div class="flex items-center justify-between mb-1">
+        <p class="text-sm font-medium text-gray-600">Live Visitors</p>
+        <span class="inline-block w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+    </div>
+    <p class="text-3xl font-bold text-gray-900">{{ realtime_stats.active_visitors | default(0) }}</p>
+</div>

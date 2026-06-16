@@ -1,0 +1,42 @@
+<div class="bg-white rounded-lg shadow p-6">
+    <p class="text-sm font-medium text-gray-600 mb-1">Total Pageviews</p>
+    <div class="flex items-baseline gap-3">
+        <p class="text-3xl font-bold text-gray-900">{{ stats.total_pageviews | default(0) | format_number }}</p>
+        {% if stats.comparison and stats.comparison.pageviews_change is not none %}
+            <span class="text-sm font-medium {% if stats.comparison.pageviews_change >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
+                {% if stats.comparison.pageviews_change >= 0 %}▲{% else %}▼{% endif %}
+                {{ "%.1f"|format(stats.comparison.pageviews_change|abs) }}%
+            </span>
+        {% endif %}
+    </div>
+</div>
+<div class="bg-white rounded-lg shadow p-6">
+    <p class="text-sm font-medium text-gray-600 mb-1">Unique Visitors</p>
+    <div class="flex items-baseline gap-3">
+        <p class="text-3xl font-bold text-gray-900">{{ stats.unique_visitors | default(0) | format_number }}</p>
+        {% if stats.comparison and stats.comparison.visitors_change is not none %}
+            <span class="text-sm font-medium {% if stats.comparison.visitors_change >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
+                {% if stats.comparison.visitors_change >= 0 %}▲{% else %}▼{% endif %}
+                {{ "%.1f"|format(stats.comparison.visitors_change|abs) }}%
+            </span>
+        {% endif %}
+    </div>
+</div>
+<div class="bg-white rounded-lg shadow p-6">
+    <p class="text-sm font-medium text-gray-600 mb-1">Avg. Views/Visitor</p>
+    <div class="flex items-baseline gap-3">
+        <p class="text-3xl font-bold text-gray-900">
+            {% if stats.unique_visitors and stats.unique_visitors > 0 %}
+                {{ "%.1f"|format(stats.total_pageviews / stats.unique_visitors) }}
+            {% else %}
+                0
+            {% endif %}
+        </p>
+        {% if stats.comparison and stats.comparison.avg_views_change is not none %}
+            <span class="text-sm font-medium {% if stats.comparison.avg_views_change >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
+                {% if stats.comparison.avg_views_change >= 0 %}▲{% else %}▼{% endif %}
+                {{ "%.1f"|format(stats.comparison.avg_views_change|abs) }}%
+            </span>
+        {% endif %}
+    </div>
+</div>

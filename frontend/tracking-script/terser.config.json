@@ -1,0 +1,57 @@
+{
+  "compress": {
+    "arguments": true,
+    "booleans": true,
+    "booleans_as_integers": true,
+    "collapse_vars": true,
+    "comparisons": true,
+    "computed_props": true,
+    "conditionals": true,
+    "dead_code": true,
+    "drop_console": true,
+    "drop_debugger": true,
+    "evaluate": true,
+    "hoist_funs": true,
+    "hoist_props": true,
+    "hoist_vars": false,
+    "if_return": true,
+    "inline": 3,
+    "join_vars": true,
+    "keep_fargs": false,
+    "keep_infinity": false,
+    "loops": true,
+    "negate_iife": true,
+    "passes": 3,
+    "properties": true,
+    "pure_getters": true,
+    "reduce_funcs": true,
+    "reduce_vars": true,
+    "sequences": true,
+    "side_effects": true,
+    "switches": true,
+    "toplevel": true,
+    "typeofs": true,
+    "unsafe": true,
+    "unsafe_arrows": true,
+    "unsafe_comps": true,
+    "unsafe_Function": true,
+    "unsafe_math": true,
+    "unsafe_methods": true,
+    "unsafe_proto": true,
+    "unsafe_regexp": true,
+    "unsafe_undefined": true,
+    "unused": true
+  },
+  "mangle": {
+    "toplevel": true,
+    "properties": {
+      "regex": "^_"
+    }
+  },
+  "format": {
+    "comments": false,
+    "quote_style": 1,
+    "wrap_iife": true,
+    "preamble": "/* Argusmetrics - Privacy-first analytics */"
+  }
+}

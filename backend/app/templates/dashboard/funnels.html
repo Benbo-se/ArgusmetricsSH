@@ -1,0 +1,642 @@
+{% extends "base.html" %}
+
+{% block title %}{{ website.name }} - Funnels{% endblock %}
+
+{% block extra_head %}
+<script>
+    // Store website ID for use in API calls.
+    // Auth uses the httponly session_token cookie (SameSite=Lax mitigates CSRF) sent
+    // automatically with same-origin fetch; no token is exposed to JS.
+    window.WEBSITE_ID = {{ website.id }};
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Header -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900">Funnel Analysis</h1>
+        <p class="mt-2 text-gray-600">{{ website.name }} - Track and optimize your conversion funnels</p>
+    </div>
+
+    <!-- Funnels Management Section -->
+    <div class="bg-white rounded-lg shadow p-6 mb-8"
+         x-data="{
+             funnels: {{ funnels | tojson | safe }},
+             funnelStats: {},
+             showCreateModal: false,
+             showDeleteModal: false,
+             showStatsModal: false,
+             selectedFunnel: null,
+             deletingFunnel: null,
+             formData: {
+                 name: '',
+                 steps: [
+                     { step: 1, name: '', path: '' },
+                     { step: 2, name: '', path: '' }
+                 ]
+             },
+             loading: false,
+             statsLoading: false,
+             error: null,
+             daysFilter: 30,
+
+             init() {
+                 // Load stats for all funnels on mount
+                 this.loadAllFunnelStats();
+             },
+
+             async loadAllFunnelStats() {
+                 for (const funnel of this.funnels) {
+                     await this.loadFunnelStats(funnel.id, false);
+                 }
+             },
+
+             async loadFunnelStats(funnelId, showModal = true) {
+                 if (showModal) {
+                     this.statsLoading = true;
+                 }
+
+                 try {
+                     const response = await fetch(`/api/v1/funnels/${funnelId}/stats?days=${this.daysFilter}`, {
+                         credentials: 'same-origin'
+                     });
+
+                     if (response.ok) {
+                         const data = await response.json();
+                         this.funnelStats[funnelId] = data;
+                     }
+                 } catch (error) {
+                     console.error('Error loading funnel stats:', error);
+                 } finally {
+                     if (showModal) {
+                         this.statsLoading = false;
+                     }
+                 }
+             },
+
+             resetForm() {
+                 this.formData = {
+                     name: '',
+                     steps: [
+                         { step: 1, name: '', path: '' },
+                         { step: 2, name: '', path: '' }
+                     ]
+                 };
+                 this.error = null;
+             },
+
+             openCreateModal() {
+                 this.resetForm();
+                 this.showCreateModal = true;
+             },
+
+             addStep() {
+                 const nextStep = this.formData.steps.length + 1;
+                 this.formData.steps.push({ step: nextStep, name: '', path: '' });
+             },
+
+             removeStep(index) {
+                 if (this.formData.steps.length > 2) {
+                     this.formData.steps.splice(index, 1);
+                     // Renumber steps
+                     this.formData.steps.forEach((step, idx) => {
+                         step.step = idx + 1;
+                     });
+                 }
+             },
+
+             openStatsModal(funnel) {
+                 this.selectedFunnel = funnel;
+                 this.showStatsModal = true;
+                 this.loadFunnelStats(funnel.id);
+             },
+
+             openDeleteModal(funnel) {
+                 this.deletingFunnel = funnel;
+                 this.showDeleteModal = true;
+             },
+
+             async saveFunnel() {
+                 this.loading = true;
+                 this.error = null;
+
+                 try {
+                     const response = await fetch(`/api/v1/funnels?website_id=${window.WEBSITE_ID}`, {
+                         method: 'POST',
+                         credentials: 'same-origin',
+                         headers: {
+                             'Content-Type': 'application/json'
+                         },
+                         body: JSON.stringify(this.formData)
+                     });
+
+                     const data = await response.json();
+
+                     if (response.ok) {
+                         this.funnels.unshift(data);
+                         this.showCreateModal = false;
+                         this.resetForm();
+
+                         // Load stats for new funnel
+                         await this.loadFunnelStats(data.id, false);
+
+                         window.dispatchEvent(new CustomEvent('toast', {
+                             detail: { message: 'Funnel created successfully' }
+                         }));
+                     } else {
+                         this.error = data.detail || 'Failed to create funnel';
+                     }
+                 } catch (error) {
+                     console.error('Error creating funnel:', error);
+                     this.error = 'Failed to create funnel. Please try again.';
+                 } finally {
+                     this.loading = false;
+                 }
+             },
+
+             async deleteFunnel() {
+                 this.loading = true;
+
+                 try {
+                     const response = await fetch(`/api/v1/funnels/${this.deletingFunnel.id}`, {
+                         method: 'DELETE',
+                         credentials: 'same-origin'
+                     });
+
+                     if (response.ok) {
+                         this.funnels = this.funnels.filter(f => f.id !== this.deletingFunnel.id);
+                         delete this.funnelStats[this.deletingFunnel.id];
+                         this.showDeleteModal = false;
+                         this.deletingFunnel = null;
+
+                         window.dispatchEvent(new CustomEvent('toast', {
+                             detail: { message: 'Funnel deleted successfully' }
+                         }));
+                     } else {
+                         const data = await response.json();
+                         alert('Failed to delete funnel: ' + (data.detail || 'Unknown error'));
+                     }
+                 } catch (error) {
+                     console.error('Error deleting funnel:', error);
+                     alert('Failed to delete funnel. Please try again.');
+                 } finally {
+                     this.loading = false;
+                 }
+             },
+
+             getFunnelConversionRate(funnelId) {
+                 const stats = this.funnelStats[funnelId];
+                 if (!stats || !stats.steps || stats.steps.length === 0) {
+                     return '0%';
+                 }
+                 const lastStep = stats.steps[stats.steps.length - 1];
+                 return lastStep.conversion_rate.toFixed(1) + '%';
+             },
+
+             getFunnelTotalVisitors(funnelId) {
+                 const stats = this.funnelStats[funnelId];
+                 return stats ? stats.total_visitors : 0;
+             },
+
+             calculateDropOff(currentRate, previousRate) {
+                 if (!previousRate || previousRate === 0) return 0;
+                 return previousRate - currentRate;
+             }
+         }">
+
+        <!-- Header with Create Button -->
+        <div class="flex items-center justify-between mb-6">
+            <h2 class="text-lg font-semibold text-gray-900">Your Funnels</h2>
+            <button @click="openCreateModal()"
+                    class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                Create New Funnel
+            </button>
+        </div>
+
+        <!-- Funnels List -->
+        <template x-if="funnels.length > 0">
+            <div class="space-y-4">
+                <template x-for="funnel in funnels" :key="funnel.id">
+                    <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                        <div class="flex items-center justify-between mb-3">
+                            <div>
+                                <h3 class="text-lg font-semibold text-gray-900" x-text="funnel.name"></h3>
+                                <p class="text-sm text-gray-500">
+                                    <span x-text="funnel.steps.length"></span> steps
+                                    <span class="mx-2">•</span>
+                                    Created <span x-text="new Date(funnel.created_at).toLocaleDateString()"></span>
+                                </p>
+                            </div>
+                            <div class="flex items-center space-x-4">
+                                <div class="text-right">
+                                    <p class="text-2xl font-bold text-blue-600" x-text="getFunnelConversionRate(funnel.id)"></p>
+                                    <p class="text-xs text-gray-500">Overall Conversion</p>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-lg font-semibold text-gray-900" x-text="getFunnelTotalVisitors(funnel.id)"></p>
+                                    <p class="text-xs text-gray-500">Total Visitors</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Steps Preview -->
+                        <div class="mb-3 flex items-center space-x-2 overflow-x-auto pb-2">
+                            <template x-for="(step, index) in funnel.steps" :key="index">
+                                <div class="flex items-center">
+                                    <div class="flex-shrink-0 bg-gray-100 rounded-lg px-3 py-2 min-w-max">
+                                        <div class="text-xs text-gray-500" x-text="'Step ' + step.step"></div>
+                                        <div class="font-medium text-sm text-gray-900" x-text="step.name"></div>
+                                        <div class="text-xs text-gray-600 font-mono" x-text="step.path"></div>
+                                    </div>
+                                    <template x-if="index < funnel.steps.length - 1">
+                                        <svg class="w-4 h-4 text-gray-400 mx-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                        </svg>
+                                    </template>
+                                </div>
+                            </template>
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="flex items-center justify-end space-x-3 pt-3 border-t border-gray-200">
+                            <button @click="openStatsModal(funnel)"
+                                    class="px-3 py-1.5 text-sm bg-blue-50 text-blue-700 rounded-md hover:bg-blue-100 font-medium">
+                                View Stats
+                            </button>
+                            <button @click="openDeleteModal(funnel)"
+                                    class="px-3 py-1.5 text-sm text-red-600 hover:text-red-800 font-medium">
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </template>
+
+        <!-- Empty State -->
+        <template x-if="funnels.length === 0">
+            <div class="text-center py-12">
+                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                </svg>
+                <h3 class="mt-2 text-sm font-medium text-gray-900">No funnels yet</h3>
+                <p class="mt-1 text-sm text-gray-500">Get started by creating your first conversion funnel.</p>
+                <div class="mt-6">
+                    <button @click="openCreateModal()"
+                            class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+                        Create New Funnel
+                    </button>
+                </div>
+            </div>
+        </template>
+
+        <!-- Create Modal -->
+        <div x-show="showCreateModal"
+             x-cloak
+             @click.away="showCreateModal = false"
+             class="fixed inset-0 z-50 overflow-y-auto"
+             style="display: none;">
+            <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+                <!-- Background overlay -->
+                <div class="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"></div>
+
+                <!-- Modal panel -->
+                <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
+                    <form @submit.prevent="saveFunnel()">
+                        <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                            <h3 class="text-lg font-medium text-gray-900 mb-4">Create New Funnel</h3>
+
+                            <!-- Error Message -->
+                            <div x-show="error" class="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+                                <p class="text-sm text-red-800" x-text="error"></p>
+                            </div>
+
+                            <!-- Funnel Name -->
+                            <div class="mb-4">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                    Funnel Name <span class="text-red-500">*</span>
+                                </label>
+                                <input type="text"
+                                       x-model="formData.name"
+                                       required
+                                       placeholder="e.g., Checkout Flow, Sign Up Process"
+                                       class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                                <p class="mt-1 text-xs text-gray-500">A descriptive name for this conversion funnel</p>
+                            </div>
+
+                            <!-- Steps -->
+                            <div class="mb-4">
+                                <div class="flex items-center justify-between mb-2">
+                                    <label class="block text-sm font-medium text-gray-700">
+                                        Funnel Steps <span class="text-red-500">*</span>
+                                    </label>
+                                    <button type="button"
+                                            @click="addStep()"
+                                            class="text-sm text-blue-600 hover:text-blue-800">
+                                        + Add Step
+                                    </button>
+                                </div>
+
+                                <div class="space-y-3">
+                                    <template x-for="(step, index) in formData.steps" :key="index">
+                                        <div class="border border-gray-200 rounded-lg p-3">
+                                            <div class="flex items-start justify-between mb-2">
+                                                <span class="text-sm font-medium text-gray-700" x-text="'Step ' + step.step"></span>
+                                                <button type="button"
+                                                        x-show="formData.steps.length > 2"
+                                                        @click="removeStep(index)"
+                                                        class="text-red-600 hover:text-red-800">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                                    </svg>
+                                                </button>
+                                            </div>
+
+                                            <div class="grid grid-cols-2 gap-3">
+                                                <div>
+                                                    <label class="block text-xs text-gray-600 mb-1">Step Name</label>
+                                                    <input type="text"
+                                                           x-model="step.name"
+                                                           required
+                                                           placeholder="e.g., Landing Page"
+                                                           class="block w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                                                </div>
+                                                <div>
+                                                    <label class="block text-xs text-gray-600 mb-1">URL Path</label>
+                                                    <input type="text"
+                                                           x-model="step.path"
+                                                           required
+                                                           placeholder="/pricing"
+                                                           class="block w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md font-mono focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+                                <p class="mt-2 text-xs text-gray-500">Define the sequential steps users take through your funnel. Minimum 2 steps required.</p>
+                            </div>
+                        </div>
+
+                        <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                            <button type="submit"
+                                    :disabled="loading"
+                                    :class="loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'"
+                                    class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 text-base font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm">
+                                <span x-show="!loading">Create Funnel</span>
+                                <span x-show="loading">Creating...</span>
+                            </button>
+                            <button type="button"
+                                    @click="showCreateModal = false; resetForm()"
+                                    :disabled="loading"
+                                    class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                                Cancel
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats Modal -->
+        <div x-show="showStatsModal"
+             x-cloak
+             @click.away="showStatsModal = false"
+             class="fixed inset-0 z-50 overflow-y-auto"
+             style="display: none;">
+            <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+                <!-- Background overlay -->
+                <div class="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"></div>
+
+                <!-- Modal panel -->
+                <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
+                    <div class="bg-white px-4 pt-5 pb-4 sm:p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-medium text-gray-900" x-text="selectedFunnel?.name"></h3>
+                            <button @click="showStatsModal = false"
+                                    class="text-gray-400 hover:text-gray-600">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                </svg>
+                            </button>
+                        </div>
+
+                        <!-- Time Range Selector -->
+                        <div class="mb-6">
+                            <select x-model="daysFilter"
+                                    @change="loadFunnelStats(selectedFunnel.id)"
+                                    class="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                                <option value="7">Last 7 days</option>
+                                <option value="30">Last 30 days</option>
+                                <option value="90">Last 90 days</option>
+                            </select>
+                        </div>
+
+                        <!-- Loading State -->
+                        <div x-show="statsLoading" class="text-center py-12">
+                            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                            <p class="mt-2 text-sm text-gray-500">Loading stats...</p>
+                        </div>
+
+                        <!-- Stats Content -->
+                        <template x-if="!statsLoading && selectedFunnel && funnelStats[selectedFunnel.id]">
+                            <div>
+                                <!-- Summary -->
+                                <div class="mb-6 grid grid-cols-2 gap-4">
+                                    <div class="bg-blue-50 rounded-lg p-4">
+                                        <p class="text-sm text-gray-600">Total Visitors</p>
+                                        <p class="text-2xl font-bold text-gray-900" x-text="funnelStats[selectedFunnel.id].total_visitors"></p>
+                                    </div>
+                                    <div class="bg-green-50 rounded-lg p-4">
+                                        <p class="text-sm text-gray-600">Overall Conversion</p>
+                                        <p class="text-2xl font-bold text-green-600">
+                                            <span x-text="funnelStats[selectedFunnel.id].steps[funnelStats[selectedFunnel.id].steps.length - 1]?.conversion_rate.toFixed(1)"></span>%
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <!-- Funnel Visualization -->
+                                <div class="space-y-3">
+                                    <template x-for="(step, index) in funnelStats[selectedFunnel.id].steps" :key="index">
+                                        <div>
+                                            <div class="flex items-center justify-between mb-2">
+                                                <div class="flex items-center space-x-3">
+                                                    <span class="flex items-center justify-center w-8 h-8 bg-blue-100 text-blue-600 rounded-full text-sm font-semibold"
+                                                          x-text="step.step"></span>
+                                                    <div>
+                                                        <p class="font-medium text-gray-900" x-text="step.name"></p>
+                                                        <template x-if="index > 0">
+                                                            <p class="text-xs text-red-600">
+                                                                -<span x-text="calculateDropOff(step.conversion_rate, funnelStats[selectedFunnel.id].steps[index - 1].conversion_rate).toFixed(1)"></span>% drop-off
+                                                            </p>
+                                                        </template>
+                                                    </div>
+                                                </div>
+                                                <div class="text-right">
+                                                    <p class="text-lg font-semibold text-gray-900" x-text="step.visitors"></p>
+                                                    <p class="text-sm text-gray-600">
+                                                        <span x-text="step.conversion_rate.toFixed(1)"></span>%
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            <!-- Progress Bar -->
+                                            <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                                                <div class="bg-gradient-to-r from-blue-500 to-blue-600 h-3 rounded-full transition-all duration-500"
+                                                     :style="`width: ${step.conversion_rate}%`"></div>
+                                            </div>
+
+                                            <!-- Arrow -->
+                                            <template x-if="index < funnelStats[selectedFunnel.id].steps.length - 1">
+                                                <div class="flex justify-center my-2">
+                                                    <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
+                                                    </svg>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </template>
+
+                        <!-- Empty Stats -->
+                        <template x-if="!statsLoading && selectedFunnel && funnelStats[selectedFunnel.id] && funnelStats[selectedFunnel.id].total_visitors === 0">
+                            <div class="text-center py-8">
+                                <p class="text-gray-500">No data available for this funnel yet.</p>
+                                <p class="text-sm text-gray-400 mt-2">Visitors will appear here once they navigate through your funnel steps.</p>
+                            </div>
+                        </template>
+                    </div>
+
+                    <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                        <button @click="showStatsModal = false"
+                                class="w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:w-auto sm:text-sm">
+                            Close
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Delete Confirmation Modal -->
+        <div x-show="showDeleteModal"
+             x-cloak
+             @click.away="showDeleteModal = false"
+             class="fixed inset-0 z-50 overflow-y-auto"
+             style="display: none;">
+            <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+                <!-- Background overlay -->
+                <div class="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"></div>
+
+                <!-- Modal panel -->
+                <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                    <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                        <div class="sm:flex sm:items-start">
+                            <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
+                                <svg class="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                                </svg>
+                            </div>
+                            <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                                <h3 class="text-lg leading-6 font-medium text-gray-900">Delete Funnel</h3>
+                                <div class="mt-2">
+                                    <p class="text-sm text-gray-500">
+                                        Are you sure you want to delete "<span x-text="deletingFunnel?.name"></span>"?
+                                        This will also delete all tracking data for this funnel. This action cannot be undone.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                        <button @click="deleteFunnel()"
+                                :disabled="loading"
+                                :class="loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-red-600 hover:bg-red-700'"
+                                class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 text-base font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm">
+                            <span x-show="!loading">Delete</span>
+                            <span x-show="loading">Deleting...</span>
+                        </button>
+                        <button @click="showDeleteModal = false; deletingFunnel = null"
+                                :disabled="loading"
+                                class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:w-auto sm:text-sm">
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- How Funnels Work -->
+    <div class="bg-white rounded-lg shadow p-6 mb-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">How Funnel Tracking Works</h2>
+
+        <div class="space-y-4">
+            <div>
+                <h3 class="text-sm font-medium text-gray-900 mb-2">What is a Funnel?</h3>
+                <p class="text-sm text-gray-600">
+                    A funnel tracks the sequential steps users take through a specific flow on your website.
+                    It helps you identify where users drop off and optimize your conversion rates.
+                </p>
+            </div>
+
+            <div>
+                <h3 class="text-sm font-medium text-gray-900 mb-2">Example Funnel: E-commerce Checkout</h3>
+                <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 text-sm">
+                    <div class="space-y-2 font-mono text-gray-700">
+                        <div class="flex items-center">
+                            <span class="w-4 h-4 bg-blue-500 rounded-full mr-2"></span>
+                            <span>Step 1: Product Page → <code class="bg-white px-2 py-0.5 rounded">/product</code> (100% - 1000 users)</span>
+                        </div>
+                        <div class="flex items-center">
+                            <span class="w-4 h-4 bg-blue-500 rounded-full mr-2"></span>
+                            <span>Step 2: Add to Cart → <code class="bg-white px-2 py-0.5 rounded">/cart</code> (60% - 600 users)</span>
+                        </div>
+                        <div class="flex items-center">
+                            <span class="w-4 h-4 bg-blue-500 rounded-full mr-2"></span>
+                            <span>Step 3: Checkout → <code class="bg-white px-2 py-0.5 rounded">/checkout</code> (35% - 350 users)</span>
+                        </div>
+                        <div class="flex items-center">
+                            <span class="w-4 h-4 bg-green-500 rounded-full mr-2"></span>
+                            <span>Step 4: Confirmation → <code class="bg-white px-2 py-0.5 rounded">/order-complete</code> (25% - 250 users)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <h3 class="text-sm font-medium text-gray-900 mb-2">Automatic Tracking</h3>
+                <p class="text-sm text-gray-600">
+                    Funnels are tracked automatically using pageviews. Once you create a funnel with URL paths,
+                    we'll automatically track visitors as they navigate through each step. No additional code needed!
+                </p>
+            </div>
+
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h3 class="text-sm font-medium text-blue-900 mb-2">Key Metrics:</h3>
+                <ul class="text-sm text-blue-800 space-y-1 list-disc list-inside">
+                    <li><strong>Conversion Rate:</strong> Percentage of initial visitors who complete each step</li>
+                    <li><strong>Drop-off Rate:</strong> Percentage of users who leave between steps</li>
+                    <li><strong>Total Visitors:</strong> Number of unique visitors who entered the funnel</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Back to Dashboard -->
+    <div class="mt-6">
+        <a href="/dashboard/website/{{ website.id }}"
+           class="inline-flex items-center text-sm text-blue-600 hover:text-blue-800">
+            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+            Back to Analytics
+        </a>
+    </div>
+</div>
+
+<style>
+    [x-cloak] { display: none !important; }
+</style>
+{% endblock %}

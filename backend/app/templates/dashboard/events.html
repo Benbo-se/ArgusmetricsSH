@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+
+{% block title %}{{ event_details.event_name }} - {{ website.name }}{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Header -->
+    <div class="mb-8">
+        <div class="flex items-center justify-between">
+            <div>
+                <a href="/dashboard/website/{{ website.id }}"
+                   class="text-sm text-gray-500 hover:text-gray-700 mb-2 inline-block">
+                    &larr; Back to Dashboard
+                </a>
+                <h1 class="text-3xl font-bold text-gray-900">{{ event_details.event_name }}</h1>
+                <p class="mt-1 text-sm text-gray-600">Custom Event Details</p>
+            </div>
+            <div class="text-right">
+                <div class="text-sm text-gray-500">{{ selected_range }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Overview Stats -->
+    <div class="grid grid-cols-1 gap-6 sm:grid-cols-3 mb-8">
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-gray-600">Total Events</p>
+                    <p class="mt-2 text-3xl font-semibold text-gray-900">{{ event_details.total_count }}</p>
+                </div>
+                <div class="p-3 bg-blue-100 rounded-full">
+                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-gray-600">Unique Users</p>
+                    <p class="mt-2 text-3xl font-semibold text-gray-900">{{ event_details.unique_users }}</p>
+                </div>
+                <div class="p-3 bg-green-100 rounded-full">
+                    <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-gray-600">Avg per User</p>
+                    <p class="mt-2 text-3xl font-semibold text-gray-900">
+                        {% if event_details.unique_users > 0 %}
+                            {{ "%.2f"|format(event_details.total_count / event_details.unique_users) }}
+                        {% else %}
+                            0
+                        {% endif %}
+                    </p>
+                </div>
+                <div class="p-3 bg-purple-100 rounded-full">
+                    <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Property Breakdown -->
+    {% if event_details.property_breakdown and event_details.property_breakdown|length > 0 %}
+    <div class="bg-white rounded-lg shadow p-6 mb-8">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Property Breakdown</h2>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead>
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Property</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Value</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Count</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Percentage</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for prop in event_details.property_breakdown %}
+                    <tr>
+                        <td class="px-4 py-3 whitespace-nowrap">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                                {{ prop.property_key }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 text-sm text-gray-900">
+                            {{ prop.property_value }}
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm font-semibold text-gray-900 text-right">
+                            {{ prop.count }}
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600 text-right">
+                            {% if event_details.total_count > 0 %}
+                                {{ "%.1f"|format((prop.count / event_details.total_count) * 100) }}%
+                            {% else %}
+                                0%
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Recent Events -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Recent Events</h2>
+
+        {% if event_details.events and event_details.events|length > 0 %}
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead>
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Timestamp</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Path</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Country</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Device</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Properties</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for event in event_details.events %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                            {{ event.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}
+                        </td>
+                        <td class="px-4 py-3 text-sm text-gray-900">
+                            {{ event.path or '/' }}
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                            {% if event.country %}
+                                {{ event.country }}
+                            {% else %}
+                                <span class="text-gray-400">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                            {{ event.device_type or 'desktop' }}
+                        </td>
+                        <td class="px-4 py-3 text-sm text-gray-600">
+                            {% if event.properties %}
+                                <pre class="text-xs bg-gray-50 p-2 rounded overflow-x-auto max-w-md">{{ event.properties|tojson(indent=2) }}</pre>
+                            {% else %}
+                                <span class="text-gray-400">No properties</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <p class="mt-4 text-xs text-gray-500">
+            Showing last 100 events
+        </p>
+        {% else %}
+        <div class="text-center py-8">
+            <p class="text-gray-500">No events found for this period</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- How to Track This Event -->
+    <div class="mt-8 bg-blue-50 rounded-lg p-6">
+        <h3 class="text-sm font-medium text-gray-900 mb-2">Track this event in your website</h3>
+        <p class="text-sm text-gray-600 mb-2">
+            Add this code to track the <strong>{{ event_details.event_name }}</strong> event with properties:
+        </p>
+        <pre class="text-xs bg-gray-800 text-gray-100 p-3 rounded overflow-x-auto"><code>// Track {{ event_details.event_name }} event
+argus.trackEvent('{{ event_details.event_name }}', {
+  // Add your custom properties here
+  property1: 'value1',
+  property2: 'value2'
+});</code></pre>
+    </div>
+</div>
+{% endblock %}
