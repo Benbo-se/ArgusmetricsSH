@@ -17,12 +17,12 @@
     <meta name="twitter:title" content="Argusmetrics vs Google Analytics - Argusmetrics">
     <meta name="twitter:description" content="Why teams switch from Google Analytics to Argusmetrics — privacy-first, no cookies, GDPR compliant by default.">
     <meta name="twitter:image" content="https://argusmetrics.io/static/img/ArgusEyefavicon3.png">
-    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
-    <link rel="icon" type="image/png" sizes="32x32" href="/static/img/ArgusEyefavicon3.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="/static/img/ArgusEyefavicon3.png">
-    <link rel="manifest" href="/static/manifest.json">
-    <link rel="stylesheet" href="/static/css/tailwind.min.css">
-    <script src="/static/js/htmx.min.js"></script>
+    <link rel="icon" type="image/x-icon" href="../static/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="../static/img/ArgusEyefavicon3.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="../static/img/ArgusEyefavicon3.png">
+    <link rel="manifest" href="../static/manifest.json">
+    <link rel="stylesheet" href="../static/css/tailwind.min.css">
+    <script src="../static/js/htmx.min.js"></script>
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.5/dist/cdn.min.js"></script>
@@ -35,8 +35,8 @@
             <div class="flex justify-between items-center h-16">
                 <!-- Logo -->
                 <div class="flex items-center">
-                    <a href="/" class="flex items-center space-x-2">
-                        <img src="/static/img/ArgusEyefavicon3.png" alt="Argusmetrics" class="h-10 w-10">
+                    <a href="../index.html" class="flex items-center space-x-2">
+                        <img src="../static/img/ArgusEyefavicon3.png" alt="Argusmetrics" class="h-10 w-10">
                         <span class="text-xl font-bold text-gray-900">Argusmetrics</span>
                     </a>
                 </div>
@@ -58,13 +58,13 @@
                              x-transition:leave-start="opacity-100 translate-y-0"
                              x-transition:leave-end="opacity-0 translate-y-1"
                              class="absolute top-full left-0 mt-1 w-56 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50">
-                            <a href="/#features" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
+                            <a href="../index.html#features" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
                                 <i class="fas fa-bolt w-4 text-blue-500 text-xs"></i> Features
                             </a>
-                            <a href="/data" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
+                            <a href="../data.html" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
                                 <i class="fas fa-shield-alt w-4 text-green-500 text-xs"></i> Privacy by Design
                             </a>
-                            <a href="/about" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
+                            <a href="../about.html" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
                                 <i class="fas fa-info-circle w-4 text-purple-500 text-xs"></i> About Us
                             </a>
                         </div>
@@ -85,13 +85,13 @@
                              x-transition:leave-end="opacity-0 translate-y-1"
                              class="absolute top-full left-0 mt-1 w-64 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50">
                             <div class="px-4 py-1.5 text-xs font-semibold text-gray-400 uppercase tracking-wider">Argusmetrics vs</div>
-                            <a href="/compare/google-analytics" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
+                            <a href="google-analytics.html" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
                                 <i class="fab fa-google w-4 text-red-500 text-xs"></i> Google Analytics
                             </a>
-                            <a href="/compare/plausible" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
+                            <a href="plausible.html" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
                                 <i class="fas fa-chart-bar w-4 text-purple-500 text-xs"></i> Plausible
                             </a>
-                            <a href="/compare/matomo" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
+                            <a href="matomo.html" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
                                 <i class="fas fa-chart-pie w-4 text-orange-500 text-xs"></i> Matomo
                             </a>
                         </div>
@@ -111,25 +111,25 @@
                              x-transition:leave-start="opacity-100 translate-y-0"
                              x-transition:leave-end="opacity-0 translate-y-1"
                              class="absolute top-full left-0 mt-1 w-56 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50">
-                            <a href="/docs" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
+                            <a href="../docs/index.html" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
                                 <i class="fas fa-book w-4 text-blue-500 text-xs"></i> Documentation
                             </a>
-                            <a href="/changelog" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
+                            <a href="../changelog.html" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
                                 <i class="fas fa-list-ul w-4 text-green-500 text-xs"></i> Changelog
                             </a>
-                            <a href="https://github.com/Benbo-se/argusmetrics.io" target="_blank" rel="noopener noreferrer" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
+                            <a href="https://github.com/Benbo-se/ArgusmetricsSH" target="_blank" rel="noopener noreferrer" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
                                 <i class="fab fa-github w-4 text-gray-700 text-xs"></i> GitHub
                             </a>
                         </div>
                     </div>
 
-                    <a href="/#pricing" class="text-gray-600 hover:text-gray-900 text-sm font-medium px-3 py-2 rounded-md hover:bg-gray-50 transition-colors">Pricing</a>
+                    <a href="../index.html#self-host" class="text-gray-600 hover:text-gray-900 text-sm font-medium px-3 py-2 rounded-md hover:bg-gray-50 transition-colors">Self-host</a>
 
                     <div class="w-px h-5 bg-gray-200 mx-1"></div>
 
-                    <a href="https://app.argusmetrics.io/login" class="text-gray-600 hover:text-gray-900 text-sm font-medium px-3 py-2 rounded-md hover:bg-gray-50 transition-colors">Log In</a>
-                    <a href="https://app.argusmetrics.io/signup" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors">
-                        Get Started Free
+                    <a href="https://github.com/Benbo-se/ArgusmetricsSH" target="_blank" rel="noopener noreferrer" class="flex items-center gap-1.5 text-gray-600 hover:text-gray-900 text-sm font-medium px-3 py-2 rounded-md hover:bg-gray-50 transition-colors"><i class="fab fa-github"></i> GitHub</a>
+                    <a href="https://github.com/Benbo-se/ArgusmetricsSH" target="_blank" rel="noopener noreferrer" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors">
+                        Self-host
                     </a>
                 </div>
 
@@ -160,21 +160,20 @@
              class="md:hidden border-t border-gray-200 bg-white shadow-lg">
             <div class="px-2 pt-2 pb-3 space-y-1">
                 <div class="px-3 py-1 text-xs font-semibold text-gray-400 uppercase tracking-wider">Product</div>
-                <a href="/#features" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">Features</a>
-                <a href="/data" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">Privacy by Design</a>
-                <a href="/about" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">About Us</a>
+                <a href="../index.html#features" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">Features</a>
+                <a href="../data.html" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">Privacy by Design</a>
+                <a href="../about.html" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">About Us</a>
                 <div class="px-3 py-1 mt-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">Compare</div>
-                <a href="/compare/google-analytics" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">vs Google Analytics</a>
-                <a href="/compare/plausible" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">vs Plausible</a>
-                <a href="/compare/matomo" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">vs Matomo</a>
+                <a href="google-analytics.html" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">vs Google Analytics</a>
+                <a href="plausible.html" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">vs Plausible</a>
+                <a href="matomo.html" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">vs Matomo</a>
                 <div class="px-3 py-1 mt-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">Resources</div>
-                <a href="/docs" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">Documentation</a>
-                <a href="/changelog" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">Changelog</a>
-                <a href="https://github.com/Benbo-se/argusmetrics.io" target="_blank" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">GitHub</a>
+                <a href="../docs/index.html" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">Documentation</a>
+                <a href="../changelog.html" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">Changelog</a>
+                <a href="https://github.com/Benbo-se/ArgusmetricsSH" target="_blank" rel="noopener noreferrer" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">GitHub</a>
                 <div class="border-t border-gray-100 mt-2 pt-2">
-                    <a href="/#pricing" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">Pricing</a>
-                    <a href="https://app.argusmetrics.io/login" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">Log In</a>
-                    <a href="https://app.argusmetrics.io/signup" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md text-center">Get Started Free</a>
+                    <a href="../index.html#self-host" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">Self-host</a>
+                    <a href="https://github.com/Benbo-se/ArgusmetricsSH" target="_blank" rel="noopener noreferrer" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md text-center">Self-host on GitHub</a>
                 </div>
             </div>
         </div>
@@ -186,7 +185,7 @@
         <section class="bg-white border-b border-gray-100">
             <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
                 <div class="flex items-center justify-center gap-4 mb-8">
-                    <img src="/static/img/ArgusEyefavicon3.png" alt="Argusmetrics" class="h-14 w-14">
+                    <img src="../static/img/ArgusEyefavicon3.png" alt="Argusmetrics" class="h-14 w-14">
                     <span class="text-3xl text-gray-300 font-light">vs</span>
                     <div class="h-14 w-14 bg-gray-100 rounded-xl flex items-center justify-center">
                         <i class="fab fa-google text-2xl text-red-500"></i>
@@ -196,13 +195,13 @@
                     The Privacy-First<br>Google Analytics Alternative
                 </h1>
                 <p class="text-xl text-gray-500 max-w-2xl mx-auto">
-                    All the insights you need. None of the surveillance. No cookies, no consent banner, no data sent to Mountain View.
+                    All the insights you need. None of the surveillance. Free, open-source and self-hosted — no cookies, no consent banner, no data sent to Mountain View.
                 </p>
                 <div class="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
-                    <a href="https://app.argusmetrics.io/signup" class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-lg transition-colors">
-                        Switch to Argusmetrics <i class="fas fa-arrow-right text-sm"></i>
+                    <a href="https://github.com/Benbo-se/ArgusmetricsSH" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-lg transition-colors">
+                        <i class="fab fa-github"></i> Self-host Argusmetrics <i class="fas fa-arrow-right text-sm"></i>
                     </a>
-                    <a href="/data" class="inline-flex items-center gap-2 border border-gray-200 text-gray-700 hover:bg-gray-50 font-medium px-6 py-3 rounded-lg transition-colors">
+                    <a href="../data.html" class="inline-flex items-center gap-2 border border-gray-200 text-gray-700 hover:bg-gray-50 font-medium px-6 py-3 rounded-lg transition-colors">
                         <i class="fas fa-shield-alt text-green-500 text-sm"></i> How privacy works
                     </a>
                 </div>
@@ -222,7 +221,7 @@
                                 <th class="text-left px-6 py-4 text-sm font-semibold text-gray-500 w-1/2">Feature</th>
                                 <th class="px-6 py-4 text-center w-1/4">
                                     <div class="flex items-center justify-center gap-2">
-                                        <img src="/static/img/ArgusEyefavicon3.png" alt="Argusmetrics" class="h-5 w-5">
+                                        <img src="../static/img/ArgusEyefavicon3.png" alt="Argusmetrics" class="h-5 w-5">
                                         <span class="text-sm font-bold text-blue-600">Argusmetrics</span>
                                     </div>
                                 </th>
@@ -261,14 +260,14 @@
                                 <td class="px-6 py-4 text-center"><span class="text-orange-400 text-base">~</span><span class="text-xs text-gray-400 block">Steep learning curve</span></td>
                             </tr>
                             <tr class="hover:bg-gray-50 transition-colors">
-                                <td class="px-6 py-4 text-sm text-gray-700">Free forever tier</td>
-                                <td class="px-6 py-4 text-center"><span class="text-green-500 text-lg font-bold">&#10003;</span></td>
-                                <td class="px-6 py-4 text-center"><span class="text-green-500 text-lg font-bold">&#10003;</span></td>
+                                <td class="px-6 py-4 text-sm text-gray-700">Free &amp; open source</td>
+                                <td class="px-6 py-4 text-center"><span class="text-green-500 text-lg font-bold">&#10003;</span><span class="text-xs text-gray-400 block">AGPL-3.0</span></td>
+                                <td class="px-6 py-4 text-center"><span class="text-red-400 text-lg font-bold">&#10007;</span><span class="text-xs text-gray-400 block">Proprietary</span></td>
                             </tr>
                             <tr class="hover:bg-gray-50 transition-colors">
-                                <td class="px-6 py-4 text-sm text-gray-700">EU data storage</td>
+                                <td class="px-6 py-4 text-sm text-gray-700">Self-hosted, your data stays yours</td>
                                 <td class="px-6 py-4 text-center"><span class="text-green-500 text-lg font-bold">&#10003;</span></td>
-                                <td class="px-6 py-4 text-center"><span class="text-red-400 text-lg font-bold">&#10007;</span><span class="text-xs text-gray-400 block">US servers</span></td>
+                                <td class="px-6 py-4 text-center"><span class="text-red-400 text-lg font-bold">&#10007;</span><span class="text-xs text-gray-400 block">Google's servers</span></td>
                             </tr>
                             <tr class="hover:bg-gray-50 transition-colors">
                                 <td class="px-6 py-4 text-sm text-gray-700">Data not sold or used for advertising</td>
@@ -365,10 +364,10 @@
         <section class="py-20 bg-blue-600">
             <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
                 <h2 class="text-3xl font-bold text-white mb-4">Ready to make the switch?</h2>
-                <p class="text-blue-100 text-lg mb-3">Migration takes under 5 minutes. Replace one script tag, get a privacy-compliant dashboard immediately.</p>
-                <p class="text-blue-200 text-sm mb-8">No credit card required &middot; Free tier available forever</p>
-                <a href="https://app.argusmetrics.io/signup" class="inline-flex items-center gap-2 bg-white text-blue-600 hover:bg-blue-50 font-semibold px-8 py-3 rounded-lg transition-colors text-lg">
-                    Start free trial <i class="fas fa-arrow-right text-sm"></i>
+                <p class="text-blue-100 text-lg mb-3">Spin up your own instance with Docker, replace one script tag, and get a privacy-compliant dashboard on your own server.</p>
+                <p class="text-blue-200 text-sm mb-8">Free &amp; open source &middot; Self-hosted &middot; No signup</p>
+                <a href="https://github.com/Benbo-se/ArgusmetricsSH" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 bg-white text-blue-600 hover:bg-blue-50 font-semibold px-8 py-3 rounded-lg transition-colors text-lg">
+                    <i class="fab fa-github"></i> View on GitHub <i class="fas fa-arrow-right text-sm"></i>
                 </a>
             </div>
         </section>
@@ -380,36 +379,37 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="grid grid-cols-2 md:grid-cols-4 gap-8 mb-10">
                 <div class="col-span-2 md:col-span-1">
-                    <a href="/" class="flex items-center space-x-2 mb-3">
-                        <img src="/static/img/ArgusEyefavicon3.png" alt="Argusmetrics" class="h-8 w-8">
+                    <a href="../index.html" class="flex items-center space-x-2 mb-3">
+                        <img src="../static/img/ArgusEyefavicon3.png" alt="Argusmetrics" class="h-8 w-8">
                         <span class="text-white font-bold">Argusmetrics</span>
                     </a>
-                    <p class="text-sm">Privacy-first web analytics. No cookies. No consent banner. GDPR compliant by default.</p>
+                    <p class="text-sm">Free, open-source, self-hosted privacy-first web analytics. No cookies. No consent banner. GDPR compliant by default.</p>
                 </div>
                 <div>
                     <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Product</div>
                     <ul class="space-y-2 text-sm">
-                        <li><a href="/#features" class="hover:text-white transition-colors">Features</a></li>
-                        <li><a href="/#pricing" class="hover:text-white transition-colors">Pricing</a></li>
-                        <li><a href="/data" class="hover:text-white transition-colors">Privacy by Design</a></li>
-                        <li><a href="/changelog" class="hover:text-white transition-colors">Changelog</a></li>
+                        <li><a href="../index.html#features" class="hover:text-white transition-colors">Features</a></li>
+                        <li><a href="../index.html#self-host" class="hover:text-white transition-colors">Self-host</a></li>
+                        <li><a href="../data.html" class="hover:text-white transition-colors">Privacy by Design</a></li>
+                        <li><a href="../changelog.html" class="hover:text-white transition-colors">Changelog</a></li>
                     </ul>
                 </div>
                 <div>
                     <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Compare</div>
                     <ul class="space-y-2 text-sm">
-                        <li><a href="/compare/google-analytics" class="hover:text-white transition-colors">vs Google Analytics</a></li>
-                        <li><a href="/compare/plausible" class="hover:text-white transition-colors">vs Plausible</a></li>
-                        <li><a href="/compare/matomo" class="hover:text-white transition-colors">vs Matomo</a></li>
+                        <li><a href="google-analytics.html" class="hover:text-white transition-colors">vs Google Analytics</a></li>
+                        <li><a href="plausible.html" class="hover:text-white transition-colors">vs Plausible</a></li>
+                        <li><a href="matomo.html" class="hover:text-white transition-colors">vs Matomo</a></li>
                     </ul>
                 </div>
                 <div>
-                    <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Company</div>
+                    <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Resources</div>
                     <ul class="space-y-2 text-sm">
-                        <li><a href="/about" class="hover:text-white transition-colors">About</a></li>
-                        <li><a href="/docs" class="hover:text-white transition-colors">Docs</a></li>
-                        <li><a href="/privacy" class="hover:text-white transition-colors">Privacy Policy</a></li>
-                        <li><a href="/terms" class="hover:text-white transition-colors">Terms</a></li>
+                        <li><a href="../about.html" class="hover:text-white transition-colors">About</a></li>
+                        <li><a href="../docs/index.html" class="hover:text-white transition-colors">Docs</a></li>
+                        <li><a href="https://github.com/Benbo-se/ArgusmetricsSH" target="_blank" rel="noopener noreferrer" class="hover:text-white transition-colors">GitHub</a></li>
+                        <li><a href="../privacy.html" class="hover:text-white transition-colors">Privacy Policy</a></li>
+                        <li><a href="../terms.html" class="hover:text-white transition-colors">Terms</a></li>
                     </ul>
                 </div>
             </div>
