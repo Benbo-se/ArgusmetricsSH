@@ -65,23 +65,23 @@
     </script>
 
     <!-- Favicon -->
-    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
-    <link rel="icon" type="image/png" sizes="32x32" href="/static/img/ArgusEyefavicon3.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="/static/img/ArgusEyefavicon3.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="/static/img/ArgusEyefavicon3.png">
+    <link rel="icon" type="image/x-icon" href="static/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="static/img/ArgusEyefavicon3.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="static/img/ArgusEyefavicon3.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="static/img/ArgusEyefavicon3.png">
 
     <!-- PWA Manifest -->
-    <link rel="manifest" href="/static/manifest.json">
+    <link rel="manifest" href="static/manifest.json">
 
     <!-- Performance hints -->
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
 
     <!-- Tailwind CSS -->
-    <link rel="stylesheet" href="/static/css/tailwind.min.css">
+    <link rel="stylesheet" href="static/css/tailwind.min.css">
 
     <!-- HTMX (local) -->
-    <script src="/static/js/htmx.min.js"></script>
+    <script src="static/js/htmx.min.js"></script>
 
     <!-- Alpine.js -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.5/dist/cdn.min.js"></script>
@@ -93,7 +93,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <!-- Chatbot styles -->
-    <link rel="stylesheet" href="/static/css/chatbot.css">
+    <link rel="stylesheet" href="static/css/chatbot.css">
 
     <style>
         /* Custom loading spinner */
@@ -115,8 +115,6 @@
         }
     </style>
 
-    <!-- Argusmetrics Tracking - Dog food our own product! -->
-    <script defer data-tracking-code="OBpNPQr8" data-api-endpoint="https://app.argusmetrics.io/api/v1/analytics/track" src="https://argusmetrics.io/static/tracker.min.js"></script>
     <style>
         body { background-color: white !important; }
     </style>
@@ -129,8 +127,8 @@
             <div class="flex justify-between items-center h-16">
                 <!-- Logo -->
                 <div class="flex items-center">
-                    <a href="/" class="flex items-center space-x-2">
-                        <img src="/static/img/ArgusEyefavicon3.png" alt="Argusmetrics" class="h-10 w-10">
+                    <a href="index.html" class="flex items-center space-x-2">
+                        <img src="static/img/ArgusEyefavicon3.png" alt="Argusmetrics" class="h-10 w-10">
                         <span class="text-xl font-bold text-gray-900">Argusmetrics</span>
                     </a>
                 </div>
@@ -152,13 +150,13 @@
                              x-transition:leave-start="opacity-100 translate-y-0"
                              x-transition:leave-end="opacity-0 translate-y-1"
                              class="absolute top-full left-0 mt-1 w-56 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50">
-                            <a href="/#features" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
+                            <a href="#features" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
                                 <i class="fas fa-bolt w-4 text-blue-500 text-xs"></i> Features
                             </a>
-                            <a href="/data" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
+                            <a href="data.html" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
                                 <i class="fas fa-shield-alt w-4 text-green-500 text-xs"></i> Privacy by Design
                             </a>
-                            <a href="/about" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
+                            <a href="about.html" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
                                 <i class="fas fa-info-circle w-4 text-purple-500 text-xs"></i> About Us
                             </a>
                         </div>
@@ -179,13 +177,13 @@
                              x-transition:leave-end="opacity-0 translate-y-1"
                              class="absolute top-full left-0 mt-1 w-64 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50">
                             <div class="px-4 py-1.5 text-xs font-semibold text-gray-400 uppercase tracking-wider">Argusmetrics vs</div>
-                            <a href="/compare/google-analytics" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
+                            <a href="compare/google-analytics.html" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
                                 <i class="fab fa-google w-4 text-red-500 text-xs"></i> Google Analytics
                             </a>
-                            <a href="/compare/plausible" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
+                            <a href="compare/plausible.html" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
                                 <i class="fas fa-chart-bar w-4 text-purple-500 text-xs"></i> Plausible
                             </a>
-                            <a href="/compare/matomo" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
+                            <a href="compare/matomo.html" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
                                 <i class="fas fa-chart-pie w-4 text-orange-500 text-xs"></i> Matomo
                             </a>
                         </div>
@@ -205,25 +203,25 @@
                              x-transition:leave-start="opacity-100 translate-y-0"
                              x-transition:leave-end="opacity-0 translate-y-1"
                              class="absolute top-full left-0 mt-1 w-56 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50">
-                            <a href="/docs" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
+                            <a href="https://github.com/Benbo-se/ArgusmetricsSH#readme" target="_blank" rel="noopener noreferrer" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
                                 <i class="fas fa-book w-4 text-blue-500 text-xs"></i> Documentation
                             </a>
-                            <a href="/changelog" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
+                            <a href="changelog.html" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
                                 <i class="fas fa-list-ul w-4 text-green-500 text-xs"></i> Changelog
                             </a>
-                            <a href="https://github.com/Benbo-se/argusmetrics.io" target="_blank" rel="noopener noreferrer" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
+                            <a href="https://github.com/Benbo-se/ArgusmetricsSH" target="_blank" rel="noopener noreferrer" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
                                 <i class="fab fa-github w-4 text-gray-700 text-xs"></i> GitHub
                             </a>
                         </div>
                     </div>
 
-                    <a href="/#pricing" class="text-gray-600 hover:text-gray-900 text-sm font-medium px-3 py-2 rounded-md hover:bg-gray-50 transition-colors">Pricing</a>
+                    <a href="#self-host" class="text-gray-600 hover:text-gray-900 text-sm font-medium px-3 py-2 rounded-md hover:bg-gray-50 transition-colors">Self-host</a>
 
                     <div class="w-px h-5 bg-gray-200 mx-1"></div>
 
-                    <a href="https://app.argusmetrics.io/login" class="text-gray-600 hover:text-gray-900 text-sm font-medium px-3 py-2 rounded-md hover:bg-gray-50 transition-colors">Log In</a>
-                    <a href="https://app.argusmetrics.io/signup" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors">
-                        Get Started Free
+                    <a href="https://github.com/Benbo-se/ArgusmetricsSH" target="_blank" rel="noopener noreferrer" class="flex items-center gap-1.5 text-gray-600 hover:text-gray-900 text-sm font-medium px-3 py-2 rounded-md hover:bg-gray-50 transition-colors"><i class="fab fa-github"></i> GitHub</a>
+                    <a href="https://github.com/Benbo-se/ArgusmetricsSH" target="_blank" rel="noopener noreferrer" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors">
+                        Self-host
                     </a>
                 </div>
 
@@ -254,21 +252,20 @@
              class="md:hidden border-t border-gray-200 bg-white shadow-lg">
             <div class="px-2 pt-2 pb-3 space-y-1">
                 <div class="px-3 py-1 text-xs font-semibold text-gray-400 uppercase tracking-wider">Product</div>
-                <a href="/#features" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">Features</a>
-                <a href="/data" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">Privacy by Design</a>
-                <a href="/about" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">About Us</a>
+                <a href="#features" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">Features</a>
+                <a href="data.html" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">Privacy by Design</a>
+                <a href="about.html" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">About Us</a>
                 <div class="px-3 py-1 mt-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">Compare</div>
-                <a href="/compare/google-analytics" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">vs Google Analytics</a>
-                <a href="/compare/plausible" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">vs Plausible</a>
-                <a href="/compare/matomo" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">vs Matomo</a>
+                <a href="compare/google-analytics.html" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">vs Google Analytics</a>
+                <a href="compare/plausible.html" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">vs Plausible</a>
+                <a href="compare/matomo.html" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">vs Matomo</a>
                 <div class="px-3 py-1 mt-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">Resources</div>
-                <a href="/docs" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">Documentation</a>
-                <a href="/changelog" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">Changelog</a>
-                <a href="https://github.com/Benbo-se/argusmetrics.io" target="_blank" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">GitHub</a>
+                <a href="https://github.com/Benbo-se/ArgusmetricsSH#readme" target="_blank" rel="noopener noreferrer" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">Documentation</a>
+                <a href="changelog.html" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">Changelog</a>
+                <a href="https://github.com/Benbo-se/ArgusmetricsSH" target="_blank" rel="noopener noreferrer" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">GitHub</a>
                 <div class="border-t border-gray-100 mt-2 pt-2">
-                    <a href="/#pricing" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">Pricing</a>
-                    <a href="https://app.argusmetrics.io/login" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">Log In</a>
-                    <a href="https://app.argusmetrics.io/signup" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md text-center">Get Started Free</a>
+                    <a href="#self-host" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">Self-host</a>
+                    <a href="https://github.com/Benbo-se/ArgusmetricsSH" target="_blank" rel="noopener noreferrer" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md text-center">Self-host on GitHub</a>
                 </div>
             </div>
         </div>
@@ -282,20 +279,20 @@
                     Privacy-First Analytics
                 </h1>
                 <p class="text-xl md:text-2xl text-gray-600 mb-6">
-                    Simple, powerful analytics that respects user privacy.
-                    <span class="text-blue-600 font-semibold">GDPR compliant by default.</span>
+                    Free, open-source, self-hosted analytics that respects user privacy.
+                    <span class="text-blue-600 font-semibold">GDPR-friendly by default.</span>
                     No cookies, no tracking pixels, no compromises.
                 </p>
 
                 <!-- Trust Badges -->
                 <div class="flex items-center justify-center gap-8 mb-8">
                     <div class="flex items-center gap-2 text-gray-700">
-                        <i class="fas fa-flag text-blue-600 text-lg"></i>
-                        <span class="text-sm font-medium">EU Hosted (Amsterdam)</span>
+                        <i class="fab fa-osi text-blue-600 text-lg"></i>
+                        <span class="text-sm font-medium">Open Source (AGPL-3.0)</span>
                     </div>
                     <div class="flex items-center gap-2 text-gray-700">
-                        <i class="fas fa-shield-alt text-blue-600 text-lg"></i>
-                        <span class="text-sm font-medium">GDPR Compliant</span>
+                        <i class="fas fa-server text-blue-600 text-lg"></i>
+                        <span class="text-sm font-medium">Self-Hosted</span>
                     </div>
                     <div class="flex items-center gap-2 text-gray-700">
                         <i class="fas fa-cookie-bite text-blue-600 text-lg"></i>
@@ -304,19 +301,19 @@
                 </div>
 
                 <div class="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-                    <a href="https://app.argusmetrics.io/signup" class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-lg text-lg font-semibold transition-all transform hover:scale-105 shadow-lg">
-                        Start Free Forever
+                    <a href="https://github.com/Benbo-se/ArgusmetricsSH" target="_blank" rel="noopener noreferrer" class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-lg text-lg font-semibold transition-all transform hover:scale-105 shadow-lg">
+                        <i class="fab fa-github mr-2"></i>View on GitHub
                     </a>
-                    <a href="https://app.argusmetrics.io/demo" class="bg-white hover:bg-gray-50 text-blue-600 px-8 py-4 rounded-lg text-lg font-semibold border-2 border-blue-600 transition-all hover:border-blue-700">
-                        View Live Demo
+                    <a href="#self-host" class="bg-white hover:bg-gray-50 text-blue-600 px-8 py-4 rounded-lg text-lg font-semibold border-2 border-blue-600 transition-all hover:border-blue-700">
+                        Self-host guide
                     </a>
                 </div>
                 <p class="text-sm text-gray-500">
-                    <i class="fas fa-check text-green-500"></i> No credit card required
+                    <i class="fas fa-check text-green-500"></i> Free &amp; open source
                     <span class="mx-2">&bull;</span>
-                    <i class="fas fa-check text-green-500"></i> 14-day free trial
+                    <i class="fas fa-check text-green-500"></i> Self-hosted
                     <span class="mx-2">&bull;</span>
-                    <i class="fas fa-check text-green-500"></i> Cancel anytime
+                    <i class="fas fa-check text-green-500"></i> No signup
                 </p>
             </div>
 
@@ -366,7 +363,7 @@
                     </div>
                 </div>
                 <!-- Screenshot -->
-                <img src="/static/img/hero-dashboard.png"
+                <img src="static/img/hero-dashboard.png"
                      alt="Argusmetrics Dashboard - Real-time Analytics"
                      class="w-full">
             </div>
@@ -524,10 +521,16 @@
                             <td class="px-6 py-4 text-center text-gray-500">Paid only</td>
                         </tr>
                         <tr class="bg-gray-50">
-                            <td class="px-6 py-4 text-sm text-gray-900">Free tier</td>
-                            <td class="px-6 py-4 text-center text-blue-600 font-semibold">10k views/mo</td>
+                            <td class="px-6 py-4 text-sm text-gray-900">Free &amp; self-hosted</td>
+                            <td class="px-6 py-4 text-center text-blue-600 font-semibold">Unlimited</td>
+                            <td class="px-6 py-4 text-center"><i class="fas fa-times text-red-500 text-xl"></i></td>
+                            <td class="px-6 py-4 text-center text-gray-500">Self-host (CE)</td>
+                        </tr>
+                        <tr>
+                            <td class="px-6 py-4 text-sm text-gray-900">Open source</td>
                             <td class="px-6 py-4 text-center"><i class="fas fa-check text-green-600 text-xl"></i></td>
-                            <td class="px-6 py-4 text-center text-gray-500">Trial only</td>
+                            <td class="px-6 py-4 text-center"><i class="fas fa-times text-red-500 text-xl"></i></td>
+                            <td class="px-6 py-4 text-center"><i class="fas fa-check text-green-600 text-xl"></i></td>
                         </tr>
                     </tbody>
                 </table>
@@ -535,165 +538,81 @@
         </div>
     </section>
 
-    <!-- Pricing Section -->
-    <section id="pricing" class="py-20 px-4 sm:px-6 lg:px-8 bg-white">
-        <div class="max-w-7xl mx-auto">
-            <div class="text-center mb-16">
-                <h2 class="text-4xl font-bold text-gray-900 mb-4">Simple, Transparent Pricing</h2>
-                <p class="text-xl text-gray-600">Start free, scale as you grow</p>
+    <!-- Self-host Section -->
+    <section id="self-host" class="py-20 px-4 sm:px-6 lg:px-8 bg-white">
+        <div class="max-w-5xl mx-auto">
+            <div class="text-center mb-12">
+                <span class="inline-block bg-green-100 text-green-700 text-xs font-bold px-3 py-1 rounded-full mb-4 uppercase tracking-wider">100% Free &amp; Open Source</span>
+                <h2 class="text-4xl font-bold text-gray-900 mb-4">Free &amp; open source &mdash; self-host it</h2>
+                <p class="text-xl text-gray-600 max-w-2xl mx-auto">
+                    Argusmetrics is licensed under <strong>AGPL-3.0</strong>. Run it on your own server,
+                    keep unlimited websites and pageviews, and your data never leaves your infrastructure.
+                    No plans, no limits, no signup.
+                </p>
             </div>
 
-            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-7xl mx-auto">
-                <!-- Free Tier -->
-                <div class="bg-white rounded-2xl border-2 border-gray-200 p-8 hover:shadow-xl transition-all">
-                    <h3 class="text-2xl font-bold text-gray-900 mb-2">Hobby</h3>
-                    <div class="text-4xl font-bold text-gray-900 mb-1">Free</div>
-                    <p class="text-gray-600 mb-6">Forever</p>
-                    <ul class="space-y-4 mb-8">
-                        <li class="flex items-start">
-                            <i class="fas fa-check text-green-500 mt-1 mr-3"></i>
-                            <span class="text-gray-700"><strong>10,000</strong> pageviews/month</span>
-                        </li>
-                        <li class="flex items-start">
-                            <i class="fas fa-check text-green-500 mt-1 mr-3"></i>
-                            <span class="text-gray-700">1 website</span>
-                        </li>
-                        <li class="flex items-start">
-                            <i class="fas fa-check text-green-500 mt-1 mr-3"></i>
-                            <span class="text-gray-700">Custom events & goals</span>
-                        </li>
-                        <li class="flex items-start">
-                            <i class="fas fa-check text-green-500 mt-1 mr-3"></i>
-                            <span class="text-gray-700">Email support</span>
-                        </li>
-                    </ul>
-                    <a href="https://app.argusmetrics.io/signup" class="block w-full text-center bg-gray-100 hover:bg-gray-200 text-gray-900 px-6 py-3 rounded-lg font-semibold transition-colors">
-                        Get Started
-                    </a>
+            <!-- Value props -->
+            <div class="grid sm:grid-cols-3 gap-6 mb-12">
+                <div class="text-center p-6 bg-gray-50 rounded-xl border border-gray-100">
+                    <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-4 mx-auto">
+                        <i class="fas fa-infinity text-green-600 text-xl"></i>
+                    </div>
+                    <h3 class="font-semibold text-gray-900 mb-1">Unlimited</h3>
+                    <p class="text-sm text-gray-600">Unlimited sites, pageviews and team members. No usage caps.</p>
                 </div>
-
-                <!-- Starter Tier -->
-                <div class="bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl border-2 border-blue-600 p-8 text-white transform scale-105 shadow-2xl">
-                    <div class="inline-block bg-white text-blue-600 text-xs font-bold px-3 py-1 rounded-full mb-4">MOST POPULAR</div>
-                    <h3 class="text-2xl font-bold mb-2">Starter</h3>
-                    <div class="text-4xl font-bold mb-1">$4</div>
-                    <p class="text-blue-100 mb-6">per month</p>
-                    <ul class="space-y-4 mb-8">
-                        <li class="flex items-start">
-                            <i class="fas fa-check text-white mt-1 mr-3"></i>
-                            <span><strong>50,000</strong> pageviews/month</span>
-                        </li>
-                        <li class="flex items-start">
-                            <i class="fas fa-check text-white mt-1 mr-3"></i>
-                            <span>3 websites</span>
-                        </li>
-                        <li class="flex items-start">
-                            <i class="fas fa-check text-white mt-1 mr-3"></i>
-                            <span>Unlimited team members</span>
-                        </li>
-                        <li class="flex items-start">
-                            <i class="fas fa-check text-white mt-1 mr-3"></i>
-                            <span>Priority support</span>
-                        </li>
-                        <li class="flex items-start">
-                            <i class="fas fa-check text-white mt-1 mr-3"></i>
-                            <span>Public dashboards</span>
-                        </li>
-                    </ul>
-                    <a href="https://app.argusmetrics.io/signup" class="block w-full text-center bg-white text-blue-600 hover:bg-gray-50 px-6 py-3 rounded-lg font-semibold transition-colors">
-                        Start Free Trial
-                    </a>
+                <div class="text-center p-6 bg-gray-50 rounded-xl border border-gray-100">
+                    <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4 mx-auto">
+                        <i class="fas fa-database text-blue-600 text-xl"></i>
+                    </div>
+                    <h3 class="font-semibold text-gray-900 mb-1">Your data stays yours</h3>
+                    <p class="text-sm text-gray-600">Everything runs on your own server. No third party ever sees your analytics.</p>
                 </div>
-
-                <!-- Pro Tier -->
-                <div class="bg-white rounded-2xl border-2 border-gray-200 p-8 hover:shadow-xl transition-all">
-                    <h3 class="text-2xl font-bold text-gray-900 mb-2">Pro</h3>
-                    <div class="text-4xl font-bold text-gray-900 mb-1">$7</div>
-                    <p class="text-gray-600 mb-6">per month</p>
-                    <ul class="space-y-4 mb-8">
-                        <li class="flex items-start">
-                            <i class="fas fa-check text-green-500 mt-1 mr-3"></i>
-                            <span class="text-gray-700"><strong>100,000</strong> pageviews/month</span>
-                        </li>
-                        <li class="flex items-start">
-                            <i class="fas fa-check text-green-500 mt-1 mr-3"></i>
-                            <span class="text-gray-700">10 websites</span>
-                        </li>
-                        <li class="flex items-start">
-                            <i class="fas fa-check text-green-500 mt-1 mr-3"></i>
-                            <span class="text-gray-700">Unlimited team members</span>
-                        </li>
-                        <li class="flex items-start">
-                            <i class="fas fa-check text-green-500 mt-1 mr-3"></i>
-                            <span class="text-gray-700">Priority support</span>
-                        </li>
-                        <li class="flex items-start">
-                            <i class="fas fa-check text-green-500 mt-1 mr-3"></i>
-                            <span class="text-gray-700">Stats API access</span>
-                        </li>
-                    </ul>
-                    <a href="https://app.argusmetrics.io/signup" class="block w-full text-center bg-gray-900 hover:bg-gray-800 text-white px-6 py-3 rounded-lg font-semibold transition-colors">
-                        Start Free Trial
-                    </a>
-                </div>
-
-                <!-- Business Tier -->
-                <div class="bg-white rounded-2xl border-2 border-gray-200 p-8 hover:shadow-xl transition-all">
-                    <h3 class="text-2xl font-bold text-gray-900 mb-2">Business</h3>
-                    <div class="text-4xl font-bold text-gray-900 mb-1">$17</div>
-                    <p class="text-gray-600 mb-6">per month</p>
-                    <ul class="space-y-4 mb-8">
-                        <li class="flex items-start">
-                            <i class="fas fa-check text-green-500 mt-1 mr-3"></i>
-                            <span class="text-gray-700"><strong>500,000</strong> pageviews/month</span>
-                        </li>
-                        <li class="flex items-start">
-                            <i class="fas fa-check text-green-500 mt-1 mr-3"></i>
-                            <span class="text-gray-700">Unlimited websites</span>
-                        </li>
-                        <li class="flex items-start">
-                            <i class="fas fa-check text-green-500 mt-1 mr-3"></i>
-                            <span class="text-gray-700">Unlimited team members</span>
-                        </li>
-                        <li class="flex items-start">
-                            <i class="fas fa-check text-green-500 mt-1 mr-3"></i>
-                            <span class="text-gray-700">Priority support</span>
-                        </li>
-                        <li class="flex items-start">
-                            <i class="fas fa-check text-green-500 mt-1 mr-3"></i>
-                            <span class="text-gray-700">Custom integrations</span>
-                        </li>
-                        <li class="flex items-start">
-                            <i class="fas fa-check text-green-500 mt-1 mr-3"></i>
-                            <span class="text-gray-700">Stats API access</span>
-                        </li>
-                        <li class="flex items-start">
-                            <i class="fas fa-check text-green-500 mt-1 mr-3"></i>
-                            <span class="text-gray-700">White label branding</span>
-                        </li>
-                    </ul>
-                    <a href="https://app.argusmetrics.io/signup" class="block w-full text-center bg-gray-900 hover:bg-gray-800 text-white px-6 py-3 rounded-lg font-semibold transition-colors">
-                        Start Free Trial
-                    </a>
+                <div class="text-center p-6 bg-gray-50 rounded-xl border border-gray-100">
+                    <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4 mx-auto">
+                        <i class="fab fa-osi text-purple-600 text-xl"></i>
+                    </div>
+                    <h3 class="font-semibold text-gray-900 mb-1">AGPL-3.0 licensed</h3>
+                    <p class="text-sm text-gray-600">Fully open source. Read the code, fork it, contribute back.</p>
                 </div>
             </div>
 
-            <p class="text-center text-gray-600 mt-12">
-                All plans include a 14-day free trial. No credit card required. Cancel anytime.
+            <!-- Docker quickstart -->
+            <div class="bg-gray-900 rounded-2xl shadow-xl overflow-hidden mb-8">
+                <div class="px-6 py-3 flex items-center gap-2 border-b border-gray-700">
+                    <div class="flex gap-2">
+                        <div class="w-3 h-3 rounded-full bg-red-400"></div>
+                        <div class="w-3 h-3 rounded-full bg-yellow-400"></div>
+                        <div class="w-3 h-3 rounded-full bg-green-400"></div>
+                    </div>
+                    <span class="text-xs text-gray-400 ml-2">Quickstart &mdash; Docker</span>
+                </div>
+                <pre class="px-6 py-5 text-sm text-green-300 overflow-x-auto"><code>git clone https://github.com/Benbo-se/ArgusmetricsSH
+cd ArgusmetricsSH/docker
+docker compose up -d</code></pre>
+            </div>
+
+            <p class="text-center text-gray-600 mb-8">
+                That's it &mdash; open your dashboard, add the lightweight script to your site, and you own every byte of your analytics.
             </p>
+
+            <div class="text-center">
+                <a href="https://github.com/Benbo-se/ArgusmetricsSH" target="_blank" rel="noopener noreferrer" class="inline-block bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-lg text-lg font-semibold transition-all transform hover:scale-105 shadow-lg">
+                    <i class="fab fa-github mr-2"></i>View on GitHub
+                </a>
+            </div>
         </div>
     </section>
 
     <!-- CTA Section -->
     <section class="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-blue-600 to-indigo-600">
         <div class="max-w-4xl mx-auto text-center">
-            <h2 class="text-4xl font-bold text-white mb-6">Ready to Get Started?</h2>
-            <p class="text-xl text-blue-100 mb-8">Start tracking with privacy-first analytics</p>
-            <a href="https://app.argusmetrics.io/signup" class="inline-block bg-white text-blue-600 hover:bg-gray-100 px-8 py-4 rounded-lg text-lg font-semibold transition-all transform hover:scale-105 shadow-xl">
-                Start Your Free Trial
+            <h2 class="text-4xl font-bold text-white mb-6">Ready to self-host?</h2>
+            <p class="text-xl text-blue-100 mb-8">Free, open-source, privacy-first analytics on your own server</p>
+            <a href="https://github.com/Benbo-se/ArgusmetricsSH" target="_blank" rel="noopener noreferrer" class="inline-block bg-white text-blue-600 hover:bg-gray-100 px-8 py-4 rounded-lg text-lg font-semibold transition-all transform hover:scale-105 shadow-xl">
+                <i class="fab fa-github mr-2"></i>View on GitHub
             </a>
             <p class="text-blue-100 mt-6 text-sm">
-                No credit card required &bull; 14-day free trial &bull; Cancel anytime
+                Free &amp; open source &bull; Self-hosted &bull; No signup
             </p>
         </div>
     </section>
@@ -704,46 +623,47 @@
             <div class="grid md:grid-cols-4 gap-8 mb-8">
                 <div>
                     <div class="flex items-center space-x-3 mb-4">
-                        <img src="/static/img/ArgusEyefavicon3.png" alt="Argusmetrics" class="h-12 w-12">
+                        <img src="static/img/ArgusEyefavicon3.png" alt="Argusmetrics" class="h-12 w-12">
                         <h3 class="text-white font-bold text-lg">Argusmetrics</h3>
                     </div>
-                    <p class="text-sm text-gray-400">Privacy-first web analytics for modern websites.</p>
+                    <p class="text-sm text-gray-400">Free, open-source, self-hosted privacy-first web analytics.</p>
                 </div>
                 <div>
                     <h4 class="text-white font-semibold mb-4">Product</h4>
                     <ul class="space-y-2 text-sm">
-                        <li><a href="/#features" class="hover:text-white transition-colors">Features</a></li>
-                        <li><a href="/#pricing" class="hover:text-white transition-colors">Pricing</a></li>
-                        <li><a href="/data" class="hover:text-white transition-colors">Privacy by Design</a></li>
-                        <li><a href="/changelog" class="hover:text-white transition-colors">Changelog</a></li>
-                        <li><a href="/docs" class="hover:text-white transition-colors">Documentation</a></li>
+                        <li><a href="index.html#features" class="hover:text-white transition-colors">Features</a></li>
+                        <li><a href="index.html#self-host" class="hover:text-white transition-colors">Self-host</a></li>
+                        <li><a href="data.html" class="hover:text-white transition-colors">Privacy by Design</a></li>
+                        <li><a href="changelog.html" class="hover:text-white transition-colors">Changelog</a></li>
+                        <li><a href="https://github.com/Benbo-se/ArgusmetricsSH#readme" target="_blank" rel="noopener noreferrer" class="hover:text-white transition-colors">Documentation</a></li>
                     </ul>
                 </div>
                 <div>
                     <h4 class="text-white font-semibold mb-4">Compare</h4>
                     <ul class="space-y-2 text-sm">
-                        <li><a href="/compare/google-analytics" class="hover:text-white transition-colors">vs Google Analytics</a></li>
-                        <li><a href="/compare/plausible" class="hover:text-white transition-colors">vs Plausible</a></li>
-                        <li><a href="/compare/matomo" class="hover:text-white transition-colors">vs Matomo</a></li>
+                        <li><a href="compare/google-analytics.html" class="hover:text-white transition-colors">vs Google Analytics</a></li>
+                        <li><a href="compare/plausible.html" class="hover:text-white transition-colors">vs Plausible</a></li>
+                        <li><a href="compare/matomo.html" class="hover:text-white transition-colors">vs Matomo</a></li>
                     </ul>
                 </div>
                 <div>
                     <h4 class="text-white font-semibold mb-4">Company</h4>
                     <ul class="space-y-2 text-sm">
-                        <li><a href="/about" class="hover:text-white transition-colors">About</a></li>
-                        <li><a href="/contact" class="hover:text-white transition-colors">Contact</a></li>
-                        <li><a href="/privacy" class="hover:text-white transition-colors">Privacy Policy</a></li>
-                        <li><a href="/terms" class="hover:text-white transition-colors">Terms of Service</a></li>
+                        <li><a href="about.html" class="hover:text-white transition-colors">About</a></li>
+                        <li><a href="contact.html" class="hover:text-white transition-colors">Contact</a></li>
+                        <li><a href="privacy.html" class="hover:text-white transition-colors">Privacy Policy</a></li>
+                        <li><a href="terms.html" class="hover:text-white transition-colors">Terms of Service</a></li>
                         <li><a href="mailto:reda@argusmetrics.io" class="hover:text-white transition-colors">Email Support</a></li>
                     </ul>
                 </div>
                 <div>
                     <h4 class="text-white font-semibold mb-4">Resources</h4>
                     <ul class="space-y-2 text-sm">
-                        <li><a href="/docs" class="hover:text-white transition-colors">Help Center</a></li>
+                        <li><a href="https://github.com/Benbo-se/ArgusmetricsSH" target="_blank" rel="noopener noreferrer" class="hover:text-white transition-colors">GitHub</a></li>
+                        <li><a href="https://github.com/Benbo-se/ArgusmetricsSH#readme" target="_blank" rel="noopener noreferrer" class="hover:text-white transition-colors">Documentation</a></li>
                     </ul>
                     <div class="flex space-x-4 mt-4">
-                        <a href="https://github.com/Benbo-se/argusmetrics.io" target="_blank" rel="noopener noreferrer" class="hover:text-white transition-colors" aria-label="GitHub">
+                        <a href="https://github.com/Benbo-se/ArgusmetricsSH" target="_blank" rel="noopener noreferrer" class="hover:text-white transition-colors" aria-label="GitHub">
                             <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
                         </a>
                         <a href="https://www.linkedin.com/company/argusmetrics" target="_blank" rel="noopener noreferrer" class="hover:text-white transition-colors" aria-label="LinkedIn">
@@ -786,10 +706,10 @@
     </div>
 
     <!-- Custom JavaScript -->
-    <script src="/static/js/dashboard.js"></script>
+    <script src="static/js/dashboard.js"></script>
 
     <!-- Chatbot JavaScript -->
-    <script src="/static/js/chatbot.js"></script>
+    <script src="static/js/chatbot.js"></script>
 
     <!-- Cookie Banner (centered at bottom) -->
     <div id="cookie-banner" x-data="{ show: !localStorage.getItem('cookie-banner-dismissed') }" x-show="show" x-transition class="fixed bottom-4 left-1/2 transform -translate-x-1/2 w-full max-w-md px-4 md:px-0 z-50" style="display: none;">
@@ -807,77 +727,6 @@
         </div>
     </div>
 
-    <!-- Custom Event Tracking for Conversion Analytics -->
-    <script>
-        // Wait for tracker to load
-        window.addEventListener('load', function() {
-            // Track CTA Clicks
-            document.querySelectorAll('a[href="https://app.argusmetrics.io/signup"]').forEach(function(btn) {
-                btn.addEventListener('click', function(e) {
-                    var isHero = this.closest('section') && this.closest('section').classList.contains('bg-gradient-to-br');
-                    var isPricing = this.closest('section') && this.id === 'pricing';
-                    var isCTA = this.closest('section') && this.classList.contains('inline-block');
-
-                    if (isHero) {
-                        window.argusTrack && window.argusTrack('CTA Click - Hero Primary');
-                    } else if (isPricing) {
-                        window.argusTrack && window.argusTrack('CTA Click - Pricing');
-                    } else if (isCTA) {
-                        window.argusTrack && window.argusTrack('CTA Click - Bottom CTA');
-                    } else {
-                        window.argusTrack && window.argusTrack('CTA Click - Other');
-                    }
-                });
-            });
-
-            // Track Demo CTA
-            document.querySelectorAll('a[href="https://app.argusmetrics.io/demo"]').forEach(function(btn) {
-                btn.addEventListener('click', function(e) {
-                    window.argusTrack && window.argusTrack('CTA Click - View Demo');
-                });
-            });
-
-            // Track Scroll Depth with Intersection Observer
-            var sections = [
-                { id: 'dashboard-showcase', event: 'Viewed - Dashboard Section' },
-                { id: 'features', event: 'Viewed - Features Section' },
-                { id: 'pricing', event: 'Viewed - Pricing Section' }
-            ];
-
-            var observerOptions = {
-                threshold: 0.3,
-                rootMargin: '0px'
-            };
-
-            var observer = new IntersectionObserver(function(entries) {
-                entries.forEach(function(entry) {
-                    if (entry.isIntersecting && !entry.target.dataset.tracked) {
-                        var eventName = entry.target.dataset.eventName;
-                        window.argusTrack && window.argusTrack(eventName);
-                        entry.target.dataset.tracked = 'true';
-                    }
-                });
-            }, observerOptions);
-
-            sections.forEach(function(section) {
-                var element = document.getElementById(section.id) ||
-                               document.querySelector('[data-section="' + section.id + '"]');
-                if (element) {
-                    element.dataset.eventName = section.event;
-                    observer.observe(element);
-                }
-            });
-
-            var dashboardSection = document.querySelector('section.pt-8.pb-12.px-4.bg-white');
-            if (dashboardSection) {
-                dashboardSection.dataset.eventName = 'Viewed - Dashboard Section';
-                dashboardSection.dataset.section = 'dashboard-showcase';
-                observer.observe(dashboardSection);
-            }
-
-            console.log('Argusmetrics conversion tracking initialized');
-        });
-    </script>
 </body>
 </html>
 

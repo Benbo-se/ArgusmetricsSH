@@ -25,19 +25,19 @@
     <meta name="twitter:image" content="https://argusmetrics.io/static/img/ArgusEyefavicon3.png">
 
     <!-- Favicon -->
-    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
-    <link rel="icon" type="image/png" sizes="32x32" href="/static/img/ArgusEyefavicon3.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="/static/img/ArgusEyefavicon3.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="/static/img/ArgusEyefavicon3.png">
+    <link rel="icon" type="image/x-icon" href="static/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="static/img/ArgusEyefavicon3.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="static/img/ArgusEyefavicon3.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="static/img/ArgusEyefavicon3.png">
 
     <!-- PWA Manifest -->
-    <link rel="manifest" href="/static/manifest.json">
+    <link rel="manifest" href="static/manifest.json">
 
     <!-- Tailwind CSS -->
-    <link rel="stylesheet" href="/static/css/tailwind.min.css">
+    <link rel="stylesheet" href="static/css/tailwind.min.css">
 
     <!-- HTMX (local) -->
-    <script src="/static/js/htmx.min.js"></script>
+    <script src="static/js/htmx.min.js"></script>
 
     <!-- Performance hints -->
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
@@ -55,7 +55,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <!-- Chatbot styles -->
-    <link rel="stylesheet" href="/static/css/chatbot.css">
+    <link rel="stylesheet" href="static/css/chatbot.css">
 
     <style>
         /* Custom loading spinner */
@@ -86,8 +86,8 @@
             <div class="flex justify-between items-center h-16">
                 <!-- Logo -->
                 <div class="flex items-center">
-                    <a href="/" class="flex items-center space-x-2">
-                        <img src="/static/img/ArgusEyefavicon3.png" alt="Argusmetrics" class="h-10 w-10">
+                    <a href="index.html" class="flex items-center space-x-2">
+                        <img src="static/img/ArgusEyefavicon3.png" alt="Argusmetrics" class="h-10 w-10">
                         <span class="text-xl font-bold text-gray-900">Argusmetrics</span>
                     </a>
                 </div>
@@ -109,13 +109,13 @@
                              x-transition:leave-start="opacity-100 translate-y-0"
                              x-transition:leave-end="opacity-0 translate-y-1"
                              class="absolute top-full left-0 mt-1 w-56 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50">
-                            <a href="/#features" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
+                            <a href="index.html#features" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
                                 <i class="fas fa-bolt w-4 text-blue-500 text-xs"></i> Features
                             </a>
-                            <a href="/data" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
+                            <a href="data.html" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
                                 <i class="fas fa-shield-alt w-4 text-green-500 text-xs"></i> Privacy by Design
                             </a>
-                            <a href="/about" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
+                            <a href="about.html" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
                                 <i class="fas fa-info-circle w-4 text-purple-500 text-xs"></i> About Us
                             </a>
                         </div>
@@ -136,13 +136,13 @@
                              x-transition:leave-end="opacity-0 translate-y-1"
                              class="absolute top-full left-0 mt-1 w-64 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50">
                             <div class="px-4 py-1.5 text-xs font-semibold text-gray-400 uppercase tracking-wider">Argusmetrics vs</div>
-                            <a href="/compare/google-analytics" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
+                            <a href="compare/google-analytics.html" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
                                 <i class="fab fa-google w-4 text-red-500 text-xs"></i> Google Analytics
                             </a>
-                            <a href="/compare/plausible" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
+                            <a href="compare/plausible.html" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
                                 <i class="fas fa-chart-bar w-4 text-purple-500 text-xs"></i> Plausible
                             </a>
-                            <a href="/compare/matomo" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
+                            <a href="compare/matomo.html" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
                                 <i class="fas fa-chart-pie w-4 text-orange-500 text-xs"></i> Matomo
                             </a>
                         </div>
@@ -162,26 +162,24 @@
                              x-transition:leave-start="opacity-100 translate-y-0"
                              x-transition:leave-end="opacity-0 translate-y-1"
                              class="absolute top-full left-0 mt-1 w-56 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50">
-                            <a href="/docs" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
+                            <a href="https://github.com/Benbo-se/ArgusmetricsSH#readme" target="_blank" rel="noopener noreferrer" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
                                 <i class="fas fa-book w-4 text-blue-500 text-xs"></i> Documentation
                             </a>
-                            <a href="/changelog" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
+                            <a href="changelog.html" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
                                 <i class="fas fa-list-ul w-4 text-green-500 text-xs"></i> Changelog
                             </a>
-                            <a href="https://github.com/Benbo-se/argusmetrics.io" target="_blank" rel="noopener noreferrer" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
+                            <a href="https://github.com/Benbo-se/ArgusmetricsSH" target="_blank" rel="noopener noreferrer" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
                                 <i class="fab fa-github w-4 text-gray-700 text-xs"></i> GitHub
                             </a>
                         </div>
                     </div>
 
-                    <a href="/#pricing" class="text-gray-600 hover:text-gray-900 text-sm font-medium px-3 py-2 rounded-md hover:bg-gray-50 transition-colors">Pricing</a>
+                    <a href="index.html#self-host" class="text-gray-600 hover:text-gray-900 text-sm font-medium px-3 py-2 rounded-md hover:bg-gray-50 transition-colors">Self-host</a>
 
                     <div class="w-px h-5 bg-gray-200 mx-1"></div>
 
-                    <a href="https://app.argusmetrics.io/login" class="text-gray-600 hover:text-gray-900 text-sm font-medium px-3 py-2 rounded-md hover:bg-gray-50 transition-colors">Log In</a>
-                    <a href="https://app.argusmetrics.io/signup" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors">
-                        Get Started Free
-                    </a>
+                    <a href="https://github.com/Benbo-se/ArgusmetricsSH" target="_blank" rel="noopener noreferrer" class="flex items-center gap-1.5 text-gray-600 hover:text-gray-900 text-sm font-medium px-3 py-2 rounded-md hover:bg-gray-50 transition-colors"><i class="fab fa-github"></i> GitHub</a>
+                    <a href="https://github.com/Benbo-se/ArgusmetricsSH" target="_blank" rel="noopener noreferrer" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors">Self-host</a>
                 </div>
 
                 <!-- Mobile menu button -->
@@ -211,21 +209,21 @@
              class="md:hidden border-t border-gray-200 bg-white shadow-lg">
             <div class="px-2 pt-2 pb-3 space-y-1">
                 <div class="px-3 py-1 text-xs font-semibold text-gray-400 uppercase tracking-wider">Product</div>
-                <a href="/#features" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">Features</a>
-                <a href="/data" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">Privacy by Design</a>
-                <a href="/about" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">About Us</a>
+                <a href="index.html#features" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">Features</a>
+                <a href="data.html" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">Privacy by Design</a>
+                <a href="about.html" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">About Us</a>
                 <div class="px-3 py-1 mt-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">Compare</div>
-                <a href="/compare/google-analytics" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">vs Google Analytics</a>
-                <a href="/compare/plausible" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">vs Plausible</a>
-                <a href="/compare/matomo" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">vs Matomo</a>
+                <a href="compare/google-analytics.html" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">vs Google Analytics</a>
+                <a href="compare/plausible.html" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">vs Plausible</a>
+                <a href="compare/matomo.html" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">vs Matomo</a>
                 <div class="px-3 py-1 mt-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">Resources</div>
-                <a href="/docs" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">Documentation</a>
-                <a href="/changelog" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">Changelog</a>
-                <a href="https://github.com/Benbo-se/argusmetrics.io" target="_blank" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">GitHub</a>
+                <a href="https://github.com/Benbo-se/ArgusmetricsSH#readme" target="_blank" rel="noopener noreferrer" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">Documentation</a>
+                <a href="changelog.html" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">Changelog</a>
+                <a href="https://github.com/Benbo-se/ArgusmetricsSH" target="_blank" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">GitHub</a>
                 <div class="border-t border-gray-100 mt-2 pt-2">
-                    <a href="/#pricing" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">Pricing</a>
-                    <a href="https://app.argusmetrics.io/login" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">Log In</a>
-                    <a href="https://app.argusmetrics.io/signup" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md text-center">Get Started Free</a>
+                    <a href="index.html#self-host" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">Self-host</a>
+                    <a href="https://github.com/Benbo-se/ArgusmetricsSH" target="_blank" rel="noopener noreferrer" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">GitHub</a>
+                    <a href="https://github.com/Benbo-se/ArgusmetricsSH" target="_blank" rel="noopener noreferrer" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md text-center">Self-host on GitHub</a>
                 </div>
             </div>
         </div>
@@ -241,16 +239,22 @@
                 <section class="mb-8">
                     <h2 class="text-2xl font-bold text-gray-900 mb-4">1. Agreement to Terms</h2>
                     <p class="text-gray-700 mb-4">
-                        By accessing or using Argusmetrics ("Service", "we", "us", or "our"), you agree to be bound by these Terms of Service ("Terms").
-                        If you do not agree to these Terms, please do not use our Service.
+                        Argusmetrics ("Software", "we", "us", or "our") is free, open-source, self-hosted web analytics software distributed under the
+                        <a href="https://www.gnu.org/licenses/agpl-3.0.html" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-700">GNU Affero General Public License v3.0 (AGPL-3.0)</a>.
+                        By downloading, installing, running, or using the Software, you agree to be bound by these Terms of Service ("Terms") as well as the terms of the AGPL-3.0 license.
+                        If you do not agree to these Terms, please do not use the Software.
+                    </p>
+                    <p class="text-gray-700 mb-4">
+                        These Terms describe the relationship between you and the authors/maintainers of the Software. We do not host, operate, or provide
+                        a managed service, account, or subscription. You run the Software yourself on infrastructure you control.
                     </p>
                 </section>
 
                 <!-- Description of Service -->
                 <section class="mb-8">
-                    <h2 class="text-2xl font-bold text-gray-900 mb-4">2. Description of Service</h2>
+                    <h2 class="text-2xl font-bold text-gray-900 mb-4">2. Description of the Software</h2>
                     <p class="text-gray-700 mb-4">
-                        Argusmetrics is a privacy-first web analytics platform that provides:
+                        Argusmetrics is privacy-first web analytics software that you self-host. It provides:
                     </p>
                     <ul class="list-disc list-inside space-y-2 text-gray-700 ml-4 mb-4">
                         <li>Website traffic analytics and statistics</li>
@@ -260,32 +264,35 @@
                         <li>API access for data integration</li>
                     </ul>
                     <p class="text-gray-700 mb-4">
-                        We reserve the right to modify or discontinue the Service (or any part thereof) at any time with or without notice.
+                        The Software is developed on a best-effort, voluntary basis. We may modify, discontinue, or stop maintaining the Software (or any part thereof)
+                        at any time with or without notice. Because you run your own instance, any deployment you operate continues to run under your control.
                     </p>
                 </section>
 
                 <!-- Account Registration -->
                 <section class="mb-8">
-                    <h2 class="text-2xl font-bold text-gray-900 mb-4">3. Account Registration</h2>
-                    <h3 class="text-xl font-semibold text-gray-900 mb-3">3.1 Account Creation</h3>
+                    <h2 class="text-2xl font-bold text-gray-900 mb-4">3. Self-Hosting & Operation</h2>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-3">3.1 Running the Software</h3>
                     <p class="text-gray-700 mb-4">
-                        To use Argusmetrics, you must:
+                        There is no registration, account, or sign-up with us. To use Argusmetrics, you obtain a copy of the source code from the
+                        <a href="https://github.com/Benbo-se/ArgusmetricsSH" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-700">project repository</a>
+                        and deploy it on infrastructure you own or control. When operating the Software, you should:
                     </p>
                     <ul class="list-disc list-inside space-y-2 text-gray-700 ml-4 mb-4">
-                        <li>Provide a valid email address</li>
-                        <li>Be at least 16 years old</li>
-                        <li>Provide accurate and complete information</li>
-                        <li>Keep your account credentials secure</li>
+                        <li>Be at least 16 years old, or have appropriate authorization</li>
+                        <li>Comply with the terms of the AGPL-3.0 license</li>
+                        <li>Keep your own deployment, credentials, and infrastructure secure</li>
+                        <li>Apply updates and security patches as you see fit</li>
                     </ul>
 
-                    <h3 class="text-xl font-semibold text-gray-900 mb-3 mt-6">3.2 Account Responsibilities</h3>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-3 mt-6">3.2 Operator Responsibilities</h3>
                     <p class="text-gray-700 mb-4">
-                        You are responsible for:
+                        As the operator of your own instance, you are solely responsible for:
                     </p>
                     <ul class="list-disc list-inside space-y-2 text-gray-700 ml-4 mb-4">
-                        <li>All activity that occurs under your account</li>
-                        <li>Maintaining the confidentiality of your account</li>
-                        <li>Notifying us immediately of any unauthorized access</li>
+                        <li>All activity that occurs on the instances you deploy</li>
+                        <li>Securing and maintaining the confidentiality of your own credentials and data</li>
+                        <li>The availability, backups, and security of your deployment</li>
                     </ul>
                 </section>
 
@@ -294,71 +301,56 @@
                     <h2 class="text-2xl font-bold text-gray-900 mb-4">4. Acceptable Use Policy</h2>
                     <h3 class="text-xl font-semibold text-gray-900 mb-3">4.1 Permitted Use</h3>
                     <p class="text-gray-700 mb-4">
-                        You may use Argusmetrics to track analytics on websites you own or have permission to monitor.
+                        You may use Argusmetrics to track analytics on websites you own or have permission to monitor. You may also modify and
+                        redistribute the Software in accordance with the AGPL-3.0 license.
                     </p>
 
                     <h3 class="text-xl font-semibold text-gray-900 mb-3 mt-6">4.2 Prohibited Activities</h3>
                     <p class="text-gray-700 mb-4">
-                        You agree NOT to:
+                        When using the Software, you agree NOT to:
                     </p>
                     <ul class="list-disc list-inside space-y-2 text-gray-700 ml-4 mb-4">
-                        <li>Use the Service for any illegal purposes</li>
+                        <li>Use the Software for any illegal purposes</li>
                         <li>Violate any applicable laws or regulations</li>
                         <li>Track websites you don't own without permission</li>
-                        <li>Attempt to hack, disrupt, or damage the Service</li>
-                        <li>Scrape or harvest data from the Service</li>
-                        <li>Use the Service to collect personal data without consent</li>
-                        <li>Resell or redistribute the Service without authorization</li>
-                        <li>Create fake accounts or engage in fraudulent activity</li>
-                        <li>Spam or abuse our support channels</li>
+                        <li>Use the Software to collect personal data without a lawful basis or consent</li>
+                        <li>Redistribute the Software in violation of the AGPL-3.0 license terms</li>
+                        <li>Remove or misrepresent copyright, license, or attribution notices</li>
+                        <li>Use the project name or trademarks in a misleading way</li>
                     </ul>
 
                     <div class="bg-red-50 border-l-4 border-red-600 p-4 mb-4">
                         <p class="text-sm text-red-900">
-                            <strong>⚠️ Warning:</strong> Violation of these terms may result in immediate account suspension or termination without refund.
+                            <strong>⚠️ Note:</strong> Misuse of the Software is your responsibility. Violating the AGPL-3.0 license terminates the rights it grants you to use, copy, modify, and distribute the Software.
                         </p>
                     </div>
                 </section>
 
-                <!-- Pricing & Payment -->
+                <!-- License & Cost -->
                 <section class="mb-8">
-                    <h2 class="text-2xl font-bold text-gray-900 mb-4">5. Pricing & Payment</h2>
+                    <h2 class="text-2xl font-bold text-gray-900 mb-4">5. License & Cost</h2>
 
-                    <h3 class="text-xl font-semibold text-gray-900 mb-3">5.1 Subscription Plans</h3>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-3">5.1 Free & Open Source</h3>
                     <p class="text-gray-700 mb-4">
-                        Argusmetrics offers multiple subscription tiers:
+                        Argusmetrics is provided free of charge. There are no paid tiers, usage limits, fees, or any financial relationship with us.
+                        We do not bill you, process payments, or maintain any account on your behalf.
+                    </p>
+
+                    <h3 class="text-xl font-semibold text-gray-900 mb-3 mt-6">5.2 AGPL-3.0 License</h3>
+                    <p class="text-gray-700 mb-4">
+                        The Software is licensed under the
+                        <a href="https://www.gnu.org/licenses/agpl-3.0.html" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-700">GNU Affero General Public License, version 3.0 (AGPL-3.0)</a>.
+                        Your use, copying, modification, and distribution of the Software is governed by that license. Key obligations include:
                     </p>
                     <ul class="list-disc list-inside space-y-2 text-gray-700 ml-4 mb-4">
-                        <li><strong>Hobby (Free):</strong> 10,000 pageviews/month, 1 website</li>
-                        <li><strong>Pro (€9/month):</strong> 100,000 pageviews/month, 10 websites</li>
-                        <li><strong>Business (€29/month):</strong> 1,000,000 pageviews/month, unlimited websites</li>
+                        <li>You may run, study, modify, and share the Software freely</li>
+                        <li>If you distribute the Software or make a modified version available over a network, you must offer the corresponding source under the AGPL-3.0</li>
+                        <li>You must preserve copyright and license notices</li>
+                        <li>The Software is provided with no warranty (see Section 9)</li>
                     </ul>
-
-                    <h3 class="text-xl font-semibold text-gray-900 mb-3 mt-6">5.2 Billing</h3>
-                    <ul class="list-disc list-inside space-y-2 text-gray-700 ml-4 mb-4">
-                        <li>Subscriptions are billed monthly in advance</li>
-                        <li>Prices are in Euros (EUR)</li>
-                        <li>All prices are exclusive of applicable taxes</li>
-                        <li>You authorize us to charge your payment method automatically</li>
-                    </ul>
-
-                    <h3 class="text-xl font-semibold text-gray-900 mb-3 mt-6">5.3 Refunds & Cancellation</h3>
-                    <ul class="list-disc list-inside space-y-2 text-gray-700 ml-4 mb-4">
-                        <li>You can cancel your subscription at any time</li>
-                        <li>Cancellation takes effect at the end of the current billing period</li>
-                        <li>No refunds for partial months</li>
-                        <li>Free tier accounts can be deleted immediately</li>
-                    </ul>
-
-                    <h3 class="text-xl font-semibold text-gray-900 mb-3 mt-6">5.4 Overage</h3>
                     <p class="text-gray-700 mb-4">
-                        If you exceed your plan's pageview limit, we will notify you and may:
+                        In the event of any conflict between these Terms and the AGPL-3.0, the AGPL-3.0 governs your rights to the Software's source code.
                     </p>
-                    <ul class="list-disc list-inside space-y-2 text-gray-700 ml-4 mb-4">
-                        <li>Suggest upgrading to a higher tier</li>
-                        <li>Temporarily stop tracking until the next billing cycle</li>
-                        <li>Charge overage fees as communicated</li>
-                    </ul>
                 </section>
 
                 <!-- Data & Privacy -->
@@ -367,36 +359,33 @@
 
                     <h3 class="text-xl font-semibold text-gray-900 mb-3">6.1 Your Data</h3>
                     <p class="text-gray-700 mb-4">
-                        You retain all rights to your analytics data. You can export or delete your data at any time.
+                        Because you self-host Argusmetrics, all analytics data stays on infrastructure you control. We never receive, access, or store your data.
+                        You retain full rights to your data and can export or delete it at any time from your own instance.
                     </p>
 
                     <h3 class="text-xl font-semibold text-gray-900 mb-3 mt-6">6.2 Privacy Compliance</h3>
                     <p class="text-gray-700 mb-4">
-                        You are responsible for ensuring your use of Argusmetrics complies with applicable privacy laws (GDPR, CCPA, etc.).
-                        Our <a href="/privacy" class="text-blue-600 hover:text-blue-700">Privacy Policy</a> describes how we handle data.
+                        As the operator of your own instance, you are responsible for ensuring your use of Argusmetrics complies with applicable privacy laws (GDPR, CCPA, etc.).
+                        Our <a href="privacy.html" class="text-blue-600 hover:text-blue-700">Privacy Policy</a> explains how the Software is designed to handle data.
                     </p>
 
                     <h3 class="text-xl font-semibold text-gray-900 mb-3 mt-6">6.3 Data Retention</h3>
                     <ul class="list-disc list-inside space-y-2 text-gray-700 ml-4 mb-4">
-                        <li>Analytics data is retained for 2 years by default</li>
-                        <li>You can delete data anytime from your dashboard</li>
-                        <li>Deleted data is permanently removed within 30 days</li>
+                        <li>Retention is configured by you, the operator of your instance</li>
+                        <li>You can delete data anytime from your own dashboard</li>
+                        <li>Deletion behavior is determined by your deployment and configuration</li>
                     </ul>
                 </section>
 
                 <!-- Service Availability -->
                 <section class="mb-8">
-                    <h2 class="text-2xl font-bold text-gray-900 mb-4">7. Service Availability</h2>
+                    <h2 class="text-2xl font-bold text-gray-900 mb-4">7. Availability</h2>
                     <p class="text-gray-700 mb-4">
-                        We strive for 99.9% uptime but do not guarantee uninterrupted access. We may:
+                        We do not host or operate any service for you, so we make no uptime or availability commitments. The availability, performance,
+                        and reliability of any Argusmetrics instance depend entirely on the infrastructure and configuration you (or your chosen host) provide.
                     </p>
-                    <ul class="list-disc list-inside space-y-2 text-gray-700 ml-4 mb-4">
-                        <li>Perform scheduled maintenance with notice</li>
-                        <li>Experience unexpected downtime</li>
-                        <li>Temporarily suspend service for security reasons</li>
-                    </ul>
                     <p class="text-gray-700 mb-4">
-                        We are not liable for any damages resulting from service interruptions.
+                        We are not liable for any damages resulting from interruptions, downtime, or failures of an instance you operate.
                     </p>
                 </section>
 
@@ -404,16 +393,16 @@
                 <section class="mb-8">
                     <h2 class="text-2xl font-bold text-gray-900 mb-4">8. Intellectual Property</h2>
                     <p class="text-gray-700 mb-4">
-                        The Service, including its design, features, and content, is owned by Argusmetrics and protected by copyright,
-                        trademark, and other intellectual property laws.
+                        The Software, including its source code, design, and content, is copyrighted by its authors and licensed to you under the AGPL-3.0.
+                        Subject to that license, you are free to copy, study, modify, and redistribute the Software.
                     </p>
                     <p class="text-gray-700 mb-4">
-                        You may not:
+                        Notwithstanding the rights granted by the AGPL-3.0, you must:
                     </p>
                     <ul class="list-disc list-inside space-y-2 text-gray-700 ml-4 mb-4">
-                        <li>Copy, modify, or create derivative works of the Service</li>
-                        <li>Reverse engineer or decompile any part of the Service</li>
-                        <li>Remove any copyright or proprietary notices</li>
+                        <li>Preserve all copyright, license, and attribution notices</li>
+                        <li>Comply with the source-availability obligations of the AGPL-3.0 when you distribute or network-serve the Software</li>
+                        <li>Not use the "Argusmetrics" name or logo to imply endorsement of a fork or modified version</li>
                     </ul>
                 </section>
 
@@ -424,10 +413,10 @@
                         TO THE MAXIMUM EXTENT PERMITTED BY LAW:
                     </p>
                     <ul class="list-disc list-inside space-y-2 text-gray-700 ml-4 mb-4">
-                        <li>The Service is provided "AS IS" without warranties of any kind</li>
-                        <li>We are not liable for any indirect, incidental, or consequential damages</li>
-                        <li>Our total liability shall not exceed the amount you paid in the last 12 months</li>
-                        <li>We are not responsible for data loss; you should backup important data</li>
+                        <li>The Software is provided "AS IS" and "AS AVAILABLE", without warranties of any kind, as disclaimed by the AGPL-3.0</li>
+                        <li>We are not liable for any direct, indirect, incidental, or consequential damages arising from your use of the Software</li>
+                        <li>Because the Software is provided free of charge, our total aggregate liability is limited to the fullest extent permitted by law (and, where permitted, to zero)</li>
+                        <li>We are not responsible for data loss; you should back up important data on your own instance</li>
                     </ul>
                 </section>
 
@@ -435,13 +424,13 @@
                 <section class="mb-8">
                     <h2 class="text-2xl font-bold text-gray-900 mb-4">10. Indemnification</h2>
                     <p class="text-gray-700 mb-4">
-                        You agree to indemnify and hold harmless Argusmetrics from any claims, damages, or expenses arising from:
+                        You agree to indemnify and hold harmless the Argusmetrics authors and maintainers from any claims, damages, or expenses arising from:
                     </p>
                     <ul class="list-disc list-inside space-y-2 text-gray-700 ml-4 mb-4">
-                        <li>Your use of the Service</li>
-                        <li>Your violation of these Terms</li>
+                        <li>Your use or operation of the Software</li>
+                        <li>Your violation of these Terms or the AGPL-3.0</li>
                         <li>Your violation of any third-party rights</li>
-                        <li>Data you collect using the Service</li>
+                        <li>Data you collect using the Software</li>
                     </ul>
                 </section>
 
@@ -450,44 +439,40 @@
                     <h2 class="text-2xl font-bold text-gray-900 mb-4">11. Termination</h2>
                     <h3 class="text-xl font-semibold text-gray-900 mb-3">11.1 By You</h3>
                     <p class="text-gray-700 mb-4">
-                        You may terminate your account at any time by deleting it from your dashboard or contacting support.
+                        You may stop using the Software at any time. Because you self-host, you remain in control of decommissioning your instance and your data.
                     </p>
 
-                    <h3 class="text-xl font-semibold text-gray-900 mb-3 mt-6">11.2 By Us</h3>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-3 mt-6">11.2 License Termination</h3>
                     <p class="text-gray-700 mb-4">
-                        We may suspend or terminate your account if:
+                        We do not control your instance and cannot suspend it. However, the rights granted to you under the AGPL-3.0 terminate automatically if you:
                     </p>
                     <ul class="list-disc list-inside space-y-2 text-gray-700 ml-4 mb-4">
-                        <li>You violate these Terms</li>
-                        <li>Your account remains unpaid after 30 days</li>
-                        <li>We believe your account poses a security risk</li>
-                        <li>Required by law</li>
+                        <li>Violate the terms of the AGPL-3.0 license</li>
+                        <li>Fail to comply with the obligations in these Terms</li>
                     </ul>
+                    <p class="text-gray-700 mb-4">
+                        License reinstatement is governed by the terms of the AGPL-3.0.
+                    </p>
 
                     <h3 class="text-xl font-semibold text-gray-900 mb-3 mt-6">11.3 Effect of Termination</h3>
                     <p class="text-gray-700 mb-4">
-                        Upon termination:
+                        Upon termination of your license, you must cease using and distributing the Software. The no-warranty and liability provisions of these Terms survive termination.
+                        Your own data remains entirely under your control on your own infrastructure.
                     </p>
-                    <ul class="list-disc list-inside space-y-2 text-gray-700 ml-4 mb-4">
-                        <li>Your access to the Service will be revoked immediately</li>
-                        <li>Your data will be retained for 30 days then permanently deleted</li>
-                        <li>You can request a data export within 30 days</li>
-                    </ul>
                 </section>
 
                 <!-- Changes to Terms -->
                 <section class="mb-8">
                     <h2 class="text-2xl font-bold text-gray-900 mb-4">12. Changes to Terms</h2>
                     <p class="text-gray-700 mb-4">
-                        We may update these Terms from time to time. We will notify you of material changes via:
+                        We may update these Terms from time to time. Material changes will be communicated via:
                     </p>
                     <ul class="list-disc list-inside space-y-2 text-gray-700 ml-4 mb-4">
-                        <li>Email notification</li>
-                        <li>In-app notification</li>
+                        <li>Updates published in the project repository</li>
                         <li>Posting on our website</li>
                     </ul>
                     <p class="text-gray-700 mb-4">
-                        Continued use after changes constitutes acceptance of the updated Terms.
+                        Continued use of the Software after changes constitutes acceptance of the updated Terms.
                     </p>
                 </section>
 
@@ -516,11 +501,11 @@
                 <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg mt-8">
                     <h3 class="text-xl font-bold text-gray-900 mb-3">📋 Terms Summary</h3>
                     <ul class="space-y-2 text-gray-700">
-                        <li>✓ Use the Service ethically and legally</li>
-                        <li>✓ Pay your subscription on time</li>
-                        <li>✓ You own your data, export anytime</li>
-                        <li>✓ We provide "AS IS" service with 99.9% uptime goal</li>
-                        <li>✓ Cancel anytime, no questions asked</li>
+                        <li>✓ Use the Software ethically and legally</li>
+                        <li>✓ Free and open source under the AGPL-3.0 — no fees, no subscriptions</li>
+                        <li>✓ You self-host and own your data entirely</li>
+                        <li>✓ Provided "AS IS" with no warranty</li>
+                        <li>✓ Stop using it anytime — you control your own instance</li>
                     </ul>
                 </div>
             </div>
@@ -557,10 +542,10 @@
     </div>
 
     <!-- Custom JavaScript -->
-    <script src="/static/js/dashboard.js"></script>
+    <script src="static/js/dashboard.js"></script>
 
     <!-- Chatbot JavaScript -->
-    <script src="/static/js/chatbot.js"></script>
+    <script src="static/js/chatbot.js"></script>
 
     <!-- Cookie Banner (centered at bottom) -->
     <div id="cookie-banner" x-data="{ show: !localStorage.getItem('cookie-banner-dismissed') }" x-show="show" x-transition class="fixed bottom-4 left-1/2 transform -translate-x-1/2 w-full max-w-md px-4 md:px-0 z-50" style="display: none;">
