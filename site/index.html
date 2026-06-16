@@ -539,66 +539,87 @@
     </section>
 
     <!-- Self-host Section -->
-    <section id="self-host" class="py-20 px-4 sm:px-6 lg:px-8 bg-white">
-        <div class="max-w-5xl mx-auto">
-            <div class="text-center mb-12">
+    <section id="self-host" class="py-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-white via-gray-50 to-white">
+        <div class="max-w-6xl mx-auto">
+            <div class="text-center mb-14">
                 <span class="inline-block bg-green-100 text-green-700 text-xs font-bold px-3 py-1 rounded-full mb-4 uppercase tracking-wider">100% Free &amp; Open Source</span>
-                <h2 class="text-4xl font-bold text-gray-900 mb-4">Free &amp; open source &mdash; self-host it</h2>
+                <h2 class="text-4xl sm:text-5xl font-bold text-gray-900 mb-4">Self-host it in two minutes</h2>
                 <p class="text-xl text-gray-600 max-w-2xl mx-auto">
-                    Argusmetrics is licensed under <strong>AGPL-3.0</strong>. Run it on your own server,
-                    keep unlimited websites and pageviews, and your data never leaves your infrastructure.
-                    No plans, no limits, no signup.
+                    No plans, no limits, no signup. Licensed under <strong>AGPL-3.0</strong> &mdash;
+                    run it on your own server and own every byte of your analytics.
                 </p>
             </div>
 
-            <!-- Value props -->
-            <div class="grid sm:grid-cols-3 gap-6 mb-12">
-                <div class="text-center p-6 bg-gray-50 rounded-xl border border-gray-100">
-                    <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-4 mx-auto">
-                        <i class="fas fa-infinity text-green-600 text-xl"></i>
-                    </div>
-                    <h3 class="font-semibold text-gray-900 mb-1">Unlimited</h3>
-                    <p class="text-sm text-gray-600">Unlimited sites, pageviews and team members. No usage caps.</p>
-                </div>
-                <div class="text-center p-6 bg-gray-50 rounded-xl border border-gray-100">
-                    <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4 mx-auto">
-                        <i class="fas fa-database text-blue-600 text-xl"></i>
-                    </div>
-                    <h3 class="font-semibold text-gray-900 mb-1">Your data stays yours</h3>
-                    <p class="text-sm text-gray-600">Everything runs on your own server. No third party ever sees your analytics.</p>
-                </div>
-                <div class="text-center p-6 bg-gray-50 rounded-xl border border-gray-100">
-                    <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4 mx-auto">
-                        <i class="fab fa-osi text-purple-600 text-xl"></i>
-                    </div>
-                    <h3 class="font-semibold text-gray-900 mb-1">AGPL-3.0 licensed</h3>
-                    <p class="text-sm text-gray-600">Fully open source. Read the code, fork it, contribute back.</p>
-                </div>
-            </div>
+            <div class="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
+                <!-- Left: what you get -->
+                <div>
+                    <h3 class="text-2xl font-bold text-gray-900 mb-6">Everything included. Nothing locked away.</h3>
+                    <ul class="space-y-4">
+                        <li class="flex items-start gap-3">
+                            <i class="fas fa-circle-check text-green-500 text-lg mt-0.5"></i>
+                            <span class="text-gray-700"><strong>Unlimited</strong> sites, pageviews &amp; team members &mdash; no usage caps</span>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <i class="fas fa-circle-check text-green-500 text-lg mt-0.5"></i>
+                            <span class="text-gray-700"><strong>Cookieless &amp; GDPR-friendly</strong> &mdash; no consent banner needed</span>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <i class="fas fa-circle-check text-green-500 text-lg mt-0.5"></i>
+                            <span class="text-gray-700"><strong>&lt;4KB script</strong>, real-time dashboards &amp; live visitors</span>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <i class="fas fa-circle-check text-green-500 text-lg mt-0.5"></i>
+                            <span class="text-gray-700"><strong>Goals, funnels &amp; e-commerce</strong> revenue tracking built in</span>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <i class="fas fa-circle-check text-green-500 text-lg mt-0.5"></i>
+                            <span class="text-gray-700"><strong>Your data never leaves your server</strong> &mdash; zero third parties</span>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <i class="fas fa-circle-check text-green-500 text-lg mt-0.5"></i>
+                            <span class="text-gray-700"><strong>Fully open source</strong> &mdash; read it, fork it, contribute back</span>
+                        </li>
+                    </ul>
 
-            <!-- Docker quickstart -->
-            <div class="bg-gray-900 rounded-2xl shadow-xl overflow-hidden mb-8">
-                <div class="px-6 py-3 flex items-center gap-2 border-b border-gray-700">
-                    <div class="flex gap-2">
-                        <div class="w-3 h-3 rounded-full bg-red-400"></div>
-                        <div class="w-3 h-3 rounded-full bg-yellow-400"></div>
-                        <div class="w-3 h-3 rounded-full bg-green-400"></div>
+                    <div class="flex flex-wrap gap-4 mt-8">
+                        <a href="https://github.com/Benbo-se/ArgusmetricsSH" target="_blank" rel="noopener noreferrer" class="inline-flex items-center bg-gray-900 hover:bg-gray-800 text-white px-6 py-3 rounded-lg font-semibold transition-all transform hover:scale-105 shadow-lg">
+                            <i class="fab fa-github mr-2"></i>View on GitHub
+                        </a>
+                        <a href="https://github.com/Benbo-se/ArgusmetricsSH#readme" target="_blank" rel="noopener noreferrer" class="inline-flex items-center bg-white hover:bg-gray-50 text-gray-900 px-6 py-3 rounded-lg font-semibold border border-gray-300 transition-colors">
+                            <i class="fas fa-book-open mr-2 text-gray-500"></i>Read the docs
+                        </a>
                     </div>
-                    <span class="text-xs text-gray-400 ml-2">Quickstart &mdash; Docker</span>
                 </div>
-                <pre class="px-6 py-5 text-sm text-green-300 overflow-x-auto"><code>git clone https://github.com/Benbo-se/ArgusmetricsSH
-cd ArgusmetricsSH/docker
-docker compose up -d</code></pre>
-            </div>
 
-            <p class="text-center text-gray-600 mb-8">
-                That's it &mdash; open your dashboard, add the lightweight script to your site, and you own every byte of your analytics.
-            </p>
+                <!-- Right: terminal + steps -->
+                <div x-data="{ copied: false, cmd: 'git clone https://github.com/Benbo-se/ArgusmetricsSH\ncd ArgusmetricsSH/docker\ndocker compose up -d' }">
+                    <div class="bg-gray-900 rounded-2xl shadow-2xl overflow-hidden ring-1 ring-gray-800">
+                        <div class="px-5 py-3 flex items-center gap-2 border-b border-gray-700/70">
+                            <div class="flex gap-2">
+                                <div class="w-3 h-3 rounded-full bg-red-400"></div>
+                                <div class="w-3 h-3 rounded-full bg-yellow-400"></div>
+                                <div class="w-3 h-3 rounded-full bg-green-400"></div>
+                            </div>
+                            <span class="text-xs text-gray-400 ml-2 flex-1">bash &mdash; self-host quickstart</span>
+                            <button @click="navigator.clipboard.writeText(cmd); copied = true; setTimeout(() => copied = false, 1500)" class="text-xs text-gray-400 hover:text-white transition-colors">
+                                <span x-show="!copied"><i class="far fa-copy mr-1"></i>Copy</span>
+                                <span x-show="copied" style="display:none" class="text-green-400"><i class="fas fa-check mr-1"></i>Copied!</span>
+                            </button>
+                        </div>
+                        <pre class="px-6 py-5 text-sm leading-relaxed overflow-x-auto"><code><span class="text-gray-500">$</span> <span class="text-green-300">git clone</span> <span class="text-gray-300">https://github.com/Benbo-se/ArgusmetricsSH</span>
+<span class="text-gray-500">$</span> <span class="text-green-300">cd</span> <span class="text-gray-300">ArgusmetricsSH/docker</span>
+<span class="text-gray-500">$</span> <span class="text-green-300">docker compose up -d</span></code></pre>
+                    </div>
 
-            <div class="text-center">
-                <a href="https://github.com/Benbo-se/ArgusmetricsSH" target="_blank" rel="noopener noreferrer" class="inline-block bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-lg text-lg font-semibold transition-all transform hover:scale-105 shadow-lg">
-                    <i class="fab fa-github mr-2"></i>View on GitHub
-                </a>
+                    <div class="mt-5 flex items-start gap-3 bg-blue-50 border border-blue-100 rounded-xl px-5 py-4">
+                        <i class="fas fa-circle-info text-blue-500 mt-0.5"></i>
+                        <p class="text-sm text-gray-600">
+                            Needs only <strong>Docker</strong>. Your dashboard is live on
+                            <code class="text-blue-700 bg-blue-100 px-1.5 py-0.5 rounded text-xs">localhost:8020</code>
+                            &mdash; add the tracking snippet to any site and you're done.
+                        </p>
+                    </div>
+                </div>
             </div>
         </div>
     </section>
