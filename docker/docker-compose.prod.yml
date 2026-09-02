@@ -1,0 +1,80 @@
+# Produktions-compose för egen server (image-baserad, ingen kod-mount).
+#
+#   cd /opt/argusmetrics
+#   docker compose -f docker/docker-compose.prod.yml up -d
+#
+# Kräver docker/.env (samma katalog som denna fil — compose hittar den själv).
+# ${VAR:?} = starta INTE med saknad/default-hemlighet; hellre hård krasch än
+# "changeme" i produktion. Imagen väljs med ARGUS_TAG (git-SHA från CI,
+# default latest) — deploy-workflown sätter den, rollback = förra SHA:n.
+#
+# Exponering: endast web på 127.0.0.1:${WEB_PORT}. Värd-nginx terminerar TLS
+# för argusmetrics.io och proxyar hit. Postgres och backend nås aldrig från
+# värden/LAN, bara över det interna docker-nätet.
+
+services:
+  postgres:
+    # Pinnad via digest (motsvarar latest-pg16 verifierad lokalt 2026-09-02)
+    # så en deploy aldrig råkar dra in en ny major av databasen.
+    image: timescale/timescaledb@sha256:68faf0bca42125ff98228a8f5a379bcf0ac588d8156f716be8aaf9befd65857f
+    container_name: argusmetrics-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB saknas i docker/.env}
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER saknas i docker/.env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD saknas i docker/.env}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - argusmetrics-network
+    restart: unless-stopped
+
+  backend:
+    image: ghcr.io/benbo-se/argusmetrics-backend:${ARGUS_TAG:-latest}
+    container_name: argusmetrics-backend
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      SECRET_KEY: ${SECRET_KEY:?SECRET_KEY saknas i docker/.env}
+      ENVIRONMENT: production
+      DEBUG: "false"
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:?ALLOWED_ORIGINS saknas i docker/.env}
+      # Värd-nginx + web-containern sitter framför → lita på docker-nätets XFF.
+      TRUSTED_PROXIES: ${TRUSTED_PROXIES:-}
+      GEOIP_DB_PATH: ${GEOIP_DB_PATH:-}
+      BILLING_ENFORCEMENT_ENABLED: ${BILLING_ENFORCEMENT_ENABLED:-false}
+      LETTERMINT_API_KEY: ${LETTERMINT_API_KEY:-}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - argusmetrics-network
+    restart: unless-stopped
+
+  web:
+    image: ghcr.io/benbo-se/argusmetrics-web:${ARGUS_TAG:-latest}
+    container_name: argusmetrics-web
+    ports:
+      # Loopback-only: nås bara av värd-nginx på samma maskin.
+      - "127.0.0.1:${WEB_PORT:-8021}:80"
+    depends_on:
+      - backend
+    networks:
+      - argusmetrics-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  argusmetrics-network:
+    driver: bridge

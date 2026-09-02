@@ -1,0 +1,140 @@
+name: Deploy
+
+# "Auto-bygg, grindad deploy" — braleads-mönstret, SSH-varianten (INTE
+# self-hosted runner: repot är publikt och GitHub avråder self-hosted runners
+# på publika repos). CI bygger images på grön main; deployen här gör:
+# pre-deploy DB-dump -> git pull (compose/conf-ändringar) -> pull images ->
+# compose up -> health-check -> auto-rollback vid fel -> PROD-tagg.
+#
+# GRINDEN: körs vid manuellt "Run workflow" (dispatch), eller automatiskt
+# efter grön CI på main om repo-variabeln DEPLOY_ENABLED=true. Environmenten
+# 'production' kan dessutom ges required reviewer för klick-godkännande.
+#
+# Kräver secrets: DEPLOY_HOST, DEPLOY_USER, DEPLOY_SSH_KEY.
+# Servern: git-klon i /opt/argusmetrics + ifylld docker/.env (gitignorad).
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Image-tag att deploya (git-SHA, default latest)'
+        required: false
+        default: 'latest'
+  workflow_run:
+    workflows: ["CI/CD"]
+    types: [completed]
+    branches: [main]
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && vars.DEPLOY_ENABLED == 'true')
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Bestäm image-tag
+        id: t
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "tag=${{ github.event.inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${{ github.event.workflow_run.head_sha }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Deploy (dump -> pull -> up -> health -> auto-rollback)
+        uses: appleboy/ssh-action@v1
+        env:
+          DEPLOY_TAG: ${{ steps.t.outputs.tag }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          envs: DEPLOY_TAG
+          script: |
+            set -euo pipefail
+            cd /opt/argusmetrics
+            COMPOSE="docker compose -f docker/docker-compose.prod.yml"
+            WEB_PORT=$(grep -E '^WEB_PORT=' docker/.env | cut -d= -f2 || true)
+            WEB_PORT=${WEB_PORT:-8021}
+            echo "Deployar tag: $DEPLOY_TAG (web-port $WEB_PORT)"
+
+            echo "==> git pull (compose/conf-ändringar följer med releasen)"
+            git fetch origin main
+            git reset --hard origin/main
+
+            # 1. Pre-deploy DB-dump (billig försäkring). Best-effort:
+            #    blockerar inte deployen om den misslyckas.
+            TS=$(date +%Y%m%d-%H%M%S)
+            mkdir -p "$HOME/backups/argusmetrics/pre-deploy"
+            if $COMPOSE exec -T postgres sh -c 'pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB"' \
+                | gzip > "$HOME/backups/argusmetrics/pre-deploy/predeploy-$TS.sql.gz"; then
+              echo "DB-dump sparad: predeploy-$TS.sql.gz"
+            else
+              echo "VARNING: pre-deploy DB-dump misslyckades (fortsätter ändå)"
+            fi
+
+            # 2. Spara nuvarande tag för ev. rollback (backend + web deployas
+            #    alltid i par med samma tag).
+            PREV=$(docker inspect --format '{{.Config.Image}}' argusmetrics-backend 2>/dev/null | sed 's/.*://' || true)
+            echo "Nuvarande tag: ${PREV:-<ingen>}"
+
+            # 3. Hämta + starta nya images.
+            ARGUS_TAG="$DEPLOY_TAG" $COMPOSE pull backend web
+            ARGUS_TAG="$DEPLOY_TAG" $COMPOSE up -d
+
+            # 4. Health-check genom hela kedjan (värdport -> web-nginx ->
+            #    backend -> postgres); /health rapporterar DB-status.
+            OK=0
+            for i in $(seq 1 20); do
+              BODY=$(curl -fsS "http://127.0.0.1:$WEB_PORT/health" 2>/dev/null || true)
+              if echo "$BODY" | grep -q '"status":"healthy"'; then OK=1; break; fi
+              echo "väntar på health ($i/20)"; sleep 3
+            done
+
+            # 5. Auto-rollback om nya releasen inte blir frisk.
+            if [ "$OK" != "1" ]; then
+              echo "HEALTH-CHECK FAILADE efter deploy av $DEPLOY_TAG"
+              if [ -n "${PREV:-}" ]; then
+                echo "Rullar tillbaka till $PREV"
+                ARGUS_TAG="$PREV" $COMPOSE up -d
+              else
+                echo "Ingen tidigare tag att rulla tillbaka till."
+              fi
+              exit 1
+            fi
+
+            echo "==> städa gamla images"
+            docker image prune -f >/dev/null
+            echo "Deploy OK och frisk: $DEPLOY_TAG"
+
+  # Auto-tagga varje lyckad deploy: PROD-YYYY-MM-DD[-N] (samma som braleads).
+  tag:
+    needs: deploy
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Skapa PROD-tagg på deployad commit
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const sha = context.payload.workflow_run?.head_sha ?? context.sha;
+            const date = new Date().toISOString().slice(0, 10);
+            const base = `PROD-${date}`;
+            let name = base;
+            for (let i = 2; i < 20; i++) {
+              try {
+                await github.rest.git.getRef({ ...context.repo, ref: `tags/${name}` });
+                name = `${base}-${i}`;
+              } catch (e) {
+                if (e.status === 404) break;
+                throw e;
+              }
+            }
+            await github.rest.git.createRef({ ...context.repo, ref: `refs/tags/${name}`, sha });
+            core.notice(`Taggade deploy: ${name} -> ${sha.slice(0, 7)}`);

@@ -51,6 +51,15 @@ Python 3.11 · FastAPI · SQLAlchemy 2.0 · Alembic · Jinja2 + HTMX + Alpine.js
 
 This edition was hardened against a full security review (auth/account-takeover, multi-tenant IDOR, stored XSS, ingest abuse, and GDPR/no-PII leaks). Visitor IPs are never sent to third parties; IP-derived identifiers are truncated/hashed. Still — it is unmaintained, so review the code and keep dependencies patched if you expose it publicly. Run behind HTTPS and set `TRUSTED_PROXIES` if you put it behind a proxy.
 
+## Production deploy (prebuilt images)
+
+Every green commit on `main` publishes ready-to-run images to GHCR, so you don't have to build anything yourself:
+
+- `ghcr.io/benbo-se/argusmetrics-backend` — the FastAPI app
+- `ghcr.io/benbo-se/argusmetrics-web` — nginx serving the marketing site + proxying the app
+
+`docker/docker-compose.prod.yml` runs the full stack (TimescaleDB + backend + web) with the web container bound to `127.0.0.1:8021`, meant to sit behind your own TLS-terminating reverse proxy. Full server setup, CI/CD flow (build on green main → gated deploy → health-check → auto-rollback), and rollback instructions: [docker/PRODUCTION.md](docker/PRODUCTION.md). This is also exactly how argusmetrics.io itself is hosted.
+
 ## Local development
 
 Same as above; the compose backend mounts the source and you can add `--reload`. Run the test suites with `pytest` (backend) and the Playwright specs under `e2e/`.

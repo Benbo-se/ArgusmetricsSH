@@ -1,0 +1,159 @@
+name: CI/CD
+
+# Testgrind -> bygg backend- + web-image -> push till GHCR (bara grön main)
+# -> behåll 7 senaste. Deploy sker separat (deploy.yml). Samma mönster som
+# braleads/hushroom. Doc-ändringar triggar ingenting.
+
+on:
+  push:
+    branches: [main]
+    paths-ignore: ['**.md']
+  pull_request:
+    branches: [main]
+    paths-ignore: ['**.md']
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+env:
+  IMAGE_BACKEND: ghcr.io/benbo-se/argusmetrics-backend
+  IMAGE_WEB: ghcr.io/benbo-se/argusmetrics-web
+
+jobs:
+  # ── 1. Smoke-grind: appen startar mot riktig TimescaleDB och svarar ──────
+  smoke:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: timescale/timescaledb:latest-pg16
+        env:
+          POSTGRES_USER: argus
+          POSTGRES_PASSWORD: argus
+          POSTGRES_DB: argus_ci
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 10s
+          --health-timeout 5s --health-retries 5
+    env:
+      # CI-only dummies — riktiga secrets finns bara i .env på servern.
+      DATABASE_URL: postgresql://argus:argus@localhost:5432/argus_ci
+      SECRET_KEY: ci-dummy-secret-key-0123456789abcdefghijklmnop
+      ENVIRONMENT: production
+      DEBUG: "false"
+      ALLOWED_ORIGINS: http://127.0.0.1:8020
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'   # samma som docker/Dockerfile
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+      - name: Installera dependencies
+        working-directory: backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Starta appen (create_all bygger schemat vid start)
+        working-directory: backend
+        run: |
+          uvicorn app.main:app --host 127.0.0.1 --port 8020 &
+          for i in $(seq 1 30); do
+            curl -fsS http://127.0.0.1:8020/health >/dev/null 2>&1 && break
+            echo "väntar på app ($i)"; sleep 2
+          done
+      - name: Smoke-test (health måste vara healthy, kritiska sidor svara)
+        run: |
+          set -euo pipefail
+          BODY=$(curl -fsS http://127.0.0.1:8020/health)
+          echo "health: $BODY"
+          echo "$BODY" | grep -q '"status":"healthy"' || { echo 'health svarar men status != healthy (DB?)'; exit 1; }
+          for path in /login /signup; do
+            CODE=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:8020$path")
+            echo "$path -> $CODE"
+            [ "$CODE" = "200" ] || { echo "oväntad status för $path"; exit 1; }
+          done
+
+  # ── 2. Hygien: prod-compose och nginx-conf är giltiga ────────────────────
+  hygiene:
+    runs-on: ubuntu-latest
+    env:
+      POSTGRES_DB: x
+      POSTGRES_USER: x
+      POSTGRES_PASSWORD: x
+      SECRET_KEY: x
+      ALLOWED_ORIGINS: x
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker compose -f docker/docker-compose.prod.yml config -q
+      - name: Validera nginx-confen (utan backend-upstream-uppslag)
+        run: |
+          docker run --rm -v "$PWD/docker/nginx.prod.conf:/etc/nginx/nginx.conf:ro" \
+            -v "$PWD/site:/usr/share/nginx/html:ro" \
+            --entrypoint sh nginx:1.27-alpine -c \
+            "echo '127.0.0.1 backend' >> /etc/hosts && nginx -t"
+
+  # ── 3. Bygg båda images; push till GHCR bara på grön main ────────────────
+  build:
+    needs: [smoke, hygiene]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    env:
+      PUSH: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Logga in på GHCR
+        if: env.PUSH == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Bygg (och pusha) backend-imagen
+        uses: docker/build-push-action@v6
+        with:
+          context: backend
+          file: docker/Dockerfile
+          push: ${{ env.PUSH == 'true' }}
+          tags: |
+            ${{ env.IMAGE_BACKEND }}:latest
+            ${{ env.IMAGE_BACKEND }}:${{ github.sha }}
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,mode=max,scope=backend
+      - name: Bygg (och pusha) web-imagen (nginx + site/)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile.web
+          push: ${{ env.PUSH == 'true' }}
+          tags: |
+            ${{ env.IMAGE_WEB }}:latest
+            ${{ env.IMAGE_WEB }}:${{ github.sha }}
+          cache-from: type=gha,scope=web
+          cache-to: type=gha,mode=max,scope=web
+
+  # ── 4. Behåll bara 7 senaste image-versionerna per paket ─────────────────
+  cleanup:
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+    steps:
+      - name: Städa argusmetrics-backend
+        continue-on-error: true   # <7 versioner första körningarna
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: argusmetrics-backend
+          package-type: container
+          min-versions-to-keep: 7
+      - name: Städa argusmetrics-web
+        continue-on-error: true
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: argusmetrics-web
+          package-type: container
+          min-versions-to-keep: 7

@@ -1,0 +1,12 @@
+# Web-imagen: nginx som serverar marknadssiten (site/) och proxyar appen till
+# backend-containern. Byggs med repo-roten som context:
+#   docker build -f docker/Dockerfile.web .
+FROM nginx:1.27-alpine
+
+COPY docker/nginx.prod.conf /etc/nginx/nginx.conf
+COPY site/ /usr/share/nginx/html/
+
+# CNAME är en GitHub Pages-artefakt och hör inte hemma i imagen
+RUN rm -f /usr/share/nginx/html/CNAME
+
+EXPOSE 80
