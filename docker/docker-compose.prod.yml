@@ -41,6 +41,8 @@ services:
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       SECRET_KEY: ${SECRET_KEY:?SECRET_KEY saknas i docker/.env}
+      # Styr TrustedHost-allowlisten (en "www."-BASE_URL täcker även apex).
+      BASE_URL: ${BASE_URL:?BASE_URL saknas i docker/.env}
       ENVIRONMENT: production
       DEBUG: "false"
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:?ALLOWED_ORIGINS saknas i docker/.env}

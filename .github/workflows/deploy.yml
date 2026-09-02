@@ -89,9 +89,12 @@ jobs:
 
             # 4. Health-check genom hela kedjan (värdport -> web-nginx ->
             #    backend -> postgres); /health rapporterar DB-status.
+            #    Host-headern måste vara BASE_URL:ens host — backendens
+            #    TrustedHost-allowlist avvisar annars 127.0.0.1 med 400.
+            BASE_HOST=$(grep -E '^BASE_URL=' docker/.env | sed -E 's#^BASE_URL=##; s#https?://##; s#/.*##')
             OK=0
             for i in $(seq 1 20); do
-              BODY=$(curl -fsS "http://127.0.0.1:$WEB_PORT/health" 2>/dev/null || true)
+              BODY=$(curl -fsS -H "Host: ${BASE_HOST:-127.0.0.1}" "http://127.0.0.1:$WEB_PORT/health" 2>/dev/null || true)
               if echo "$BODY" | grep -q '"status":"healthy"'; then OK=1; break; fi
               echo "väntar på health ($i/20)"; sleep 3
             done

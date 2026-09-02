@@ -25,8 +25,12 @@ till backend-containern. En deploy släpper alltså sajt + app atomiskt ihop.
    cd /opt/argusmetrics
    cp docker/.env.example docker/.env   # fyll i POSTGRES_PASSWORD, SECRET_KEY,
                                         # ALLOWED_ORIGINS=https://argusmetrics.io
+                                        # BASE_URL=https://www.argusmetrics.io
                                         # ev. WEB_PORT (default 8021)
    ```
+   `BASE_URL` styr backendens TrustedHost-allowlist: bara den hosten släpps
+   igenom i prod-läge (`www.`-formen täcker även apex). Låt värd-nginx
+   301:a `www` → apex så all trafik är kanonisk.
 2. **GHCR-pull**: gör paketen `argusmetrics-backend` och `argusmetrics-web`
    publika under Benbo-se (repot är ändå AGPL) — då krävs ingen `docker login`
    på servern. Annars: `docker login ghcr.io` med en PAT (read:packages).

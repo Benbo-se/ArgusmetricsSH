@@ -42,6 +42,9 @@ jobs:
       ENVIRONMENT: production
       DEBUG: "false"
       ALLOWED_ORIGINS: http://127.0.0.1:8020
+      # Utan port: TrustedHostMiddleware (aktiv i prod-läge) strippar porten
+      # från inkommande Host och jämför mot BASE_URL:ens host.
+      BASE_URL: http://127.0.0.1
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
