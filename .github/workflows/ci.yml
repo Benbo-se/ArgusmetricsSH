@@ -86,6 +86,7 @@ jobs:
       POSTGRES_PASSWORD: x
       SECRET_KEY: x
       ALLOWED_ORIGINS: x
+      BASE_URL: x
     steps:
       - uses: actions/checkout@v4
       - run: docker compose -f docker/docker-compose.prod.yml config -q
