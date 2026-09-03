@@ -105,6 +105,11 @@
 
     <style>
         body { background-color: white !important; }
+        .hero-frame { box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); }
+        /* This frozen Tailwind build was scanned without these, so they'd
+           silently do nothing: the terminal's command verbs rendered as dark
+           text on a dark background, and the screenshot grid had no gap. */
+        .text-green-300 { color: rgb(134 239 172); }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-900 antialiased">
@@ -339,7 +344,7 @@
             </h2>
 
             <!-- Dashboard Screenshot with Fake Browser Frame -->
-            <div class="relative bg-white rounded-lg shadow-2xl border border-gray-200 overflow-hidden" style="box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);">
+            <div class="relative bg-white rounded-lg shadow-2xl border border-gray-200 overflow-hidden hero-frame">
                 <!-- Fake Browser Header -->
                 <div class="bg-gray-100 px-4 py-3 flex items-center gap-2 border-b border-gray-200">
                     <div class="flex gap-2">
@@ -349,13 +354,14 @@
                     </div>
                     <div class="flex-1 text-center">
                         <div class="inline-block bg-white rounded px-3 py-1 text-xs text-gray-500 border border-gray-200">
-                            argusmetrics.io/dashboard
+                            your-server.com/dashboard
                         </div>
                     </div>
                 </div>
                 <!-- Screenshot -->
-                <img src="static/img/hero-dashboard.png"
-                     alt="Argusmetrics Dashboard - Real-time Analytics"
+                <img src="static/img/dashboard-analytics.png"
+                     alt="The Argusmetrics dashboard: pageviews, unique visitors, views per visitor, live visitor count and a 30-day traffic chart"
+                     width="1568" height="652" loading="lazy"
                      class="w-full">
             </div>
 
@@ -364,7 +370,7 @@
                 Tracks visitors in real-time, without cookies.
             </p>
             <p class="mt-2 text-sm text-gray-500 italic">
-                Screenshot from real live dashboard
+                Actual screenshot of the dashboard, running on demo data
             </p>
         </div>
     </section>
@@ -458,6 +464,43 @@
                     <h3 class="text-xl font-semibold text-gray-900 mb-2">Simple API</h3>
                     <p class="text-gray-600">RESTful API for custom integrations. Export data, build dashboards, automate reporting.</p>
                 </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- See It Section: the feature grid above is all prose, so show two of
+         the claims actually working instead of only asserting them. -->
+    <section class="py-20 px-4 sm:px-6 lg:px-8 bg-white border-t border-gray-100">
+        <div class="max-w-6xl mx-auto">
+            <div class="text-center mb-12">
+                <h2 class="text-4xl font-bold text-gray-900 mb-4">See it working</h2>
+                <p class="text-xl text-gray-600">Real screenshots, running on demo data</p>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-8">
+                <figure>
+                    <div class="rounded-lg border border-gray-200 overflow-hidden shadow-lg bg-white">
+                        <img src="static/img/dashboard-funnel.png"
+                             alt="A three-step conversion funnel: 40 visitors on the homepage, 24 reaching pricing, 11 reaching checkout, 27.5% overall conversion"
+                             width="896" height="625" loading="lazy" class="w-full">
+                    </div>
+                    <figcaption class="mt-4 text-sm text-gray-600">
+                        <span class="font-semibold text-gray-900">Conversion funnels.</span>
+                        Define the steps as URL paths and see exactly where visitors drop off.
+                    </figcaption>
+                </figure>
+
+                <figure>
+                    <div class="rounded-lg border border-gray-200 overflow-hidden shadow-lg bg-white">
+                        <img src="static/img/dashboard-dark.png"
+                             alt="The same analytics dashboard in dark mode"
+                             width="1568" height="652" loading="lazy" class="w-full">
+                    </div>
+                    <figcaption class="mt-4 text-sm text-gray-600">
+                        <span class="font-semibold text-gray-900">Dark mode included.</span>
+                        Follows your system theme, or pick one and it sticks.
+                    </figcaption>
+                </figure>
             </div>
         </div>
     </section>
