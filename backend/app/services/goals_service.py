@@ -11,6 +11,7 @@ from app.models.pageview import Pageview
 from app.models.website import Website
 from app.models.goal import Goal, GoalConversion
 from app.utils.security import generate_visitor_hash
+from app.services.website_lookup import resolve_tracking_code
 
 logger = logging.getLogger(__name__)
 
@@ -72,10 +73,12 @@ class GoalsService:
         logger.info(f"Recording goal conversion: tracking_code={tracking_code}, event={event_name}")
 
         try:
-            website = self.db.query(Website).filter(
-                Website.tracking_code == tracking_code,
-                Website.is_active == True
-            ).first()
+            # Resolved through a SECURITY DEFINER function, so the tracking
+            # context needs no read access to websites at all. See
+            # app/services/website_lookup.py.
+            website = resolve_tracking_code(self.db, tracking_code)
+            if website and not website.is_active:
+                website = None
 
             if not website:
                 logger.warning(f"Invalid tracking code: {tracking_code}")

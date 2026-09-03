@@ -270,49 +270,47 @@ async def track_pageview(
     # Handle debug mode
     if track_request.debug:
         from app.routers.websocket import broadcast_debug_event
-        from app.models.website import Website
-        from app.database import get_db
+        from app.services.website_lookup import resolve_tracking_code
 
-        db = next(get_db())
-        try:
-            # Get website info
-            website = db.query(Website).filter(
-                Website.tracking_code == track_request.tracking_code
-            ).first()
+        # The request's own session, not a fresh one. A session opened here
+        # would carry no row-level security context, so it would fail closed
+        # on anything policied and report every debug request as an invalid
+        # tracking code. It also leaked, since only the happy path closed it.
+        website = resolve_tracking_code(
+            analytics_service.db, track_request.tracking_code
+        )
 
-            if not website:
-                return PageviewTrackResponse(success=False, message="Invalid tracking code")
+        if not website:
+            return PageviewTrackResponse(success=False, message="Invalid tracking code")
 
-            # Prepare debug event data
-            debug_data = {
-                "event_type": "pageview",
-                "path": track_request.path,
-                "referrer": track_request.referrer,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-                "metadata": {
-                    "ip": anonymize_ip(client_ip),
-                    "user_agent": summarize_user_agent(user_agent),
-                    "device": "desktop" if track_request.screen_width and track_request.screen_width > 1024 else "mobile",
-                    "screen": f"{track_request.screen_width}x{track_request.screen_height}" if track_request.screen_width else "unknown",
-                    "utm_source": track_request.utm_source,
-                    "utm_medium": track_request.utm_medium,
-                    "utm_campaign": track_request.utm_campaign,
-                    "properties": track_request.properties
-                },
-                "validation": {
-                    "is_bot": is_bot,
-                    "bot_reason": bot_reason,
-                    "dnt_enabled": dnt == "1"
-                }
+        # Prepare debug event data
+        debug_data = {
+            "event_type": "pageview",
+            "path": track_request.path,
+            "referrer": track_request.referrer,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "metadata": {
+                "ip": anonymize_ip(client_ip),
+                "user_agent": summarize_user_agent(user_agent),
+                "device": "desktop" if track_request.screen_width and track_request.screen_width > 1024 else "mobile",
+                "screen": f"{track_request.screen_width}x{track_request.screen_height}" if track_request.screen_width else "unknown",
+                "utm_source": track_request.utm_source,
+                "utm_medium": track_request.utm_medium,
+                "utm_campaign": track_request.utm_campaign,
+                "properties": track_request.properties
+            },
+            "validation": {
+                "is_bot": is_bot,
+                "bot_reason": bot_reason,
+                "dnt_enabled": dnt == "1"
             }
+        }
 
-            # Broadcast to debug WebSocket
-            await broadcast_debug_event(website.id, debug_data)
+        # Broadcast to debug WebSocket
+        await broadcast_debug_event(website.id, debug_data)
 
-            logger.info(f"Debug event broadcasted: {track_request.path}")
-            return PageviewTrackResponse(success=True, message="Debug event sent (not saved)")
-        finally:
-            db.close()
+        logger.info(f"Debug event broadcasted: {track_request.path}")
+        return PageviewTrackResponse(success=True, message="Debug event sent (not saved)")
 
     logger.info(f"Tracking pageview: code={track_request.tracking_code}, path={track_request.path}")
 

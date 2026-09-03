@@ -93,6 +93,47 @@ class TestTrackEvent:
         assert count(db, "custom_events") == before
 
 
+class TestTrackingCodeResolution:
+    """The tracking path resolves a code without reading the websites table.
+
+    A policy cannot see a query's WHERE clause, so letting the tracking
+    context fetch one website by code would let it read every row, tokens and
+    password hash included. The lookup goes through a SECURITY DEFINER
+    function that returns four fields instead.
+    """
+
+    def test_it_returns_only_the_four_permitted_fields(self, db, website):
+        from app.services.website_lookup import resolve_tracking_code
+
+        found = resolve_tracking_code(db, website["tracking_code"])
+
+        assert found is not None
+        assert found.id == website["id"]
+        assert found.domain == website["domain"]
+        assert found.is_verified is True
+        assert found.is_active is True
+        assert not hasattr(found, "verification_token")
+        assert not hasattr(found, "public_share_token")
+        assert not hasattr(found, "public_password_hash")
+
+    def test_an_unknown_code_resolves_to_nothing(self, db):
+        from app.services.website_lookup import resolve_tracking_code
+
+        assert resolve_tracking_code(db, "zzzzzzzz") is None
+
+    def test_the_collision_check_sees_every_website(self, db, website):
+        """Not just the caller's own, or it is not a check.
+
+        Generating a code checks the candidate for collisions. If that check
+        only saw the caller's websites it would call someone else's code free,
+        and the insert would then fail on the unique constraint.
+        """
+        from app.services.website_lookup import tracking_code_exists
+
+        assert tracking_code_exists(db, website["tracking_code"]) is True
+        assert tracking_code_exists(db, "zzzzzzzz") is False
+
+
 class TestTrackPageview:
     def test_a_pageview_is_recorded(self, client, db, website):
         response = client.post(

@@ -18,6 +18,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy import text
 
 from app.models.website import Website
+from app.services.website_lookup import tracking_code_exists
 from app.config import settings
 
 logger = logging.getLogger(__name__)
@@ -70,12 +71,12 @@ class WebsiteService:
             alphabet = string.ascii_lowercase + string.digits
             tracking_code = ''.join(secrets.choice(alphabet) for _ in range(length))
 
-            # Check if it's unique
-            existing = self.db.query(Website).filter(
-                Website.tracking_code == tracking_code
-            ).first()
-
-            if not existing:
+            # Has to see every website, not just this user's. Under row-level
+            # security a plain query returns only the caller's own sites, which
+            # would report someone else's code as free and fail on the unique
+            # constraint at insert. This goes through a SECURITY DEFINER
+            # function so the check stays a real check.
+            if not tracking_code_exists(self.db, tracking_code):
                 logger.debug(f"Generated unique tracking code: {tracking_code}")
                 return tracking_code
 
