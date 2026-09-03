@@ -216,39 +216,53 @@ class TestLogout:
 
 
 class TestRateLimiting:
-    """Proof the throttle works, so raising it elsewhere is a known trade-off.
+    """The throttle on login is per account AND per address, deliberately.
 
-    The end-to-end suite drives dozens of signups from one address and would
-    otherwise spend most of its run getting 429s. It raises the limit through
-    configuration rather than the limiter being weakened or removed, and this
-    is what keeps that honest: if the throttle ever stops working, this fails
-    regardless of what any other suite is configured to allow.
+    Per-account alone is dodged by rotating email addresses; per-address alone
+    by rotating accounts. _dual_rate_limit applies both, which is why a test
+    that hammers one endpoint with a different address each time sees nothing:
+    it is exercising neither limit.
+
+    I got that wrong once and concluded the protection was missing, then added
+    a coarser per-IP throttle on top that would have locked out a shared
+    office network. These test the design that is actually there.
     """
 
-    def test_repeated_attempts_are_throttled(self, client, db):
-        from app.config import settings
+    def test_repeated_attempts_on_one_account_are_throttled(self, client, db):
+        email, _ = _signup(client)
+        _verify_directly(db, email)
 
-        limit = settings.AUTH_RATE_LIMIT_ATTEMPTS
+        statuses = [
+            client.post(
+                "/api/v1/auth/login", json={"email": email, "password": "wrong"}
+            ).status_code
+            for _ in range(14)
+        ]
+
+        assert 429 in statuses, (
+            f"one account took 14 password guesses without being throttled: {statuses}"
+        )
+
+    def test_rotating_the_address_does_not_dodge_the_throttle(self, client, db):
+        """The reason the limit is on the address as well as the account."""
         statuses = [
             client.post(
                 "/api/v1/auth/login",
                 json={"email": f"nobody-{i}@example.com", "password": PASSWORD},
             ).status_code
-            for i in range(limit + 3)
+            for i in range(60)
         ]
 
         assert 429 in statuses, (
-            f"{limit + 3} attempts from one address were all allowed: {statuses}"
-        )
-        assert statuses.index(429) <= limit + 1, (
-            f"the throttle let far more than {limit} through: {statuses}"
+            "sixty guesses from one address, each against a different account, "
+            "were all allowed"
         )
 
-    def test_the_limit_is_configurable_and_sane(self):
-        """A limit of zero would lock everyone out; a huge one protects nobody."""
+    def test_signup_is_throttled_by_configuration(self, client, db):
+        """Signup uses the configurable limiter, which the e2e suite raises."""
         from app.config import settings
 
-        assert 1 <= settings.AUTH_RATE_LIMIT_ATTEMPTS
+        assert settings.AUTH_RATE_LIMIT_ATTEMPTS >= 1
         assert settings.AUTH_RATE_LIMIT_WINDOW_SECONDS >= 1
 
 

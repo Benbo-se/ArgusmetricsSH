@@ -541,7 +541,7 @@ def _dual_rate_limit(request: Request, email: str, scope: str,
         )
 
 
-@router.post("/login", dependencies=[Depends(_auth_rate_limit)])
+@router.post("/login")
 async def login(
     body: LoginRequest,
     request: Request,
@@ -571,7 +571,7 @@ async def login(
     return response
 
 
-@router.post("/verify-code", dependencies=[Depends(_auth_rate_limit)])
+@router.post("/verify-code")
 async def verify_code(
     body: VerifyCodeRequest,
     request: Request,
@@ -598,7 +598,7 @@ async def verify_code(
     return response
 
 
-@router.post("/resend-verification", dependencies=[Depends(_auth_rate_limit)])
+@router.post("/resend-verification")
 async def resend_verification(
     body: ResendVerificationRequest,
     request: Request,
@@ -616,7 +616,7 @@ async def resend_verification(
     return {"message": "If an unverified account exists for this email, a new verification email has been sent."}
 
 
-@router.post("/request-reset", dependencies=[Depends(_auth_rate_limit)])
+@router.post("/request-reset")
 async def request_reset(
     body: RequestResetRequest,
     request: Request,
@@ -638,7 +638,7 @@ async def request_reset(
     return payload
 
 
-@router.post("/set-password", dependencies=[Depends(_auth_rate_limit)])
+@router.post("/set-password")
 async def set_password(
     body: SetPasswordRequest,
     request: Request,

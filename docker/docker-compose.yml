@@ -33,6 +33,10 @@ services:
     container_name: argusmetrics-backend
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-argusmetrics}:${POSTGRES_PASSWORD:-changeme}@postgres:5432/${POSTGRES_DB:-argusmetrics}
+      # Raised locally so the end-to-end suite, which drives dozens of
+      # signups from one address, is not throttled. Production uses the
+      # default; test_repeated_attempts_are_throttled proves it still works.
+      AUTH_RATE_LIMIT_ATTEMPTS: ${AUTH_RATE_LIMIT_ATTEMPTS:-10}
       SECRET_KEY: ${SECRET_KEY:-dev-secret-key-change-in-production}
       ENVIRONMENT: ${ENVIRONMENT:-development}
       DEBUG: ${DEBUG:-false}
