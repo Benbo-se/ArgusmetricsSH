@@ -12,7 +12,7 @@ from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException, status, Request, Header, Cookie
 from sqlalchemy.orm import Session
 
-from app.database import get_db
+from app.database import get_db, set_rls_context
 from app.services.analytics_service import AnalyticsService
 from app.services.website_service import WebsiteService
 from app.services.token_service import TokenService
@@ -77,6 +77,16 @@ def is_bot_user_agent(user_agent: str) -> bool:
 def get_analytics_service(db: Session = Depends(get_db)) -> AnalyticsService:
     """Dependency to get AnalyticsService instance."""
     return AnalyticsService(db)
+
+
+def use_tracking_context(db: Session = Depends(get_db)) -> None:
+    """Mark this request as coming from the public tracking script.
+
+    These endpoints are unauthenticated and take input from any visitor's
+    browser, so under row-level security they get the narrowest context there
+    is: allowed to insert events, never allowed to read a customer's data.
+    """
+    set_rls_context(db, context="tracking")
 
 
 def get_website_service(db: Session = Depends(get_db)) -> WebsiteService:
@@ -212,7 +222,7 @@ def _enforce_token_scope(current_user: User, website_id: int) -> None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Website not found or access denied")
 
 
-@router.post("/track", response_model=PageviewTrackResponse, status_code=status.HTTP_200_OK, dependencies=[Depends(check_track_rate_limit)])
+@router.post("/track", response_model=PageviewTrackResponse, status_code=status.HTTP_200_OK, dependencies=[Depends(check_track_rate_limit), Depends(use_tracking_context)])
 async def track_pageview(
     request: Request,
     track_request: PageviewTrackRequest,
@@ -437,7 +447,7 @@ async def create_goal(
     return GoalResponse.model_validate(goal)
 
 
-@router.post("/track-event", response_model=GoalConversionResponse, dependencies=[Depends(check_track_rate_limit)])
+@router.post("/track-event", response_model=GoalConversionResponse, dependencies=[Depends(check_track_rate_limit), Depends(use_tracking_context)])
 async def track_event(
     request: Request,
     event_request: GoalConversionRequest,
@@ -485,7 +495,7 @@ async def track_event(
     return GoalConversionResponse(success=True, message=message)
 
 
-@router.post("/track-ecommerce", response_model=EcommerceEventResponse, status_code=status.HTTP_200_OK, dependencies=[Depends(check_track_rate_limit)])
+@router.post("/track-ecommerce", response_model=EcommerceEventResponse, status_code=status.HTTP_200_OK, dependencies=[Depends(check_track_rate_limit), Depends(use_tracking_context)])
 async def track_ecommerce(
     request: Request,
     event_data: EcommerceEventRequest,

@@ -19,7 +19,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
-from app.database import get_db
+from app.database import get_db, set_rls_context
 from app.services.analytics_service import AnalyticsService
 from app.services.website_service import WebsiteService
 from app.models.user import User
@@ -955,6 +955,12 @@ async def public_dashboard(
         # Look up website by public_share_token
         website_service = WebsiteService(db)
         website = website_service.get_public_website(share_token)
+
+        if website:
+            # Anonymous viewer, but only for this one website. Policies scope
+            # every following query to it rather than trusting each of them to
+            # filter correctly.
+            set_rls_context(db, context="public", website_id=website.id)
 
         if not website:
             logger.warning(f"Public dashboard not found or disabled for token: {share_token[:8]}...")

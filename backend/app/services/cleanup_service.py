@@ -241,9 +241,13 @@ class CleanupService:
 
 def run_daily_cleanup():
     """Run daily cleanup tasks (intended for scheduled jobs)."""
-    from app.database import SessionLocal
+    from app.database import SessionLocal, set_rls_context
 
     db = SessionLocal()
+    # Retention purges span every tenant, so this runs as a job rather than as
+    # any one user. Stated explicitly so it is never mistaken for a missing
+    # context once policies are in place.
+    set_rls_context(db, context="job")
     try:
         service = CleanupService(db)
         service.run_all_cleanup_tasks()

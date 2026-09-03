@@ -3,7 +3,7 @@ Database configuration and session management using SQLAlchemy.
 Handles connection pooling, session lifecycle, and database dependencies.
 """
 import logging
-from typing import Generator
+from typing import Generator, Optional
 from contextlib import contextmanager
 
 from sqlalchemy import create_engine, event, text
@@ -49,6 +49,88 @@ SessionLocal = sessionmaker(
 Base = declarative_base()
 
 
+# --- Row-level security context ------------------------------------------
+#
+# Every request declares who it is acting as, so database policies can enforce
+# tenant isolation instead of trusting each query to remember its WHERE clause.
+#
+# Nothing reads these yet: the policies come later, one table at a time. This
+# is the plumbing, landed first so it can be verified while it is still inert.
+#
+# Contexts:
+#   user     an authenticated request, carries the user's email
+#   tracking the public /track endpoints; may INSERT events, never SELECT
+#   public   an anonymous public dashboard, carries the one website id
+#   job      the scheduler and cleanup tasks, which have no user
+#
+# The value is applied per transaction, never per connection. With a pooled
+# connection a plain SET would outlive the request and leak one tenant's
+# identity into whoever borrows the connection next, which would be worse than
+# having no policies at all.
+
+RLS_INFO_KEY = "rls_context"
+
+
+def set_rls_context(
+    db: Session,
+    context: str,
+    user_email: Optional[str] = None,
+    website_id: Optional[int] = None,
+) -> None:
+    """Declare what this session is acting as, for row-level security.
+
+    Applies to the current transaction and to any later one on the same
+    session, so a mid-request commit does not silently drop the context.
+    """
+    db.info[RLS_INFO_KEY] = {
+        "context": context,
+        "user_email": user_email or "",
+        "website_id": str(website_id) if website_id is not None else "",
+    }
+    # Getting the connection begins a transaction if none is open, which fires
+    # after_begin and applies the values. If one is already open that event has
+    # been and gone, so apply directly as well. Doing both is harmless.
+    _apply_rls_context(db.connection(), db.info[RLS_INFO_KEY])
+    # Useful when a policy starts returning nothing: the first question is
+    # always whether the context was set at all, and for whom.
+    logger.debug(
+        f"RLS context set: context={context} "
+        f"website_id={website_id if website_id is not None else '-'}"
+    )
+
+
+def _apply_rls_context(connection, values: dict) -> None:
+    """Push the declared context into the current transaction.
+
+    Writes through the Connection rather than the Session on purpose: a
+    Session.execute here would begin a transaction, fire after_begin, and call
+    straight back into this function.
+    """
+    # set_config(..., is_local=true) is SET LOCAL, but unlike SET LOCAL it takes
+    # bind parameters, so the value is never spliced into SQL text.
+    connection.execute(
+        text(
+            "SELECT set_config('app.context', :context, true),"
+            "       set_config('app.user_email', :user_email, true),"
+            "       set_config('app.website_id', :website_id, true)"
+        ),
+        values,
+    )
+
+
+@event.listens_for(SessionLocal, "after_begin")
+def _reapply_rls_context(session, transaction, connection):
+    """Re-apply the context whenever a new transaction starts.
+
+    Without this, code that commits mid-request and then keeps querying would
+    continue on a transaction with no context, and once policies exist those
+    queries would quietly return nothing.
+    """
+    values = session.info.get(RLS_INFO_KEY)
+    if values:
+        _apply_rls_context(connection, values)
+
+
 # Event listeners for connection pool monitoring
 @event.listens_for(engine, "connect")
 def receive_connect(dbapi_conn, connection_record):
@@ -64,7 +146,20 @@ def receive_checkout(dbapi_conn, connection_record, connection_proxy):
 
 @event.listens_for(engine, "checkin")
 def receive_checkin(dbapi_conn, connection_record):
-    """Log when a connection is returned to the pool."""
+    """Reset session state before the connection goes back to the pool.
+
+    The RLS context is set per transaction and so clears itself on commit or
+    rollback. This is the second layer: if any code path ever sets a session
+    variable without LOCAL, or a transaction ends in an unexpected way, the
+    value must not survive to the next request that borrows this connection.
+    A leaked tenant identity would be worse than having no policies at all,
+    so this does not rely on the first layer being perfect.
+    """
+    try:
+        with dbapi_conn.cursor() as cur:
+            cur.execute("RESET ALL")
+    except Exception as e:  # never let cleanup break connection return
+        logger.warning(f"Could not reset session state on checkin: {e}")
     logger.debug("Database connection returned to pool")
 
 

@@ -12,7 +12,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Header, Cookie, Request
 from sqlalchemy.orm import Session
 
-from app.database import get_db
+from app.database import get_db, set_rls_context
 from app.utils.network import get_client_ip
 
 
@@ -64,7 +64,8 @@ def get_auth_service(db: Session = Depends(get_db)) -> AuthService:
 def get_current_user(
     authorization: Optional[str] = Header(None),
     session_token: Optional[str] = Cookie(None),
-    auth_service: AuthService = Depends(get_auth_service)
+    auth_service: AuthService = Depends(get_auth_service),
+    db: Session = Depends(get_db)
 ) -> User:
     """
     Dependency to get current authenticated user.
@@ -113,6 +114,11 @@ def get_current_user(
             detail="Invalid or expired session. Please log in again.",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
+    # Declare who this request acts as, so row-level security policies can
+    # scope every query to this user. FastAPI caches get_db per request, so
+    # this is the same session the route handler will use.
+    set_rls_context(db, context="user", user_email=user.email)
 
     logger.debug(f"Authenticated user: {user.email}")
     return user

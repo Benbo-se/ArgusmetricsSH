@@ -27,7 +27,7 @@ def _single_runner(lock_key: int):
     to arrive the only one that runs it.
     """
     from sqlalchemy import text
-    from app.database import SessionLocal
+    from app.database import SessionLocal, set_rls_context
 
     db = SessionLocal()
     acquired = False
@@ -59,11 +59,12 @@ def cleanup_task():
 def email_reports_task():
     """Daily email-reports dispatch - sends every weekly/monthly report that is
     due today (users configure frequency + day per website)."""
-    from app.database import SessionLocal
+    from app.database import SessionLocal, set_rls_context
     from app.services.email_reports_service import EmailReportsService
 
     logger.info(f"[SCHEDULED] Running email-reports dispatch at {datetime.now(timezone.utc)}")
     db = SessionLocal()
+    set_rls_context(db, context="job")
     try:
         with _single_runner(918_271_002) as acquired:
             if acquired:
@@ -87,12 +88,13 @@ def traffic_alerts_task():
     baseline and returns None unless the site has email alerts enabled, so
     sites that never opted in cost one cheap query and nothing else.
     """
-    from app.database import SessionLocal
+    from app.database import SessionLocal, set_rls_context
     from app.models.website import Website
     from app.services.alert_service import AlertService
 
     logger.info(f"[SCHEDULED] Running traffic-spike alert check at {datetime.now(timezone.utc)}")
     db = SessionLocal()
+    set_rls_context(db, context="job")
     try:
         with _single_runner(918_271_003) as acquired:
             if not acquired:
