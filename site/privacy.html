@@ -167,12 +167,12 @@
                         </div>
                     </div>
 
-                    <a href="/#self-host" class="text-gray-600 hover:text-gray-900 text-sm font-medium px-3 py-2 rounded-md hover:bg-gray-50 transition-colors">Self-host</a>
+                    <a href="https://github.com/Benbo-se/ArgusmetricsSH" target="_blank" rel="noopener noreferrer" class="flex items-center gap-1.5 text-gray-600 hover:text-gray-900 text-sm font-medium px-3 py-2 rounded-md hover:bg-gray-50 transition-colors"><i class="fab fa-github"></i> GitHub</a>
 
                     <div class="w-px h-5 bg-gray-200 mx-1"></div>
 
-                    <a href="https://github.com/Benbo-se/ArgusmetricsSH" target="_blank" rel="noopener noreferrer" class="flex items-center gap-1.5 text-gray-600 hover:text-gray-900 text-sm font-medium px-3 py-2 rounded-md hover:bg-gray-50 transition-colors"><i class="fab fa-github"></i> GitHub</a>
-                    <a href="https://github.com/Benbo-se/ArgusmetricsSH" target="_blank" rel="noopener noreferrer" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors">Self-host</a>
+                    <a href="/login" class="text-gray-600 hover:text-gray-900 text-sm font-medium px-3 py-2 rounded-md hover:bg-gray-50 transition-colors">Log in</a>
+                    <a href="/signup" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors">Get started</a>
                 </div>
 
                 <!-- Mobile menu button -->
@@ -226,28 +226,33 @@
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 pt-28">
         <div class="bg-white rounded-lg shadow-sm p-8 md:p-12">
             <h1 class="text-4xl font-bold text-gray-900 mb-4">Privacy Policy</h1>
-            <p class="text-gray-600 mb-8">Last updated: October 29, 2025</p>
+            <p class="text-gray-600 mb-8">Last updated: September 3, 2026</p>
 
             <div class="prose prose-blue max-w-none">
                 <!-- Introduction -->
                 <section class="mb-8">
                     <h2 class="text-2xl font-bold text-gray-900 mb-4">1. Introduction</h2>
                     <p class="text-gray-700 mb-4">
-                        Argusmetrics is free, open-source (AGPL-3.0), self-hosted, privacy-first web analytics software.
-                        This Privacy Policy covers two things: (a) this marketing website at argusmetrics.io, and (b) the
-                        privacy properties of the self-hosted Argusmetrics software that you, the operator, deploy on your own
-                        infrastructure.
+                        Argusmetrics is privacy-first web analytics. We run it as a hosted service at argusmetrics.io, and the source
+                        code is also public under the AGPL-3.0. This Privacy Policy explains what we hold, and it covers two
+                        different kinds of data:
                     </p>
+                    <ul class="list-disc list-inside space-y-2 text-gray-700 ml-4 mb-4">
+                        <li><strong>Your account data.</strong> The email address and password you register with. For this we are the
+                            <strong>data controller</strong>.</li>
+                        <li><strong>Your visitors' analytics data.</strong> What the tracking script sends us about traffic to the
+                            websites you have added. This is collected on your instructions, so you are the data controller and we
+                            act as your <strong>data processor</strong>.</li>
+                    </ul>
                     <p class="text-gray-700 mb-4">
-                        Because Argusmetrics is self-hosted, the project authors do not run a hosted service, do not receive or
-                        process your visitors' data, and have no access to any data collected by your deployment. Each operator
-                        who deploys Argusmetrics is the <strong>data controller</strong> for their own deployment and is
-                        responsible for complying with applicable privacy laws for the data they collect and store.
+                        If you run your own copy of the software instead of using our hosted service, none of that data reaches us:
+                        your instance is yours alone, we have no access to it, and you are the controller for everything it collects.
                     </p>
                     <div class="bg-green-50 border-l-4 border-green-600 p-4 mb-4">
                         <p class="text-sm text-green-900">
-                            <strong>🔒 Privacy-First Promise:</strong> Argusmetrics is designed to be fully GDPR compliant by default.
-                            We don't use cookies, we don't collect personal data, and we don't track individuals across websites.
+                            <strong>🔒 Privacy-First Promise:</strong> For your website visitors, Argusmetrics sets no cookies, never
+                            stores their IP addresses, and cannot follow an individual across websites or from one day to the next.
+                            That is why your site does not need a cookie consent banner for Argusmetrics.
                         </p>
                     </div>
                 </section>
@@ -256,27 +261,53 @@
                 <section class="mb-8">
                     <h2 class="text-2xl font-bold text-gray-900 mb-4">2. What Information Is Collected</h2>
 
-                    <h3 class="text-xl font-semibold text-gray-900 mb-3">2.1 This Website (argusmetrics.io)</h3>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-3">2.1 Your Account</h3>
                     <p class="text-gray-700 mb-4">
-                        This marketing website is a static informational site. It does not require you to create an account and
-                        does not collect personal data from visitors beyond standard server logs that may be kept by our hosting
-                        provider for security and operational purposes. If you email us, we receive whatever information you choose
-                        to include in your message.
-                    </p>
-
-                    <h3 class="text-xl font-semibold text-gray-900 mb-3 mt-6">2.2 Analytics Data (Self-Hosted Software)</h3>
-                    <p class="text-gray-700 mb-4">
-                        When an operator installs Argusmetrics on their own website, the software collects <strong>minimal,
-                        anonymized data</strong> about that website's visitors and stores it on the operator's own infrastructure:
+                        To use the hosted service you create an account. We store:
                     </p>
                     <ul class="list-disc list-inside space-y-2 text-gray-700 ml-4 mb-4">
-                        <li><strong>Page URL:</strong> Which pages are visited</li>
-                        <li><strong>Referrer:</strong> Where visitors came from (e.g., Google, direct, social media)</li>
-                        <li><strong>Screen width:</strong> To determine device type (mobile, tablet, desktop)</li>
-                        <li><strong>Country:</strong> Derived from IP address (IP is not stored)</li>
-                        <li><strong>Browser:</strong> Derived from User-Agent string</li>
-                        <li><strong>Timestamp:</strong> When the visit occurred</li>
+                        <li><strong>Your email address</strong>, used to sign in, to verify the account, to send password resets, and
+                            to send the email reports you opt into</li>
+                        <li><strong>A hash of your password</strong>, never the password itself</li>
+                        <li><strong>Login sessions</strong>, so you stay signed in, and short-lived verification codes</li>
+                        <li><strong>A log of emails we sent you</strong>: the address, the type, the subject and whether delivery
+                            succeeded, so we can debug failures</li>
                     </ul>
+                    <p class="text-gray-700 mb-4">
+                        We do not ask for your name, your company, a phone number or any payment details, because the service is free
+                        and we have no use for them. Browsing the public pages of this site requires no account and sets no cookies.
+                        If you email us, we receive whatever you choose to put in the message.
+                    </p>
+
+                    <h3 class="text-xl font-semibold text-gray-900 mb-3 mt-6">2.2 Your Visitors' Analytics Data</h3>
+                    <p class="text-gray-700 mb-4">
+                        When you add the tracking script to your website, it sends us the following about each pageview, and we store
+                        it on our servers on your behalf:
+                    </p>
+                    <ul class="list-disc list-inside space-y-2 text-gray-700 ml-4 mb-4">
+                        <li><strong>Page path:</strong> which page was visited, with sensitive query parameters stripped before storage</li>
+                        <li><strong>Referrer:</strong> where the visitor came from, and any UTM campaign parameters in the link</li>
+                        <li><strong>Country:</strong> looked up from the IP address using a local database, after which the IP is discarded</li>
+                        <li><strong>Device and browser type:</strong> derived from the User-Agent, plus screen dimensions</li>
+                        <li><strong>Timestamp</strong>, and how far down the page the visitor scrolled</li>
+                        <li><strong>A visitor hash</strong>, described in section 2.3</li>
+                        <li><strong>Any custom properties you choose to send</strong> with an event. These are entirely under your
+                            control, so please do not put personal data in them.</li>
+                    </ul>
+
+                    <h3 class="text-xl font-semibold text-gray-900 mb-3 mt-6">2.3 How Visitors Are Counted Without Cookies</h3>
+                    <p class="text-gray-700 mb-4">
+                        To tell one visitor from another without a cookie or a stored identifier, we compute a hash from the visitor's
+                        truncated IP address (the last octet removed for IPv4, the address shortened to its first three groups for
+                        IPv6), their User-Agent, your site's domain, and a salt that changes every day. Only that hash is stored.
+                    </p>
+                    <p class="text-gray-700 mb-4">
+                        Because the salt changes daily, the same person visiting tomorrow produces a different hash, so we cannot
+                        follow anyone from one day to the next. Because the domain is part of the input, the same person on two
+                        different sites produces different hashes, so we cannot follow anyone between sites either. The full IP address
+                        is never written to disk. There is a longer walkthrough on our
+                        <a href="/data" class="text-blue-600 hover:text-blue-700">data page</a>.
+                    </p>
 
                     <div class="bg-blue-50 border-l-4 border-blue-600 p-4 mb-4">
                         <p class="text-sm text-blue-900">
@@ -284,14 +315,15 @@
                         </p>
                     </div>
 
-                    <h3 class="text-xl font-semibold text-gray-900 mb-3 mt-6">2.3 What We DON'T Collect</h3>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-3 mt-6">2.4 What We Never Collect</h3>
+                    <p class="text-gray-700 mb-4">About your website's visitors, we never collect or store:</p>
                     <ul class="list-disc list-inside space-y-2 text-gray-700 ml-4 mb-4">
-                        <li>No cookies</li>
-                        <li>No IP addresses</li>
-                        <li>No unique device identifiers</li>
-                        <li>No cross-site tracking</li>
-                        <li>No personal identifiable information (PII)</li>
-                        <li>No fingerprinting</li>
+                        <li>Cookies of any kind</li>
+                        <li>IP addresses</li>
+                        <li>Persistent or unique device identifiers</li>
+                        <li>Browser fingerprints</li>
+                        <li>Anything that would let us follow a person across websites, or from one day to the next</li>
+                        <li>Names, emails or other directly identifying details, unless you deliberately put them in a custom property</li>
                     </ul>
                 </section>
 
@@ -299,68 +331,93 @@
                 <section class="mb-8">
                     <h2 class="text-2xl font-bold text-gray-900 mb-4">3. How Information Is Used</h2>
 
-                    <h3 class="text-xl font-semibold text-gray-900 mb-3">3.1 This Website</h3>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-3">3.1 Your Account Data</h3>
                     <ul class="list-disc list-inside space-y-2 text-gray-700 ml-4 mb-4">
-                        <li>To operate and secure this informational website</li>
-                        <li>To respond to support questions you send us by email</li>
+                        <li>To sign you in and keep you signed in</li>
+                        <li>To verify your email address and let you reset your password</li>
+                        <li>To send the email reports and traffic alerts you switch on, and nothing you have not asked for</li>
+                        <li>To answer support questions you send us</li>
                     </ul>
-
-                    <h3 class="text-xl font-semibold text-gray-900 mb-3 mt-6">3.2 Analytics Data (Self-Hosted Software)</h3>
                     <p class="text-gray-700 mb-4">
-                        Analytics data is used solely by the operator of each deployment, within their own infrastructure, to:
+                        We do not use your email address for marketing, and we do not sell or rent it to anyone.
+                    </p>
+
+                    <h3 class="text-xl font-semibold text-gray-900 mb-3 mt-6">3.2 Your Visitors' Analytics Data</h3>
+                    <p class="text-gray-700 mb-4">
+                        We process it only to provide the service to you, which means:
                     </p>
                     <ul class="list-disc list-inside space-y-2 text-gray-700 ml-4 mb-4">
-                        <li>Provide website traffic insights to the operator</li>
-                        <li>Display aggregated statistics in the operator's dashboard</li>
-                        <li>Calculate metrics like pageviews, bounce rate, and top pages</li>
+                        <li>Calculating the figures shown in your dashboard, such as pageviews, visitors, top pages and referrers</li>
+                        <li>Producing the goal, funnel and revenue reports you have configured</li>
+                        <li>Generating the email reports and traffic alerts you have switched on</li>
+                        <li>Building any export you request</li>
                     </ul>
+                    <p class="text-gray-700 mb-4">
+                        We do not use it for our own purposes, do not combine it with data from other customers, and do not sell it
+                        or share it with advertisers.
+                    </p>
                 </section>
 
                 <!-- Data Storage & Security -->
                 <section class="mb-8">
                     <h2 class="text-2xl font-bold text-gray-900 mb-4">4. Data Storage & Security</h2>
                     <p class="text-gray-700 mb-4">
-                        With self-hosted Argusmetrics, all analytics data is stored on infrastructure controlled by the operator
-                        who deploys the software. The project authors do not host, store, or have access to that data. Each
-                        operator chooses where their data lives and is responsible for securing it. The software is designed with
-                        the following properties:
+                        Your data is stored in a PostgreSQL database on servers we operate.
+                        <!-- TODO before launch: state the hosting provider and the country the server is in.
+                             Do not leave this vague, and do not claim EU hosting unless the server really is in the EU. -->
                     </p>
                     <ul class="list-disc list-inside space-y-2 text-gray-700 ml-4 mb-4">
-                        <li><strong>Encryption in transit:</strong> Data should be transmitted over HTTPS (operators are responsible for configuring TLS on their deployment)</li>
-                        <li><strong>Access control:</strong> Only the operator and accounts they create can access the dashboard</li>
-                        <li><strong>Data retention:</strong> Retention is configurable by the operator</li>
-                        <li><strong>Backups:</strong> Backup strategy is determined by the operator</li>
+                        <li><strong>In transit:</strong> all traffic to the dashboard and the tracking endpoint is served over HTTPS</li>
+                        <li><strong>Passwords:</strong> stored only as bcrypt hashes, never in a form we could read</li>
+                        <li><strong>Access control:</strong> only you and the team members you invite can see your websites' data,
+                            and invited members get the role you choose (owner, admin or viewer)</li>
+                        <li><strong>Least privilege:</strong> the application connects to the database with an account that can read
+                            and write rows but cannot alter the schema</li>
+                        <li><strong>Retention:</strong> we keep analytics data until you delete it. Deleting a website deletes its
+                            data, and closing your account deletes everything belonging to you.</li>
                     </ul>
+                    <p class="text-gray-700 mb-4">
+                        No system is perfectly secure, and we do not claim otherwise. If you discover a security problem, please tell
+                        us rather than posting it publicly, and we will fix it as quickly as we can.
+                    </p>
                 </section>
 
                 <!-- GDPR Compliance -->
                 <section class="mb-8">
                     <h2 class="text-2xl font-bold text-gray-900 mb-4">5. GDPR Compliance</h2>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-3">5.1 Who Is Responsible for What</h3>
                     <p class="text-gray-700 mb-4">
-                        Argusmetrics is <strong>fully GDPR compliant by design</strong>:
+                        For <strong>your account data</strong> we are the data controller, and our legal basis is performance of a
+                        contract: we need your email address to give you an account at all.
+                    </p>
+                    <p class="text-gray-700 mb-4">
+                        For <strong>your visitors' analytics data</strong> you are the data controller and we are your processor. We
+                        process it only on your instructions, which in practice means only to run the features you have switched on.
+                        Deciding the legal basis for measuring your own visitors is your call as the controller. Because the data we
+                        store cannot identify an individual, that basis is commonly legitimate interest under Article 6(1)(f), but you
+                        should satisfy yourself of that for your own situation.
                     </p>
 
-                    <h3 class="text-xl font-semibold text-gray-900 mb-3">5.1 No Cookie Consent Required</h3>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-3 mt-6">5.2 No Cookie Consent Required</h3>
                     <p class="text-gray-700 mb-4">
-                        Because we don't use cookies or collect personal data, you don't need a cookie consent banner for Argusmetrics.
+                        Argusmetrics sets no cookies and reads nothing from your visitors' devices, so it does not trigger the consent
+                        requirement that cookie banners exist to satisfy. You may still need a banner for other tools on your site.
                     </p>
 
-                    <h3 class="text-xl font-semibold text-gray-900 mb-3 mt-6">5.2 Legal Basis & Data Controller</h3>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-3 mt-6">5.3 Your Rights Over Your Account Data</h3>
                     <p class="text-gray-700 mb-4">
-                        For self-hosted deployments, the operator is the data controller and is responsible for determining and
-                        documenting the legal basis for any processing they perform. Because Argusmetrics does not use cookies and
-                        does not collect personal data, processing typically relies on:
+                        You can see and change your email address in the dashboard, export your data as CSV or JSON at any time, and
+                        delete your account, which erases your account and the analytics data belonging to your websites. For access,
+                        correction, portability, erasure or a complaint, email us and we will respond within 30 days. You also have the
+                        right to complain to your national data protection authority.
                     </p>
-                    <ul class="list-disc list-inside space-y-2 text-gray-700 ml-4 mb-4">
-                        <li><strong>Legitimate interest (Article 6(1)(f) GDPR):</strong> Aggregated, anonymized website statistics</li>
-                    </ul>
 
-                    <h3 class="text-xl font-semibold text-gray-900 mb-3 mt-6">5.3 Data Subject Rights</h3>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-3 mt-6">5.4 Requests From Your Visitors</h3>
                     <p class="text-gray-700 mb-4">
-                        Because Argusmetrics collects only anonymized, aggregated data and no personally identifiable information,
-                        it generally does not hold data that can identify an individual visitor. Where applicable, each operator,
-                        as data controller for their deployment, is responsible for handling data subject requests (such as access,
-                        rectification, erasure, and portability) for the data they collect and store.
+                        If one of your visitors asks you to access or erase their data, there is generally nothing to retrieve or
+                        delete: what we hold is a hash that changes daily and is not linked to a person, so we cannot single out one
+                        individual's rows even if asked to. If you receive such a request and need help answering it, contact us and we
+                        will assist you as your processor.
                     </p>
                 </section>
 
@@ -368,13 +425,24 @@
                 <section class="mb-8">
                     <h2 class="text-2xl font-bold text-gray-900 mb-4">6. Third-Party Services</h2>
                     <p class="text-gray-700 mb-4">
-                        The Argusmetrics software bundles no third-party advertising, tracking, or data-broker services. A
-                        self-hosted deployment runs entirely on the operator's own infrastructure (for example, via the provided
-                        Docker setup) and does not phone home to the project authors.
+                        We keep the list of third parties as short as we can. The dashboard loads no third-party scripts, fonts or
+                        analytics: everything it needs is served from our own servers, which is also why the dashboard makes no
+                        outbound requests while you use it.
                     </p>
                     <p class="text-gray-700 mb-4">
-                        Argusmetrics never shares data with advertising networks, data brokers, or any third parties for marketing
-                        purposes.
+                        Two third parties are involved in running the service:
+                    </p>
+                    <ul class="list-disc list-inside space-y-2 text-gray-700 ml-4 mb-4">
+                        <li><strong>Our hosting provider</strong>, which operates the physical servers the database runs on.
+                            <!-- TODO before launch: name the hosting provider and its country. --></li>
+                        <li><strong>Our email provider</strong>, which delivers verification emails, password resets, and the reports
+                            and alerts you opt into. It receives your email address and the contents of those messages.
+                            <!-- TODO before launch: name the email provider (SMTP_HOST) so this is specific. --></li>
+                    </ul>
+                    <p class="text-gray-700 mb-4">
+                        Country lookups are done against a local database on our own servers, so your visitors' IP addresses are never
+                        sent to any third-party geolocation service. We never share data with advertising networks or data brokers,
+                        and we do not sell data to anyone.
                     </p>
                 </section>
 
@@ -382,10 +450,13 @@
                 <section class="mb-8">
                     <h2 class="text-2xl font-bold text-gray-900 mb-4">7. Data Sharing & Disclosure</h2>
                     <p class="text-gray-700 mb-4">
-                        The project authors do not receive, sell, rent, or share data from your deployment, because the software
-                        is self-hosted and the authors have no access to it. Any sharing or disclosure of data collected by a
-                        deployment is solely under the control of the operator who runs it, and that operator is responsible for
-                        any such decisions, including complying with lawful requests.
+                        We do not sell, rent or trade your data, and we do not share it with anyone except the providers listed in
+                        section 6, who process it only so we can run the service.
+                    </p>
+                    <p class="text-gray-700 mb-4">
+                        We may disclose data if we are legally required to, for example in response to a valid court order. If that
+                        happens we will tell you unless we are legally prohibited from doing so. If the service were ever transferred
+                        to someone else, we would tell you beforehand so you could export your data and close your account first.
                     </p>
                 </section>
 
@@ -423,12 +494,12 @@
                 <div class="bg-gradient-to-r from-green-50 to-blue-50 p-6 rounded-lg mt-8">
                     <h3 class="text-xl font-bold text-gray-900 mb-3">✅ Privacy Summary</h3>
                     <ul class="space-y-2 text-gray-700">
-                        <li>✓ No cookies, no tracking pixels</li>
-                        <li>✓ No personal data collection</li>
-                        <li>✓ GDPR compliant by design</li>
-                        <li>✓ Self-hosted — your data stays on your infrastructure</li>
-                        <li>✓ No third-party advertising</li>
-                        <li>✓ Open source (AGPL-3.0) — you own and control your data</li>
+                        <li>✓ No cookies and no tracking pixels on your visitors</li>
+                        <li>✓ Your visitors' IP addresses are never stored</li>
+                        <li>✓ Nobody can be followed between sites, or from one day to the next</li>
+                        <li>✓ From us, we hold only your email address and a password hash</li>
+                        <li>✓ Your data is never sold, and never shared with advertisers</li>
+                        <li>✓ Export or delete everything whenever you want</li>
                     </ul>
                 </div>
             </div>
