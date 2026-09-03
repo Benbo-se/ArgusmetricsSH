@@ -284,6 +284,96 @@ class TestConfigurationTables:
             {"w": made["alice"]["website_id"]},
         ).scalar() == 0, "a stranger can read someone's team list"
 
+    def _make_token(self, conn, website_id):
+        conn.execute(
+            text(
+                "INSERT INTO api_tokens (website_id, name, token, created_at) "
+                "VALUES (:w, 'tok', :t, now())"
+            ),
+            {"w": website_id, "t": f"hash-{uuid.uuid4().hex}"},
+        )
+
+    def _make_alert_settings(self, conn, website_id, email):
+        conn.execute(
+            text(
+                "INSERT INTO alert_settings "
+                "  (website_id, spike_threshold, email_enabled, alert_email) "
+                "VALUES (:w, 2.0, true, :e)"
+            ),
+            {"w": website_id, "e": email},
+        )
+
+    def test_api_tokens_do_not_cross_tenants(self, tenants):
+        """A token unlocks a website's data, so it must not even be listed."""
+        conn, made = tenants
+        _context(conn, "job")
+        self._make_token(conn, made["alice"]["website_id"])
+
+        _context(conn, "user", user_email=made["bob"]["email"])
+        assert conn.execute(
+            text("SELECT count(*) FROM api_tokens WHERE website_id = :w"),
+            {"w": made["alice"]["website_id"]},
+        ).scalar() == 0, "Bob can see Alice's API tokens"
+
+        _context(conn, "user", user_email=made["alice"]["email"])
+        assert conn.execute(
+            text("SELECT count(*) FROM api_tokens WHERE website_id = :w"),
+            {"w": made["alice"]["website_id"]},
+        ).scalar() == 1, "the owner cannot see their own tokens"
+
+    def test_a_member_may_list_tokens_but_not_mint_them(self, tenants):
+        """Matches the routes: listing takes any role, creating takes owner."""
+        conn, made = tenants
+        _context(conn, "job")
+        self._make_token(conn, made["alice"]["website_id"])
+        _add_member(conn, made["alice"]["website_id"], made["bob"]["email"], "active")
+
+        _context(conn, "user", user_email=made["bob"]["email"])
+        assert conn.execute(
+            text("SELECT count(*) FROM api_tokens WHERE website_id = :w"),
+            {"w": made["alice"]["website_id"]},
+        ).scalar() == 1, "an active member cannot list tokens"
+
+        with pytest.raises(Exception):
+            self._make_token(conn, made["alice"]["website_id"])
+
+    def test_alert_settings_do_not_cross_tenants(self, tenants):
+        conn, made = tenants
+        _context(conn, "job")
+        self._make_alert_settings(
+            conn, made["alice"]["website_id"], made["alice"]["email"]
+        )
+
+        _context(conn, "user", user_email=made["bob"]["email"])
+        assert conn.execute(
+            text("SELECT count(*) FROM alert_settings WHERE website_id = :w"),
+            {"w": made["alice"]["website_id"]},
+        ).scalar() == 0, "Bob can read Alice's alert settings"
+
+    def test_a_viewer_cannot_change_alert_settings(self, tenants):
+        """Viewers read settings; only owners and admins change them."""
+        conn, made = tenants
+        _context(conn, "job")
+        self._make_alert_settings(
+            conn, made["alice"]["website_id"], made["alice"]["email"]
+        )
+        _add_member(conn, made["alice"]["website_id"], made["bob"]["email"], "active")
+
+        _context(conn, "user", user_email=made["bob"]["email"])
+        assert conn.execute(
+            text("SELECT count(*) FROM alert_settings WHERE website_id = :w"),
+            {"w": made["alice"]["website_id"]},
+        ).scalar() == 1, "a viewer cannot read the settings they are allowed to see"
+
+        updated = conn.execute(
+            text(
+                "UPDATE alert_settings SET spike_threshold = 99 "
+                "WHERE website_id = :w"
+            ),
+            {"w": made["alice"]["website_id"]},
+        ).rowcount
+        assert updated == 0, "a viewer changed the alert threshold"
+
     def test_no_context_reads_neither_table(self, tenants):
         """Fail closed: a request that declares nothing sees nothing."""
         conn, _ = tenants
