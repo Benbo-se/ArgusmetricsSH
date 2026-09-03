@@ -63,6 +63,11 @@ class WebsiteMember(Base):
     accepted_at = Column(DateTime(timezone=True), nullable=True)
     status = Column(SQLEnum(MemberStatus, values_callable=lambda x: [e.value for e in x], create_type=False), nullable=False, default=MemberStatus.PENDING)
     invite_token = Column(String(64), unique=True, nullable=True, index=True)
+    # Denormalised from websites.user_email so row-level security can police
+    # this table without referencing websites, which would make the two
+    # tables' policies reference each other and fail with "infinite recursion
+    # detected in policy". Maintained by a trigger. Do not set it by hand.
+    owner_email = Column(String(255), nullable=True, index=True)
 
     __table_args__ = (
         # Ensure one membership per user per website
