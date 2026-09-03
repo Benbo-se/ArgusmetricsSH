@@ -20,6 +20,7 @@ import uuid
 
 import pytest
 from sqlalchemy import create_engine, text
+from sqlalchemy.exc import ProgrammingError
 
 # Tables carrying tenant data, added here as each one gains policies.
 TENANT_TABLES = [
@@ -171,7 +172,7 @@ def test_public_context_is_pinned_to_one_website(tenants):
 def test_tracking_context_can_write_but_not_read(tenants):
     """The tracking endpoints take input from any visitor's browser."""
     conn, made = tenants
-    _context(conn, "tracking")
+    _context(conn, "tracking", website_id=made["alice"]["website_id"])
     assert conn.execute(text("SELECT count(*) FROM pageviews")).scalar() == 0, \
         "the tracking context can read pageviews"
     conn.execute(
@@ -179,6 +180,49 @@ def test_tracking_context_can_write_but_not_read(tenants):
              "VALUES (:w, '/tracked', 'h', now())"),
         {"w": made["alice"]["website_id"]},
     )
+
+
+def test_tracking_cannot_write_to_another_website(tenants):
+    """The gap the first version of these policies left open.
+
+    The write policy checked only that the context was 'tracking', so a
+    tracking request could insert against any customer's website. It now has
+    to be the website the request resolved.
+    """
+    conn, made = tenants
+    _context(conn, "tracking", website_id=made["alice"]["website_id"])
+
+    conn.execute(
+        text("INSERT INTO pageviews (website_id, path, visitor_hash, timestamp) "
+             "VALUES (:w, '/mine', 'h', now())"),
+        {"w": made["alice"]["website_id"]},
+    )
+
+    with pytest.raises(ProgrammingError) as caught:
+        conn.execute(
+            text("INSERT INTO pageviews (website_id, path, visitor_hash, timestamp) "
+                 "VALUES (:w, '/theirs', 'h', now())"),
+            {"w": made["bob"]["website_id"]},
+        )
+
+    assert "row-level security" in str(caught.value), (
+        "the insert failed for some reason other than the policy"
+    )
+    conn.rollback()
+
+
+def test_tracking_without_a_resolved_website_writes_nothing(tenants):
+    """Skipping the tracking-code lookup must fail closed, not open."""
+    conn, made = tenants
+    _context(conn, "tracking")
+
+    with pytest.raises(ProgrammingError):
+        conn.execute(
+            text("INSERT INTO pageviews (website_id, path, visitor_hash, timestamp) "
+                 "VALUES (:w, '/no-context', 'h', now())"),
+            {"w": made["alice"]["website_id"]},
+        )
+    conn.rollback()
 
 
 def test_a_stranger_sees_nothing(tenants):
@@ -373,6 +417,71 @@ class TestConfigurationTables:
             {"w": made["alice"]["website_id"]},
         ).rowcount
         assert updated == 0, "a viewer changed the alert threshold"
+
+    def _make_goal(self, conn, website_id, event_name="signup"):
+        conn.execute(
+            text(
+                "INSERT INTO goals (website_id, name, event_name, created_at) "
+                "VALUES (:w, 'g', :e, now())"
+            ),
+            {"w": website_id, "e": event_name},
+        )
+
+    def test_goals_do_not_cross_tenants(self, tenants):
+        conn, made = tenants
+        _context(conn, "job")
+        self._make_goal(conn, made["alice"]["website_id"], "alice-goal")
+
+        _context(conn, "user", user_email=made["bob"]["email"])
+        assert conn.execute(
+            text("SELECT count(*) FROM goals WHERE event_name = 'alice-goal'")
+        ).scalar() == 0, "Bob can read Alice's goals"
+
+        _context(conn, "user", user_email=made["alice"]["email"])
+        assert conn.execute(
+            text("SELECT count(*) FROM goals WHERE event_name = 'alice-goal'")
+        ).scalar() == 1, "the owner cannot read their own goal"
+
+    def test_tracking_reads_only_the_website_it_resolved(self, tenants):
+        """The reason these two tables came last.
+
+        The tracking path must read this configuration to know what counts as
+        a conversion. Scoping the tracking context to one website is what
+        makes that possible without exposing every tenant's goals.
+        """
+        conn, made = tenants
+        _context(conn, "job")
+        self._make_goal(conn, made["alice"]["website_id"], "alice-goal")
+        self._make_goal(conn, made["bob"]["website_id"], "bob-goal")
+
+        _context(conn, "tracking", website_id=made["alice"]["website_id"])
+        names = {r[0] for r in conn.execute(text("SELECT event_name FROM goals"))}
+
+        assert "alice-goal" in names, "tracking cannot read the goals it needs"
+        assert "bob-goal" not in names, "tracking can read another tenant's goals"
+
+    def test_tracking_cannot_change_a_goal(self, tenants):
+        """Goals are configuration. People create them, the tracker never does."""
+        conn, made = tenants
+        _context(conn, "job")
+        self._make_goal(conn, made["alice"]["website_id"], "alice-goal")
+
+        _context(conn, "tracking", website_id=made["alice"]["website_id"])
+        assert conn.execute(
+            text("UPDATE goals SET name = 'hijacked' WHERE event_name = 'alice-goal'")
+        ).rowcount == 0, "the tracking context changed a goal"
+
+    def test_a_viewer_cannot_create_a_goal(self, tenants):
+        """Reading takes any role, writing takes owner or admin."""
+        conn, made = tenants
+        _add_member(conn, made["alice"]["website_id"], made["bob"]["email"], "active")
+
+        _context(conn, "user", user_email=made["bob"]["email"])
+        with pytest.raises(ProgrammingError) as caught:
+            self._make_goal(conn, made["alice"]["website_id"], "sneaky")
+
+        assert "row-level security" in str(caught.value)
+        conn.rollback()
 
     def test_no_context_reads_neither_table(self, tenants):
         """Fail closed: a request that declares nothing sees nothing."""

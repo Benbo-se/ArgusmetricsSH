@@ -31,6 +31,25 @@ class TrackedWebsite:
     is_active: bool
 
 
+def _scope_tracking_context(db: Session, website_id: int) -> None:
+    """Pin the tracking context to one website, once that website is known.
+
+    Only ever narrows, and only a tracking context. A request that declared
+    something else, or nothing, is left alone: this function grants no access
+    that was not already there, it takes access away.
+
+    Imported here rather than at module scope to keep the import one-way,
+    since database.py has no business knowing about this module.
+    """
+    from app.database import RLS_INFO_KEY, set_rls_context
+
+    declared = db.info.get(RLS_INFO_KEY) or {}
+    if declared.get("context") != "tracking":
+        return
+
+    set_rls_context(db, context="tracking", website_id=website_id)
+
+
 def resolve_tracking_code(db: Session, tracking_code: str) -> Optional[TrackedWebsite]:
     """The website a tracking code belongs to, or None.
 
@@ -38,6 +57,12 @@ def resolve_tracking_code(db: Session, tracking_code: str) -> Optional[TrackedWe
     with them, because they report those two cases differently: an inactive
     site is an invalid code, an unverified one is a domain that has not proved
     ownership yet.
+
+    Narrows the tracking context to this website on the way out. This is the
+    one point where the tracking path learns which website it is dealing with,
+    so it is the only place that can, and putting it here means no tracking
+    path can forget. Forgetting would deny access rather than grant it, which
+    is the right way round for a mistake to fail.
     """
     row = db.execute(
         text(
@@ -49,6 +74,8 @@ def resolve_tracking_code(db: Session, tracking_code: str) -> Optional[TrackedWe
 
     if row is None:
         return None
+
+    _scope_tracking_context(db, row.id)
 
     return TrackedWebsite(
         id=row.id,
