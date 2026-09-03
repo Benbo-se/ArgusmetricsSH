@@ -159,6 +159,44 @@ class TestLogin:
         header = response.headers.get("set-cookie", "")
         assert "httponly" in header.lower(), f"session cookie is not httponly: {header}"
 
+    def test_the_session_cookie_is_secure_in_production(self, client, db):
+        """Secure means the browser refuses to send it over plain http.
+
+        Set from is_production, so development stays usable over http. This
+        suite runs in production mode, which is the configuration that has to
+        hold: without it the session token crosses the network in the clear on
+        any http request to the site.
+        """
+        from app.config import settings
+
+        assert settings.is_production, (
+            "this test only means something in production mode"
+        )
+
+        email, _ = _signup(client)
+        _verify_directly(db, email)
+
+        response = client.post(
+            "/api/v1/auth/login", json={"email": email, "password": PASSWORD}
+        )
+
+        header = response.headers.get("set-cookie", "")
+        assert "secure" in header.lower(), f"session cookie is not Secure: {header}"
+
+    def test_the_session_cookie_is_samesite_lax(self, client, db):
+        """The CSRF mitigation the dashboard relies on, since it has no token."""
+        email, _ = _signup(client)
+        _verify_directly(db, email)
+
+        response = client.post(
+            "/api/v1/auth/login", json={"email": email, "password": PASSWORD}
+        )
+
+        header = response.headers.get("set-cookie", "").lower()
+        assert "samesite=lax" in header or "samesite=strict" in header, (
+            f"session cookie has no SameSite protection: {header}"
+        )
+
 
 class TestLogout:
     def test_it_ends_the_session(self, client, db):
