@@ -164,6 +164,21 @@ def website(db):
 
 
 @pytest.fixture
+def shared_website(db, website):
+    """The fixture website, published behind a share token."""
+    token = uuid.uuid4().hex[:32]
+    db.execute(
+        text(
+            "UPDATE websites SET is_public = true, public_share_token = :t "
+            "WHERE id = :w"
+        ),
+        {"t": token, "w": website["id"]},
+    )
+    db.commit()
+    return {**website, "share_token": token}
+
+
+@pytest.fixture
 def goal(db, website):
     """A goal on the fixture website, keyed on the event name the app matches."""
     event_name = f"signup_{uuid.uuid4().hex[:6]}"

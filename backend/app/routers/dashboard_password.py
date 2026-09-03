@@ -19,6 +19,7 @@ from app.middleware.rate_limit import rate_limiter
 import logging
 
 from app.utils.security import mask_email
+from app.services.website_lookup import resolve_share_token
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/dashboard-password", tags=["Dashboard Password"])
@@ -229,10 +230,10 @@ async def verify_dashboard_password(
 
     try:
         # Find website by public share token
-        website = db.query(Website).filter(
-            Website.public_share_token == share_token,
-            Website.is_public == True
-        ).first()
+        # Anonymous viewer: resolved through a SECURITY DEFINER function that
+        # returns only the fields a public dashboard needs, so this path never
+        # has read access to websites. See app/services/website_lookup.py.
+        website = resolve_share_token(db, share_token)
 
         if not website:
             raise HTTPException(
@@ -345,10 +346,10 @@ async def check_password_required(
     """
     try:
         # Find website by public share token
-        website = db.query(Website).filter(
-            Website.public_share_token == share_token,
-            Website.is_public == True
-        ).first()
+        # Anonymous viewer: resolved through a SECURITY DEFINER function that
+        # returns only the fields a public dashboard needs, so this path never
+        # has read access to websites. See app/services/website_lookup.py.
+        website = resolve_share_token(db, share_token)
 
         if not website:
             raise HTTPException(

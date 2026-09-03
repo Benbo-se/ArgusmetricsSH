@@ -4,6 +4,8 @@ Every assertion here checks the database. This project has repeatedly shipped
 features whose UI rendered and whose endpoint returned 200 while nothing was
 recorded, so a status code on its own proves nothing.
 """
+import uuid
+
 from sqlalchemy import text
 
 from tests.conftest import count, reason
@@ -132,6 +134,49 @@ class TestTrackingCodeResolution:
 
         assert tracking_code_exists(db, website["tracking_code"]) is True
         assert tracking_code_exists(db, "zzzzzzzz") is False
+
+
+class TestShareTokenResolution:
+    """A public dashboard is anonymous, so it sees six fields and no more."""
+
+    def test_it_returns_only_what_a_public_dashboard_needs(self, db, shared_website):
+        from app.services.website_lookup import resolve_share_token
+
+        found = resolve_share_token(db, shared_website["share_token"])
+
+        assert found is not None
+        assert found.id == shared_website["id"]
+        assert found.name.startswith("Test site")
+        assert found.is_public is True
+        # The reason this goes through a function at all.
+        for hidden in (
+            "user_email",
+            "tracking_code",
+            "verification_token",
+            "email_reports_recipient",
+        ):
+            assert not hasattr(found, hidden), f"{hidden} reached an anonymous viewer"
+
+    def test_an_unshared_website_does_not_resolve(self, db, website):
+        """A link that was never published, or was revoked, resolves to nothing."""
+        from app.services.website_lookup import resolve_share_token
+
+        token = uuid.uuid4().hex[:32]
+        db.execute(
+            text(
+                "UPDATE websites SET is_public = false, public_share_token = :t "
+                "WHERE id = :w"
+            ),
+            {"t": token, "w": website["id"]},
+        )
+        db.commit()
+
+        assert resolve_share_token(db, token) is None
+
+    def test_an_unknown_token_resolves_to_nothing(self, db):
+        from app.services.website_lookup import resolve_share_token
+
+        assert resolve_share_token(db, "nope-not-a-real-token") is None
 
 
 class TestTrackPageview:

@@ -58,6 +58,50 @@ def resolve_tracking_code(db: Session, tracking_code: str) -> Optional[TrackedWe
     )
 
 
+@dataclass(frozen=True)
+class PublicWebsite:
+    """The parts of a website an anonymous share-link viewer may see.
+
+    Notably absent: user_email, tracking_code, verification_token and the
+    email report settings.
+    """
+
+    id: int
+    name: str
+    domain: str
+    is_public: bool
+    public_password_enabled: bool
+    public_password_hash: Optional[str]
+
+
+def resolve_share_token(db: Session, share_token: str) -> Optional[PublicWebsite]:
+    """The website a public share token points at, or None.
+
+    Only returns websites that are actually shared: the function filters on
+    is_public, so a link that was revoked resolves to nothing.
+    """
+    row = db.execute(
+        text(
+            "SELECT id, name, domain, is_public, public_password_enabled,"
+            "       public_password_hash "
+            "FROM argus_resolve_share_token(:token)"
+        ),
+        {"token": share_token},
+    ).first()
+
+    if row is None:
+        return None
+
+    return PublicWebsite(
+        id=row.id,
+        name=row.name,
+        domain=row.domain,
+        is_public=row.is_public,
+        public_password_enabled=row.public_password_enabled,
+        public_password_hash=row.public_password_hash,
+    )
+
+
 def tracking_code_exists(db: Session, tracking_code: str) -> bool:
     """Whether any website already uses this code.
 

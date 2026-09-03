@@ -18,7 +18,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy import text
 
 from app.models.website import Website
-from app.services.website_lookup import tracking_code_exists
+from app.services.website_lookup import resolve_share_token, tracking_code_exists
 from app.config import settings
 
 logger = logging.getLogger(__name__)
@@ -584,13 +584,17 @@ class WebsiteService:
             logger.error(f"Error getting monthly pageviews: {e}", exc_info=True)
             return 0
 
-    def get_public_website(self, share_token: str) -> Optional[Website]:
-        """Get a publicly shared website by its share token."""
+    def get_public_website(self, share_token: str):
+        """Get a publicly shared website by its share token.
+
+        Returns a PublicWebsite, not a Website. The viewer is anonymous, so
+        the lookup goes through a SECURITY DEFINER function that hands back
+        only the six fields the public dashboard uses and leaves user_email,
+        tracking_code and verification_token out of reach. See
+        app/services/website_lookup.py.
+        """
         try:
-            return self.db.query(Website).filter(
-                Website.public_share_token == share_token,
-                Website.is_public == True
-            ).first()
+            return resolve_share_token(self.db, share_token)
         except Exception as e:
             logger.error(f"Error getting public website: {e}", exc_info=True)
             return None
