@@ -42,7 +42,7 @@
       },
       "license": "https://www.gnu.org/licenses/agpl-3.0.html",
       "isAccessibleForFree": true,
-      "description": "Free, open-source, self-hosted privacy-focused web analytics. GDPR-friendly by default. No cookies, no tracking.",
+      "description": "Free, open-source privacy-focused web analytics. GDPR-friendly by default. No cookies, no tracking.",
       "url": "https://argusmetrics.io",
       "screenshot": "https://argusmetrics.io/static/img/og-image.png",
       "featureList": [
@@ -208,13 +208,13 @@
                         </div>
                     </div>
 
-                    <a href="#self-host" class="text-gray-600 hover:text-gray-900 text-sm font-medium px-3 py-2 rounded-md hover:bg-gray-50 transition-colors">Self-host</a>
+                    <a href="https://github.com/Benbo-se/ArgusmetricsSH" target="_blank" rel="noopener noreferrer" class="flex items-center gap-1.5 text-gray-600 hover:text-gray-900 text-sm font-medium px-3 py-2 rounded-md hover:bg-gray-50 transition-colors"><i class="fab fa-github"></i> GitHub</a>
 
                     <div class="w-px h-5 bg-gray-200 mx-1"></div>
 
-                    <a href="https://github.com/Benbo-se/ArgusmetricsSH" target="_blank" rel="noopener noreferrer" class="flex items-center gap-1.5 text-gray-600 hover:text-gray-900 text-sm font-medium px-3 py-2 rounded-md hover:bg-gray-50 transition-colors"><i class="fab fa-github"></i> GitHub</a>
-                    <a href="https://github.com/Benbo-se/ArgusmetricsSH" target="_blank" rel="noopener noreferrer" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors">
-                        Self-host
+                    <a href="/login" class="text-gray-600 hover:text-gray-900 text-sm font-medium px-3 py-2 rounded-md hover:bg-gray-50 transition-colors">Log in</a>
+                    <a href="/signup" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors">
+                        Get started
                     </a>
                 </div>
 
@@ -258,7 +258,8 @@
                 <a href="https://github.com/Benbo-se/ArgusmetricsSH" target="_blank" rel="noopener noreferrer" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">GitHub</a>
                 <div class="border-t border-gray-100 mt-2 pt-2">
                     <a href="#self-host" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">Self-host</a>
-                    <a href="https://github.com/Benbo-se/ArgusmetricsSH" target="_blank" rel="noopener noreferrer" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md text-center">Self-host on GitHub</a>
+                    <a href="/login" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">Log in</a>
+                    <a href="/signup" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md text-center">Get started</a>
                 </div>
             </div>
         </div>
@@ -275,7 +276,7 @@
                     All eyes on your traffic. None on your visitors.
                 </p>
                 <p class="text-xl md:text-2xl text-gray-600 mb-6">
-                    Free, open-source, self-hosted analytics that respects user privacy.
+                    Free, open-source analytics that respects user privacy.
                     <span class="text-blue-600 font-semibold">GDPR-friendly by default.</span>
                     No cookies, no tracking pixels, no compromises.
                 </p>
@@ -288,7 +289,7 @@
                     </div>
                     <div class="flex items-center gap-2 text-gray-700">
                         <i class="fas fa-server text-blue-600 text-lg"></i>
-                        <span class="text-sm font-medium">Self-Hosted</span>
+                        <span class="text-sm font-medium">GDPR-friendly</span>
                     </div>
                     <div class="flex items-center gap-2 text-gray-700">
                         <i class="fas fa-cookie-bite text-blue-600 text-lg"></i>
@@ -297,19 +298,19 @@
                 </div>
 
                 <div class="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-                    <a href="https://github.com/Benbo-se/ArgusmetricsSH" target="_blank" rel="noopener noreferrer" class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-lg text-lg font-semibold transition-all transform hover:scale-105 shadow-lg">
-                        <i class="fab fa-github mr-2"></i>View on GitHub
+                    <a href="/signup" class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-lg text-lg font-semibold transition-all transform hover:scale-105 shadow-lg">
+                        Get started free
                     </a>
-                    <a href="#self-host" class="bg-white hover:bg-gray-50 text-blue-600 px-8 py-4 rounded-lg text-lg font-semibold border-2 border-blue-600 transition-all hover:border-blue-700">
-                        Self-host guide
+                    <a href="https://github.com/Benbo-se/ArgusmetricsSH" target="_blank" rel="noopener noreferrer" class="bg-white hover:bg-gray-50 text-blue-600 px-8 py-4 rounded-lg text-lg font-semibold border-2 border-blue-600 transition-all hover:border-blue-700">
+                        <i class="fab fa-github mr-2"></i>View the source
                     </a>
                 </div>
                 <p class="text-sm text-gray-500">
-                    <i class="fas fa-check text-green-500"></i> Free &amp; open source
+                    <i class="fas fa-check text-green-500"></i> No credit card
                     <span class="mx-2">&bull;</span>
-                    <i class="fas fa-check text-green-500"></i> Self-hosted
+                    <i class="fas fa-check text-green-500"></i> No cookie banner
                     <span class="mx-2">&bull;</span>
-                    <i class="fas fa-check text-green-500"></i> No signup
+                    <i class="fas fa-check text-green-500"></i> Open source
                 </p>
             </div>
 
@@ -354,7 +355,7 @@
                     </div>
                     <div class="flex-1 text-center">
                         <div class="inline-block bg-white rounded px-3 py-1 text-xs text-gray-500 border border-gray-200">
-                            your-server.com/dashboard
+                            argusmetrics.io/dashboard
                         </div>
                     </div>
                 </div>
@@ -555,7 +556,7 @@
                             <td class="px-6 py-4 text-center text-gray-500">Paid only</td>
                         </tr>
                         <tr class="bg-gray-50">
-                            <td class="px-6 py-4 text-sm text-gray-900">Free &amp; self-hosted</td>
+                            <td class="px-6 py-4 text-sm text-gray-900">Free to use</td>
                             <td class="px-6 py-4 text-center text-blue-600 font-semibold">Unlimited</td>
                             <td class="px-6 py-4 text-center"><i class="fas fa-times text-red-500 text-xl"></i></td>
                             <td class="px-6 py-4 text-center text-gray-500">Self-host (CE)</td>
@@ -576,11 +577,12 @@
     <section id="self-host" class="py-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-white via-gray-50 to-white">
         <div class="max-w-6xl mx-auto">
             <div class="text-center mb-14">
-                <span class="inline-block bg-green-100 text-green-700 text-xs font-bold px-3 py-1 rounded-full mb-4 uppercase tracking-wider">100% Free &amp; Open Source</span>
-                <h2 class="text-4xl sm:text-5xl font-bold text-gray-900 mb-4">Self-host it in two minutes</h2>
+                <span class="inline-block bg-yellow-100 text-yellow-800 text-xs font-bold px-3 py-1 rounded-full mb-4 uppercase tracking-wider">Self-host edition &mdash; coming soon</span>
+                <h2 class="text-4xl sm:text-5xl font-bold text-gray-900 mb-4">Or run it on your own server</h2>
                 <p class="text-xl text-gray-600 max-w-2xl mx-auto">
-                    No plans, no limits, no signup. Licensed under <strong>AGPL-3.0</strong> &mdash;
-                    run it on your own server and own every byte of your analytics.
+                    Argusmetrics is <strong>AGPL-3.0</strong> and the source is public today. A packaged
+                    self-host release is still being finished &mdash; until then, the hosted version above
+                    is the supported way to use it.
                 </p>
             </div>
 
@@ -661,13 +663,13 @@
     <!-- CTA Section -->
     <section class="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-blue-600 to-indigo-600">
         <div class="max-w-4xl mx-auto text-center">
-            <h2 class="text-4xl font-bold text-white mb-6">Ready to self-host?</h2>
-            <p class="text-xl text-blue-100 mb-8">Free, open-source, privacy-first analytics on your own server</p>
-            <a href="https://github.com/Benbo-se/ArgusmetricsSH" target="_blank" rel="noopener noreferrer" class="inline-block bg-white text-blue-600 hover:bg-gray-100 px-8 py-4 rounded-lg text-lg font-semibold transition-all transform hover:scale-105 shadow-xl">
-                <i class="fab fa-github mr-2"></i>View on GitHub
+            <h2 class="text-4xl font-bold text-white mb-6">Ready to get started?</h2>
+            <p class="text-xl text-blue-100 mb-8">Add one small script and watch your traffic arrive &mdash; no cookie banner required</p>
+            <a href="/signup" class="inline-block bg-white text-blue-600 hover:bg-gray-100 px-8 py-4 rounded-lg text-lg font-semibold transition-all transform hover:scale-105 shadow-xl">
+                Get started free
             </a>
             <p class="text-blue-100 mt-6 text-sm">
-                Free &amp; open source &bull; Self-hosted &bull; No signup
+                No credit card &bull; No cookie banner &bull; Open source
             </p>
         </div>
     </section>
@@ -681,7 +683,7 @@
                         <img src="static/img/logo-96.png" alt="Argusmetrics" width="48" height="48" class="h-12 w-12">
                         <h3 class="text-white font-bold text-lg">Argusmetrics</h3>
                     </div>
-                    <p class="text-sm text-gray-400">Free, open-source, self-hosted privacy-first web analytics.</p>
+                    <p class="text-sm text-gray-400">Free, open-source, privacy-first web analytics.</p>
                 </div>
                 <div>
                     <h4 class="text-white font-semibold mb-4">Product</h4>
