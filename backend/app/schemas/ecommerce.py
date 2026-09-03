@@ -1,7 +1,7 @@
 """
 Pydantic schemas for e-commerce tracking endpoints.
 """
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 from typing import Optional, Dict, Any, List
 from datetime import datetime
 from decimal import Decimal
@@ -50,11 +50,13 @@ class EcommerceEventRequest(BaseModel):
         example="ORDER-2025-001"
     )
 
-    # Revenue data
+    # Revenue data. Upper bound matters: tracking codes are public, so one
+    # spoofed event with revenue=9e15 would wreck every revenue chart.
     revenue: Optional[Decimal] = Field(
         None,
         description="Transaction revenue",
         ge=0,
+        le=100_000_000,
         example=99.99
     )
 
@@ -127,6 +129,7 @@ class EcommerceEventRequest(BaseModel):
         None,
         description="Product price per unit",
         ge=0,
+        le=100_000_000,
         example=99.99
     )
 
@@ -136,6 +139,13 @@ class EcommerceEventRequest(BaseModel):
         description="Additional custom properties",
         example={"payment_method": "credit_card", "coupon": "SAVE20"}
     )
+
+    @field_validator("properties")
+    @classmethod
+    def _validate_properties(cls, v):
+        """Same bounds as pageview/custom-event properties (was unvalidated)."""
+        from app.schemas.analytics import validate_event_properties
+        return validate_event_properties(v)
 
     # UTM parameters
     utm_source: Optional[str] = Field(None, max_length=255)
@@ -167,6 +177,15 @@ class EcommerceEventRequest(BaseModel):
     def validate_currency(cls, v: str) -> str:
         """Validate currency is uppercase ISO 4217 code."""
         return v.upper()
+
+    @model_validator(mode="after")
+    def require_transaction_id_for_purchases(self):
+        """Purchases and refunds must carry a transaction_id so the partial
+        unique index can deduplicate them — without one, replayed/forged
+        purchase events bypass idempotency entirely."""
+        if self.event_type in ("purchase", "refund") and not self.transaction_id:
+            raise ValueError(f"transaction_id is required for {self.event_type} events")
+        return self
 
     class Config:
         json_schema_extra = {

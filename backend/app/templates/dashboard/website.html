@@ -11,20 +11,30 @@
 {% endblock %}
 
 {% block content %}
+<!-- Filter state comes from URL query params (attacker-influencable via a
+     crafted link) and from stored analytics values: parse from a JSON island,
+     never interpolate into the x-data expression. -->
+<script type="application/json" id="page-state-data">{{ {
+    'range': selected_range,
+    'compare': compare_enabled,
+    'filters': {
+        'country': active_filters.country or '',
+        'device': active_filters.device or '',
+        'browser': active_filters.browser or '',
+        'page': active_filters.page or '',
+        'referrer': active_filters.referrer or '',
+        'properties': active_filters.properties or {}
+    }
+} | tojson }}</script>
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" x-data="{
-    range: '{{ selected_range }}',
-    compareEnabled: {{ 'true' if compare_enabled else 'false' }},
+    _state: JSON.parse(document.getElementById('page-state-data').textContent),
+    get range() { return this._state.range }, set range(v) { this._state.range = v },
+    compareEnabled: false,
     dropdownOpen: false,
     pageTab: 'top',
     propertyDropdownOpen: false,
-    filters: {
-        country: '{{ active_filters.country if active_filters.country else '' }}',
-        device: '{{ active_filters.device if active_filters.device else '' }}',
-        browser: '{{ active_filters.browser if active_filters.browser else '' }}',
-        page: '{{ active_filters.page if active_filters.page else '' }}',
-        referrer: '{{ active_filters.referrer if active_filters.referrer else '' }}',
-        properties: {{ active_filters.properties|tojson if active_filters.properties else '{}' }}
-    },
+    get filters() { return this._state.filters },
+    init() { this.compareEnabled = this._state.compare },
     get rangeText() {
         switch(this.range) {
             case '30d': return 'Last 30 days';
@@ -654,9 +664,13 @@
             <!-- Top Pages Tab Content -->
             <div x-show="pageTab === 'top'">
                 {% if stats.top_pages and stats.top_pages|length > 0 %}
-                <!-- Data injected as JSON so visitor-controlled paths are not interpolated
-                     into inline Alpine JS expressions (XSS-safe via |tojson). -->
-                <div class="space-y-3" x-data="{ topPages: {{ stats.top_pages|tojson }} }">
+                <!-- Visitor-controlled paths go through a JSON script island:
+                     |tojson does NOT escape double quotes, so putting it inside a
+                     double-quoted attribute lets a crafted path terminate the
+                     attribute and inject a native event handler (stored XSS).
+                     Script context is safe (tojson escapes </script>). -->
+                {{ '' }}<script type="application/json" id="top-pages-data">{{ stats.top_pages|tojson }}</script>
+                <div class="space-y-3" x-data="{ topPages: JSON.parse(document.getElementById('top-pages-data').textContent) }">
                     <template x-for="page in topPages" :key="page.path">
                         <div @click="applyFilter('page', page.path)"
                              class="flex items-center justify-between py-2 border-b border-gray-100 last:border-0 cursor-pointer hover:bg-gray-50 transition-colors rounded px-2 -mx-2"
@@ -729,10 +743,11 @@
                 <span x-show="filters.referrer" class="ml-2 text-sm font-normal text-blue-600">(filtered)</span>
             </h2>
             {% if stats.top_referrers and stats.top_referrers|length > 0 %}
-            <!-- Data injected as JSON so visitor-controlled referrers are not interpolated
-                 into inline Alpine JS expressions (XSS-safe via |tojson). -->
+            <!-- Same XSS rationale as the Top Pages island: never |tojson inside
+                 a double-quoted attribute. -->
+            {{ '' }}<script type="application/json" id="top-referrers-data">{{ stats.top_referrers|tojson }}</script>
             <div class="space-y-3" x-data="{
-                topReferrers: {{ stats.top_referrers|tojson }},
+                topReferrers: JSON.parse(document.getElementById('top-referrers-data').textContent),
                 referrerIcon(referrer) {
                     const r = (referrer || '').toLowerCase();
                     if (r.includes('google')) return '🔍';
@@ -1266,9 +1281,14 @@ argus.trackEvent('button_click', {
             {% if stats.top_browsers and stats.top_browsers|length > 0 %}
             <div class="space-y-3">
                 {% for browser in stats.top_browsers %}
-                <div @click="applyFilter('browser', '{{ browser.browser }}')"
+                <!-- Browser name comes from the visitor's User-Agent: read it from a
+                     data attribute (autoescape covers double-quoted attrs) instead of
+                     interpolating into the Alpine expression, where a decoded quote
+                     would break out of the JS string. -->
+                <div data-browser="{{ browser.browser }}"
+                     @click="applyFilter('browser', $el.dataset.browser)"
                      class="flex items-center justify-between py-2 px-2 -mx-2 cursor-pointer hover:bg-gray-50 transition-colors rounded"
-                     :class="{ 'bg-blue-50 border-l-4 border-blue-500': filters.browser === '{{ browser.browser }}' }">
+                     :class="{ 'bg-blue-50 border-l-4 border-blue-500': filters.browser === $el.dataset.browser }">
                     <div class="flex items-center gap-2">
                         {%- if 'Chrome' in browser.browser and 'Chromium' not in browser.browser -%}
                             <i class="fab fa-chrome text-lg" style="color: #4285f4;"></i>

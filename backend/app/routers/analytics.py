@@ -177,7 +177,11 @@ async def get_current_user_or_token(
             if website:
                 user = db.query(User).filter(User.email == website.user_email).first()
                 if user:
-                    logger.debug(f"Authenticated via API token: {user.email}")
+                    # Scope marker: an API token is minted FOR ONE WEBSITE and
+                    # must not unlock the owner's other sites. Endpoints check
+                    # this via _enforce_token_scope.
+                    user._api_token_website_id = token_obj.website_id
+                    logger.debug(f"Authenticated via API token (website {token_obj.website_id}): {user.email}")
                     return user
 
         logger.warning(f"Invalid API token provided")
@@ -194,6 +198,14 @@ async def get_current_user_or_token(
         )
 
     return get_current_user(authorization, None, get_auth_service(db))
+
+
+def _enforce_token_scope(current_user: User, website_id: int) -> None:
+    """When authenticated via a website-scoped API token, refuse access to any
+    other website — even ones the token's owner could see with a session."""
+    scope = getattr(current_user, "_api_token_website_id", None)
+    if scope is not None and scope != website_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Website not found or access denied")
 
 
 @router.post("/track", response_model=PageviewTrackResponse, status_code=status.HTTP_200_OK, dependencies=[Depends(check_track_rate_limit)])
@@ -327,6 +339,7 @@ async def get_dashboard_stats(
     website = website_service.get_website_by_id(website_id, current_user.email)
     if not website:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Website not found or access denied")
+    _enforce_token_scope(current_user, website_id)
     
     # Parse dates or use defaults (last 30 days)
     try:
@@ -367,6 +380,7 @@ async def get_realtime_stats(
     website = website_service.get_website_by_id(website_id, current_user.email)
     if not website:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Website not found or access denied")
+    _enforce_token_scope(current_user, website_id)
     
     # Get realtime stats
     try:
@@ -387,15 +401,21 @@ async def create_goal(
     website_id: int,
     current_user: User = Depends(get_current_user),
     analytics_service: AnalyticsService = Depends(get_analytics_service),
-    website_service: WebsiteService = Depends(get_website_service)
+    website_service: WebsiteService = Depends(get_website_service),
+    db: Session = Depends(get_db)
 ) -> GoalResponse:
     """Create a new goal for a website."""
     logger.info(f"Create goal request: website_id={website_id}, name={goal_data.name}")
+
+    from app.services.team_service import require_website_role_or_404
+    from app.models.website_member import MemberRole
+    require_website_role_or_404(db, current_user.email, website_id, MemberRole.ADMIN)
 
     # Verify website ownership
     website = website_service.get_website_by_id(website_id, current_user.email)
     if not website:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Website not found or access denied")
+    _enforce_token_scope(current_user, website_id)
 
     # Create goal
     goal = analytics_service.create_goal(
@@ -533,6 +553,7 @@ async def get_goal_stats(
     website = website_service.get_website_by_id(website_id, current_user.email)
     if not website:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Website not found or access denied")
+    _enforce_token_scope(current_user, website_id)
 
     # Parse dates or use defaults (last 30 days)
     try:
@@ -568,10 +589,15 @@ async def update_goal(
 
     logger.info(f"Update goal request: goal_id={goal_id}, website_id={website_id}")
 
+    from app.services.team_service import require_website_role_or_404
+    from app.models.website_member import MemberRole
+    require_website_role_or_404(db, current_user.email, website_id, MemberRole.ADMIN)
+
     # Verify website ownership
     website = website_service.get_website_by_id(website_id, current_user.email)
     if not website:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Website not found or access denied")
+    _enforce_token_scope(current_user, website_id)
 
     # Get the goal
     goal = db.query(Goal).filter(
@@ -612,13 +638,18 @@ async def delete_goal(
     website_id: int,
     current_user: User = Depends(get_current_user),
     analytics_service: AnalyticsService = Depends(get_analytics_service),
-    website_service: WebsiteService = Depends(get_website_service)
+    website_service: WebsiteService = Depends(get_website_service),
+    db: Session = Depends(get_db)
 ):
     """Delete a goal."""
+    from app.services.team_service import require_website_role_or_404
+    from app.models.website_member import MemberRole
+    require_website_role_or_404(db, current_user.email, website_id, MemberRole.ADMIN)
     # Verify website ownership
     website = website_service.get_website_by_id(website_id, current_user.email)
     if not website:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Website not found or access denied")
+    _enforce_token_scope(current_user, website_id)
 
     success = analytics_service.delete_goal(goal_id, website_id)
     if not success:
@@ -654,6 +685,7 @@ async def export_csv(
     website = website_service.get_website_by_id(website_id, current_user.email)
     if not website:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Website not found or access denied")
+    _enforce_token_scope(current_user, website_id)
 
     # Parse dates
     try:
@@ -727,6 +759,7 @@ async def export_json(
     website = website_service.get_website_by_id(website_id, current_user.email)
     if not website:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Website not found or access denied")
+    _enforce_token_scope(current_user, website_id)
 
     # Parse dates
     try:
@@ -879,6 +912,7 @@ async def get_alert_settings(
     website = website_service.get_website_by_id(website_id, current_user.email)
     if not website:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Website not found or access denied")
+    _enforce_token_scope(current_user, website_id)
 
     settings = alert_service.get_or_create_settings(website_id, current_user.email)
     return AlertSettingsResponse.model_validate(settings)
@@ -934,6 +968,7 @@ async def get_custom_events_summary(
     website = website_service.get_website_by_id(website_id, current_user.email)
     if not website:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Website not found or access denied")
+    _enforce_token_scope(current_user, website_id)
 
     # Parse dates or use defaults (last 30 days)
     try:
@@ -971,6 +1006,7 @@ async def get_event_details(
     website = website_service.get_website_by_id(website_id, current_user.email)
     if not website:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Website not found or access denied")
+    _enforce_token_scope(current_user, website_id)
 
     # Parse dates or use defaults (last 30 days)
     try:
@@ -1011,6 +1047,7 @@ async def get_available_properties(
     website = website_service.get_website_by_id(website_id, current_user.email)
     if not website:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Website not found or access denied")
+    _enforce_token_scope(current_user, website_id)
 
     # Parse dates or use defaults (last 30 days)
     try:

@@ -23,7 +23,7 @@
                 <!-- User menu -->
                 <div class="flex items-center space-x-4">
                     <span class="text-sm text-gray-600">{{ current_user.email }}</span>
-                    <a href="/logout" class="text-sm text-gray-700 hover:text-gray-900">Logout</a>
+                    <form method="post" action="/logout" class="inline"><button type="submit" class="text-sm text-gray-700 hover:text-gray-900">Logout</button></form>
                 </div>
             </div>
 
@@ -64,10 +64,11 @@
                 <div class="py-2 text-sm text-gray-600 font-medium">
                     {{ current_user.email }}
                 </div>
-                <a href="/logout"
-                   class="block px-3 py-2 text-base font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-md transition">
-                    Logout
-                </a>
+                <form method="post" action="/logout">
+                    <button type="submit" class="block w-full text-left px-3 py-2 text-base font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-md transition">
+                        Logout
+                    </button>
+                </form>
             </div>
         </div>
     </div>

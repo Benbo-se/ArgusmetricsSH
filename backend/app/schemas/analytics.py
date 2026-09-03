@@ -16,14 +16,20 @@ from datetime import datetime
 # cannot exfiltrate large blobs of (potentially personal) data into analytics.
 MAX_PROPERTY_KEYS = 50
 MAX_PROPERTY_STRING_LENGTH = 500
+# Total serialized budget: closes the nested-value loophole where a dict/list
+# value of arbitrary depth slipped past the per-string caps and let a stolen
+# (public) tracking code store multi-hundred-KB JSONB rows.
+MAX_PROPERTIES_JSON_BYTES = 8 * 1024
 
 
 def validate_event_properties(value: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
     """Cap the size of a custom-event ``properties`` mapping.
 
-    Rejects payloads with too many keys, or with string keys/values longer than
-    the allowed limit. Properties MUST NOT contain PII (emails, names, raw user
-    input, etc.); these bounds keep the payload to small segmentation values.
+    Rejects payloads with too many keys, string keys/values longer than the
+    allowed limit, or a total serialized size over the byte budget (which also
+    bounds nested dicts/lists). Properties MUST NOT contain PII (emails,
+    names, raw user input, etc.); these bounds keep the payload to small
+    segmentation values.
     """
     if value is None:
         return None
@@ -46,6 +52,16 @@ def validate_event_properties(value: Optional[Dict[str, Any]]) -> Optional[Dict[
                 f"(max {MAX_PROPERTY_STRING_LENGTH} chars). "
                 f"Properties must not contain PII."
             )
+
+    import json
+    try:
+        serialized = len(json.dumps(value, separators=(",", ":")))
+    except (TypeError, ValueError):
+        raise ValueError("Properties must be JSON-serializable values.")
+    if serialized > MAX_PROPERTIES_JSON_BYTES:
+        raise ValueError(
+            f"Properties payload too large ({serialized} bytes, max {MAX_PROPERTIES_JSON_BYTES})."
+        )
 
     return value
 

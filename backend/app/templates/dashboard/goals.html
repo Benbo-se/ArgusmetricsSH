@@ -20,9 +20,12 @@
     </div>
 
     <!-- Goals List Section -->
+    <!-- JSON island: |tojson doesn't escape double quotes, so it must never
+         sit inside a double-quoted attribute (attribute-breakout XSS). -->
+    <script type="application/json" id="goals-data">{{ goals | tojson }}</script>
     <div class="bg-white rounded-lg shadow p-6 mb-8"
          x-data="{
-             goals: {{ goals | tojson | safe }},
+             goals: JSON.parse(document.getElementById('goals-data').textContent),
              showCreateModal: false,
              showDeleteModal: false,
              editingGoal: null,

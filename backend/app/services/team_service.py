@@ -15,6 +15,32 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 
 from app.models.website_member import WebsiteMember, MemberRole, MemberStatus
+
+
+def require_website_role_or_404(db, user_email: str, website_id: int, minimum: "MemberRole"):
+    """
+    FastAPI-router guard: 404 when the user has no access to the website at
+    all (don't reveal existence), 403 when they have access but a weaker role
+    than `minimum`. Returns the role on success.
+
+    Use on every MUTATING website-scoped endpoint — read access is not the
+    same as the right to change or destroy things.
+    """
+    from fastapi import HTTPException, status as http_status
+
+    role = TeamService(db).check_website_access(user_email, website_id)
+    if not role:
+        raise HTTPException(
+            status_code=http_status.HTTP_404_NOT_FOUND,
+            detail="Website not found or access denied",
+        )
+    hierarchy = {MemberRole.OWNER: 3, MemberRole.ADMIN: 2, MemberRole.VIEWER: 1}
+    if hierarchy[role] < hierarchy[minimum]:
+        raise HTTPException(
+            status_code=http_status.HTTP_403_FORBIDDEN,
+            detail=f"You need {minimum.value} access for this action",
+        )
+    return role
 from app.models.website import Website
 from app.models.user import User
 from app.services.email_service import email_service

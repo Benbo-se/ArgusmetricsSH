@@ -20,9 +20,12 @@
     </div>
 
     <!-- Funnels Management Section -->
+    <!-- JSON island: |tojson doesn't escape double quotes, so it must never
+         sit inside a double-quoted attribute (attribute-breakout XSS). -->
+    <script type="application/json" id="funnels-data">{{ funnels | tojson }}</script>
     <div class="bg-white rounded-lg shadow p-6 mb-8"
          x-data="{
-             funnels: {{ funnels | tojson | safe }},
+             funnels: JSON.parse(document.getElementById('funnels-data').textContent),
              funnelStats: {},
              showCreateModal: false,
              showDeleteModal: false,

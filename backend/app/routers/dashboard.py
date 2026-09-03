@@ -96,10 +96,18 @@ def _public_cookie_name(share_token: str) -> str:
     return "pub_dash_access"
 
 
-def _has_valid_public_cookie(request: Request, share_token: str) -> bool:
+def _public_pw_state(website) -> str:
+    """Fingerprint of the current password protection: baked into the signed
+    cookie so changing/removing the password invalidates outstanding unlocks."""
+    import hashlib
+    raw = website.public_password_hash or "no-password"
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:12]
+
+
+def _has_valid_public_cookie(request: Request, website) -> bool:
     """Return True if the request carries a valid, unexpired signed access cookie
-    for this share_token."""
-    raw = request.cookies.get(_public_cookie_name(share_token))
+    for this website's share token AND its current password state."""
+    raw = request.cookies.get(_public_cookie_name(website.public_share_token))
     if not raw:
         return False
     try:
@@ -108,7 +116,8 @@ def _has_valid_public_cookie(request: Request, share_token: str) -> bool:
         )
     except (BadSignature, SignatureExpired):
         return False
-    return data == share_token
+    expected = {"t": website.public_share_token, "p": _public_pw_state(website)}
+    return data == expected
 
 
 def get_analytics_service(db: Session = Depends(get_db)) -> AnalyticsService:
@@ -149,17 +158,27 @@ async def root():
     return RedirectResponse(url="/login", status_code=302)
 
 
-@router.get("/logout", response_class=RedirectResponse)
+@router.post("/logout", response_class=RedirectResponse)
 async def logout(request: Request, db: Session = Depends(get_db)):
-    """Log out user: delete session, clear cookie, redirect to login."""
+    """Log out user: delete session, clear cookie, redirect to login.
+
+    POST-only: a GET with side effects is CSRF-able even with SameSite=Lax
+    (top-level navigations send the cookie), letting any site force-logout
+    visitors. The navbar submits a small form."""
     from app.services.auth_service import AuthService
     session_token = request.cookies.get("session_token")
     if session_token:
         auth_service = AuthService(db)
         auth_service.logout_user(session_token)
-    response = RedirectResponse(url="/login", status_code=302)
+    response = RedirectResponse(url="/login", status_code=303)
     response.delete_cookie("session_token")
     return response
+
+
+@router.get("/logout", response_class=RedirectResponse)
+async def logout_get():
+    """Legacy GET /logout: no side effects (see POST above); just go to login."""
+    return RedirectResponse(url="/login", status_code=302)
 
 
 @router.get("/login", response_class=HTMLResponse)
@@ -227,7 +246,7 @@ async def verify_page(
             response.set_cookie(
                 key="session_token",
                 value=session._raw_token,
-                max_age=7 * 24 * 60 * 60,
+                max_age=settings.SESSION_EXPIRY_DAYS * 24 * 60 * 60,
                 httponly=True,
                 secure=settings.is_production,
                 samesite="lax"
@@ -244,7 +263,7 @@ async def verify_page(
         response.set_cookie(
             key="session_token",
             value=session._raw_token,
-            max_age=7 * 24 * 60 * 60,  # 7 days
+            max_age=settings.SESSION_EXPIRY_DAYS * 24 * 60 * 60,
             httponly=True,
             secure=settings.is_production,
             samesite="lax"
@@ -344,7 +363,7 @@ async def accept_invite_page(
         response.set_cookie(
             key="pending_invite",
             value=token,
-            max_age=7 * 24 * 60 * 60,  # 7 days
+            max_age=settings.SESSION_EXPIRY_DAYS * 24 * 60 * 60,
             httponly=True,
             secure=settings.is_production,
             samesite="lax"
@@ -555,6 +574,11 @@ async def website_stats_partial(
     from datetime import timezone
 
     website = website_service.get_website_by_id(website_id, current_user.email)
+    if not website:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Website not found or access denied"
+        )
 
     # Parse date range
     start, end = parse_date_range(range)
@@ -595,6 +619,11 @@ async def website_stats_basic_partial(
     import json
 
     website = website_service.get_website_by_id(website_id, current_user.email)
+    if not website:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Website not found or access denied"
+        )
 
     # Parse date range
     start, end = parse_date_range(range)
@@ -637,6 +666,11 @@ async def website_live_partial(
 ):
     """Get live visitors count for auto-refresh."""
     website = website_service.get_website_by_id(website_id, current_user.email)
+    if not website:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Website not found or access denied"
+        )
 
     realtime_stats = analytics_service.get_realtime_stats(website_id=website_id)
     live_visitors = realtime_stats.get('current_visitors', 0)
@@ -932,7 +966,7 @@ async def public_dashboard(
         # protection, require a valid signed access cookie (issued only after a
         # correct password POST) before returning any analytics data.
         if website.public_password_enabled and website.public_password_hash:
-            if not _has_valid_public_cookie(request, share_token):
+            if not _has_valid_public_cookie(request, website):
                 logger.info(f"Public dashboard {website.id} requires password; prompting")
                 return templates.TemplateResponse(
                     "dashboard/_public_password.html",
@@ -1013,6 +1047,17 @@ async def public_dashboard_verify(
     dashboard_password.verify_dashboard_password (PasswordService.verify_password).
     """
     from app.services.password_service import PasswordService
+    from app.middleware.rate_limit import rate_limiter
+    from app.utils.network import get_client_ip
+
+    # Brute-force gate: this endpoint mints the access cookie, so it needs the
+    # same throttle as the API verify route (5 attempts / 15 min per IP+token).
+    ip = get_client_ip(request)
+    if rate_limiter.is_rate_limited(f"pubpwd:{ip}:{share_token}", limit=5, window_seconds=900):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many attempts. Please try again later."
+        )
 
     website_service = WebsiteService(db)
     website = website_service.get_public_website(share_token)
@@ -1047,8 +1092,11 @@ async def public_dashboard_verify(
         )
 
     # Correct password -> issue signed access cookie and redirect (303 so the
-    # browser re-requests with GET and sends the new cookie).
-    signed = _public_dashboard_serializer().dumps(share_token)
+    # browser re-requests with GET and sends the new cookie). The password
+    # state is baked in: changing/removing the password kills old unlocks.
+    signed = _public_dashboard_serializer().dumps(
+        {"t": share_token, "p": _public_pw_state(website)}
+    )
     response = RedirectResponse(url=redirect_url, status_code=303)
     response.set_cookie(
         key=_public_cookie_name(share_token),

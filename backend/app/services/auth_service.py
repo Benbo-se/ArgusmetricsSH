@@ -143,63 +143,53 @@ class AuthService:
 
         logger.info(f"Processing signup for email: {_mask_email(email)}")
 
+        # Validate the password BEFORE looking the account up, so a shape
+        # error is identical for existing and non-existing emails (no
+        # enumeration oracle through validation branching).
+        if not password:
+            raise ValueError("Password is required")
+        if not password_ok(password, email):
+            raise ValueError(
+                "Password does not meet the requirements: " + ", ".join(failed_rules(password, email))
+            )
+
         try:
             # Check if user already exists
             existing_user = self.db.query(User).filter(User.email == email).first()
 
             if existing_user:
                 if existing_user.is_verified:
-                    logger.info(f"User already verified: {_mask_email(email)}, sending login magic link")
-                    # User is already verified, send login magic link instead
-                    # Generate magic link token (expires in 15 minutes)
-                    magic_token = generate_magic_token(
-                        email=email,
-                        secret=settings.SECRET_KEY,
-                        expires_in=900  # 15 minutes
-                    )
-
-                    # Build verification URL (same endpoint, will create session)
-                    verify_url = f"{settings.BASE_URL}/verify?token={magic_token}"
-
-                    # E2E bypass requires a *presented* secret (non-prod only)
-                    is_e2e_test = self._e2e_secret_ok(e2e_secret, email)
-
-                    if not is_e2e_test:
-                        # Send login email (reuse verification email for now)
-                        email_sent = email_service.send_verification_email(
+                    # Existing verified account: NEVER mint a login link here
+                    # (a login-capable URL for an arbitrary account, exposed in
+                    # dev mode, is account takeover). Notify the address and
+                    # return the same generic message as a fresh signup.
+                    logger.info(f"Signup for already-registered account: {_mask_email(email)}")
+                    if not self._e2e_secret_ok(e2e_secret, email):
+                        email_service.send_email(
                             to=email,
-                            verify_url=verify_url
+                            subject=f"You already have a {settings.APP_NAME} account",
+                            html_content=(
+                                f"<p>Someone (probably you) tried to create a {settings.APP_NAME} "
+                                f"account with this address, but it is already registered.</p>"
+                                f"<p><a href=\"{settings.BASE_URL}/login\">Sign in</a> — or use "
+                                f"\"Forgot password?\" on the login page if you can't get in.</p>"
+                                f"<p>If this wasn't you, you can safely ignore this email.</p>"
+                            ),
+                            text_content=(
+                                f"Someone (probably you) tried to create a {settings.APP_NAME} account "
+                                f"with this address, but it is already registered.\n\n"
+                                f"Sign in at {settings.BASE_URL}/login — or use \"Forgot password?\" "
+                                f"if you can't get in.\n\nIf this wasn't you, ignore this email."
+                            ),
                         )
-
-                        if not email_sent:
-                            logger.error(f"Failed to send login email to: {_mask_email(email)}")
-
-                    logger.info(f"Login magic link sent to: {_mask_email(email)}")
-
-                    # Return success message (don't reveal if user exists for security)
-                    response = {
-                        "message": "If this email is registered, you will receive a login link.",
-                        "email": email
+                    return {
+                        "message": "Verification email sent. Please check your inbox and click the link to verify your account.",
+                        "email": email,
                     }
-                    # Fail closed: only expose the link in non-prod dev mode or to a
-                    # verified E2E caller. Never expose it just because email is unconfigured.
-                    if is_e2e_test or (settings.DEBUG and not settings.is_production):
-                        response["verify_url"] = verify_url
-                        if not is_e2e_test:
-                            response["message"] = "⚠️ DEV MODE: email not sent — use the login link below."
-                        logger.warning("DEV/E2E: returning verify_url in API response")
-
-                    return response
                 else:
                     logger.info(f"User exists but not verified, resending verification: {_mask_email(email)}")
                     # User exists but not verified, resend verification email
             else:
-                if not password:
-                    raise ValueError("Password is required")
-                if not password_ok(password, email):
-                    raise ValueError(
-                        "Password does not meet the requirements: " + ", ".join(failed_rules(password, email))
-                    )
                 new_user = User(
                     email=email,
                     is_verified=False,

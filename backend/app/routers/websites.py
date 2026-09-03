@@ -349,7 +349,8 @@ async def update_website(
     website_id: int,
     request: WebsiteUpdate,
     current_user: User = Depends(get_current_user),
-    website_service: WebsiteService = Depends(get_website_service)
+    website_service: WebsiteService = Depends(get_website_service),
+    db: Session = Depends(get_db)
 ) -> WebsiteResponse:
     """
     Update a website's information.
@@ -392,6 +393,11 @@ async def update_website(
         }
     """
     logger.info(f"Website update request for {website_id} from user: {current_user.email}")
+
+    # Renaming/deactivating a site is not for viewers
+    from app.services.team_service import require_website_role_or_404
+    from app.models.website_member import MemberRole
+    require_website_role_or_404(db, current_user.email, website_id, MemberRole.ADMIN)
 
     # Validate that at least one field is provided
     if request.name is None and request.is_active is None:
@@ -461,7 +467,8 @@ async def update_website(
 async def delete_website(
     website_id: int,
     current_user: User = Depends(get_current_user),
-    website_service: WebsiteService = Depends(get_website_service)
+    website_service: WebsiteService = Depends(get_website_service),
+    db: Session = Depends(get_db)
 ) -> dict:
     """
     Delete a website.
@@ -492,6 +499,11 @@ async def delete_website(
         }
     """
     logger.info(f"Website deletion request for {website_id} from user: {current_user.email}")
+
+    # Destroying the site and all its data is owner-only
+    from app.services.team_service import require_website_role_or_404
+    from app.models.website_member import MemberRole
+    require_website_role_or_404(db, current_user.email, website_id, MemberRole.OWNER)
 
     try:
         success = website_service.delete_website(website_id, current_user.email)
@@ -787,7 +799,8 @@ async def update_email_reports(
     website_id: int,
     config: EmailReportsConfig,
     current_user: User = Depends(get_current_user),
-    website_service: WebsiteService = Depends(get_website_service)
+    website_service: WebsiteService = Depends(get_website_service),
+    db: Session = Depends(get_db)
 ) -> WebsiteResponse:
     """
     Update email reports configuration for a website.
@@ -838,6 +851,11 @@ async def update_email_reports(
         }
     """
     logger.info(f"Email reports update request for website {website_id} from user: {current_user.email}")
+
+    # Reports exfiltrate analytics to an arbitrary address: not for viewers
+    from app.services.team_service import require_website_role_or_404
+    from app.models.website_member import MemberRole
+    require_website_role_or_404(db, current_user.email, website_id, MemberRole.ADMIN)
 
     try:
         website = website_service.update_email_reports_config(

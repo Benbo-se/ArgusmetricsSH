@@ -212,15 +212,12 @@ async def verify_dashboard_password(
     Returns a verification token if password is correct, which can be used
     to access the dashboard.
     """
-    # Brute-force protection: 5 attempts per IP+share_token per 15 minutes
-    client_ip = "unknown"
-    if http_request and http_request.client:
-        forwarded = http_request.headers.get("X-Forwarded-For")
-        if forwarded:
-            client_ip = forwarded.split(",")[0].strip()
-        else:
-            real_ip = http_request.headers.get("X-Real-IP")
-            client_ip = real_ip.strip() if real_ip else http_request.client.host
+    # Brute-force protection: 5 attempts per IP+share_token per 15 minutes.
+    # get_client_ip honors forwarded headers ONLY from TRUSTED_PROXIES — the
+    # old inline header parsing here let attackers rotate X-Forwarded-For to
+    # reset the limiter on every request.
+    from app.utils.network import get_client_ip
+    client_ip = get_client_ip(http_request) if http_request else "unknown"
 
     rate_key = f"pwd:{client_ip}:{share_token}"
     if rate_limiter.is_rate_limited(rate_key, limit=5, window_seconds=900):

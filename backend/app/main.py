@@ -176,13 +176,20 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     Returns:
         JSONResponse: Formatted validation error response
     """
-    logger.warning(f"Validation error: {exc.errors()} - Path: {request.url.path}")
+    # Pydantic v2 puts the raw exception object in each error's `ctx` for
+    # model_validator failures — not JSON-serializable, which used to turn
+    # every such 422 into a 500 inside this very handler.
+    errors = [
+        {k: (str(v) if k == "ctx" else v) for k, v in err.items() if k != "input"}
+        for err in exc.errors()
+    ]
+    logger.warning(f"Validation error: {errors} - Path: {request.url.path}")
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         content={
             "error": True,
             "message": "Validation error",
-            "details": exc.errors(),
+            "details": errors,
         },
     )
 

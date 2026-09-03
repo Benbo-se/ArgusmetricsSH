@@ -88,9 +88,10 @@ def verify_magic_token(token: str, secret: str, max_age: int = 900, expected_pur
             # Re-load with the effective age so an expired token raises.
             serializer.loads(token, salt="email-verification", max_age=effective_age)
             return {"email": raw.get("email"), "jti": raw.get("jti")}
-        # Backward-compat: legacy tokens were a bare email string.
-        serializer.loads(token, salt="email-verification", max_age=max_age)
-        return {"email": raw, "jti": None}
+        # Legacy bare-string tokens (no purpose, no single-use jti) are no
+        # longer minted anywhere and would bypass both protections: reject.
+        logger.warning("Rejected legacy bare-string magic token")
+        raise BadSignature("legacy token format")
     except SignatureExpired:
         logger.warning("Magic token expired")
         raise

@@ -52,7 +52,11 @@ services:
       DEBUG: "false"
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:?ALLOWED_ORIGINS saknas i docker/.env}
       # Värd-nginx + web-containern sitter framför → lita på docker-nätets XFF.
-      TRUSTED_PROXIES: ${TRUSTED_PROXIES:-}
+      # Backend sitter bakom web-nginx-containern: lita på docker-nätets
+      # proxy-hopp som default, annars ser rate-limiter/visitor-hash bara
+      # proxy-IP:n och alla klienter kollapsar till en. Override:a vid behov
+      # (t.ex. lägg till Cloudflares ranges).
+      TRUSTED_PROXIES: ${TRUSTED_PROXIES:-172.16.0.0/12}
       GEOIP_DB_PATH: ${GEOIP_DB_PATH:-}
       DATA_RETENTION_DAYS: ${DATA_RETENTION_DAYS:-0}
       EMAIL_LOG_RETENTION_DAYS: ${EMAIL_LOG_RETENTION_DAYS:-90}

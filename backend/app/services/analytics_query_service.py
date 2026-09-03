@@ -74,7 +74,7 @@ class AnalyticsQueryService:
                     ~Pageview.path.like('/static/%'),
                     ~Pageview.path.like('/admin/%'),
                     ~Pageview.path.like('/dashboard/%'),
-                    ~Pageview.path.like('/\_%', escape='\\')
+                    ~Pageview.path.like(r'/\_%', escape='\\')
                 )
             )
 

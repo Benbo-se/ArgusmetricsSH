@@ -122,8 +122,10 @@ class WebsiteService:
             ).first()
 
             if existing_website:
+                # Generic message: don't confirm to other tenants that a given
+                # domain is tracked on this instance.
                 logger.warning(f"Domain already exists: {domain}")
-                raise ValueError(f"Domain '{domain}' is already registered")
+                raise ValueError("This domain cannot be added. If you own it and believe this is an error, contact the instance administrator.")
 
             # Generate unique tracking code
             tracking_code = self._generate_tracking_code()
@@ -139,7 +141,11 @@ class WebsiteService:
                 user_email=user_email,
                 tracking_code=tracking_code,
                 verification_token=verification_token,
-                is_verified=settings.DEBUG or (bool(settings.E2E_TEST_SECRET) and user_email.endswith("@test.argusmetrics.io")),
+                # Auto-verify only in local dev. (An earlier E2E shortcut
+                # keyed on the mere PRESENCE of E2E_TEST_SECRET — config-
+                # presence gating, the exact pattern auth's _e2e_secret_ok
+                # exists to prevent. E2E suites verify via DNS mocks instead.)
+                is_verified=settings.DEBUG and not settings.is_production,
                 is_active=True
             )
 

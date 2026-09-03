@@ -506,7 +506,7 @@ def _set_session_cookie(response, session) -> None:
     response.set_cookie(
         key="session_token",
         value=session._raw_token,
-        max_age=7 * 24 * 60 * 60,
+        max_age=settings.SESSION_EXPIRY_DAYS * 24 * 60 * 60,
         httponly=True,
         secure=settings.is_production,
         samesite="lax",

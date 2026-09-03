@@ -8,7 +8,7 @@ Provides WebSocket endpoints for:
 """
 import logging
 import json
-from typing import Dict, Set
+from typing import Dict, Optional, Set
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends, Query
 from sqlalchemy.orm import Session
 
@@ -132,7 +132,8 @@ manager = ConnectionManager()
 async def websocket_endpoint(
     websocket: WebSocket,
     website_id: int,
-    tracking_code: str = Query(..., description="Website tracking code for authentication"),
+    tracking_code: Optional[str] = Query(None, description="Deprecated - no longer accepted for authentication"),
+    api_token: Optional[str] = Query(None, description="Website API token"),
     db: Session = Depends(get_db)
 ):
     """
@@ -167,16 +168,41 @@ async def websocket_endpoint(
     """
     logger.info(f"WebSocket connection attempt: website_id={website_id}")
 
-    # Authenticate using tracking code
+    # Authenticate like /ws/debug: session cookie or website-matched API
+    # token. The tracking_code is PUBLIC (it sits in every customer page's
+    # source), so it must never gate a stream of live visitor data.
+    from app.services.auth_service import AuthService
+    from app.services.team_service import TeamService
+    from app.services.token_service import TokenService
+
+    user_email = None
+    if api_token:
+        api_website = TokenService(db).validate_token(api_token)
+        if api_website and api_website.id == website_id:
+            user_email = api_website.user_email
+    else:
+        session_token = websocket.cookies.get("session_token")
+        if session_token:
+            user = AuthService(db).validate_session(session_token)
+            if user:
+                user_email = user.email
+
+    if not user_email:
+        logger.warning(f"WebSocket auth failed: missing/invalid credentials for website_id={website_id}")
+        await websocket.close(code=4001, reason="Authentication required")
+        return
+
+    if not TeamService(db).check_website_access(user_email, website_id):
+        logger.warning(f"WebSocket auth failed: {user_email} has no access to website_id={website_id}")
+        await websocket.close(code=4003, reason="Access denied")
+        return
+
     website = db.query(Website).filter(
         Website.id == website_id,
-        Website.tracking_code == tracking_code,
         Website.is_active == True
     ).first()
-
     if not website:
-        logger.warning(f"WebSocket auth failed: invalid tracking code for website_id={website_id}")
-        await websocket.close(code=4001, reason="Invalid tracking code")
+        await websocket.close(code=4004, reason="Website not found")
         return
 
     # Accept connection
