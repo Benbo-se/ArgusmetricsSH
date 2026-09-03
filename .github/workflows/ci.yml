@@ -57,6 +57,25 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - name: CSS-bygget är i synk med mallarna
+        run: |
+          # A Tailwind class that is not in the build does nothing at all: no
+          # error, no warning, just the wrong layout. That cost six separate
+          # debugging sessions while the CSS was a frozen file nobody rebuilt.
+          # Rebuilding here and demanding no diff turns it into a red build.
+          npm ci --no-audit --no-fund
+          npm run build:css --silent
+          if ! git diff --quiet -- backend/app/static/css/tailwind.min.css site/static/css/tailwind.min.css; then
+            echo "::error::CSS-bygget matchar inte mallarna. Kör 'npm run build:css' och committa resultatet."
+            git diff --stat -- backend/app/static/css/tailwind.min.css site/static/css/tailwind.min.css
+            exit 1
+          fi
+          echo "CSS-bygget är aktuellt."
       - name: Migrera (alembic upgrade head mot tom databas = fresh-install-testet)
         working-directory: backend
         run: alembic upgrade head

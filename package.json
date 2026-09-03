@@ -1,0 +1,12 @@
+{
+  "name": "argusmetrics-css",
+  "private": true,
+  "description": "Tailwind build for the dashboard and the marketing site. See tailwind.config.js.",
+  "scripts": {
+    "build:css": "tailwindcss -c tailwind.config.js -i backend/app/static/css/input.css -o backend/app/static/css/tailwind.min.css --minify && cp backend/app/static/css/tailwind.min.css site/static/css/tailwind.min.css",
+    "check:css": "npm run build:css --silent && git diff --exit-code -- backend/app/static/css/tailwind.min.css site/static/css/tailwind.min.css"
+  },
+  "devDependencies": {
+    "tailwindcss": "3.4.17"
+  }
+}

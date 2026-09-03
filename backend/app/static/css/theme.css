@@ -1,9 +1,14 @@
 /* ===========================================================================
    Argusmetrics theme layer
    ---------------------------------------------------------------------------
-   Sits on top of the prebuilt Tailwind dump (which has no config and can't be
-   rebuilt), so the design system lives here: tokens, typography, the card and
-   stat-tile treatments, and dark mode.
+   Sits on top of the Tailwind build, so the design system lives here: tokens,
+   typography, the card and stat-tile treatments, and dark mode.
+
+   The palette classes redefined below are deliberate. Retinting .bg-white and
+   friends to design tokens is what makes dark mode work without editing every
+   template, which is why they carry !important and why they are not shims to
+   be deleted. If a Tailwind class is simply absent, that is a different
+   problem with a different fix: `npm run build:css`.
 
    The identity is Argus Panoptes — the watchman who never fully sleeps. Deep
    indigo "night" surfaces, a single awake cyan accent used sparingly for the
