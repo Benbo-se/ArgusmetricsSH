@@ -372,6 +372,16 @@ async def debug_websocket_endpoint(
         user = AuthService(db).validate_session(token)
         if user:
             user_email = user.email
+    else:
+        # Same pattern as /ws/live: same-origin WS handshakes carry cookies,
+        # so the dashboard's own debug console needs no credential in the
+        # URL at all — `token`/`api_token` stay available for non-browser
+        # callers that don't have a cookie jar.
+        session_token = websocket.cookies.get("session_token")
+        if session_token:
+            user = AuthService(db).validate_session(session_token)
+            if user:
+                user_email = user.email
 
     if not user_email:
         logger.warning(f"Debug WebSocket auth failed: missing/invalid credentials for website_id={website_id}")

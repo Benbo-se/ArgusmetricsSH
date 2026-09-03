@@ -4,7 +4,7 @@
 
 {% block content %}
 <div class="min-h-screen bg-gray-50 py-8">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" x-data="debugConsole()">
         <!-- Header -->
         <div class="mb-8">
             <div class="flex items-center justify-between">
@@ -15,7 +15,7 @@
                     </h1>
                     <p class="mt-2 text-sm text-gray-600">Real-time tracking console for {{ website.domain }}</p>
                 </div>
-                <div x-data="{ connected: false }" class="flex items-center space-x-4">
+                <div class="flex items-center space-x-4">
                     <div class="flex items-center">
                         <div class="h-3 w-3 rounded-full mr-2" :class="connected ? 'bg-green-500 animate-pulse' : 'bg-red-500'"></div>
                         <span class="text-sm font-medium" x-text="connected ? 'Connected' : 'Disconnected'"></span>
@@ -46,7 +46,7 @@
         </div>
 
         <!-- Debug Console -->
-        <div class="bg-white shadow-lg rounded-lg overflow-hidden" x-data="debugConsole()">
+        <div class="bg-white shadow-lg rounded-lg overflow-hidden">
             <!-- Toolbar -->
             <div class="bg-gray-800 text-white px-6 py-3 flex items-center justify-between">
                 <div class="flex items-center space-x-4">
@@ -175,7 +175,13 @@ function debugConsole() {
 
         connectWebSocket() {
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsUrl = `${protocol}//${window.location.host}/ws/debug/{{ website.id }}?tracking_code={{ website.tracking_code }}`;
+            // No credential in the URL: the backend authenticates this
+            // same-origin connection via the session cookie sent
+            // automatically during the WS handshake (see
+            // debug_websocket_endpoint in routers/websocket.py). The public
+            // tracking_code was never actually read by the backend for
+            // auth and must not be — it's embedded in every customer page.
+            const wsUrl = `${protocol}//${window.location.host}/ws/debug/{{ website.id }}`;
 
             this.ws = new WebSocket(wsUrl);
 
