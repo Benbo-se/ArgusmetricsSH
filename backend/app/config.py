@@ -91,6 +91,11 @@ class Settings(BaseSettings):
     # Configurable so an end-to-end suite, which drives dozens of signups from
     # one address, can raise it without the limiter being removed from the code
     # it is meant to protect. test_auth_rate_limit proves it still works.
+    # "memory" counts per process, which is correct for a single worker and
+    # wrong for several. See app/middleware/rate_limit.py.
+    RATE_LIMIT_BACKEND: str = Field(
+        default="memory", description="Rate limiter backend: 'memory' today"
+    )
     AUTH_RATE_LIMIT_ATTEMPTS: int = Field(
         default=10, description="Auth attempts allowed per IP per window"
     )

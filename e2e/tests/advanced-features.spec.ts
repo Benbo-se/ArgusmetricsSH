@@ -83,7 +83,7 @@ test.describe('AI Quota', () => {
 
 test.describe('AI Insights', () => {
   test('AI insights for website', async ({ request }) => {
-    const { sessionToken, websiteId, trackingCode } = await createUserWithWebsite(request, 'starter');
+    const { sessionToken, websiteId, trackingCode } = await createUserWithWebsite(request);
     const api = new ApiHelper(request);
 
     // Track some data first
@@ -98,7 +98,7 @@ test.describe('AI Insights', () => {
 
 test.describe('Anomaly Detection', () => {
   test('anomaly detection for website', async ({ request }) => {
-    const { sessionToken, websiteId } = await createUserWithWebsite(request, 'starter');
+    const { sessionToken, websiteId } = await createUserWithWebsite(request);
     const api = new ApiHelper(request);
 
     const res = await api.detectAnomalies(sessionToken, websiteId);

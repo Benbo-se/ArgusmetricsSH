@@ -1,13 +1,24 @@
 import { APIRequestContext } from '@playwright/test';
 
+export const TEST_PASSWORD = 'e2e-long-enough-password-9';
+
 const API_PREFIX = '/api/v1';
 
 export class ApiHelper {
   constructor(private request: APIRequestContext) {}
 
-  async signup(email: string, plan: string = 'free') {
+  // Signup takes a password now. It used to be a magic link with a plan, from
+  // when this was a paid hosted product; both are gone.
+  async signup(email: string, password: string = TEST_PASSWORD) {
     const res = await this.request.post(`${API_PREFIX}/auth/signup`, {
-      data: { email, plan },
+      data: { email, password },
+    });
+    return { status: res.status(), body: await res.json() };
+  }
+
+  async login(email: string, password: string = TEST_PASSWORD) {
+    const res = await this.request.post(`${API_PREFIX}/auth/login`, {
+      data: { email, password },
     });
     return { status: res.status(), body: await res.json() };
   }

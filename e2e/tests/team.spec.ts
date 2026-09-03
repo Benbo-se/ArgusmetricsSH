@@ -5,7 +5,7 @@ import { createVerifiedUser, createUserWithWebsite, generateTestEmail } from '..
 test.describe('Team Invite & Members', () => {
   test('invite team member and list members', async ({ request }) => {
     const { sessionToken: ownerToken, websiteId } = await createUserWithWebsite(request);
-    const { email: memberEmail } = await createVerifiedUser(request, 'free');
+    const { email: memberEmail } = await createVerifiedUser(request);
     const api = new ApiHelper(request);
 
     // Invite member as viewer
@@ -22,7 +22,7 @@ test.describe('Team Invite & Members', () => {
 
   test('invited member sees pending invitation', async ({ request }) => {
     const { sessionToken: ownerToken, websiteId } = await createUserWithWebsite(request);
-    const { email: memberEmail, sessionToken: memberToken } = await createVerifiedUser(request, 'free');
+    const { email: memberEmail, sessionToken: memberToken } = await createVerifiedUser(request);
     const api = new ApiHelper(request);
 
     // Invite
@@ -39,7 +39,7 @@ test.describe('Team Invite & Members', () => {
 
   test('member can access website after accepting invite', async ({ request }) => {
     const { sessionToken: ownerToken, websiteId } = await createUserWithWebsite(request);
-    const { email: memberEmail, sessionToken: memberToken } = await createVerifiedUser(request, 'free');
+    const { email: memberEmail, sessionToken: memberToken } = await createVerifiedUser(request);
     const api = new ApiHelper(request);
 
     // Invite
@@ -68,7 +68,7 @@ test.describe('Team Invite & Members', () => {
 test.describe('Role-Based Permissions', () => {
   test('viewer can read but has limited write access', async ({ request }) => {
     const { sessionToken: ownerToken, websiteId } = await createUserWithWebsite(request);
-    const { email: viewerEmail, sessionToken: viewerToken } = await createVerifiedUser(request, 'free');
+    const { email: viewerEmail, sessionToken: viewerToken } = await createVerifiedUser(request);
     const api = new ApiHelper(request);
 
     // Invite as viewer and accept
@@ -91,7 +91,7 @@ test.describe('Role-Based Permissions', () => {
 
   test('owner can change member role', async ({ request }) => {
     const { sessionToken: ownerToken, websiteId } = await createUserWithWebsite(request);
-    const { email: memberEmail, sessionToken: memberToken } = await createVerifiedUser(request, 'free');
+    const { email: memberEmail, sessionToken: memberToken } = await createVerifiedUser(request);
     const api = new ApiHelper(request);
 
     // Invite as viewer
@@ -120,8 +120,8 @@ test.describe('Role-Based Permissions', () => {
 
   test('non-owner cannot invite team members', async ({ request }) => {
     const { sessionToken: ownerToken, websiteId } = await createUserWithWebsite(request);
-    const { email: viewerEmail, sessionToken: viewerToken } = await createVerifiedUser(request, 'free');
-    const { email: thirdEmail } = await createVerifiedUser(request, 'free');
+    const { email: viewerEmail, sessionToken: viewerToken } = await createVerifiedUser(request);
+    const { email: thirdEmail } = await createVerifiedUser(request);
     const api = new ApiHelper(request);
 
     // Invite viewer
@@ -136,7 +136,7 @@ test.describe('Role-Based Permissions', () => {
 test.describe('Team Member Removal', () => {
   test('owner can remove team member', async ({ request }) => {
     const { sessionToken: ownerToken, websiteId } = await createUserWithWebsite(request);
-    const { email: memberEmail } = await createVerifiedUser(request, 'free');
+    const { email: memberEmail } = await createVerifiedUser(request);
     const api = new ApiHelper(request);
 
     // Invite and then remove

@@ -1,22 +1,20 @@
 import { APIRequestContext } from '@playwright/test';
-import { ApiHelper } from './api';
+import { ApiHelper, TEST_PASSWORD } from './api';
 
 let userCounter = 0;
 
 export function generateTestEmail(): string {
   userCounter++;
-  return `test_e2e_${Date.now()}_${userCounter}@test.argusmetrics.io`;
+  return `test_e2e_${Date.now()}_${userCounter}_${Math.random().toString(36).slice(2, 8)}@example.com`;
 }
 
 export async function createVerifiedUser(
-  request: APIRequestContext,
-  plan: string = 'starter'
+  request: APIRequestContext
 ): Promise<{ email: string; sessionToken: string }> {
   const api = new ApiHelper(request);
   const email = generateTestEmail();
 
-  // Signup
-  const signupRes = await api.signup(email, plan);
+  const signupRes = await api.signup(email);
   if (signupRes.status !== 201) {
     throw new Error(`Signup failed: ${JSON.stringify(signupRes.body)}`);
   }
@@ -47,8 +45,7 @@ export async function createVerifiedUser(
 }
 
 export async function createUserWithWebsite(
-  request: APIRequestContext,
-  plan: string = 'starter'
+  request: APIRequestContext
 ): Promise<{
   email: string;
   sessionToken: string;
@@ -56,10 +53,13 @@ export async function createUserWithWebsite(
   trackingCode: string;
   domain: string;
 }> {
-  const { email, sessionToken } = await createVerifiedUser(request, plan);
+  const { email, sessionToken } = await createVerifiedUser(request);
   const api = new ApiHelper(request);
 
-  const domain = `https://test-${Date.now()}.example.com`;
+  // A timestamp alone collides: parallel workers can share a millisecond, and
+  // the domain has a unique constraint that outlives the run, so yesterday's
+  // domains are still there today.
+  const domain = `https://test-${Date.now()}-${Math.random().toString(36).slice(2, 10)}.example.com`;
   const createRes = await api.createWebsite(sessionToken, 'Test Site', domain);
   if (createRes.status !== 201 && createRes.status !== 200) {
     throw new Error(`Create website failed: ${JSON.stringify(createRes.body)}`);

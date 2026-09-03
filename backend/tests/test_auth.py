@@ -25,9 +25,9 @@ def _reset_rate_limiter():
     """
     from app.middleware.rate_limit import rate_limiter
 
-    rate_limiter._windows.clear()
+    rate_limiter.reset()
     yield
-    rate_limiter._windows.clear()
+    rate_limiter.reset()
 
 
 def _signup(client, email=None):
