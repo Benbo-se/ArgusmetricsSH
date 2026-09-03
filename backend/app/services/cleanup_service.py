@@ -19,6 +19,12 @@ from app.models.website import Website
 logger = logging.getLogger(__name__)
 
 
+def _mask(email) -> str:
+    """Redact an email for logging (PII-safe)."""
+    from app.utils.security import mask_email
+    return mask_email(email)
+
+
 class CleanupService:
     """Service for cleaning up inactive accounts and expired data."""
 
@@ -53,14 +59,21 @@ class CleanupService:
                 logger.info("No unverified accounts to clean up")
                 return 0
 
-            # Delete each user (cascade will handle sessions)
+            # One transaction per user: batching them meant a single
+            # constraint failure rolled back every deletion in the run.
+            deleted = 0
             for user in unverified_users:
-                logger.info(f"Deleting unverified account: {user.email} (created: {user.created_at})")
-                self.db.delete(user)
+                logger.info(f"Deleting unverified account: {_mask(user.email)} (created: {user.created_at})")
+                try:
+                    self.db.delete(user)
+                    self.db.commit()
+                    deleted += 1
+                except Exception as e:
+                    self.db.rollback()
+                    logger.error(f"Could not delete account {_mask(user.email)}: {e}")
 
-            self.db.commit()
-            logger.info(f"Deleted {count} unverified accounts older than {days} days")
-            return count
+            logger.info(f"Deleted {deleted}/{count} unverified accounts older than {days} days")
+            return deleted
 
         except Exception as e:
             logger.error(f"Error cleaning up unverified accounts: {e}")
@@ -101,12 +114,17 @@ class CleanupService:
 
                 # If no recent session, delete the account
                 if not recent_session:
-                    logger.info(f"Deleting inactive empty account: {user.email} (created: {user.created_at})")
-                    self.db.delete(user)
-                    deleted_count += 1
+                    logger.info(f"Deleting inactive empty account: {_mask(user.email)} (created: {user.created_at})")
+                    # One transaction per user (see cleanup_unverified_accounts)
+                    try:
+                        self.db.delete(user)
+                        self.db.commit()
+                        deleted_count += 1
+                    except Exception as e:
+                        self.db.rollback()
+                        logger.error(f"Could not delete account {_mask(user.email)}: {e}")
 
             if deleted_count > 0:
-                self.db.commit()
                 logger.info(f"Deleted {deleted_count} empty inactive accounts (no activity for {days} days)")
             else:
                 logger.info("No empty inactive accounts to clean up")

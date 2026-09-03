@@ -49,7 +49,7 @@ class EcommerceEvent(Base):
     __tablename__ = "ecommerce_events"
 
     id = Column(Integer, primary_key=True, index=True)
-    website_id = Column(Integer, ForeignKey("websites.id"), nullable=False, index=True)
+    website_id = Column(Integer, ForeignKey("websites.id", ondelete="CASCADE"), nullable=False, index=True)
 
     # Event details
     event_type = Column(String(50), nullable=False, index=True)
@@ -98,12 +98,14 @@ class EcommerceEvent(Base):
     __table_args__ = (
         Index('idx_ecommerce_website_timestamp', 'website_id', 'timestamp'),
         Index('idx_ecommerce_revenue_queries', 'website_id', 'event_type', 'timestamp'),
-        # Idempotency: a (website, transaction_id) purchase can only be recorded
-        # once, so forged/duplicate purchase events can't inflate revenue.
+        # Idempotency: a (website, event_type, transaction_id) purchase OR
+        # refund can only be recorded once, so forged/duplicate money events
+        # can't inflate revenue or double-count refunds. Both event types
+        # require a transaction_id at the schema level.
         Index(
-            'uq_ecommerce_purchase_txn', 'website_id', 'transaction_id',
+            'uq_ecommerce_purchase_txn', 'website_id', 'event_type', 'transaction_id',
             unique=True,
-            postgresql_where=text("event_type = 'purchase' AND transaction_id IS NOT NULL"),
+            postgresql_where=text("event_type IN ('purchase', 'refund') AND transaction_id IS NOT NULL"),
         ),
         CheckConstraint('revenue IS NULL OR revenue >= 0', name='ecommerce_revenue_positive'),
         CheckConstraint("currency ~ '^[A-Z]{3}$'", name='ecommerce_currency_valid'),

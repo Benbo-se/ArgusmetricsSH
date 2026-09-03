@@ -30,7 +30,7 @@ class RevenueTransaction(Base):
     __tablename__ = "revenue_transactions"
 
     id = Column(Integer, primary_key=True, index=True)
-    website_id = Column(Integer, ForeignKey("websites.id"), nullable=False, index=True)
+    website_id = Column(Integer, ForeignKey("websites.id", ondelete="CASCADE"), nullable=False, index=True)
     transaction_id = Column(String(255), nullable=False, index=True)
     timestamp = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 

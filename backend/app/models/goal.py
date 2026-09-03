@@ -24,7 +24,7 @@ class Goal(Base):
     __tablename__ = "goals"
 
     id = Column(Integer, primary_key=True, index=True)
-    website_id = Column(Integer, ForeignKey("websites.id"), nullable=False, index=True)
+    website_id = Column(Integer, ForeignKey("websites.id", ondelete="CASCADE"), nullable=False, index=True)
     name = Column(String(255), nullable=False)
     event_name = Column(String(255), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
@@ -56,8 +56,8 @@ class GoalConversion(Base):
     __tablename__ = "goal_conversions"
 
     id = Column(Integer, primary_key=True, index=True)
-    goal_id = Column(Integer, ForeignKey("goals.id"), nullable=False, index=True)
-    website_id = Column(Integer, ForeignKey("websites.id"), nullable=False, index=True)
+    goal_id = Column(Integer, ForeignKey("goals.id", ondelete="CASCADE"), nullable=False, index=True)
+    website_id = Column(Integer, ForeignKey("websites.id", ondelete="CASCADE"), nullable=False, index=True)
     visitor_hash = Column(String(64), nullable=False)
     timestamp = Column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
 

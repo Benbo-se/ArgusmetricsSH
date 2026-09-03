@@ -64,8 +64,8 @@ class EmailService:
             success: Whether email was sent successfully
             error_message: Error message if failed
         """
+        db = SessionLocal()
         try:
-            db = SessionLocal()
             email_log = EmailLog(
                 to_email=to,
                 email_type=email_type,
@@ -75,9 +75,12 @@ class EmailService:
             )
             db.add(email_log)
             db.commit()
-            db.close()
         except Exception as e:
+            # close() must run even when commit raises, or the connection is
+            # leaked back to nobody and repeated failures exhaust the pool.
             logger.error(f"Failed to log email to database: {e}")
+        finally:
+            db.close()
 
     def _send_via_lettermint(self, to: str, subject: str, text: str, html: str) -> bool:
         """

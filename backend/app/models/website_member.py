@@ -55,7 +55,10 @@ class WebsiteMember(Base):
     website_id = Column(Integer, ForeignKey("websites.id", ondelete="CASCADE"), nullable=False, index=True)
     user_email = Column(String(255), nullable=False, index=True)
     role = Column(SQLEnum(MemberRole, values_callable=lambda x: [e.value for e in x], create_type=False), nullable=False, default=MemberRole.VIEWER)
-    invited_by = Column(String(255), ForeignKey("users.email"), nullable=False)
+    # SET NULL, not CASCADE: a membership must survive the inviter's account
+    # being deleted (cascading here would silently revoke a colleague's access,
+    # and a plain restrict made the inviter permanently undeletable).
+    invited_by = Column(String(255), ForeignKey("users.email", ondelete="SET NULL"), nullable=True)
     invited_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     accepted_at = Column(DateTime(timezone=True), nullable=True)
     status = Column(SQLEnum(MemberStatus, values_callable=lambda x: [e.value for e in x], create_type=False), nullable=False, default=MemberStatus.PENDING)

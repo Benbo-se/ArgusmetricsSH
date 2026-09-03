@@ -23,7 +23,7 @@ class AlertSettings(Base):
     __tablename__ = "alert_settings"
 
     id = Column(Integer, primary_key=True, index=True)
-    website_id = Column(Integer, ForeignKey("websites.id"), nullable=False, unique=True, index=True)
+    website_id = Column(Integer, ForeignKey("websites.id", ondelete="CASCADE"), nullable=False, unique=True, index=True)
     spike_threshold = Column(Float, nullable=False, default=2.0)  # 200% of typical
     email_enabled = Column(Boolean, nullable=False, default=True)
     alert_email = Column(String(255), nullable=False)

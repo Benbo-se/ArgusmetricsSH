@@ -45,7 +45,7 @@ class Pageview(Base):
     # timestamp) or too low-cardinality to ever win (country, device, browser)
     # are deliberately absent.
     id = Column(Integer, primary_key=True, index=True)
-    website_id = Column(Integer, ForeignKey("websites.id"), nullable=False)
+    website_id = Column(Integer, ForeignKey("websites.id", ondelete="CASCADE"), nullable=False)
     path = Column(String(2048), nullable=False)
     referrer = Column(String(2048), nullable=True)
     country = Column(String(2), nullable=True)

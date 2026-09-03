@@ -25,7 +25,7 @@ class ApiToken(Base):
     __tablename__ = "api_tokens"
 
     id = Column(Integer, primary_key=True, index=True)
-    website_id = Column(Integer, ForeignKey("websites.id"), nullable=False, index=True)
+    website_id = Column(Integer, ForeignKey("websites.id", ondelete="CASCADE"), nullable=False, index=True)
     name = Column(String(255), nullable=False)
     token = Column(String(128), nullable=False, unique=True, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)

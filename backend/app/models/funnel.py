@@ -25,7 +25,7 @@ class Funnel(Base):
     __tablename__ = "funnels"
 
     id = Column(Integer, primary_key=True, index=True)
-    website_id = Column(Integer, ForeignKey("websites.id"), nullable=False, index=True)
+    website_id = Column(Integer, ForeignKey("websites.id", ondelete="CASCADE"), nullable=False, index=True)
     name = Column(String(255), nullable=False)
 
     # Steps stored as JSON array:
@@ -60,7 +60,7 @@ class FunnelEvent(Base):
     __tablename__ = "funnel_events"
 
     id = Column(Integer, primary_key=True, index=True)
-    funnel_id = Column(Integer, ForeignKey("funnels.id"), nullable=False, index=True)
+    funnel_id = Column(Integer, ForeignKey("funnels.id", ondelete="CASCADE"), nullable=False, index=True)
     visitor_id = Column(String(255), nullable=False, index=True)
     step_number = Column(Integer, nullable=False)
     step_name = Column(String(255), nullable=False)

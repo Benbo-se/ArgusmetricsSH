@@ -46,7 +46,7 @@ class CustomEvent(Base):
     __tablename__ = "custom_events"
 
     id = Column(Integer, primary_key=True, index=True)
-    website_id = Column(Integer, ForeignKey("websites.id"), nullable=False, index=True)
+    website_id = Column(Integer, ForeignKey("websites.id", ondelete="CASCADE"), nullable=False, index=True)
     event_name = Column(String(255), nullable=False, index=True)
     properties = Column(JSONB, nullable=True)  # Flexible key-value properties
     path = Column(String(2048), nullable=True)

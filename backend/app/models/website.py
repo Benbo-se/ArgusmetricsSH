@@ -28,7 +28,7 @@ class Website(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(255), nullable=False)
     domain = Column(String(255), unique=True, nullable=False, index=True)
-    user_email = Column(String(255), ForeignKey("users.email"), nullable=False, index=True)
+    user_email = Column(String(255), ForeignKey("users.email", ondelete="CASCADE"), nullable=False, index=True)
     tracking_code = Column(String(255), unique=True, nullable=False, index=True)
     verification_token = Column(String(64), unique=True, nullable=False)
     is_verified = Column(Boolean, default=False, nullable=False, index=True)

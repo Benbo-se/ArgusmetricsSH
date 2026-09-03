@@ -269,13 +269,27 @@ class EmailReportsService:
         Returns:
             List[Website]: Websites due for reports
         """
-        websites = self.db.query(Website).filter(
+        query = self.db.query(Website).filter(
             Website.email_reports_enabled == True,
             Website.email_reports_frequency == frequency,
-            Website.email_reports_day == day_of_week_or_month
-        ).all()
+        )
 
-        return websites
+        if frequency == "monthly":
+            import calendar
+            from datetime import datetime, timezone as _tz
+            now = datetime.now(_tz.utc)
+            last_day = calendar.monthrange(now.year, now.month)[1]
+            if day_of_week_or_month == last_day:
+                # On the last day of a short month, also send the reports
+                # configured for days that don't exist this month (29/30/31),
+                # which would otherwise silently never fire.
+                query = query.filter(Website.email_reports_day >= day_of_week_or_month)
+            else:
+                query = query.filter(Website.email_reports_day == day_of_week_or_month)
+        else:
+            query = query.filter(Website.email_reports_day == day_of_week_or_month)
+
+        return query.all()
 
     def send_scheduled_reports(self) -> Dict[str, int]:
         """
