@@ -18,6 +18,7 @@ from app.models.pageview import Pageview
 from app.models.website import Website
 from app.models.user import User
 from app.models.custom_event import CustomEvent
+from app.models.funnel import Funnel, FunnelEvent
 from app.utils.security import generate_visitor_hash
 
 logger = logging.getLogger(__name__)
@@ -232,6 +233,7 @@ class AnalyticsRecordingService:
             )
 
             self.db.add(pageview)
+            self._record_funnel_steps(website.id, path, visitor_hash)
             self.db.commit()
 
             logger.info(
@@ -244,6 +246,63 @@ class AnalyticsRecordingService:
             self.db.rollback()
             logger.error(f"Error recording pageview: {e}", exc_info=True)
             return False, "Failed to record pageview"
+
+    def _record_funnel_steps(self, website_id: int, path: str, visitor_hash: str) -> None:
+        """
+        Record funnel progress for a pageview.
+
+        Funnels are defined as a list of {step, name, path} entries; a visitor
+        reaching one of those paths counts as reaching that step. This is the
+        write side of the funnel feature — without it, funnel_events stays
+        empty and every funnel reports 0% forever (which is exactly what it
+        did before this existed).
+
+        Only one row is kept per (funnel, visitor, step): the stats query
+        counts distinct visitors, so repeat visits to the same step add
+        nothing but table bloat.
+
+        Runs inside the caller's transaction (committed with the pageview),
+        but never propagates: a funnel problem must not cost us the pageview.
+        """
+        try:
+            funnels = self.db.query(Funnel).filter(
+                Funnel.website_id == website_id,
+                Funnel.is_active == True
+            ).all()
+
+            for funnel in funnels:
+                steps = funnel.steps or []
+                for step in steps:
+                    if step.get("path") != path:
+                        continue
+
+                    step_number = step.get("step")
+                    already_recorded = self.db.query(FunnelEvent.id).filter(
+                        FunnelEvent.funnel_id == funnel.id,
+                        FunnelEvent.visitor_id == visitor_hash,
+                        FunnelEvent.step_number == step_number
+                    ).first()
+                    if already_recorded:
+                        continue
+
+                    self.db.add(FunnelEvent(
+                        funnel_id=funnel.id,
+                        visitor_id=visitor_hash,
+                        step_number=step_number,
+                        step_name=step.get("name") or f"Step {step_number}",
+                        path=path,
+                        timestamp=datetime.now(timezone.utc),
+                        # Last step reached = this visitor completed the funnel.
+                        completed=step_number == max(
+                            (s.get("step") or 0) for s in steps
+                        ),
+                    ))
+                    logger.info(
+                        f"Funnel step recorded: funnel_id={funnel.id}, "
+                        f"step={step_number}, path={path}"
+                    )
+        except Exception as e:
+            logger.error(f"Error recording funnel steps: {e}", exc_info=True)
 
     def record_custom_event(
         self,
