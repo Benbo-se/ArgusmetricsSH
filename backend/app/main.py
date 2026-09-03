@@ -131,6 +131,12 @@ if settings.is_production:
 # visitor-controlled analytics data (never |tojson inside an attribute).
 # TODO (UX phase): move to Alpine's CSP build (@alpinejs/csp, expressions as
 # Alpine.data() components) or plain JS, then drop both unsafe-* sources.
+#
+# style-src, unlike script-src, HAS been locked to 'self' with no unsafe-*:
+# every literal style="" attribute and <style> block was moved to
+# theme.css/component classes, and the 2 Alpine :style bindings that built a
+# CSS string (setAttribute-equivalent, CSP-blocked) switched to the
+# object-literal form (CSSOM .style.setProperty, never gated by style-src).
 @app.middleware("http")
 async def security_headers(request: Request, call_next):
     response = await call_next(request)
@@ -141,7 +147,7 @@ async def security_headers(request: Request, call_next):
         "Content-Security-Policy",
         "default-src 'self'; "
         "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
-        "style-src 'self' 'unsafe-inline'; "
+        "style-src 'self'; "
         "img-src 'self' data: https:; "
         "font-src 'self' data:; "
         "connect-src 'self'; "

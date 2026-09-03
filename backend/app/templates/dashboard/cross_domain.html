@@ -135,7 +135,7 @@
                         <!-- Progress bar -->
                         <div class="mt-2 w-full bg-gray-200 rounded-full h-2">
                             <div class="bg-blue-600 h-2 rounded-full transition-all"
-                                 :style="`width: ${(site.pageviews / aggregatedStats.totalPageviews * 100).toFixed(1)}%`">
+                                 :style="{ width: (site.pageviews / aggregatedStats.totalPageviews * 100).toFixed(1) + '%' }">
                             </div>
                         </div>
                     </div>

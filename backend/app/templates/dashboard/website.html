@@ -434,7 +434,7 @@
                 <p class="stat-label">Online Now</p>
                 <span class="live-dot" title="Visitors active in the last 5 minutes"></span>
             </div>
-            <p class="stat-value text-3xl" style="color: var(--accent)">{{ live_visitors | default(0) }}</p>
+            <p class="stat-value text-3xl live-value-color">{{ live_visitors | default(0) }}</p>
         </div>
     </div>
 
@@ -1266,25 +1266,25 @@ argus.trackEvent('button_click', {
                      :class="{ 'bg-blue-50 border-l-4 border-blue-500': filters.browser === $el.dataset.browser }">
                     <div class="flex items-center gap-2">
                         {%- if 'Chrome' in browser.browser and 'Chromium' not in browser.browser -%}
-                            <i class="fab fa-chrome text-lg" style="color: #4285f4;"></i>
+                            <i class="fab fa-chrome text-lg icon-chrome"></i>
                         {%- elif 'Firefox' in browser.browser -%}
-                            <i class="fab fa-firefox-browser text-lg" style="color: #ff7139;"></i>
+                            <i class="fab fa-firefox-browser text-lg icon-firefox"></i>
                         {%- elif 'Safari' in browser.browser -%}
-                            <i class="fab fa-safari text-lg" style="color: #006cff;"></i>
+                            <i class="fab fa-safari text-lg icon-safari"></i>
                         {%- elif 'Edge' in browser.browser -%}
-                            <i class="fab fa-edge text-lg" style="color: #0078d7;"></i>
+                            <i class="fab fa-edge text-lg icon-edge"></i>
                         {%- elif 'Opera' in browser.browser -%}
-                            <i class="fab fa-opera text-lg" style="color: #ff1b2d;"></i>
+                            <i class="fab fa-opera text-lg icon-opera"></i>
                         {%- elif 'Brave' in browser.browser -%}
-                            <i class="fab fa-brave text-lg" style="color: #fb542b;"></i>
+                            <i class="fab fa-brave text-lg icon-brave"></i>
                         {%- elif 'Chromium' in browser.browser -%}
-                            <i class="fas fa-circle-notch text-lg" style="color: #4a90e2;"></i>
+                            <i class="fas fa-circle-notch text-lg icon-chromium"></i>
                         {%- elif 'IE' in browser.browser or 'Internet Explorer' in browser.browser -%}
-                            <i class="fab fa-internet-explorer text-lg" style="color: #0076d7;"></i>
+                            <i class="fab fa-internet-explorer text-lg icon-ie"></i>
                         {%- elif 'Android' in browser.browser -%}
-                            <i class="fab fa-android text-lg" style="color: #3ddc84;"></i>
+                            <i class="fab fa-android text-lg icon-android"></i>
                         {%- elif 'Samsung' in browser.browser -%}
-                            <i class="fas fa-mobile-alt text-lg" style="color: #1428a0;"></i>
+                            <i class="fas fa-mobile-alt text-lg icon-samsung"></i>
                         {%- else -%}
                             <i class="fas fa-globe text-lg text-gray-600"></i>
                         {%- endif -%}

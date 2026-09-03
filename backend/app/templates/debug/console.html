@@ -61,12 +61,12 @@
                     </span>
                 </div>
                 <div class="text-xs text-gray-400">
-                    WebSocket: <code>wss://{{ request.host }}/ws/debug/{{ website.id }}</code>
+                    WebSocket: <code class="debug-ws-url">wss://{{ request.host }}/ws/debug/{{ website.id }}</code>
                 </div>
             </div>
 
             <!-- Events Table -->
-            <div class="overflow-x-auto" style="max-height: 600px; overflow-y: auto;">
+            <div class="overflow-x-auto debug-scroll-events">
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50 sticky top-0">
                         <tr>
@@ -137,7 +137,7 @@
                             <i class="fas fa-times"></i>
                         </button>
                     </div>
-                    <pre class="bg-gray-100 p-4 rounded overflow-auto text-sm" style="max-height: 400px;" x-text="JSON.stringify(selectedEvent, null, 2)"></pre>
+                    <pre class="bg-gray-100 p-4 rounded overflow-auto text-sm debug-scroll-detail" x-text="JSON.stringify(selectedEvent, null, 2)"></pre>
                 </div>
             </div>
         </div>
@@ -262,17 +262,4 @@ async function sendTestEvent() {
     }
 }
 </script>
-
-<style>
-[x-cloak] {
-    display: none !important;
-}
-
-code {
-    background-color: #f3f4f6;
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-family: 'Courier New', monospace;
-}
-</style>
 {% endblock %}

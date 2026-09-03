@@ -311,6 +311,41 @@ td, .tabular, [x-text*="views"], [x-text*="count"] {
     .lg\:inset-y-0 { top: 0; bottom: 0; }
 }
 
+/* --- CSP cleanup: was inline style="", moved here so style-src can drop
+   'unsafe-inline'. [x-cloak] was previously duplicated verbatim across 4
+   templates (index/console/funnels/goals) — centralized here so it now
+   covers every page, not just those four. --------------------------------- */
+[x-cloak] { display: none !important; }
+
+.honeypot-offscreen { position: absolute; left: -9999px; top: -9999px; }
+.avatar-badge { background: var(--brand-50); color: var(--brand-500); }
+.live-value-color { color: var(--accent); }
+.debug-scroll-events { max-height: 600px; overflow-y: auto; }
+.debug-scroll-detail { max-height: 400px; }
+/* Was a bare `code {}` rule scoped to this one template by being inside its
+   own <style> block; theme.css is loaded everywhere, so a bare element
+   selector here would also repaint the (unrelated, dark-background)
+   <pre><code> blocks on Settings/Revenue/Events — scope to this one snippet
+   instead of the tag. */
+.debug-ws-url {
+    background-color: var(--surface-sunken);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+}
+
+/* Browser-icon brand colors (dashboard/website.html's per-browser if/elif) */
+.icon-chrome { color: #4285f4; }
+.icon-firefox { color: #ff7139; }
+.icon-safari { color: #006cff; }
+.icon-edge { color: #0078d7; }
+.icon-opera { color: #ff1b2d; }
+.icon-brave { color: #fb542b; }
+.icon-chromium { color: #4a90e2; }
+.icon-ie { color: #0076d7; }
+.icon-android { color: #3ddc84; }
+.icon-samsung { color: #1428a0; }
+
 /* --- Focus --------------------------------------------------------------- */
 a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible {
     outline: 2px solid var(--accent);
