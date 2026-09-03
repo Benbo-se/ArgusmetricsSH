@@ -34,11 +34,15 @@
                          console.log('Verification instructions loaded:', data);
                      } else {
                          console.error('Failed to load instructions:', data);
-                         alert('Failed to load instructions: ' + (data.message || data.detail || 'Unknown error'));
+                         window.dispatchEvent(new CustomEvent('toast', {
+                            detail: { message: 'Failed to load instructions: ' + (data.message || data.detail || 'Unknown error'), type: 'error' }
+                        }));
                      }
                  } catch (error) {
                      console.error('Error fetching instructions:', error);
-                     alert('Failed to load verification instructions. Check console for details.');
+                     window.dispatchEvent(new CustomEvent('toast', {
+                        detail: { message: 'Failed to load verification instructions.', type: 'error' }
+                    }));
                  }
              },
              async verifyDomain() {
@@ -54,17 +58,25 @@
                          if (data.verified) {
                              this.verified = true;
                              this.showInstructions = false;
-                             alert('✅ ' + data.message + '\\n\\nTracking is now enabled! Please reload the page.');
+                             window.dispatchEvent(new CustomEvent('toast', {
+                                detail: { message: data.message + ' Tracking is now enabled — reloading…', type: 'success' }
+                            }));
                              setTimeout(() => window.location.reload(), 1500);
                          } else {
-                             alert('❌ Verification failed\\n\\n' + data.message);
+                             window.dispatchEvent(new CustomEvent('toast', {
+                                detail: { message: 'Verification failed: ' + data.message, type: 'error' }
+                            }));
                          }
                      } else {
-                         alert('Error: ' + (data.message || data.detail || 'Unknown error'));
+                         window.dispatchEvent(new CustomEvent('toast', {
+                            detail: { message: data.message || data.detail || 'Something went wrong.', type: 'error' }
+                        }));
                      }
                  } catch (error) {
                      console.error('Error verifying domain:', error);
-                     alert('Failed to verify domain. Please try again.');
+                     window.dispatchEvent(new CustomEvent('toast', {
+                        detail: { message: 'Failed to verify domain. Please try again.', type: 'error' }
+                    }));
                  } finally {
                      this.verifying = false;
                  }
@@ -388,13 +400,19 @@ export default function Custom404() {
                          if (data.public_url) {
                              this.publicUrl = data.public_url;
                          }
-                         alert(this.isPublic ? 'Public dashboard enabled!' : 'Public dashboard disabled');
+                         window.dispatchEvent(new CustomEvent('toast', {
+                            detail: { message: this.isPublic ? 'Public dashboard enabled' : 'Public dashboard disabled', type: 'success' }
+                        }));
                      } else {
-                         alert('Error: ' + (data.detail || 'Unknown error'));
+                         window.dispatchEvent(new CustomEvent('toast', {
+                            detail: { message: data.detail || 'Something went wrong.', type: 'error' }
+                        }));
                      }
                  } catch (error) {
                      console.error('Error toggling public access:', error);
-                     alert('Failed to update public access. Please try again.');
+                     window.dispatchEvent(new CustomEvent('toast', {
+                        detail: { message: 'Failed to update public access. Please try again.', type: 'error' }
+                    }));
                  } finally {
                      this.updating = false;
                  }

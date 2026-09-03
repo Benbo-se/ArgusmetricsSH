@@ -170,7 +170,9 @@ body {
 .text-red-600, .text-red-700, .text-red-800, .text-red-900, .text-red-400, .text-red-500 { color: var(--crit) !important; }
 .bg-red-50, .bg-red-100 { background-color: var(--crit-soft) !important; }
 .bg-red-600, .bg-red-700 { background-color: var(--crit) !important; }
-.border-red-200 { border-color: var(--crit) !important; }
+/* border-red-500 isn't in the frozen Tailwind build at all (border-blue-500
+   is), so the error toast's left border silently fell back to default grey. */
+.border-red-200, .border-red-500 { border-color: var(--crit) !important; }
 .text-yellow-600, .text-yellow-700, .text-yellow-800, .text-orange-600 { color: var(--warn) !important; }
 .bg-yellow-50, .bg-yellow-100 { background-color: var(--warn-soft) !important; }
 .border-yellow-200, .border-yellow-500 { border-color: var(--warn) !important; }
