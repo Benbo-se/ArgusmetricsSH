@@ -129,14 +129,24 @@
         </div>
 
         <!-- Conversion Rate Card -->
+        {# This is purchases ÷ product views, not purchases ÷ site visitors. A
+           store that tracks purchases but never sends view_item events has an
+           empty denominator, so an unlabelled "0.00%" next to real revenue
+           reads as broken rather than as "nothing to divide by" — say which
+           number is missing instead. #}
         <div class="stat-tile bg-white rounded-lg shadow p-6">
             <div class="flex items-center justify-between mb-2">
-                <p class="stat-label">Conversion Rate</p>
+                <p class="stat-label">View &rarr; Purchase</p>
                 <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
                 </svg>
             </div>
-            <p class="stat-value text-3xl text-gray-900">{{ "{:.2f}".format(revenue_stats.conversion_rate) if revenue_stats.conversion_rate else "0.00" }}%</p>
+            {% if revenue_stats.conversion_rate %}
+            <p class="stat-value text-3xl text-gray-900">{{ "{:.2f}".format(revenue_stats.conversion_rate) }}%</p>
+            {% else %}
+            <p class="stat-value text-3xl text-gray-400">&mdash;</p>
+            <p class="text-xs text-gray-500 mt-1">Needs <code class="text-xs">view_item</code> events</p>
+            {% endif %}
         </div>
     </div>
 
