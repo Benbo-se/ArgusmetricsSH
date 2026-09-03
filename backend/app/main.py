@@ -15,7 +15,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.config import settings
-from app.database import engine, Base, check_db_connection, close_db_connection
+from app.database import check_db_connection, close_db_connection
 
 # Configure logging
 logging.basicConfig(
@@ -32,8 +32,9 @@ async def lifespan(app: FastAPI):
     Handle application lifespan events.
 
     Startup:
-        - Check database connection
-        - Initialize tables (if needed)
+        - Check database connection (the schema is already migrated by the
+          entrypoint; nothing here creates tables)
+        - Start the background scheduler
         - Log application startup
 
     Shutdown:
@@ -53,11 +54,13 @@ async def lifespan(app: FastAPI):
 
     logger.info("Database connection established successfully")
 
-    # Create tables if they don't exist (for development)
-    # In production, use Alembic migrations instead
-    if settings.DEBUG:
-        logger.info("Creating database tables (development mode)...")
-        Base.metadata.create_all(bind=engine)
+    # No create_all here, in any environment. The entrypoint runs
+    # `alembic upgrade head` before this process starts, so the schema is
+    # already there, and creating tables from the models alongside that only
+    # ever hid a missing migration: a new model would appear in development
+    # with no migration behind it, everything would work locally, and the
+    # table would be absent in production. Migrations are the only way the
+    # schema changes.
 
     # Start background scheduler for cleanup tasks
     from app.scheduled_tasks import get_scheduler

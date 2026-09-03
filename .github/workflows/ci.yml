@@ -79,6 +79,20 @@ jobs:
       - name: Migrera (alembic upgrade head mot tom databas = fresh-install-testet)
         working-directory: backend
         run: alembic upgrade head
+
+      - name: Modellerna matchar migrationerna (ingen glömd migration)
+        working-directory: backend
+        run: |
+          # Against the database the step above just built from nothing, so
+          # this asks whether the migrations alone produce the schema the
+          # models describe. A new model with no migration behind it fails
+          # here instead of in production.
+          #
+          # This gap used to be papered over: the app called
+          # Base.metadata.create_all() on startup in development, so a missing
+          # migration was invisible locally and only surfaced on deploy. That
+          # call is gone, and this is what replaces it.
+          alembic check
       - name: Cross-tenant-isolering (RLS) mot en icke-priviligierad roll
         env:
           PGPASSWORD: argus
