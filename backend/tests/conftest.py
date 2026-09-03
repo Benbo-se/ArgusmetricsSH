@@ -1,0 +1,168 @@
+"""Shared test fixtures.
+
+Two decisions worth stating, because both were learned the hard way.
+
+**Tests run against real PostgreSQL, never SQLite.** This codebase uses JSONB,
+GIN indexes, triggers and row-level security, none of which SQLite has. More to
+the point, twice in this project a test passed while the thing it tested was
+broken, both times because the environment running the test was not the
+environment running the code. An in-memory stand-in would guarantee that
+happens again.
+
+**Each test runs inside a transaction that is rolled back.** The application
+commits mid-request, so the session joins an outer transaction with
+create_savepoint: a commit inside the app releases a savepoint, and the
+rollback here still undoes the whole thing. Tests can therefore run against a
+database with real data in it without leaving anything behind.
+
+Run:
+    docker exec argusmetrics-backend python -m pytest tests/ -v
+"""
+import os
+import uuid
+from datetime import datetime, timezone
+
+import pytest
+from fastapi.testclient import TestClient
+from sqlalchemy import create_engine, text
+from sqlalchemy.orm import Session
+
+from app.database import Base, get_db
+from app.main import app
+
+TEST_DATABASE_URL = os.environ.get(
+    "TEST_DATABASE_URL", os.environ.get("DATABASE_URL")
+)
+
+pytestmark = pytest.mark.skipif(
+    not TEST_DATABASE_URL, reason="no database configured"
+)
+
+
+@pytest.fixture(scope="session")
+def engine():
+    if not TEST_DATABASE_URL:
+        pytest.skip("no database configured")
+    eng = create_engine(TEST_DATABASE_URL, future=True)
+    with eng.connect() as conn:
+        # Fail loudly rather than erroring one assertion at a time if the
+        # schema was never migrated.
+        missing = conn.execute(
+            text(
+                "SELECT count(*) FROM information_schema.tables "
+                "WHERE table_schema = 'public' AND table_name = 'pageviews'"
+            )
+        ).scalar()
+        assert missing, (
+            "pageviews does not exist. Run 'alembic upgrade head' against "
+            f"{TEST_DATABASE_URL.rsplit('@', 1)[-1]} first."
+        )
+    return eng
+
+
+@pytest.fixture
+def db(engine):
+    """A session whose writes are always undone, app commits included."""
+    connection = engine.connect()
+    transaction = connection.begin()
+    session = Session(
+        bind=connection,
+        join_transaction_mode="create_savepoint",
+        expire_on_commit=False,
+    )
+
+    yield session
+
+    session.close()
+    transaction.rollback()
+    connection.close()
+
+
+@pytest.fixture
+def client(db):
+    """A TestClient whose requests share the test's rolled-back session.
+
+    Deliberately not used as a context manager, which would run the lifespan
+    handlers on every test. Those start the background scheduler and, on the
+    way out, dispose the engine the whole session is using. The scheduler is
+    a singleton that cannot be restarted once stopped, so the second test in
+    a run would fail on teardown with SchedulerNotRunningError.
+
+    Nothing in lifespan is needed here anyway: it logs, checks the connection
+    and starts jobs that have no business running during a test.
+    """
+    app.dependency_overrides[get_db] = lambda: db
+    yield TestClient(app)
+    app.dependency_overrides.clear()
+
+
+@pytest.fixture
+def website(db):
+    """A verified, active website owned by a throwaway user.
+
+    Verified because the tracking endpoints refuse to record for a domain that
+    is not, so an unverified fixture would make every tracking test fail for a
+    reason that has nothing to do with what it is testing.
+    """
+    suffix = uuid.uuid4().hex[:8]
+    email = f"test-{suffix}@example.invalid"
+
+    db.execute(
+        text(
+            "INSERT INTO users (email, is_verified, created_at) "
+            "VALUES (:e, true, now()) ON CONFLICT (email) DO NOTHING"
+        ),
+        {"e": email},
+    )
+    website_id = db.execute(
+        text(
+            "INSERT INTO websites (name, domain, user_email, tracking_code,"
+            "                      verification_token, is_verified, is_active,"
+            "                      email_reports_enabled, is_public,"
+            "                      public_password_enabled, created_at) "
+            "VALUES (:n, :d, :e, :tc, :vt, true, true, false, false, false, now()) "
+            "RETURNING id"
+        ),
+        {
+            "n": f"Test site {suffix}",
+            "d": f"https://{suffix}.example.invalid",
+            "e": email,
+            "tc": suffix,
+            "vt": f"tok-{suffix}",
+        },
+    ).scalar()
+    db.commit()
+
+    return {
+        "id": website_id,
+        "email": email,
+        "tracking_code": suffix,
+        "domain": f"https://{suffix}.example.invalid",
+    }
+
+
+@pytest.fixture
+def goal(db, website):
+    """A goal on the fixture website, keyed on the event name the app matches."""
+    event_name = f"signup_{uuid.uuid4().hex[:6]}"
+    goal_id = db.execute(
+        text(
+            "INSERT INTO goals (website_id, name, event_name, created_at) "
+            "VALUES (:w, :n, :e, now()) RETURNING id"
+        ),
+        {"w": website["id"], "n": "Test goal", "e": event_name},
+    ).scalar()
+    db.commit()
+    return {"id": goal_id, "event_name": event_name}
+
+
+def count(db, table, **where):
+    """Row count, for asserting that a write path actually wrote something.
+
+    A 200 response is not evidence a row landed. Several features in this
+    codebase rendered and returned 200 while writing nothing at all.
+    """
+    clause = " AND ".join(f"{col} = :{col}" for col in where) or "true"
+    return db.execute(
+        text(f"SELECT count(*) FROM {table} WHERE {clause}"), where
+    ).scalar()

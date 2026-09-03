@@ -54,8 +54,10 @@ Base = declarative_base()
 # Every request declares who it is acting as, so database policies can enforce
 # tenant isolation instead of trusting each query to remember its WHERE clause.
 #
-# Nothing reads these yet: the policies come later, one table at a time. This
-# is the plumbing, landed first so it can be verified while it is still inert.
+# The five traffic tables now have policies that read these: pageviews,
+# custom_events, ecommerce_events, goal_conversions and funnel_events. The
+# configuration tables do not yet, so forgetting a context there still reads
+# normally rather than failing closed.
 #
 # Contexts:
 #   user     an authenticated request, carries the user's email
