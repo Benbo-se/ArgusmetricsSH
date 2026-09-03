@@ -12,7 +12,7 @@ from typing import Dict, Optional, Set
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends, Query
 from sqlalchemy.orm import Session
 
-from app.database import get_db
+from app.database import get_db, set_rls_context
 from app.models.website import Website
 
 logger = logging.getLogger(__name__)
@@ -174,12 +174,16 @@ async def websocket_endpoint(
     from app.services.auth_service import AuthService
     from app.services.team_service import TeamService
     from app.services.token_service import TokenService
+    from app.services.website_lookup import resolve_api_token
 
     user_email = None
     if api_token:
-        api_website = TokenService(db).validate_token(api_token)
-        if api_website and api_website.id == website_id:
-            user_email = api_website.user_email
+        # Resolved through a SECURITY DEFINER function: this runs before any
+        # row-level security context exists, so a plain read of the token's
+        # website would return nothing.
+        owner = resolve_api_token(db, TokenService.hash_token(api_token))
+        if owner and owner.website_id == website_id:
+            user_email = owner.owner_email
     else:
         session_token = websocket.cookies.get("session_token")
         if session_token:
@@ -191,6 +195,13 @@ async def websocket_endpoint(
         logger.warning(f"WebSocket auth failed: missing/invalid credentials for website_id={website_id}")
         await websocket.close(code=4001, reason="Authentication required")
         return
+
+
+    # Declare who this connection acts as, before anything reads a policied
+    # table. Without it the access check below reads nothing and refuses
+    # everyone, which is invisible in development where the app connects as
+    # the table owner.
+    set_rls_context(db, context="user", user_email=user_email)
 
     if not TeamService(db).check_website_access(user_email, website_id):
         logger.warning(f"WebSocket auth failed: {user_email} has no access to website_id={website_id}")
@@ -361,13 +372,15 @@ async def debug_websocket_endpoint(
     from app.services.auth_service import AuthService
     from app.services.team_service import TeamService
     from app.services.token_service import TokenService
+    from app.services.website_lookup import resolve_api_token
 
     user_email = None
 
     if api_token:
-        api_website = TokenService(db).validate_token(api_token)
-        if api_website and api_website.id == website_id:
-            user_email = api_website.user_email
+        # See /ws/live: resolved before any context exists.
+        owner = resolve_api_token(db, TokenService.hash_token(api_token))
+        if owner and owner.website_id == website_id:
+            user_email = owner.owner_email
     elif token:
         user = AuthService(db).validate_session(token)
         if user:
@@ -387,6 +400,13 @@ async def debug_websocket_endpoint(
         logger.warning(f"Debug WebSocket auth failed: missing/invalid credentials for website_id={website_id}")
         await websocket.close(code=4001, reason="Authentication required")
         return
+
+
+    # Declare who this connection acts as, before anything reads a policied
+    # table. Without it the access check below reads nothing and refuses
+    # everyone, which is invisible in development where the app connects as
+    # the table owner.
+    set_rls_context(db, context="user", user_email=user_email)
 
     # Verify the authenticated user actually has access to this website
     role = TeamService(db).check_website_access(user_email, website_id)

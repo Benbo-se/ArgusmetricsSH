@@ -11,10 +11,12 @@ omission even when running as the owner.
 """
 import uuid
 
+import pytest
 from sqlalchemy import text
 
 from app.database import RLS_INFO_KEY
 from app.services.token_service import TokenService
+from tests.conftest import ws_headers
 
 
 def _make_api_token(db, website_id):
@@ -53,6 +55,40 @@ class TestApiTokenAuthentication:
         assert declared is not None, "the request declared no context at all"
         assert declared["context"] == "user"
         assert declared["user_email"] == website["email"]
+
+    def test_websocket_endpoints_declare_one_too(self, client, db, website):
+        """The websocket router is a separate entry point, and it was missed.
+
+        Neither /ws/live nor /ws/debug declared a context, so once websites
+        and website_members were policied the access check read nothing and
+        refused everyone. As argus_app, check_website_access returned None
+        without a context and OWNER with one.
+        """
+        token = _make_api_token(db, website["id"])
+
+        for path in ("/ws/live", "/ws/debug"):
+            db.info.pop(RLS_INFO_KEY, None)
+
+            with client.websocket_connect(
+                f"{path}/{website['id']}?api_token={token}",
+                headers=ws_headers(),
+            ):
+                pass
+
+            declared = db.info.get(RLS_INFO_KEY)
+            assert declared is not None, f"{path} declared no context"
+            assert declared["context"] == "user"
+            assert declared["user_email"] == website["email"]
+
+    def test_a_websocket_with_a_bad_token_is_refused(self, client, db, website):
+        from starlette.websockets import WebSocketDisconnect
+
+        with pytest.raises(WebSocketDisconnect):
+            with client.websocket_connect(
+                f"/ws/live/{website['id']}?api_token=t-not-a-real-token",
+                headers=ws_headers(),
+            ) as ws:
+                ws.receive_text()
 
     def test_an_invalid_token_is_rejected(self, client, db, website):
         response = client.get(

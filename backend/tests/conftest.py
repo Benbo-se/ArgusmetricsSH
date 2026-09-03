@@ -20,6 +20,7 @@ Run:
 """
 import os
 import uuid
+from urllib.parse import urlparse
 from datetime import datetime, timezone
 
 import pytest
@@ -191,6 +192,18 @@ def goal(db, website):
     ).scalar()
     db.commit()
     return {"id": goal_id, "event_name": event_name}
+
+
+def ws_headers():
+    """Headers a websocket handshake needs to get past TrustedHostMiddleware.
+
+    TestClient honours base_url for HTTP but sends Host: testserver on every
+    websocket handshake regardless, so in production mode the middleware
+    answers "Invalid host header" and the connection never reaches the
+    endpoint. That looks exactly like an auth failure, so set the host
+    explicitly rather than reading anything into a refused connection.
+    """
+    return {"host": urlparse(settings.BASE_URL).netloc}
 
 
 def reason(response):
