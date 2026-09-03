@@ -189,7 +189,6 @@ class CleanupService:
                     ("ecommerce_events", "timestamp"),
                     ("goal_conversions", "timestamp"),
                     ("funnel_events", "timestamp"),
-                    ("revenue_transactions", "timestamp"),
                 ]:
                     result = self.db.execute(
                         text(f"DELETE FROM {table} WHERE {ts_col} < :cutoff"),  # nosec: table names are a fixed allowlist above

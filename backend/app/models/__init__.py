@@ -17,7 +17,6 @@ from app.models.api_token import ApiToken
 from app.models.alert_settings import AlertSettings
 from app.models.website_member import WebsiteMember, MemberRole, MemberStatus
 from app.models.ecommerce_event import EcommerceEvent
-from app.models.revenue_transaction import RevenueTransaction
 from app.models.used_magic_token import UsedMagicToken
 from app.models.email_log import EmailLog
 
@@ -37,7 +36,6 @@ __all__ = [
     "MemberRole",
     "MemberStatus",
     "EcommerceEvent",
-    "RevenueTransaction",
     "UsedMagicToken",
     "EmailLog",
 ]
