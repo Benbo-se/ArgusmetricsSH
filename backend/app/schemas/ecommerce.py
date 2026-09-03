@@ -187,6 +187,20 @@ class EcommerceEventRequest(BaseModel):
             raise ValueError(f"transaction_id is required for {self.event_type} events")
         return self
 
+    @model_validator(mode="after")
+    def require_revenue_for_purchases(self):
+        """Purchases and refunds must carry a revenue amount.
+
+        Without this, an integration that sends the wrong field name (e.g.
+        `value` instead of `revenue`) gets a silent 200 and a purchase row
+        with NULL revenue. That row still counts toward transaction totals
+        while contributing nothing to revenue, quietly skewing average order
+        value — the failure shows up as bad numbers weeks later rather than
+        as an error at integration time."""
+        if self.event_type in ("purchase", "refund") and self.revenue is None:
+            raise ValueError(f"revenue is required for {self.event_type} events")
+        return self
+
     class Config:
         json_schema_extra = {
             "example": {
