@@ -663,6 +663,130 @@ export default function Custom404() {
         </div>
     </div>
 
+    <!-- Traffic Alerts -->
+    <div class="bg-white rounded-lg shadow p-6 mb-6"
+         x-data="{
+             enabled: {{ 'true' if alert_settings and alert_settings.email_enabled else 'false' }},
+             threshold: {{ alert_settings.spike_threshold if alert_settings else 2.0 }},
+             saving: false,
+             showSuccess: false,
+             errorMessage: '',
+
+             get percentLabel() {
+                 return Math.round(this.threshold * 100) + '%';
+             },
+
+             async saveAlerts() {
+                 this.saving = true;
+                 this.errorMessage = '';
+                 this.showSuccess = false;
+
+                 try {
+                     // Auth via httponly session_token cookie (SameSite=Lax mitigates CSRF)
+                     const response = await fetch('/api/v1/analytics/alerts/{{ website.id }}', {
+                         method: 'PUT',
+                         credentials: 'same-origin',
+                         headers: { 'Content-Type': 'application/json' },
+                         body: JSON.stringify({
+                             spike_threshold: parseFloat(this.threshold),
+                             email_enabled: this.enabled
+                         })
+                     });
+
+                     const data = await response.json();
+
+                     if (response.ok) {
+                         this.showSuccess = true;
+                         setTimeout(() => this.showSuccess = false, 3000);
+                     } else {
+                         this.errorMessage = data.message || data.detail || 'Failed to save alert settings';
+                     }
+                 } catch (error) {
+                     console.error('Error saving traffic alerts:', error);
+                     this.errorMessage = 'Network error. Please try again.';
+                 } finally {
+                     this.saving = false;
+                 }
+             }
+         }">
+        <div class="flex items-center justify-between mb-4">
+            <div>
+                <h2 class="text-lg font-semibold text-gray-900">Traffic Alerts</h2>
+                <p class="text-sm text-gray-600 mt-1">
+                    Get an email when an hour's traffic jumps well above what this site
+                    normally sees at that time of day
+                </p>
+            </div>
+        </div>
+
+        <div class="space-y-4">
+            <div class="flex items-center">
+                <input type="checkbox"
+                       id="traffic-alerts-enabled"
+                       x-model="enabled"
+                       class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                <label for="traffic-alerts-enabled" class="ml-2 block text-sm text-gray-900 font-medium">
+                    Email me about traffic spikes
+                </label>
+            </div>
+
+            <div x-show="enabled" class="pt-4 border-t border-gray-200 space-y-4">
+                <div>
+                    <label for="spike-threshold" class="block text-sm font-medium text-gray-700 mb-2">
+                        Alert when an hour reaches
+                        <span class="font-semibold text-blue-700" x-text="percentLabel"></span>
+                        of normal
+                    </label>
+                    <input type="range"
+                           id="spike-threshold"
+                           min="1.5" max="10" step="0.5"
+                           x-model="threshold"
+                           class="w-full">
+                    <div class="flex justify-between text-xs text-gray-500 mt-1">
+                        <span>150%, more sensitive</span>
+                        <span>1000%, only large spikes</span>
+                    </div>
+                </div>
+
+                <div class="rounded-md bg-blue-50 p-4">
+                    <p class="text-sm text-blue-900">
+                        Compared against the same hour across the past week, so a normally
+                        busy Monday morning does not trigger one. Alerts go to
+                        <span class="font-medium">{{ website.user_email }}</span>,
+                        at most one per site per hour.
+                    </p>
+                </div>
+            </div>
+
+            <div x-show="showSuccess"
+                 x-transition
+                 class="rounded-md bg-green-50 p-4">
+                <p class="text-sm font-medium text-green-800">Alert settings saved.</p>
+            </div>
+
+            <div x-show="errorMessage"
+                 x-transition
+                 class="rounded-md bg-red-50 p-4">
+                <div class="flex">
+                    <svg class="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                    </svg>
+                    <p class="ml-3 text-sm font-medium text-red-800" x-text="errorMessage"></p>
+                </div>
+            </div>
+
+            <div class="pt-4">
+                <button @click="await saveAlerts()"
+                        :disabled="saving"
+                        :class="saving ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'"
+                        class="px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    <span x-show="!saving">Save Settings</span>
+                    <span x-show="saving">Saving...</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Website Details -->
     <div class="bg-white rounded-lg shadow p-6 mb-6">
         <h2 class="text-lg font-semibold text-gray-900 mb-4">Website Details</h2>

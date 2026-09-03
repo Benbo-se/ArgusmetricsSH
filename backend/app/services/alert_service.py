@@ -192,6 +192,33 @@ Argusmetrics
             logger.error(f"Error sending spike alert: {e}", exc_info=True)
             return False
 
+    def _create_default_settings(self, website_id: int) -> Optional[AlertSettings]:
+        """Default alert settings for a website, addressed to its owner.
+
+        The owner rather than whoever is saving, because an admin configuring
+        alerts for someone else's site should not redirect them to themselves.
+        """
+        from app.models.website import Website
+
+        owner_email = self.db.query(Website.user_email).filter(
+            Website.id == website_id
+        ).scalar()
+
+        if not owner_email:
+            logger.warning(f"No website {website_id}; cannot create alert settings")
+            return None
+
+        settings = AlertSettings(
+            website_id=website_id,
+            spike_threshold=2.0,
+            email_enabled=True,
+            alert_email=owner_email,
+        )
+        self.db.add(settings)
+        self.db.flush()
+        logger.info(f"Created alert settings: website_id={website_id}")
+        return settings
+
     def get_or_create_settings(
         self,
         website_id: int,
@@ -254,7 +281,14 @@ Argusmetrics
             ).first()
 
             if not settings:
-                return None
+                # Create it. Returning None here made the endpoint answer 404
+                # "Settings not found" for any website whose settings had
+                # never been read, since the GET is what creates the row. So
+                # saving worked only if you had loaded the page first, and not
+                # at all through the API.
+                settings = self._create_default_settings(website_id)
+                if not settings:
+                    return None
 
             settings.spike_threshold = spike_threshold
             settings.email_enabled = email_enabled

@@ -128,7 +128,7 @@ def website(db):
     reason that has nothing to do with what it is testing.
     """
     suffix = uuid.uuid4().hex[:8]
-    email = f"test-{suffix}@example.invalid"
+    email = f"test-{suffix}@example.com"  # example.invalid is rejected by the email validator
 
     db.execute(
         text(
@@ -148,7 +148,7 @@ def website(db):
         ),
         {
             "n": f"Test site {suffix}",
-            "d": f"https://{suffix}.example.invalid",
+            "d": f"https://{suffix}.example.com",
             "e": email,
             "tc": suffix,
             "vt": f"tok-{suffix}",
@@ -160,8 +160,35 @@ def website(db):
         "id": website_id,
         "email": email,
         "tracking_code": suffix,
-        "domain": f"https://{suffix}.example.invalid",
+        "domain": f"https://{suffix}.example.com",
     }
+
+
+@pytest.fixture
+def owner_client(client, db, website):
+    """A client authenticated as the fixture website's owner.
+
+    Both authentication dependencies are overridden, because routes use one or
+    the other, and the row-level security context is declared here the way the
+    real dependencies declare it. Authentication itself is covered by
+    test_auth_context; this exists so feature tests can get past the door.
+    """
+    from app.database import set_rls_context
+    from app.models.user import User
+    from app.routers.analytics import get_current_user_or_token
+    from app.routers.auth import get_current_user
+
+    user = db.query(User).filter(User.email == website["email"]).first()
+
+    def _as_owner():
+        set_rls_context(db, context="user", user_email=user.email)
+        return user
+
+    app.dependency_overrides[get_current_user] = _as_owner
+    app.dependency_overrides[get_current_user_or_token] = _as_owner
+    yield client
+    for dep in (get_current_user, get_current_user_or_token):
+        app.dependency_overrides.pop(dep, None)
 
 
 @pytest.fixture

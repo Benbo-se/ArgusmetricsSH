@@ -687,7 +687,8 @@ async def website_settings(
     request: Request,
     website_id: int,
     current_user: User = Depends(get_current_user),
-    website_service: WebsiteService = Depends(get_website_service)
+    website_service: WebsiteService = Depends(get_website_service),
+    db: Session = Depends(get_db)
 ):
     """Render website settings page."""
     logger.info(f"Website settings request: website_id={website_id}, user={mask_email(current_user.email)}")
@@ -700,12 +701,24 @@ async def website_settings(
             detail="Website not found or access denied"
         )
 
+    # Read-only: rendering a page should not write a row. Saving creates it if
+    # it does not exist yet, which is what the traffic alerts section relies
+    # on. Until that section existed nothing in the interface ever reached
+    # this table, so the hourly spike check found no settings for any website
+    # and could never fire.
+    from app.models.alert_settings import AlertSettings
+
+    alert_settings = db.query(AlertSettings).filter(
+        AlertSettings.website_id == website_id
+    ).first()
+
     # H16: do not expose the session token to JS. Templates authenticate API
     # calls via the httponly session_token cookie (SameSite=Lax mitigates CSRF).
     return templates.TemplateResponse("dashboard/settings.html", {
         "request": request,
         "current_user": current_user,
         "website": website,
+        "alert_settings": alert_settings,
         "base_url": settings.BASE_URL,
         "user_email": current_user.email
     })
