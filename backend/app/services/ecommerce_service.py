@@ -618,9 +618,14 @@ class EcommerceService:
 
                 data.append({
                     "date": row.date.isoformat(),
-                    "revenue": revenue,
+                    # float, not Decimal: this feeds `| tojson` straight into a
+                    # <script> block for Chart.js, and Python's json encoder
+                    # (which Jinja's tojson uses) doesn't know Decimal — every
+                    # visit to the revenue page 500'd once real money data
+                    # existed to serialize.
+                    "revenue": float(revenue),
                     "transactions": transactions,
-                    "average_order_value": avg_order_value
+                    "average_order_value": float(avg_order_value)
                 })
 
                 total_revenue += revenue
@@ -628,7 +633,7 @@ class EcommerceService:
 
             result = {
                 "data": data,
-                "total_revenue": total_revenue,
+                "total_revenue": float(total_revenue),
                 "total_transactions": total_transactions
             }
 

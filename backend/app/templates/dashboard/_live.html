@@ -1,5 +1,5 @@
-<div class="flex items-center justify-between mb-1">
-    <p class="text-sm font-medium text-gray-600">Online Now</p>
-    <span class="inline-block w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+<div class="flex items-center justify-between mb-2">
+    <p class="stat-label">Online Now</p>
+    <span class="live-dot" title="Visitors active in the last 5 minutes"></span>
 </div>
-<p class="text-3xl font-bold text-green-600">{{ live_visitors | default(0) }}</p>
+<p class="stat-value text-3xl" style="color: var(--accent)">{{ live_visitors | default(0) }}</p>

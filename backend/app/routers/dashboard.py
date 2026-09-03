@@ -1195,7 +1195,12 @@ async def website_revenue_dashboard(
         "top_products": top_products,
         "revenue_chart": revenue_chart,
         "selected_range": range,
-        "selected_currency": currency
+        # The resolved currency (revenue_stats.currency), not the raw query
+        # param: with no ?currency= the param is None, and Jinja renders a
+        # None straight into the Alpine x-data string as the literal text
+        # "None" — the currency dropdown showed "None" instead of the site's
+        # actual auto-detected currency.
+        "selected_currency": revenue_stats.get("currency", "USD")
     })
 
 

@@ -34,8 +34,16 @@
     <!-- PWA Manifest -->
     <link rel="manifest" href="/static/manifest.json">
 
-    <!-- Tailwind CSS -->
+    <!-- Tailwind CSS (prebuilt dump) + the theme layer that retints it -->
     <link rel="stylesheet" href="/static/css/tailwind.min.css">
+    <link rel="stylesheet" href="/static/css/theme.css">
+    <script>
+        // Apply the saved theme before first paint (no flash of wrong theme).
+        try {
+            var t = localStorage.getItem('argus-theme');
+            if (t) document.documentElement.setAttribute('data-theme', t);
+        } catch (e) {}
+    </script>
 
     <!-- HTMX (local) -->
     <script src="/static/js/htmx.min.js"></script>
@@ -109,6 +117,19 @@
 
     <!-- Custom JavaScript -->
     <script src="/static/js/dashboard.js"></script>
+    <script>
+        function toggleTheme() {
+            var root = document.documentElement;
+            var current = root.getAttribute('data-theme');
+            if (!current) {
+                // No explicit choice yet: flip away from what the OS gives us.
+                current = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+            }
+            var next = current === 'dark' ? 'light' : 'dark';
+            root.setAttribute('data-theme', next);
+            try { localStorage.setItem('argus-theme', next); } catch (e) {}
+        }
+    </script>
 
     {% block extra_scripts %}{% endblock %}
 </body>

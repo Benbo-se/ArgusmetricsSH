@@ -22,6 +22,11 @@
 
                 <!-- User menu -->
                 <div class="flex items-center space-x-4">
+                    <button type="button" onclick="toggleTheme()" class="theme-toggle" aria-label="Toggle dark mode" title="Toggle dark mode">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+                        </svg>
+                    </button>
                     <span class="text-sm text-gray-600">{{ current_user.email }}</span>
                     <form method="post" action="/logout" class="inline"><button type="submit" class="text-sm text-gray-700 hover:text-gray-900">Logout</button></form>
                 </div>

@@ -1,0 +1,293 @@
+/* ===========================================================================
+   Argusmetrics theme layer
+   ---------------------------------------------------------------------------
+   Sits on top of the prebuilt Tailwind dump (which has no config and can't be
+   rebuilt), so the design system lives here: tokens, typography, the card and
+   stat-tile treatments, and dark mode.
+
+   The identity is Argus Panoptes — the watchman who never fully sleeps. Deep
+   indigo "night" surfaces, a single awake cyan accent used sparingly for the
+   things that are actually live, and semantic colors kept separate from it so
+   "good/warning/critical" never competes with the brand hue.
+   =========================================================================== */
+
+/* --- Inter, self-hosted (no CDN; tabular figures matter in analytics) ----- */
+@font-face {
+    font-family: 'Inter';
+    font-style: normal;
+    font-weight: 400 700;
+    font-display: swap;
+    src: url('/static/webfonts/inter-latin.woff2') format('woff2');
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6,
+        U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122,
+        U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+    font-family: 'Inter';
+    font-style: normal;
+    font-weight: 400 700;
+    font-display: swap;
+    src: url('/static/webfonts/inter-latin-ext.woff2') format('woff2');
+    unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7,
+        U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F,
+        U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F,
+        U+A720-A7FF;
+}
+
+/* --- Tokens -------------------------------------------------------------- */
+:root {
+    /* Surfaces: neutrals carry a slight indigo bias so they read as chosen,
+       not as the default grey every dashboard ships with. */
+    --surface-page: #f5f6fa;
+    --surface-card: #ffffff;
+    --surface-sunken: #eef0f6;
+    --surface-hover: #f8f9fc;
+
+    --border-subtle: #e3e6ef;
+    --border-strong: #cfd4e3;
+
+    --text-primary: #171b2e;
+    --text-secondary: #4d5473;
+    --text-muted: #767ea0;
+
+    /* Brand: deep watchman indigo + the awake accent */
+    --brand-900: #171b3d;
+    --brand-700: #2a3170;
+    --brand-500: #4550c8;
+    --brand-300: #97a0ee;
+    --brand-50: #eef0fe;
+
+    --accent: #06a9c9;          /* "live / watching" — used sparingly */
+    --accent-soft: #e0f6fa;
+
+    /* Semantic, deliberately outside the brand ramp */
+    --ok: #12855f;
+    --ok-soft: #e6f5ef;
+    --warn: #9a5b00;
+    --warn-soft: #fdf2e2;
+    --crit: #b32739;
+    --crit-soft: #fceef0;
+
+    --shadow-card: 0 1px 2px rgba(23, 27, 46, .05), 0 1px 3px rgba(23, 27, 46, .04);
+    --shadow-lift: 0 6px 16px rgba(23, 27, 46, .09), 0 2px 6px rgba(23, 27, 46, .05);
+
+    --radius: 10px;
+    color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+        --surface-page: #0e1020;
+        --surface-card: #171a2e;
+        --surface-sunken: #1e2238;
+        --surface-hover: #1f2440;
+
+        --border-subtle: #272c47;
+        --border-strong: #363d5e;
+
+        --text-primary: #eef0f8;
+        --text-secondary: #b3b9d4;
+        --text-muted: #8189ab;
+
+        --brand-500: #7c86e8;
+        --brand-300: #a7aef2;
+        --brand-50: #1d2144;
+
+        --accent: #35c6e2;
+        --accent-soft: #10303a;
+
+        --ok: #45c795;
+        --ok-soft: #122c24;
+        --warn: #e0a44a;
+        --warn-soft: #2e2416;
+        --crit: #f2788a;
+        --crit-soft: #2f1a20;
+
+        --shadow-card: 0 1px 2px rgba(0, 0, 0, .4);
+        --shadow-lift: 0 8px 20px rgba(0, 0, 0, .5);
+        color-scheme: dark;
+    }
+}
+
+:root[data-theme="dark"] {
+    --surface-page: #0e1020;
+    --surface-card: #171a2e;
+    --surface-sunken: #1e2238;
+    --surface-hover: #1f2440;
+    --border-subtle: #272c47;
+    --border-strong: #363d5e;
+    --text-primary: #eef0f8;
+    --text-secondary: #b3b9d4;
+    --text-muted: #8189ab;
+    --brand-500: #7c86e8;
+    --brand-300: #a7aef2;
+    --brand-50: #1d2144;
+    --accent: #35c6e2;
+    --accent-soft: #10303a;
+    --ok: #45c795;
+    --ok-soft: #122c24;
+    --warn: #e0a44a;
+    --warn-soft: #2e2416;
+    --crit: #f2788a;
+    --crit-soft: #2f1a20;
+    --shadow-card: 0 1px 2px rgba(0, 0, 0, .4);
+    --shadow-lift: 0 8px 20px rgba(0, 0, 0, .5);
+    color-scheme: dark;
+}
+
+/* --- Base ---------------------------------------------------------------- */
+body {
+    font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: var(--surface-page) !important;
+    color: var(--text-primary) !important;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* Retint the Tailwind greys the templates are built from, so the whole app
+   moves to the token palette without touching 11k lines of markup. */
+.bg-white { background-color: var(--surface-card) !important; }
+.bg-gray-50 { background-color: var(--surface-page) !important; }
+.bg-gray-100 { background-color: var(--surface-sunken) !important; }
+.hover\:bg-gray-50:hover { background-color: var(--surface-hover) !important; }
+.hover\:bg-gray-100:hover { background-color: var(--surface-sunken) !important; }
+
+.text-gray-900 { color: var(--text-primary) !important; }
+.text-gray-800, .text-gray-700 { color: var(--text-secondary) !important; }
+.text-gray-600, .text-gray-500, .text-gray-400 { color: var(--text-muted) !important; }
+
+.border-gray-200, .border-gray-300 { border-color: var(--border-subtle) !important; }
+.divide-gray-100 > * + *, .divide-gray-200 > * + * { border-color: var(--border-subtle) !important; }
+
+.text-blue-600, .text-blue-700 { color: var(--brand-500) !important; }
+.bg-blue-600 { background-color: var(--brand-500) !important; }
+.hover\:bg-blue-700:hover { background-color: var(--brand-700) !important; }
+.bg-blue-50 { background-color: var(--brand-50) !important; }
+.border-blue-200, .border-blue-300 { border-color: var(--brand-300) !important; }
+.text-green-600 { color: var(--ok) !important; }
+.bg-green-50 { background-color: var(--ok-soft) !important; }
+.text-red-600 { color: var(--crit) !important; }
+.bg-red-50 { background-color: var(--crit-soft) !important; }
+
+/* --- Cards --------------------------------------------------------------- */
+/* The dashboard is ~20 stacked `bg-white rounded-lg shadow p-6` blocks. Giving
+   that one recipe real treatment lifts every section at once. */
+.rounded-lg.shadow,
+.rounded-lg.shadow-sm,
+.rounded-lg.shadow-xl {
+    border-radius: var(--radius) !important;
+    box-shadow: var(--shadow-card) !important;
+    border: 1px solid var(--border-subtle);
+}
+
+/* --- Stat tiles ---------------------------------------------------------- */
+/* The four KPI tiles are the first thing read; give them a spine of color and
+   proper numerals instead of four identical white rectangles. */
+.stat-tile {
+    position: relative;
+    overflow: hidden;
+    /* Room for the accent spine below. Set here rather than via a `pl-7`
+       utility class: this frozen Tailwind build never scanned that class
+       (see the missing-utilities note above), so it would silently no-op. */
+    padding-left: 1.75rem !important;
+}
+.stat-tile::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 3px;
+    background: var(--brand-500);
+}
+.stat-tile.is-live::before { background: var(--accent); }
+.stat-tile .stat-value {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -.02em;
+    font-weight: 700;
+}
+.stat-tile .stat-label {
+    font-size: .72rem;
+    font-weight: 600;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+/* Numbers line up wherever they're compared */
+td, .tabular, [x-text*="views"], [x-text*="count"] {
+    font-variant-numeric: tabular-nums;
+}
+
+/* --- Live indicator ------------------------------------------------------ */
+.live-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 55%, transparent);
+    animation: live-pulse 2.4s ease-out infinite;
+}
+@keyframes live-pulse {
+    0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 55%, transparent); }
+    70%  { box-shadow: 0 0 0 7px color-mix(in srgb, var(--accent) 0%, transparent); }
+    100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 0%, transparent); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .live-dot { animation: none; }
+}
+
+/* --- Rows ---------------------------------------------------------------- */
+/* Top pages / referrers are ranked lists; a faint share bar behind each row
+   turns a column of numbers into something scannable. */
+.rank-row {
+    position: relative;
+    transition: background-color .15s ease;
+}
+.rank-row::after {
+    content: "";
+    position: absolute;
+    left: 0; bottom: 0; top: 0;
+    width: var(--share, 0%);
+    background: var(--brand-50);
+    border-radius: 4px;
+    z-index: 0;
+    pointer-events: none;
+}
+.rank-row > * { position: relative; z-index: 1; }
+
+/* --- Missing Tailwind utilities ------------------------------------------ */
+/* tailwind.min.css is a frozen build scanned from an older template set:
+   classes the current templates use but that build never saw (like the
+   password-visibility toggle's `inset-y-0`) are simply absent from the CSS,
+   silently falling back to browser defaults — here, top:auto resolved to the
+   button's normal-flow position, i.e. below the field instead of inside it.
+   Patch the gaps here rather than hand-rebuilding Tailwind. */
+.inset-y-0 { top: 0; bottom: 0; }
+.inset-0 { top: 0; right: 0; bottom: 0; left: 0; }
+
+/* --- Focus --------------------------------------------------------------- */
+a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+/* --- Inputs -------------------------------------------------------------- */
+input, select, textarea {
+    background-color: var(--surface-card) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border-strong) !important;
+}
+input::placeholder { color: var(--text-muted) !important; }
+
+/* --- Theme toggle -------------------------------------------------------- */
+.theme-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    color: var(--text-muted);
+    transition: background-color .15s ease, color .15s ease;
+}
+.theme-toggle:hover {
+    background: var(--surface-sunken);
+    color: var(--text-primary);
+}

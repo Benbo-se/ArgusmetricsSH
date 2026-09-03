@@ -3,6 +3,26 @@
  * Handles chart initialization, data formatting, and interactive features
  */
 
+/**
+ * Read a design token from the theme layer so charts follow the palette and
+ * the light/dark switch instead of hardcoding one blue.
+ */
+function themeColor(name, fallback) {
+    const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    return v || fallback;
+}
+
+/** Same color at a given alpha (tokens are hex). */
+function themeAlpha(name, alpha, fallback) {
+    const hex = themeColor(name, fallback);
+    const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex.replace('#', '#'));
+    if (!m) return hex;
+    return `rgba(${parseInt(m[1], 16)}, ${parseInt(m[2], 16)}, ${parseInt(m[3], 16)}, ${alpha})`;
+}
+
+// Categorical series palette: distinct hues that stay legible on both themes.
+const SERIES_COLORS = ['#4550c8', '#06a9c9', '#7b4fd0', '#12855f', '#c2701a', '#b32739'];
+
 // Global chart instances
 let pageviewsChart = null;
 let devicesChart = null;
@@ -42,15 +62,15 @@ function initPageviewsChart(timeseriesData, previousPeriodData = null) {
     const datasets = [{
         label: 'Current Period',
         data: data,
-        borderColor: 'rgb(59, 130, 246)',
-        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+        borderColor: themeColor('--brand-500', '#4550c8'),
+        backgroundColor: themeAlpha('--brand-500', 0.12, '#4550c8'),
         borderWidth: 2,
         fill: true,
         tension: 0.4,
         pointRadius: 3,
         pointHoverRadius: 5,
-        pointBackgroundColor: 'rgb(59, 130, 246)',
-        pointBorderColor: '#fff',
+        pointBackgroundColor: themeColor('--brand-500', '#4550c8'),
+        pointBorderColor: themeColor('--surface-card', '#ffffff'),
         pointBorderWidth: 2,
     }];
 
@@ -60,7 +80,7 @@ function initPageviewsChart(timeseriesData, previousPeriodData = null) {
         datasets.push({
             label: 'Previous Period',
             data: previousData,
-            borderColor: 'rgb(156, 163, 175)',
+            borderColor: themeColor('--text-muted', '#767ea0'),
             backgroundColor: 'rgba(156, 163, 175, 0.05)',
             borderWidth: 2,
             borderDash: [5, 5],
@@ -68,8 +88,8 @@ function initPageviewsChart(timeseriesData, previousPeriodData = null) {
             tension: 0.4,
             pointRadius: 2,
             pointHoverRadius: 4,
-            pointBackgroundColor: 'rgb(156, 163, 175)',
-            pointBorderColor: '#fff',
+            pointBackgroundColor: themeColor('--text-muted', '#767ea0'),
+            pointBorderColor: themeColor('--surface-card', '#ffffff'),
             pointBorderWidth: 1,
         });
     }
@@ -100,7 +120,7 @@ function initPageviewsChart(timeseriesData, previousPeriodData = null) {
                     backgroundColor: 'rgba(17, 24, 39, 0.95)',
                     titleColor: '#fff',
                     bodyColor: '#fff',
-                    borderColor: 'rgba(59, 130, 246, 0.3)',
+                    borderColor: themeAlpha('--brand-500', 0.3, '#4550c8'),
                     borderWidth: 1,
                     padding: 16,
                     titleFont: { size: 14, weight: 'bold' },
@@ -141,14 +161,18 @@ function initPageviewsChart(timeseriesData, previousPeriodData = null) {
             scales: {
                 y: {
                     beginAtZero: true,
+                    border: { display: false },
                     ticks: {
+                        color: themeColor('--text-muted', '#767ea0'),
                         callback: function(value) {
                             return formatNumber(value);
                         }
                     },
-                    grid: { color: 'rgba(0, 0, 0, 0.05)' }
+                    grid: { color: themeAlpha('--border-subtle', 0.9, '#e3e6ef') }
                 },
                 x: {
+                    border: { display: false },
+                    ticks: { color: themeColor('--text-muted', '#767ea0') },
                     grid: { display: false }
                 }
             },
@@ -173,10 +197,10 @@ function initDevicesChart(devicesData) {
     const data = Object.values(devicesData);
 
     const colors = {
-        desktop: 'rgb(59, 130, 246)',
-        mobile: 'rgb(16, 185, 129)',
-        tablet: 'rgb(245, 158, 11)',
-        unknown: 'rgb(156, 163, 175)'
+        desktop: SERIES_COLORS[0],
+        mobile: SERIES_COLORS[1],
+        tablet: SERIES_COLORS[2],
+        unknown: themeColor('--text-muted', '#767ea0')
     };
 
     const backgroundColors = Object.keys(devicesData).map(key =>
@@ -195,7 +219,7 @@ function initDevicesChart(devicesData) {
                 data: data,
                 backgroundColor: backgroundColors,
                 borderWidth: 2,
-                borderColor: '#fff'
+                borderColor: themeColor('--surface-card', '#ffffff')
             }]
         },
         options: {
@@ -208,7 +232,7 @@ function initDevicesChart(devicesData) {
                     backgroundColor: 'rgba(17, 24, 39, 0.95)',
                     titleColor: '#fff',
                     bodyColor: '#fff',
-                    borderColor: 'rgba(59, 130, 246, 0.3)',
+                    borderColor: themeAlpha('--brand-500', 0.3, '#4550c8'),
                     borderWidth: 1,
                     padding: 16,
                     titleFont: { size: 14, weight: 'bold' },

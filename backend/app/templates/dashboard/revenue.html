@@ -102,53 +102,53 @@
     <!-- Revenue Stats Cards -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <!-- Total Revenue Card -->
-        <div class="bg-white rounded-lg shadow p-6">
-            <div class="flex items-center justify-between mb-1">
-                <p class="text-sm font-medium text-gray-600">Total Revenue</p>
+        <div class="stat-tile bg-white rounded-lg shadow p-6">
+            <div class="flex items-center justify-between mb-2">
+                <p class="stat-label">Total Revenue</p>
                 <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                 </svg>
             </div>
             <div class="flex items-baseline gap-2">
-                <p class="text-3xl font-bold text-gray-900">
+                <p class="stat-value text-3xl text-gray-900">
                     {{ revenue_stats.currency }} {{ "{:,.2f}".format(revenue_stats.total_revenue) if revenue_stats.total_revenue else "0.00" }}
                 </p>
             </div>
         </div>
 
         <!-- Total Transactions Card -->
-        <div class="bg-white rounded-lg shadow p-6">
-            <div class="flex items-center justify-between mb-1">
-                <p class="text-sm font-medium text-gray-600">Transactions</p>
+        <div class="stat-tile bg-white rounded-lg shadow p-6">
+            <div class="flex items-center justify-between mb-2">
+                <p class="stat-label">Transactions</p>
                 <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
                 </svg>
             </div>
-            <p class="text-3xl font-bold text-gray-900">{{ revenue_stats.total_transactions | default(0) | format_number }}</p>
+            <p class="stat-value text-3xl text-gray-900">{{ revenue_stats.total_transactions | default(0) | format_number }}</p>
         </div>
 
         <!-- Average Order Value Card -->
-        <div class="bg-white rounded-lg shadow p-6">
-            <div class="flex items-center justify-between mb-1">
-                <p class="text-sm font-medium text-gray-600">Average Order Value</p>
+        <div class="stat-tile bg-white rounded-lg shadow p-6">
+            <div class="flex items-center justify-between mb-2">
+                <p class="stat-label">Average Order Value</p>
                 <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/>
                 </svg>
             </div>
-            <p class="text-3xl font-bold text-gray-900">
+            <p class="stat-value text-3xl text-gray-900">
                 {{ revenue_stats.currency }} {{ "{:,.2f}".format(revenue_stats.average_order_value) if revenue_stats.average_order_value else "0.00" }}
             </p>
         </div>
 
         <!-- Conversion Rate Card -->
-        <div class="bg-white rounded-lg shadow p-6">
-            <div class="flex items-center justify-between mb-1">
-                <p class="text-sm font-medium text-gray-600">Conversion Rate</p>
+        <div class="stat-tile bg-white rounded-lg shadow p-6">
+            <div class="flex items-center justify-between mb-2">
+                <p class="stat-label">Conversion Rate</p>
                 <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
                 </svg>
             </div>
-            <p class="text-3xl font-bold text-gray-900">{{ "{:.2f}".format(revenue_stats.conversion_rate) if revenue_stats.conversion_rate else "0.00" }}%</p>
+            <p class="stat-value text-3xl text-gray-900">{{ "{:.2f}".format(revenue_stats.conversion_rate) if revenue_stats.conversion_rate else "0.00" }}%</p>
         </div>
     </div>
 

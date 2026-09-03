@@ -406,10 +406,10 @@
              hx-trigger="every 10s"
              hx-swap="innerHTML"
              class="contents">
-            <div class="bg-white rounded-lg shadow p-6">
-                <p class="text-sm font-medium text-gray-600 mb-1">Total Pageviews</p>
+            <div class="stat-tile bg-white rounded-lg shadow p-6">
+                <p class="stat-label mb-2">Total Pageviews</p>
                 <div class="flex items-baseline gap-3">
-                    <p class="text-3xl font-bold text-gray-900">{{ stats.total_pageviews | default(0) | format_number }}</p>
+                    <p class="stat-value text-3xl text-gray-900">{{ stats.total_pageviews | default(0) | format_number }}</p>
                     {% if stats.comparison and stats.comparison.pageviews_change is not none %}
                         <span class="text-sm font-medium {% if stats.comparison.pageviews_change >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
                             {% if stats.comparison.pageviews_change >= 0 %}▲{% else %}▼{% endif %}
@@ -418,10 +418,10 @@
                     {% endif %}
                 </div>
             </div>
-            <div class="bg-white rounded-lg shadow p-6">
-                <p class="text-sm font-medium text-gray-600 mb-1">Unique Visitors</p>
+            <div class="stat-tile bg-white rounded-lg shadow p-6">
+                <p class="stat-label mb-2">Unique Visitors</p>
                 <div class="flex items-baseline gap-3">
-                    <p class="text-3xl font-bold text-gray-900">{{ stats.unique_visitors | default(0) | format_number }}</p>
+                    <p class="stat-value text-3xl text-gray-900">{{ stats.unique_visitors | default(0) | format_number }}</p>
                     {% if stats.comparison and stats.comparison.visitors_change is not none %}
                         <span class="text-sm font-medium {% if stats.comparison.visitors_change >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
                             {% if stats.comparison.visitors_change >= 0 %}▲{% else %}▼{% endif %}
@@ -430,10 +430,10 @@
                     {% endif %}
                 </div>
             </div>
-            <div class="bg-white rounded-lg shadow p-6">
-                <p class="text-sm font-medium text-gray-600 mb-1">Avg. Views/Visitor</p>
+            <div class="stat-tile bg-white rounded-lg shadow p-6">
+                <p class="stat-label mb-2">Views / Visitor</p>
                 <div class="flex items-baseline gap-3">
-                    <p class="text-3xl font-bold text-gray-900">
+                    <p class="stat-value text-3xl text-gray-900">
                         {% if stats.unique_visitors and stats.unique_visitors > 0 %}
                             {{ "%.1f"|format(stats.total_pageviews / stats.unique_visitors) }}
                         {% else %}
@@ -451,15 +451,15 @@
         </div>
 
         <!-- Live visitors - separate auto-refresh -->
-        <div class="bg-white rounded-lg shadow p-6"
+        <div class="stat-tile is-live bg-white rounded-lg shadow p-6"
              hx-get="/dashboard/website/{{ website.id }}/live"
              hx-trigger="every 5s"
              hx-swap="innerHTML">
-            <div class="flex items-center justify-between mb-1">
-                <p class="text-sm font-medium text-gray-600">Online Now</p>
-                <span class="inline-block w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+            <div class="flex items-center justify-between mb-2">
+                <p class="stat-label">Online Now</p>
+                <span class="live-dot" title="Visitors active in the last 5 minutes"></span>
             </div>
-            <p class="text-3xl font-bold text-green-600">{{ live_visitors | default(0) }}</p>
+            <p class="stat-value text-3xl" style="color: var(--accent)">{{ live_visitors | default(0) }}</p>
         </div>
     </div>
 
