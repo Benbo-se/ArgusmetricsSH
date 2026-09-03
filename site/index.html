@@ -53,7 +53,6 @@
         "Custom events tracking",
         "Conversion funnels",
         "Ecommerce tracking",
-        "AI-powered insights",
         "Anomaly detection",
         "Team collaboration",
         "Public dashboard sharing",
@@ -83,8 +82,6 @@
     <!-- Font Awesome (loaded non-render-blocking) -->
     <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
-
-    <!-- Chatbot styles -->
 
     <style>
         /* Custom loading spinner */
@@ -194,7 +191,7 @@
                              x-transition:leave-start="opacity-100 translate-y-0"
                              x-transition:leave-end="opacity-0 translate-y-1"
                              class="absolute top-full left-0 mt-1 w-56 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50">
-                            <a href="https://github.com/Benbo-se/ArgusmetricsSH#readme" target="_blank" rel="noopener noreferrer" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
+                            <a href="/docs/" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
                                 <i class="fas fa-book w-4 text-blue-500 text-xs"></i> Documentation
                             </a>
                             <a href="/changelog" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
@@ -251,7 +248,7 @@
                 <a href="/compare/plausible" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">vs Plausible</a>
                 <a href="/compare/matomo" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">vs Matomo</a>
                 <div class="px-3 py-1 mt-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">Resources</div>
-                <a href="https://github.com/Benbo-se/ArgusmetricsSH#readme" target="_blank" rel="noopener noreferrer" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">Documentation</a>
+                <a href="/docs/" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">Documentation</a>
                 <a href="/changelog" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">Changelog</a>
                 <a href="https://github.com/Benbo-se/ArgusmetricsSH" target="_blank" rel="noopener noreferrer" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">GitHub</a>
                 <div class="border-t border-gray-100 mt-2 pt-2">
@@ -559,7 +556,7 @@
                         </li>
                         <li class="flex items-start gap-3">
                             <i class="fas fa-circle-check text-green-500 text-lg mt-0.5"></i>
-                            <span class="text-gray-700"><strong>&lt;4KB script</strong>, real-time dashboards &amp; live visitors</span>
+                            <span class="text-gray-700"><strong>&lt;3KB gzip script</strong>, real-time dashboards &amp; live visitors</span>
                         </li>
                         <li class="flex items-start gap-3">
                             <i class="fas fa-circle-check text-green-500 text-lg mt-0.5"></i>
@@ -579,7 +576,7 @@
                         <a href="https://github.com/Benbo-se/ArgusmetricsSH" target="_blank" rel="noopener noreferrer" class="inline-flex items-center bg-gray-900 hover:bg-gray-800 text-white px-6 py-3 rounded-lg font-semibold transition-all transform hover:scale-105 shadow-lg">
                             <i class="fab fa-github mr-2"></i>View on GitHub
                         </a>
-                        <a href="https://github.com/Benbo-se/ArgusmetricsSH#readme" target="_blank" rel="noopener noreferrer" class="inline-flex items-center bg-white hover:bg-gray-50 text-gray-900 px-6 py-3 rounded-lg font-semibold border border-gray-300 transition-colors">
+                        <a href="/docs/" class="inline-flex items-center bg-white hover:bg-gray-50 text-gray-900 px-6 py-3 rounded-lg font-semibold border border-gray-300 transition-colors">
                             <i class="fas fa-book-open mr-2 text-gray-500"></i>Read the docs
                         </a>
                     </div>
@@ -650,7 +647,7 @@
                         <li><a href="/#self-host" class="hover:text-white transition-colors">Self-host</a></li>
                         <li><a href="/data" class="hover:text-white transition-colors">Privacy by Design</a></li>
                         <li><a href="/changelog" class="hover:text-white transition-colors">Changelog</a></li>
-                        <li><a href="https://github.com/Benbo-se/ArgusmetricsSH#readme" target="_blank" rel="noopener noreferrer" class="hover:text-white transition-colors">Documentation</a></li>
+                        <li><a href="/docs/" class="hover:text-white transition-colors">Documentation</a></li>
                     </ul>
                 </div>
                 <div>
@@ -675,7 +672,7 @@
                     <h4 class="text-white font-semibold mb-4">Resources</h4>
                     <ul class="space-y-2 text-sm">
                         <li><a href="https://github.com/Benbo-se/ArgusmetricsSH" target="_blank" rel="noopener noreferrer" class="hover:text-white transition-colors">GitHub</a></li>
-                        <li><a href="https://github.com/Benbo-se/ArgusmetricsSH#readme" target="_blank" rel="noopener noreferrer" class="hover:text-white transition-colors">Documentation</a></li>
+                        <li><a href="/docs/" class="hover:text-white transition-colors">Documentation</a></li>
                     </ul>
                     <div class="flex space-x-4 mt-4">
                         <a href="https://github.com/Benbo-se/ArgusmetricsSH" target="_blank" rel="noopener noreferrer" class="hover:text-white transition-colors" aria-label="GitHub">
@@ -722,8 +719,6 @@
 
     <!-- Custom JavaScript -->
     <script src="static/js/dashboard.js"></script>
-
-    <!-- Chatbot JavaScript -->
 
 </body>
 </html>

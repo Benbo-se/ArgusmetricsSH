@@ -6,18 +6,18 @@
     <title>Argusmetrics vs Matomo - Argusmetrics</title>
     <meta name="theme-color" content="#2563eb">
     <link rel="canonical" href="https://argusmetrics.io/compare/matomo">
-    <meta name="description" content="Argusmetrics vs Matomo — managed simplicity vs self-hosted complexity. Get GDPR-compliant analytics without servers, maintenance, or DevOps overhead.">
+    <meta name="description" content="Argusmetrics vs Matomo — both are self-hosted and GDPR compliant, but Argusmetrics ships as a single Docker stack instead of a PHP/MySQL install to maintain.">
     <meta property="og:site_name" content="Argusmetrics">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://argusmetrics.io/compare/matomo">
     <meta property="og:title" content="Argusmetrics vs Matomo - Argusmetrics">
-    <meta property="og:description" content="Argusmetrics vs Matomo — managed simplicity vs self-hosted complexity. Get GDPR-compliant analytics without servers, maintenance, or DevOps overhead.">
+    <meta property="og:description" content="Argusmetrics vs Matomo — both are self-hosted and GDPR compliant, but Argusmetrics ships as a single Docker stack instead of a PHP/MySQL install to maintain.">
     <meta property="og:image" content="https://argusmetrics.io/static/img/og-image.png">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="Argusmetrics vs Matomo - Argusmetrics">
-    <meta name="twitter:description" content="Argusmetrics vs Matomo — managed simplicity vs self-hosted complexity.">
+    <meta name="twitter:description" content="Both self-hosted and GDPR compliant — Argusmetrics is a single Docker stack instead of a PHP/MySQL install.">
     <meta name="twitter:image" content="https://argusmetrics.io/static/img/og-image.png">
     <link rel="icon" type="image/x-icon" href="../static/favicon.ico">
     <link rel="icon" type="image/png" sizes="32x32" href="../static/img/favicon-32.png">
@@ -113,7 +113,7 @@
                              x-transition:leave-start="opacity-100 translate-y-0"
                              x-transition:leave-end="opacity-0 translate-y-1"
                              class="absolute top-full left-0 mt-1 w-56 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50">
-                            <a href="https://github.com/Benbo-se/ArgusmetricsSH#readme" target="_blank" rel="noopener noreferrer" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
+                            <a href="/docs/" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
                                 <i class="fas fa-book w-4 text-blue-500 text-xs"></i> Documentation
                             </a>
                             <a href="/changelog" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
@@ -170,7 +170,7 @@
                 <a href="/compare/plausible" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">vs Plausible</a>
                 <a href="/compare/matomo" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">vs Matomo</a>
                 <div class="px-3 py-1 mt-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">Resources</div>
-                <a href="https://github.com/Benbo-se/ArgusmetricsSH#readme" target="_blank" rel="noopener noreferrer" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">Documentation</a>
+                <a href="/docs/" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">Documentation</a>
                 <a href="/changelog" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">Changelog</a>
                 <a href="https://github.com/Benbo-se/ArgusmetricsSH" target="_blank" rel="noopener noreferrer" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">GitHub</a>
                 <div class="border-t border-gray-100 mt-2 pt-2">
@@ -351,18 +351,13 @@
                             </tr>
                             <tr class="hover:bg-gray-50 transition-colors">
                                 <td class="px-6 py-4 text-sm text-gray-700">Lightweight tracking script</td>
-                                <td class="px-6 py-4 text-center"><span class="text-green-500 text-lg font-bold">&#10003;</span><span class="text-xs text-gray-400 block">< 4KB</span></td>
+                                <td class="px-6 py-4 text-center"><span class="text-green-500 text-lg font-bold">&#10003;</span><span class="text-xs text-gray-400 block">&lt;3KB gzip</span></td>
                                 <td class="px-6 py-4 text-center"><span class="text-red-400 text-lg font-bold">&#10007;</span><span class="text-xs text-gray-400 block">~50KB+</span></td>
                             </tr>
                             <tr class="hover:bg-gray-50 transition-colors">
                                 <td class="px-6 py-4 text-sm text-gray-700">Simple dashboard</td>
                                 <td class="px-6 py-4 text-center"><span class="text-green-500 text-lg font-bold">&#10003;</span></td>
                                 <td class="px-6 py-4 text-center"><span class="text-red-400 text-lg font-bold">&#10007;</span><span class="text-xs text-gray-400 block">Complex, plugin-heavy UI</span></td>
-                            </tr>
-                            <tr class="hover:bg-gray-50 transition-colors">
-                                <td class="px-6 py-4 text-sm text-gray-700">AI analytics assistant</td>
-                                <td class="px-6 py-4 text-center"><span class="text-green-500 text-lg font-bold">&#10003;</span></td>
-                                <td class="px-6 py-4 text-center"><span class="text-red-400 text-lg font-bold">&#10007;</span></td>
                             </tr>
                             <tr class="hover:bg-gray-50 transition-colors">
                                 <td class="px-6 py-4 text-sm text-gray-700">Open source</td>
@@ -478,7 +473,7 @@
                     <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Resources</div>
                     <ul class="space-y-2 text-sm">
                         <li><a href="/about" class="hover:text-white transition-colors">About</a></li>
-                        <li><a href="https://github.com/Benbo-se/ArgusmetricsSH#readme" target="_blank" rel="noopener noreferrer" class="hover:text-white transition-colors">Docs</a></li>
+                        <li><a href="/docs/" class="hover:text-white transition-colors">Docs</a></li>
                         <li><a href="https://github.com/Benbo-se/ArgusmetricsSH" target="_blank" rel="noopener noreferrer" class="hover:text-white transition-colors">GitHub</a></li>
                         <li><a href="/privacy" class="hover:text-white transition-colors">Privacy Policy</a></li>
                         <li><a href="/terms" class="hover:text-white transition-colors">Terms</a></li>
@@ -487,7 +482,7 @@
             </div>
             <div class="border-t border-gray-800 pt-6 flex flex-col sm:flex-row justify-between items-center gap-4">
                 <p class="text-sm">&copy; 2026 Argusmetrics. All rights reserved.</p>
-                <p class="text-sm">Made in Sweden &middot; Data stored in the EU</p>
+                <p class="text-sm">Made in Sweden</p>
             </div>
         </div>
     </footer>

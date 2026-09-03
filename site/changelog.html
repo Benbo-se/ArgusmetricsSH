@@ -113,7 +113,7 @@
                              x-transition:leave-start="opacity-100 translate-y-0"
                              x-transition:leave-end="opacity-0 translate-y-1"
                              class="absolute top-full left-0 mt-1 w-56 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50">
-                            <a href="https://github.com/Benbo-se/ArgusmetricsSH#readme" target="_blank" rel="noopener noreferrer" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
+                            <a href="/docs/" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
                                 <i class="fas fa-book w-4 text-blue-500 text-xs"></i> Documentation
                             </a>
                             <a href="/changelog" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
@@ -168,7 +168,7 @@
                 <a href="/compare/plausible" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">vs Plausible</a>
                 <a href="/compare/matomo" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">vs Matomo</a>
                 <div class="px-3 py-1 mt-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">Resources</div>
-                <a href="https://github.com/Benbo-se/ArgusmetricsSH#readme" target="_blank" rel="noopener noreferrer" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">Documentation</a>
+                <a href="/docs/" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">Documentation</a>
                 <a href="/changelog" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">Changelog</a>
                 <a href="https://github.com/Benbo-se/ArgusmetricsSH" target="_blank" rel="noopener noreferrer" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">GitHub</a>
                 <div class="border-t border-gray-100 mt-2 pt-2">
@@ -190,7 +190,7 @@
                     What's new
                 </div>
                 <h1 class="text-4xl sm:text-5xl font-extrabold text-gray-900 mb-5">Changelog</h1>
-                <p class="text-xl text-gray-500">Every update to Argusmetrics, documented. Free, open-source, and self-hosted — track the project on GitHub.</p>
+                <p class="text-xl text-gray-500">What&rsquo;s shipped so far. Argusmetrics is pre-1.0 and hasn&rsquo;t had a tagged release yet — the full commit history lives on GitHub.</p>
             </div>
         </section>
 
@@ -203,14 +203,14 @@
 
                     <div class="space-y-12">
 
-                        <!-- v1.2 -->
+                        <!-- September 2026 -->
                         <div class="sm:pl-16 relative">
                             <div class="hidden sm:flex absolute left-0 top-1 w-12 h-12 rounded-full bg-blue-600 items-center justify-center shadow-sm">
                                 <i class="fas fa-shield-alt text-white text-sm"></i>
                             </div>
                             <div class="flex flex-wrap items-center gap-3 mb-4">
-                                <span class="text-xl font-bold text-gray-900">v1.2</span>
-                                <span class="text-sm text-gray-400 font-medium">February 2026</span>
+                                <span class="text-xl font-bold text-gray-900">Pre-launch hardening</span>
+                                <span class="text-sm text-gray-400 font-medium">September 2026</span>
                                 <span class="inline-flex items-center gap-1 bg-blue-50 text-blue-700 text-xs font-semibold px-2.5 py-1 rounded-full border border-blue-100">
                                     <i class="fas fa-star text-xs"></i> New
                                 </span>
@@ -221,188 +221,97 @@
                             <div class="bg-white rounded-xl border border-gray-100 p-6 space-y-4">
                                 <div>
                                     <div class="flex items-center gap-2 mb-1">
-                                        <span class="inline-flex items-center gap-1 bg-blue-50 text-blue-700 text-xs font-semibold px-2 py-0.5 rounded border border-blue-100">New</span>
-                                        <span class="font-semibold text-gray-900 text-sm">GDPR-compliant visitor hashing with daily salt + IP truncation</span>
+                                        <span class="inline-flex items-center gap-1 bg-red-50 text-red-700 text-xs font-semibold px-2 py-0.5 rounded border border-red-100">Removed</span>
+                                        <span class="font-semibold text-gray-900 text-sm">Billing and the AI chat assistant</span>
                                     </div>
-                                    <p class="text-gray-500 text-sm pl-0">Completely redesigned visitor identification. IP addresses are now truncated to /24 subnet before hashing, combined with a daily-rotating salt, site domain, and server-side secret. This approach follows CNIL guidance and eliminates any possibility of cross-day visitor tracking.</p>
+                                    <p class="text-gray-500 text-sm">Stripe billing, plan quotas, and the AI chat assistant were cut entirely. A self-hosted tool shouldn't meter you, and an analytics product that sends your data to a third-party LLM contradicts the privacy promise.</p>
+                                </div>
+                                <div>
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <span class="inline-flex items-center gap-1 bg-blue-50 text-blue-700 text-xs font-semibold px-2 py-0.5 rounded border border-blue-100">New</span>
+                                        <span class="font-semibold text-gray-900 text-sm">Password login with email verification</span>
+                                    </div>
+                                    <p class="text-gray-500 text-sm">Rebuilt authentication: bcrypt password login, verification by magic link or 6-digit code, and password reset. Works with any SMTP provider, and prints links to the logs when SMTP isn't configured so a fresh install is usable immediately.</p>
+                                </div>
+                                <div>
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <span class="inline-flex items-center gap-1 bg-blue-50 text-blue-700 text-xs font-semibold px-2 py-0.5 rounded border border-blue-100">New</span>
+                                        <span class="font-semibold text-gray-900 text-sm">Redesigned dashboard with dark mode</span>
+                                    </div>
+                                    <p class="text-gray-500 text-sm">A persistent left sidebar replaces the old tab row, so navigation no longer shifts between sections. Added a design system with full light and dark themes, and a self-hosted Inter font with tabular figures so numbers line up.</p>
                                 </div>
                                 <div>
                                     <div class="flex items-center gap-2 mb-1">
                                         <span class="inline-flex items-center gap-1 bg-green-50 text-green-700 text-xs font-semibold px-2 py-0.5 rounded border border-green-100">Improved</span>
-                                        <span class="font-semibold text-gray-900 text-sm">Dashboard load time reduced by 40%</span>
+                                        <span class="font-semibold text-gray-900 text-sm">No third-party requests from the dashboard</span>
                                     </div>
-                                    <p class="text-gray-500 text-sm">Reworked database query patterns with TimescaleDB continuous aggregates. Most dashboards now load in under 300ms.</p>
+                                    <p class="text-gray-500 text-sm">Alpine.js, Chart.js, Font Awesome and the webfont are all served from your own instance instead of public CDNs, and the Content-Security-Policy was tightened to match. Your dashboard no longer phones home to anyone.</p>
+                                </div>
+                                <div>
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <span class="inline-flex items-center gap-1 bg-green-50 text-green-700 text-xs font-semibold px-2 py-0.5 rounded border border-green-100">Improved</span>
+                                        <span class="font-semibold text-gray-900 text-sm">Database hardening and data retention</span>
+                                    </div>
+                                    <p class="text-gray-500 text-sm">The app now connects as a least-privilege role instead of the database owner, with migrations run separately on startup. Added a configurable retention policy that purges old raw events, plus index tuning for the common dashboard queries.</p>
                                 </div>
                                 <div>
                                     <div class="flex items-center gap-2 mb-1">
                                         <span class="inline-flex items-center gap-1 bg-yellow-50 text-yellow-700 text-xs font-semibold px-2 py-0.5 rounded border border-yellow-100">Fixed</span>
-                                        <span class="font-semibold text-gray-900 text-sm">Referrer parsing for UTM-tagged URLs</span>
+                                        <span class="font-semibold text-gray-900 text-sm">Security, correctness and data-integrity audit fixes</span>
                                     </div>
-                                    <p class="text-gray-500 text-sm">UTM source, medium, and campaign parameters are now correctly attributed even when referrer headers are absent.</p>
+                                    <p class="text-gray-500 text-sm">Three rounds of fixes from a full audit of the codebase, including access-control and output-escaping issues, foreign-key delete rules that previously made sites undeletable, refund idempotency, and scheduler locking so background jobs are safe with multiple workers.</p>
+                                </div>
+                                <div>
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <span class="inline-flex items-center gap-1 bg-blue-50 text-blue-700 text-xs font-semibold px-2 py-0.5 rounded border border-blue-100">New</span>
+                                        <span class="font-semibold text-gray-900 text-sm">Container images and one-command deploys</span>
+                                    </div>
+                                    <p class="text-gray-500 text-sm">Backend and web images are built and published on every green build, with a gated deploy that takes a database dump first and rolls back automatically if the health check fails.</p>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- v1.1 -->
-                        <div class="sm:pl-16 relative">
-                            <div class="hidden sm:flex absolute left-0 top-1 w-12 h-12 rounded-full bg-purple-500 items-center justify-center shadow-sm">
-                                <i class="fas fa-bullseye text-white text-sm"></i>
-                            </div>
-                            <div class="flex flex-wrap items-center gap-3 mb-4">
-                                <span class="text-xl font-bold text-gray-900">v1.1</span>
-                                <span class="text-sm text-gray-400 font-medium">January 2026</span>
-                                <span class="inline-flex items-center gap-1 bg-blue-50 text-blue-700 text-xs font-semibold px-2.5 py-1 rounded-full border border-blue-100">
-                                    <i class="fas fa-star text-xs"></i> New
-                                </span>
-                            </div>
-                            <div class="bg-white rounded-xl border border-gray-100 p-6 space-y-4">
-                                <div>
-                                    <div class="flex items-center gap-2 mb-1">
-                                        <span class="inline-flex items-center gap-1 bg-blue-50 text-blue-700 text-xs font-semibold px-2 py-0.5 rounded border border-blue-100">New</span>
-                                        <span class="font-semibold text-gray-900 text-sm">Custom events and goal conversions</span>
-                                    </div>
-                                    <p class="text-gray-500 text-sm">Track any user action — button clicks, form submissions, video plays — as a named event. Set conversion goals and monitor funnel completion rates over time.</p>
-                                </div>
-                                <div>
-                                    <div class="flex items-center gap-2 mb-1">
-                                        <span class="inline-flex items-center gap-1 bg-blue-50 text-blue-700 text-xs font-semibold px-2 py-0.5 rounded border border-blue-100">New</span>
-                                        <span class="font-semibold text-gray-900 text-sm">CSV &amp; JSON data export</span>
-                                    </div>
-                                    <p class="text-gray-500 text-sm">Export any date range of analytics data in CSV or JSON format directly from the dashboard. Useful for reporting, archiving, or feeding into external BI tools.</p>
-                                </div>
-                                <div>
-                                    <div class="flex items-center gap-2 mb-1">
-                                        <span class="inline-flex items-center gap-1 bg-green-50 text-green-700 text-xs font-semibold px-2 py-0.5 rounded border border-green-100">Improved</span>
-                                        <span class="font-semibold text-gray-900 text-sm">Real-time visitor counter</span>
-                                    </div>
-                                    <p class="text-gray-500 text-sm">The live visitor count now updates every 30 seconds without a full page reload. Shows active pages alongside the total count.</p>
-                                </div>
-                                <div>
-                                    <div class="flex items-center gap-2 mb-1">
-                                        <span class="inline-flex items-center gap-1 bg-yellow-50 text-yellow-700 text-xs font-semibold px-2 py-0.5 rounded border border-yellow-100">Fixed</span>
-                                        <span class="font-semibold text-gray-900 text-sm">Bounce rate calculation for single-page apps</span>
-                                    </div>
-                                    <p class="text-gray-500 text-sm">SPAs using history.pushState now correctly register navigation events, giving accurate bounce rates for React, Vue, and similar frameworks.</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- v1.0 -->
-                        <div class="sm:pl-16 relative">
-                            <div class="hidden sm:flex absolute left-0 top-1 w-12 h-12 rounded-full bg-green-500 items-center justify-center shadow-sm">
-                                <i class="fas fa-rocket text-white text-sm"></i>
-                            </div>
-                            <div class="flex flex-wrap items-center gap-3 mb-4">
-                                <span class="text-xl font-bold text-gray-900">v1.0</span>
-                                <span class="text-sm text-gray-400 font-medium">December 2025</span>
-                                <span class="inline-flex items-center gap-1 bg-green-100 text-green-800 text-xs font-bold px-2.5 py-1 rounded-full border border-green-200">
-                                    Public Launch
-                                </span>
-                            </div>
-                            <div class="bg-white rounded-xl border border-gray-100 p-6 space-y-4">
-                                <p class="text-gray-500 text-sm italic">Argusmetrics is now open to everyone. Thank you to every beta tester who helped shape the product.</p>
-                                <div>
-                                    <div class="flex items-center gap-2 mb-1">
-                                        <span class="inline-flex items-center gap-1 bg-blue-50 text-blue-700 text-xs font-semibold px-2 py-0.5 rounded border border-blue-100">New</span>
-                                        <span class="font-semibold text-gray-900 text-sm">E-commerce tracking</span>
-                                    </div>
-                                    <p class="text-gray-500 text-sm">Track revenue, orders, and product performance without sending personal purchase data. Aggregate revenue metrics only — never individual transaction data.</p>
-                                </div>
-                                <div>
-                                    <div class="flex items-center gap-2 mb-1">
-                                        <span class="inline-flex items-center gap-1 bg-blue-50 text-blue-700 text-xs font-semibold px-2 py-0.5 rounded border border-blue-100">New</span>
-                                        <span class="font-semibold text-gray-900 text-sm">REST API (v1)</span>
-                                    </div>
-                                    <p class="text-gray-500 text-sm">Query your analytics data programmatically. Full API documentation available in the <a href="https://github.com/Benbo-se/ArgusmetricsSH#readme" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">project README</a>.</p>
-                                </div>
-                                <div>
-                                    <div class="flex items-center gap-2 mb-1">
-                                        <span class="inline-flex items-center gap-1 bg-blue-50 text-blue-700 text-xs font-semibold px-2 py-0.5 rounded border border-blue-100">New</span>
-                                        <span class="font-semibold text-gray-900 text-sm">Docker self-host setup</span>
-                                    </div>
-                                    <p class="text-gray-500 text-sm">Ships with a Docker Compose stack so you can run the full platform on your own infrastructure. Clone the repo and bring it up with a single command — no accounts, no limits.</p>
-                                </div>
-                                <div>
-                                    <div class="flex items-center gap-2 mb-1">
-                                        <span class="inline-flex items-center gap-1 bg-green-50 text-green-700 text-xs font-semibold px-2 py-0.5 rounded border border-green-100">Improved</span>
-                                        <span class="font-semibold text-gray-900 text-sm">Tracking script reduced to under 4KB</span>
-                                    </div>
-                                    <p class="text-gray-500 text-sm">The tracking script was rewritten from scratch in vanilla JavaScript. At under 4KB minified, it's lighter than a typical analytics icon.</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- v0.9 -->
-                        <div class="sm:pl-16 relative">
-                            <div class="hidden sm:flex absolute left-0 top-1 w-12 h-12 rounded-full bg-orange-400 items-center justify-center shadow-sm">
-                                <i class="fas fa-flask text-white text-sm"></i>
-                            </div>
-                            <div class="flex flex-wrap items-center gap-3 mb-4">
-                                <span class="text-xl font-bold text-gray-900">v0.9</span>
-                                <span class="text-sm text-gray-400 font-medium">November 2025</span>
-                                <span class="inline-flex items-center gap-1 bg-orange-50 text-orange-700 text-xs font-semibold px-2.5 py-1 rounded-full border border-orange-100">
-                                    Beta
-                                </span>
-                            </div>
-                            <div class="bg-white rounded-xl border border-gray-100 p-6 space-y-4">
-                                <div>
-                                    <div class="flex items-center gap-2 mb-1">
-                                        <span class="inline-flex items-center gap-1 bg-blue-50 text-blue-700 text-xs font-semibold px-2 py-0.5 rounded border border-blue-100">New</span>
-                                        <span class="font-semibold text-gray-900 text-sm">Goals &amp; conversion tracking</span>
-                                    </div>
-                                    <p class="text-gray-500 text-sm">Define page-view goals (e.g. /thank-you) and track what percentage of your visitors complete them. Segment goal completions by source, country, or device.</p>
-                                </div>
-                                <div>
-                                    <div class="flex items-center gap-2 mb-1">
-                                        <span class="inline-flex items-center gap-1 bg-blue-50 text-blue-700 text-xs font-semibold px-2 py-0.5 rounded border border-blue-100">New</span>
-                                        <span class="font-semibold text-gray-900 text-sm">Multi-site support</span>
-                                    </div>
-                                    <p class="text-gray-500 text-sm">Manage multiple websites from a single account. Each site is fully isolated — data, settings, and team members can be configured independently.</p>
-                                </div>
-                                <div>
-                                    <div class="flex items-center gap-2 mb-1">
-                                        <span class="inline-flex items-center gap-1 bg-green-50 text-green-700 text-xs font-semibold px-2 py-0.5 rounded border border-green-100">Improved</span>
-                                        <span class="font-semibold text-gray-900 text-sm">Date range picker &amp; comparison</span>
-                                    </div>
-                                    <p class="text-gray-500 text-sm">Compare any two date ranges side-by-side directly in the dashboard. Presets include this week, last 30 days, this month, this quarter, and this year.</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- v0.8 -->
+                        <!-- June 2026 -->
                         <div class="sm:pl-16 relative">
                             <div class="hidden sm:flex absolute left-0 top-1 w-12 h-12 rounded-full bg-gray-400 items-center justify-center shadow-sm">
-                                <i class="fas fa-lock text-white text-sm"></i>
+                                <i class="fas fa-code-branch text-white text-sm"></i>
                             </div>
                             <div class="flex flex-wrap items-center gap-3 mb-4">
-                                <span class="text-xl font-bold text-gray-900">v0.8</span>
-                                <span class="text-sm text-gray-400 font-medium">October 2025</span>
+                                <span class="text-xl font-bold text-gray-900">Self-host edition</span>
+                                <span class="text-sm text-gray-400 font-medium">June 2026</span>
                                 <span class="inline-flex items-center gap-1 bg-gray-100 text-gray-600 text-xs font-semibold px-2.5 py-1 rounded-full border border-gray-200">
-                                    Private Beta
+                                    First commit
                                 </span>
                             </div>
                             <div class="bg-white rounded-xl border border-gray-100 p-6 space-y-4">
-                                <p class="text-gray-500 text-sm italic">Argusmetrics opened to a closed group of 50 testers. Core analytics pipeline validated at production traffic volumes.</p>
+                                <p class="text-gray-500 text-sm italic">Argusmetrics was released as self-hostable software under the AGPL-3.0, on a fresh repository.</p>
                                 <div>
                                     <div class="flex items-center gap-2 mb-1">
                                         <span class="inline-flex items-center gap-1 bg-blue-50 text-blue-700 text-xs font-semibold px-2 py-0.5 rounded border border-blue-100">New</span>
-                                        <span class="font-semibold text-gray-900 text-sm">Core pageview tracking</span>
+                                        <span class="font-semibold text-gray-900 text-sm">Core analytics, self-hosted</span>
                                     </div>
-                                    <p class="text-gray-500 text-sm">Visitors, pageviews, bounce rate, session duration. Traffic sources, top pages, countries, browsers, and devices. The essential analytics dashboard, privacy-first.</p>
+                                    <p class="text-gray-500 text-sm">Pageviews, unique visitors, views per visitor and live visitor counts. Traffic sources, top pages, entry and exit pages, countries, browsers and devices — all without cookies.</p>
                                 </div>
                                 <div>
                                     <div class="flex items-center gap-2 mb-1">
                                         <span class="inline-flex items-center gap-1 bg-blue-50 text-blue-700 text-xs font-semibold px-2 py-0.5 rounded border border-blue-100">New</span>
-                                        <span class="font-semibold text-gray-900 text-sm">Shareable public dashboards</span>
+                                        <span class="font-semibold text-gray-900 text-sm">Goals, funnels and revenue tracking</span>
                                     </div>
-                                    <p class="text-gray-500 text-sm">Generate a public link to your analytics dashboard. Share traffic stats openly with your community without requiring them to log in.</p>
+                                    <p class="text-gray-500 text-sm">Track custom events as conversion goals, build multi-step funnels to find where visitors drop off, and record purchases and refunds with per-product revenue reporting.</p>
                                 </div>
                                 <div>
                                     <div class="flex items-center gap-2 mb-1">
                                         <span class="inline-flex items-center gap-1 bg-blue-50 text-blue-700 text-xs font-semibold px-2 py-0.5 rounded border border-blue-100">New</span>
-                                        <span class="font-semibold text-gray-900 text-sm">Email digests</span>
+                                        <span class="font-semibold text-gray-900 text-sm">Teams, public dashboards and email reports</span>
                                     </div>
-                                    <p class="text-gray-500 text-sm">Opt in to weekly or monthly email reports summarising your site's key metrics. No login required to see your numbers.</p>
+                                    <p class="text-gray-500 text-sm">Invite team members as owners, admins or viewers. Share a dashboard publicly with a secret link, optionally password-protected. Opt in to weekly or monthly email summaries.</p>
+                                </div>
+                                <div>
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <span class="inline-flex items-center gap-1 bg-blue-50 text-blue-700 text-xs font-semibold px-2 py-0.5 rounded border border-blue-100">New</span>
+                                        <span class="font-semibold text-gray-900 text-sm">Cookieless visitor counting</span>
+                                    </div>
+                                    <p class="text-gray-500 text-sm">Visitors are counted with a rotating daily hash built from a truncated IP, the site domain and your instance's own secret — never a cookie, and never a stable cross-day identifier. See <a href="/data.html" class="text-blue-600 hover:text-blue-700 underline">how it works</a>.</p>
                                 </div>
                             </div>
                         </div>
@@ -443,7 +352,7 @@
                         <li><a href="/#self-host" class="hover:text-white transition-colors">Self-host</a></li>
                         <li><a href="/data" class="hover:text-white transition-colors">Privacy by Design</a></li>
                         <li><a href="/changelog" class="hover:text-white transition-colors">Changelog</a></li>
-                        <li><a href="https://github.com/Benbo-se/ArgusmetricsSH#readme" target="_blank" rel="noopener noreferrer" class="hover:text-white transition-colors">Documentation</a></li>
+                        <li><a href="/docs/" class="hover:text-white transition-colors">Documentation</a></li>
                     </ul>
                 </div>
                 <div>
@@ -467,7 +376,7 @@
             </div>
             <div class="border-t border-gray-800 pt-6 flex flex-col sm:flex-row justify-between items-center gap-4">
                 <p class="text-sm">&copy; 2026 Argusmetrics. All rights reserved.</p>
-                <p class="text-sm">Made in Sweden &middot; Data stored in the EU</p>
+                <p class="text-sm">Made in Sweden</p>
             </div>
         </div>
     </footer>
