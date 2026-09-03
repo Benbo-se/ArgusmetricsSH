@@ -57,7 +57,10 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-      - name: Starta appen (create_all bygger schemat vid start)
+      - name: Migrera (alembic upgrade head mot tom databas = fresh-install-testet)
+        working-directory: backend
+        run: alembic upgrade head
+      - name: Starta appen (prod-läge, schemat kommer från migrationerna)
         working-directory: backend
         run: |
           uvicorn app.main:app --host 127.0.0.1 --port 8020 &
@@ -65,7 +68,7 @@ jobs:
             curl -fsS http://127.0.0.1:8020/health >/dev/null 2>&1 && break
             echo "väntar på app ($i)"; sleep 2
           done
-      - name: Smoke-test (health måste vara healthy, kritiska sidor svara)
+      - name: Smoke-test (health, sidor, och en riktig DB-rundtur via signup)
         run: |
           set -euo pipefail
           BODY=$(curl -fsS http://127.0.0.1:8020/health)
@@ -76,6 +79,15 @@ jobs:
             echo "$path -> $CODE"
             [ "$CODE" = "200" ] || { echo "oväntad status för $path"; exit 1; }
           done
+          # Signup skriver till users-tabellen -> fångar tomt/trasigt schema,
+          # vilket rena sid-render-tester missar.
+          CODE=$(curl -s -o /dev/null -w '%{http_code}' -X POST http://127.0.0.1:8020/api/v1/auth/signup \
+            -H 'Content-Type: application/json' -d '{"email":"ci-smoke@example.com"}')
+          echo "signup -> $CODE"
+          [ "$CODE" = "200" ] || { echo "signup misslyckades"; exit 1; }
+          COUNT=$(PGPASSWORD=argus psql -h localhost -U argus -d argus_ci -tAc "SELECT count(*) FROM users WHERE email='ci-smoke@example.com'")
+          echo "users-rader: $COUNT"
+          [ "$COUNT" = "1" ] || { echo "signup skapade ingen användarrad"; exit 1; }
 
   # ── 2. Hygien: prod-compose och nginx-conf är giltiga ────────────────────
   hygiene:
@@ -96,6 +108,13 @@ jobs:
             -v "$PWD/site:/usr/share/nginx/html:ro" \
             --entrypoint sh nginx:1.27-alpine -c \
             "echo '127.0.0.1 backend' >> /etc/hosts && nginx -t"
+      - name: Trackern är byggd från källan och i synk överallt
+        working-directory: frontend/tracking-script
+        run: |
+          npm install --silent
+          npx terser src/tracker.js --config-file terser.config.json -o /tmp/tracker.check.js
+          cmp /tmp/tracker.check.js ../../backend/app/static/tracker.min.js || { echo "backend/app/static/tracker.min.js ur synk med src — kör 'npm run build' i frontend/tracking-script"; exit 1; }
+          cmp /tmp/tracker.check.js ../../site/static/tracker.min.js || { echo "site/static/tracker.min.js ur synk med src — kör 'npm run build'"; exit 1; }
 
   # ── 3. Bygg båda images; push till GHCR bara på grön main ────────────────
   build:

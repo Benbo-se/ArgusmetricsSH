@@ -1,6 +1,6 @@
 # Argusmetrics (self-host)
 
-Privacy-first, cookieless web analytics — a GDPR-friendly alternative to Google Analytics. Drop in a ~4KB script and get real-time dashboards, goals, funnels and e-commerce analytics without cookies, consent banners, or personal-data collection.
+Privacy-first, cookieless web analytics — a GDPR-friendly alternative to Google Analytics. Drop in a tiny (<3KB gzipped) script and get real-time dashboards, goals, funnels and e-commerce analytics without cookies, consent banners, or personal-data collection.
 
 > **Status: unmaintained / self-host at your own risk.** This is the open, self-hostable edition of a project that is no longer run as a hosted service. It works and has been security-hardened (see [SECURITY](#security--privacy)), but there is no support, no SLA, and no guarantee of future updates. Audit it yourself before relying on it.
 

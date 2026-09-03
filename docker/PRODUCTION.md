@@ -74,6 +74,7 @@ pre-deploy-dump ligger i `~/backups/argusmetrics/pre-deploy/` på servern.
 
 ## Schemaändringar
 
-Backend kör `create_all` vid start (additiva ändringar sker automatiskt).
-Versionerade migrationer finns via Alembic:
-`docker compose -f docker/docker-compose.prod.yml exec backend alembic upgrade head`.
+Backend-imagens entrypoint kör `alembic upgrade head` före varje start, så
+schemat följer alltid koden — en fräsch databas får hela schemat från
+baslinje-migrationen, och en databas från tiden före Alembic adopteras
+automatiskt (stamp + upgrade). Inga manuella migrationssteg.

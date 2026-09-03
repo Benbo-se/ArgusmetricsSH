@@ -50,11 +50,10 @@ services:
     networks:
       - argusmetrics-network
     restart: unless-stopped
-    # The app creates/updates its schema from the SQLAlchemy models on startup
-    # (create_all), so a fresh DB comes up complete with no manual step. The
-    # backend serves the app + static assets directly; no separate web server
-    # is needed for self-hosting. (Alembic migrations are available for anyone
-    # who wants versioned upgrades: `docker compose exec backend alembic ...`.)
+    # The image entrypoint runs `alembic upgrade head` before starting the app
+    # (adopting pre-Alembic databases automatically), so a fresh DB comes up
+    # complete with no manual step. The backend serves the app + static assets
+    # directly; no separate web server is needed for self-hosting.
     command: uvicorn app.main:app --host 0.0.0.0 --port 8020
 
 volumes:

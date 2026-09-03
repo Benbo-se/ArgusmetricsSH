@@ -1,5 +1,5 @@
 """
-Alembic environment configuration for NordicStats database migrations.
+Alembic environment configuration for Argusmetrics database migrations.
 
 This module configures Alembic to work with SQLAlchemy models and handles
 both offline and online migration modes.
@@ -15,12 +15,11 @@ from alembic import context
 from app.database import Base
 from app.config import settings
 
-# Import all models so they're registered with Base.metadata
-# This is critical for autogenerate to detect model changes
-from app.models.user import User
-from app.models.session import Session
-from app.models.website import Website
-from app.models.pageview import Pageview
+# Import ALL models (via the package, which registers every model module)
+# so they're registered with Base.metadata. This is critical: autogenerate
+# diffs target_metadata against the DB, and any model missing here would be
+# emitted as a drop_table for its live table.
+import app.models  # noqa: F401
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

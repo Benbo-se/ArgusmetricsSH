@@ -32,5 +32,8 @@ RUN mkdir -p /app/static
 # Expose port 8020
 EXPOSE 8020
 
-# Run the application with uvicorn
+# Migrations run before the app starts (see entrypoint.sh); the compose
+# `command:` (or the CMD below) is exec'd by the entrypoint afterwards.
+RUN chmod +x /app/entrypoint.sh
+ENTRYPOINT ["/app/entrypoint.sh"]
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8020"]

@@ -152,7 +152,9 @@ backup/
 # ============================================
 # BUILD OUTPUTS (keep tracking-script/dist)
 # ============================================
-# Note: frontend/tracking-script/dist/ is intentionally tracked
+# frontend/tracking-script/dist/ is intentionally tracked (the shipped build);
+# the global dist/ rule above must not swallow it.
+!frontend/tracking-script/dist/
 
 # ============================================
 # PLAYWRIGHT / E2E
