@@ -102,7 +102,14 @@ def client(db):
     actually accepts, and assert on why a request failed, never just on 400.
     """
     app.dependency_overrides[get_db] = lambda: db
-    test_client = TestClient(app, base_url=settings.BASE_URL.rstrip("/"))
+
+    # https, not the scheme in BASE_URL. Session cookies are set Secure, and a
+    # cookie jar will not send a Secure cookie over http, so every
+    # authenticated request would arrive without one and look like a logout
+    # bug. TrustedHostMiddleware compares the host only, so the host still has
+    # to come from BASE_URL.
+    host = urlparse(settings.BASE_URL).netloc
+    test_client = TestClient(app, base_url=f"https://{host}")
 
     # Prove requests reach a route before any test draws a conclusion from a
     # status code. Without this, a middleware rejecting every request looks

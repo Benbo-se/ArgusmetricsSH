@@ -30,37 +30,43 @@ DECLARING_DEPENDENCIES = {
 # Routes that legitimately declare nothing, each with the reason. A route
 # belongs here only if it touches no policied table, or reaches one through a
 # SECURITY DEFINER function because its caller has no identity to declare.
+#
+# Keyed by method and path, not by path alone. /logout has both a GET that
+# clears a cookie and a POST that authenticates first, and a path-only
+# exemption would have covered the POST too, which is exactly how a future
+# route slips through a guard like this one.
 EXEMPT = {
     # Static pages and generated files: no database at all.
-    "/": "marketing page",
-    "/login": "page",
-    "/signup": "page",
-    "/reset": "page",
-    "/verify": "page",
-    "/logout": "clears a cookie",
-    "/robots.txt": "generated file",
-    "/sitemap.xml": "generated file",
-    "/favicon.ico": "static file",
-    "/health": "pings the connection; touches no policied table",
+    "GET /": "marketing page",
+    "GET /login": "page",
+    "GET /signup": "page",
+    "GET /reset": "page",
+    "GET /verify": "page",
+    "GET /logout": "clears the cookie and redirects",
+    "POST /logout": "deletes the session row and clears the cookie; sessions is not policied",
+    "GET /robots.txt": "generated file",
+    "GET /sitemap.xml": "generated file",
+    "GET /favicon.ico": "static file",
+    "GET /health": "pings the connection; touches no policied table",
     # Authentication itself, which runs before anyone has an identity. These
     # touch users and sessions, neither of which is policied.
-    "/api/v1/auth/login": "establishes the identity a context would need",
-    "/api/v1/auth/signup": "creates the user",
-    "/api/v1/auth/verify": "verifies by token, not by session",
-    "/api/v1/auth/verify-code": "verifies by code",
-    "/api/v1/auth/resend-verification": "by email address",
-    "/api/v1/auth/request-reset": "by email address",
-    "/api/v1/auth/set-password": "by reset token",
-    "/api/v1/auth/password-rules": "static rules, no database",
+    "POST /api/v1/auth/login": "establishes the identity a context would need",
+    "POST /api/v1/auth/signup": "creates the user",
+    "GET /api/v1/auth/verify": "verifies by token, not by session",
+    "POST /api/v1/auth/verify-code": "verifies by code",
+    "POST /api/v1/auth/resend-verification": "by email address",
+    "POST /api/v1/auth/request-reset": "by email address",
+    "POST /api/v1/auth/set-password": "by reset token",
+    "GET /api/v1/auth/password-rules": "static rules, no database",
     # A token in the URL is the credential, and its holder is not logged in.
     # Each of these resolves through a SECURITY DEFINER function instead.
-    "/accept-invite": "invitation page, resolves via argus_resolve_invite_token",
-    "/api/v1/websites/invites/{token}": "same, as JSON",
-    "/api/v1/dashboard-password/check/{share_token}": (
+    "GET /accept-invite": "invitation page, resolves via argus_resolve_invite_token",
+    "GET /api/v1/websites/invites/{token}": "same, as JSON",
+    "GET /api/v1/dashboard-password/check/{share_token}": (
         "public share link, resolves via argus_resolve_share_token"
     ),
-    "/api/v1/dashboard-password/verify/{share_token}": "same",
-    "/public/{share_token}": "same, and the GET declares a public context inline",
+    "POST /api/v1/dashboard-password/verify/{share_token}": "same",
+    "POST /public/{share_token}": "same; the GET declares a public context inline",
 }
 
 
@@ -93,6 +99,12 @@ def _declares_inline(route):
         return False
 
 
+def _keys(route, path):
+    """Every "METHOD /path" this route answers."""
+    methods = getattr(route, "methods", None) or {"WS"}
+    return [f"{m} {path}" for m in sorted(methods) if m != "HEAD"]
+
+
 def _routes():
     for route in app.routes:
         path = getattr(route, "path", "")
@@ -110,11 +122,12 @@ def _routes():
 def test_every_route_declares_a_context_or_is_exempt():
     undeclared = sorted(
         {
-            path
+            key
             for route, path in _routes()
             if not _declares_via_dependency(route)
             and not _declares_inline(route)
-            and path not in EXEMPT
+            for key in _keys(route, path)
+            if key not in EXEMPT
         }
     )
 
@@ -134,7 +147,7 @@ def test_the_exempt_list_has_no_stale_entries():
 
     It silently covers whatever route later takes that path.
     """
-    live = {path for _, path in _routes()}
+    live = {key for route, path in _routes() for key in _keys(route, path)}
     stale = sorted(set(EXEMPT) - live)
 
     assert not stale, (
