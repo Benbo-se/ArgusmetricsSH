@@ -295,12 +295,33 @@ class EcommerceService:
             logger.error(f"Error recording e-commerce event: {e}", exc_info=True)
             return False, "Failed to record e-commerce event", None
 
+    def resolve_currency(self, website_id: int, currency: Optional[str] = None) -> str:
+        """Pick which currency's revenue to report.
+
+        Revenue figures can't be summed across currencies, so every query is
+        scoped to one. Defaulting that to USD meant a shop selling in SEK/EUR
+        saw a permanent zero; instead, fall back to the currency this site
+        actually records the most transactions in.
+        """
+        if currency:
+            return currency.upper()
+
+        row = self.db.query(
+            EcommerceEvent.currency,
+            func.count(EcommerceEvent.id).label('n')
+        ).filter(
+            EcommerceEvent.website_id == website_id,
+            EcommerceEvent.event_type == 'purchase',
+        ).group_by(EcommerceEvent.currency).order_by(func.count(EcommerceEvent.id).desc()).first()
+
+        return row.currency if row else "USD"
+
     def get_revenue_stats(
         self,
         website_id: int,
         start_date: datetime,
         end_date: datetime,
-        currency: str = "USD"
+        currency: Optional[str] = None
     ) -> Dict:
         """
         Get revenue statistics for a date range.
@@ -309,11 +330,12 @@ class EcommerceService:
             website_id: Website ID
             start_date: Start date (inclusive)
             end_date: End date (inclusive)
-            currency: Filter by currency code (default: USD)
+            currency: Currency to report in; defaults to the site's most-used
 
         Returns:
             Dict: Revenue statistics
         """
+        currency = self.resolve_currency(website_id, currency)
         logger.info(f"Getting revenue stats: website_id={website_id}, currency={currency}")
 
         try:
@@ -547,7 +569,7 @@ class EcommerceService:
         website_id: int,
         start_date: datetime,
         end_date: datetime,
-        currency: str = "USD"
+        currency: Optional[str] = None
     ) -> Dict:
         """
         Get revenue over time (timeseries data).
@@ -561,7 +583,8 @@ class EcommerceService:
         Returns:
             Dict: Revenue timeseries data
         """
-        logger.info(f"Getting revenue timeseries: website_id={website_id}")
+        currency = self.resolve_currency(website_id, currency)
+        logger.info(f"Getting revenue timeseries: website_id={website_id}, currency={currency}")
 
         try:
             # Group by day

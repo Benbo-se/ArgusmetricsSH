@@ -40,14 +40,13 @@
     <!-- HTMX (local) -->
     <script src="/static/js/htmx.min.js"></script>
 
-    <!-- Alpine.js -->
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.5/dist/cdn.min.js"></script>
-
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Alpine.js, Chart.js and Font Awesome are served from this instance,
+         not a CDN: a privacy-first self-hosted tool must not phone home to
+         third parties on every dashboard load, and CDN outages used to take
+         the app's icons (and, before this, its interactivity) with them. -->
+    <script defer src="/static/js/alpine.min.js"></script>
+    <script src="/static/js/chart.umd.min.js"></script>
+    <link rel="stylesheet" href="/static/css/fontawesome.min.css">
 
     <style>
         /* Custom loading spinner */
@@ -110,22 +109,6 @@
 
     <!-- Custom JavaScript -->
     <script src="/static/js/dashboard.js"></script>
-
-    <!-- Cookie Banner (centered at bottom) -->
-    <div id="cookie-banner" x-data="{ show: !localStorage.getItem('cookie-banner-dismissed') }" x-show="show" x-transition class="fixed bottom-4 left-1/2 transform -translate-x-1/2 w-full max-w-md px-4 md:px-0 z-50" style="display: none;">
-        <div class="flex items-start gap-3 bg-white border border-gray-200 rounded-lg shadow-lg p-4">
-            <div class="flex-shrink-0 text-2xl">🍪</div>
-            <div class="flex-1">
-                <h3 class="text-sm font-semibold text-gray-900 mb-1">We respect your privacy</h3>
-                <p class="text-sm text-gray-600">We don't use cookies or track you across websites. Your data stays private.</p>
-            </div>
-            <button @click="show = false; localStorage.setItem('cookie-banner-dismissed', 'true')" class="flex-shrink-0 text-gray-400 hover:text-gray-600">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                </svg>
-            </button>
-        </div>
-    </div>
 
     {% block extra_scripts %}{% endblock %}
 </body>

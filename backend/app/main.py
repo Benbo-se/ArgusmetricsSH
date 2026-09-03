@@ -118,9 +118,19 @@ if settings.is_production:
 
 
 # Security headers (defense-in-depth: clickjacking, MIME sniffing, and a CSP
-# that limits script/style sources). 'unsafe-inline' is retained because the
-# dashboard templates use inline scripts + Alpine.js; the real XSS defense is
-# output escaping, this is the backstop.
+# that limits script/style sources).
+#
+# script-src keeps BOTH 'unsafe-inline' and 'unsafe-eval' because the
+# dashboard runs stock Alpine.js, which evaluates its x-* attributes as
+# strings — without 'unsafe-eval' every dropdown, filter, tab and modal in
+# the app silently stops working (Alpine logs a CSP error per expression and
+# renders every x-show element as visible).
+#
+# So CSP provides no script-injection protection here; the actual XSS defense
+# is output escaping — template autoescape plus JSON <script> islands for
+# visitor-controlled analytics data (never |tojson inside an attribute).
+# TODO (UX phase): move to Alpine's CSP build (@alpinejs/csp, expressions as
+# Alpine.data() components) or plain JS, then drop both unsafe-* sources.
 @app.middleware("http")
 async def security_headers(request: Request, call_next):
     response = await call_next(request)
@@ -130,10 +140,10 @@ async def security_headers(request: Request, call_next):
     response.headers.setdefault(
         "Content-Security-Policy",
         "default-src 'self'; "
-        "script-src 'self' cdn.jsdelivr.net 'unsafe-inline'; "
-        "style-src 'self' cdn.jsdelivr.net fonts.googleapis.com 'unsafe-inline'; "
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
+        "style-src 'self' 'unsafe-inline'; "
         "img-src 'self' data: https:; "
-        "font-src 'self' fonts.gstatic.com data:; "
+        "font-src 'self' data:; "
         "connect-src 'self'; "
         "frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
     )

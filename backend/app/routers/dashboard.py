@@ -1115,7 +1115,7 @@ async def website_revenue_dashboard(
     request: Request,
     website_id: int,
     range: Optional[str] = "30d",
-    currency: Optional[str] = "USD",
+    currency: Optional[str] = None,  # None = the site's most-used currency
     current_user: User = Depends(get_current_user),
     website_service: WebsiteService = Depends(get_website_service),
     db: Session = Depends(get_db)

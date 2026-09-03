@@ -83,7 +83,7 @@ async def track_revenue(
 async def get_revenue_stats(
     website_id: int,
     range: Optional[str] = "30d",
-    currency: Optional[str] = "USD",
+    currency: Optional[str] = None,  # None = the site's most-used currency
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -93,7 +93,7 @@ async def get_revenue_stats(
     Args:
         website_id: Website ID
         range: Time range (7d, 30d, 90d, 365d)
-        currency: Currency code (default: USD)
+        currency: Currency code (default: the site's most-used)
         current_user: Authenticated user
         db: Database session
 
@@ -204,7 +204,7 @@ async def get_top_products(
 async def get_revenue_chart(
     website_id: int,
     range: Optional[str] = "30d",
-    currency: Optional[str] = "USD",
+    currency: Optional[str] = None,  # None = the site's most-used currency
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -214,7 +214,7 @@ async def get_revenue_chart(
     Args:
         website_id: Website ID
         range: Time range (7d, 30d, 90d, 365d)
-        currency: Currency code (default: USD)
+        currency: Currency code (default: the site's most-used)
         current_user: Authenticated user
         db: Database session
 

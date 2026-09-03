@@ -9,7 +9,7 @@ Provides endpoints for:
 import logging
 from typing import Optional
 from datetime import datetime, timedelta, timezone
-from fastapi import APIRouter, Depends, HTTPException, status, Request, Header
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Header, Cookie
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -139,6 +139,7 @@ async def check_track_rate_limit(request: Request):
 async def get_current_user_or_token(
     authorization: Optional[str] = Header(None),
     x_api_token: Optional[str] = Header(None),
+    session_token: Optional[str] = Cookie(None),
     db: Session = Depends(get_db)
 ) -> User:
     """
@@ -191,14 +192,16 @@ async def get_current_user_or_token(
             detail="Invalid API token"
         )
 
-    # Fallback to Bearer token authentication
-    if not authorization:
+    # Fallback: Bearer header OR the dashboard's session cookie. Accepting the
+    # cookie keeps these endpoints usable from a logged-in browser (the API
+    # docs and any in-page fetch), matching every other authenticated route.
+    if not authorization and not session_token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not authenticated. Please log in."
         )
 
-    return get_current_user(authorization, None, get_auth_service(db))
+    return get_current_user(authorization, session_token, get_auth_service(db))
 
 
 def _enforce_token_scope(current_user: User, website_id: int) -> None:
