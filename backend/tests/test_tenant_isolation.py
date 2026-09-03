@@ -22,7 +22,13 @@ import pytest
 from sqlalchemy import create_engine, text
 
 # Tables carrying tenant data, added here as each one gains policies.
-TENANT_TABLES = ["pageviews"]
+TENANT_TABLES = [
+    "pageviews",
+    "custom_events",
+    "ecommerce_events",
+    "goal_conversions",
+    "funnel_events",
+]
 
 DB_URL = os.environ.get("RLS_TEST_DATABASE_URL")
 

@@ -120,6 +120,10 @@ class EcommerceEvent(Base):
             "event_type IN ('view_item', 'add_to_cart', 'remove_from_cart', 'begin_checkout', 'add_payment_info', 'add_shipping_info', 'purchase', 'refund')",
             name='ecommerce_event_type_valid'
         ),
+        # Written by the tracking endpoints, which row-level security keeps
+        # write-only. INSERT ... RETURNING needs the new row to be readable,
+        # so take the id from the sequence beforehand instead.
+        {"implicit_returning": False},
     )
 
     def __repr__(self) -> str:

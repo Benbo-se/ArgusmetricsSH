@@ -81,6 +81,10 @@ class FunnelEvent(Base):
         Index('idx_funnel_visitor', 'funnel_id', 'visitor_id'),
         Index('idx_funnel_step', 'funnel_id', 'step_number'),
         Index('idx_funnel_timestamp', 'funnel_id', 'timestamp'),
+        # Written by the tracking endpoints, which row-level security keeps
+        # write-only. INSERT ... RETURNING needs the new row to be readable,
+        # so take the id from the sequence beforehand instead.
+        {"implicit_returning": False},
     )
 
     def __repr__(self) -> str:

@@ -77,6 +77,10 @@ class GoalConversion(Base):
         Index('idx_goal_conversions_goal_timestamp', 'goal_id', 'timestamp'),
         # Unique-converter counts
         Index('idx_goal_conversions_website_visitor', 'website_id', 'visitor_hash'),
+        # Written by the tracking endpoints, which row-level security keeps
+        # write-only. INSERT ... RETURNING needs the new row to be readable,
+        # so take the id from the sequence beforehand instead.
+        {"implicit_returning": False},
     )
 
     def __repr__(self) -> str:

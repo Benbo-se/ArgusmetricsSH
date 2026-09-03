@@ -71,6 +71,10 @@ class CustomEvent(Base):
         Index('idx_custom_events_website_event', 'website_id', 'event_name'),
         # Unique-visitor counts on events
         Index('idx_custom_events_website_visitor', 'website_id', 'visitor_hash'),
+        # Written by the tracking endpoints, which row-level security keeps
+        # write-only. INSERT ... RETURNING needs the new row to be readable,
+        # so take the id from the sequence beforehand instead.
+        {"implicit_returning": False},
     )
 
     def __repr__(self) -> str:
