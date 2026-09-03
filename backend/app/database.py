@@ -140,26 +140,38 @@ def receive_connect(dbapi_conn, connection_record):
 
 @event.listens_for(engine, "checkout")
 def receive_checkout(dbapi_conn, connection_record, connection_proxy):
-    """Log when a connection is checked out from the pool."""
+    """Clear leftover session state before a request uses this connection.
+
+    The RLS context is set with set_config(..., is_local=true), so it is bound
+    to the transaction and Postgres clears it on commit or rollback. This is a
+    second layer in case some future code path sets a session variable without
+    LOCAL: a tenant identity surviving into whoever borrows the connection next
+    would be worse than having no policies at all.
+
+    Done on checkout rather than checkin, and in autocommit, because a plain
+    cursor execute here opens an implicit transaction. Leaving one open broke
+    SQLAlchemy's own connection reset ("set_session cannot be used inside a
+    transaction") and took signup down with it, which only showed up under
+    QueuePool and so never appeared in development.
+    """
+    if dbapi_conn is None:
+        return
+    try:
+        previous = dbapi_conn.autocommit
+        dbapi_conn.autocommit = True
+        try:
+            with dbapi_conn.cursor() as cur:
+                cur.execute("RESET ALL")
+        finally:
+            dbapi_conn.autocommit = previous
+    except Exception as e:  # a dirty connection must not fail the request
+        logger.warning(f"Could not reset session state on checkout: {e}")
     logger.debug("Database connection checked out from pool")
 
 
 @event.listens_for(engine, "checkin")
 def receive_checkin(dbapi_conn, connection_record):
-    """Reset session state before the connection goes back to the pool.
-
-    The RLS context is set per transaction and so clears itself on commit or
-    rollback. This is the second layer: if any code path ever sets a session
-    variable without LOCAL, or a transaction ends in an unexpected way, the
-    value must not survive to the next request that borrows this connection.
-    A leaked tenant identity would be worse than having no policies at all,
-    so this does not rely on the first layer being perfect.
-    """
-    try:
-        with dbapi_conn.cursor() as cur:
-            cur.execute("RESET ALL")
-    except Exception as e:  # never let cleanup break connection return
-        logger.warning(f"Could not reset session state on checkin: {e}")
+    """Log when a connection is returned to the pool."""
     logger.debug("Database connection returned to pool")
 
 
