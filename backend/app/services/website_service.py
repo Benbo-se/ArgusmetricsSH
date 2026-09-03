@@ -134,6 +134,12 @@ class WebsiteService:
             import secrets
             verification_token = secrets.token_urlsafe(32)  # 43 characters base64url
 
+            # Auto-verify only in local dev. (An earlier E2E shortcut keyed on
+            # the mere PRESENCE of E2E_TEST_SECRET — config-presence gating,
+            # the exact pattern auth's _e2e_secret_ok exists to prevent. E2E
+            # suites verify via DNS mocks instead.)
+            dev_auto_verified = settings.DEBUG and not settings.is_production
+
             # Create website
             website = Website(
                 name=name,
@@ -141,11 +147,11 @@ class WebsiteService:
                 user_email=user_email,
                 tracking_code=tracking_code,
                 verification_token=verification_token,
-                # Auto-verify only in local dev. (An earlier E2E shortcut
-                # keyed on the mere PRESENCE of E2E_TEST_SECRET — config-
-                # presence gating, the exact pattern auth's _e2e_secret_ok
-                # exists to prevent. E2E suites verify via DNS mocks instead.)
-                is_verified=settings.DEBUG and not settings.is_production,
+                is_verified=dev_auto_verified,
+                # Without this, dev-auto-verified sites show "Domain
+                # ownership verified on Unknown date" on Settings — the real
+                # mark_verified() flow always sets both fields together.
+                verified_at=datetime.now(timezone.utc) if dev_auto_verified else None,
                 is_active=True
             )
 
