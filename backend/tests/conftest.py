@@ -135,6 +135,10 @@ def website(db):
     reason that has nothing to do with what it is testing.
     """
     suffix = uuid.uuid4().hex[:8]
+    # Deliberately different from the suffix, so a test asserting the tracking
+    # code does not leak onto a page cannot pass or fail on the site name
+    # happening to contain the same string.
+    tracking_code = uuid.uuid4().hex[:8]
     email = f"test-{suffix}@example.com"  # example.invalid is rejected by the email validator
 
     db.execute(
@@ -157,7 +161,7 @@ def website(db):
             "n": f"Test site {suffix}",
             "d": f"https://{suffix}.example.com",
             "e": email,
-            "tc": suffix,
+            "tc": tracking_code,
             "vt": f"tok-{suffix}",
         },
     ).scalar()
@@ -166,7 +170,7 @@ def website(db):
     return {
         "id": website_id,
         "email": email,
-        "tracking_code": suffix,
+        "tracking_code": tracking_code,
         "domain": f"https://{suffix}.example.com",
     }
 

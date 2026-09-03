@@ -105,10 +105,17 @@ def _public_pw_state(website) -> str:
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:12]
 
 
-def _has_valid_public_cookie(request: Request, website) -> bool:
+def _has_valid_public_cookie(request: Request, website, share_token: str) -> bool:
     """Return True if the request carries a valid, unexpired signed access cookie
-    for this website's share token AND its current password state."""
-    raw = request.cookies.get(_public_cookie_name(website.public_share_token))
+    for this share token AND the website's current password state.
+
+    The token is passed in rather than read off the website, mirroring how the
+    cookie is set. The website object here comes from a SECURITY DEFINER
+    lookup that deliberately returns only what an anonymous viewer may see,
+    and the token is not part of that: the caller already has it, since it is
+    in the URL they opened.
+    """
+    raw = request.cookies.get(_public_cookie_name(share_token))
     if not raw:
         return False
     try:
@@ -117,7 +124,7 @@ def _has_valid_public_cookie(request: Request, website) -> bool:
         )
     except (BadSignature, SignatureExpired):
         return False
-    expected = {"t": website.public_share_token, "p": _public_pw_state(website)}
+    expected = {"t": share_token, "p": _public_pw_state(website)}
     return data == expected
 
 
@@ -986,7 +993,7 @@ async def public_dashboard(
         # protection, require a valid signed access cookie (issued only after a
         # correct password POST) before returning any analytics data.
         if website.public_password_enabled and website.public_password_hash:
-            if not _has_valid_public_cookie(request, website):
+            if not _has_valid_public_cookie(request, website, share_token):
                 logger.info(f"Public dashboard {website.id} requires password; prompting")
                 return templates.TemplateResponse(
                     "dashboard/_public_password.html",
