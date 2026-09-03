@@ -36,6 +36,14 @@ class Settings(BaseSettings):
         default=None,
         description="Path to a MaxMind GeoLite2-Country.mmdb. If unset/absent, country resolution is skipped (no third-party IP lookups)."
     )
+    DATA_RETENTION_DAYS: int = Field(
+        default=0,
+        description="Delete analytics events older than this many days (0 = keep forever). Applied nightly."
+    )
+    EMAIL_LOG_RETENTION_DAYS: int = Field(
+        default=90,
+        description="Delete email_logs rows (they contain recipient addresses) older than this many days."
+    )
     # Database
     DATABASE_URL: str = Field(
         default="postgresql://argusmetrics:argusmetrics@localhost/argusmetrics",

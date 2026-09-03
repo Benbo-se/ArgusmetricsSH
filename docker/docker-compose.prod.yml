@@ -22,10 +22,12 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB saknas i docker/.env}
       POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER saknas i docker/.env}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD saknas i docker/.env}
+      # Lösenord för den avprivilegierade app-rollen (skapas vid första start)
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD:?APP_DB_PASSWORD saknas i docker/.env}
       PGDATA: /var/lib/postgresql/data/pgdata
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+      - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
       interval: 10s
@@ -39,7 +41,10 @@ services:
     image: ghcr.io/benbo-se/argusmetrics-backend:${ARGUS_TAG:-latest}
     container_name: argusmetrics-backend
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      # Appen kör som den avprivilegierade rollen (DML only, äger inget);
+      # migrationerna körs av entrypoint som databasägaren.
+      DATABASE_URL: postgresql://argus_app:${APP_DB_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      MIGRATION_DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       SECRET_KEY: ${SECRET_KEY:?SECRET_KEY saknas i docker/.env}
       # Styr TrustedHost-allowlisten (en "www."-BASE_URL täcker även apex).
       BASE_URL: ${BASE_URL:?BASE_URL saknas i docker/.env}
@@ -49,6 +54,8 @@ services:
       # Värd-nginx + web-containern sitter framför → lita på docker-nätets XFF.
       TRUSTED_PROXIES: ${TRUSTED_PROXIES:-}
       GEOIP_DB_PATH: ${GEOIP_DB_PATH:-}
+      DATA_RETENTION_DAYS: ${DATA_RETENTION_DAYS:-0}
+      EMAIL_LOG_RETENTION_DAYS: ${EMAIL_LOG_RETENTION_DAYS:-90}
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_USER: ${SMTP_USER:-}

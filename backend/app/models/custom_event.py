@@ -57,11 +57,13 @@ class CustomEvent(Base):
     visitor_hash = Column(String(64), nullable=False)
     timestamp = Column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
 
-    # Composite indexes for common query patterns
+    # Composite indexes for common query patterns. No cross-tenant
+    # (event_name, timestamp) index: every real query is scoped by website_id.
     __table_args__ = (
         Index('idx_custom_events_website_timestamp', 'website_id', 'timestamp'),
         Index('idx_custom_events_website_event', 'website_id', 'event_name'),
-        Index('idx_custom_events_event_timestamp', 'event_name', 'timestamp'),
+        # Unique-visitor counts on events
+        Index('idx_custom_events_website_visitor', 'website_id', 'visitor_hash'),
     )
 
     def __repr__(self) -> str:

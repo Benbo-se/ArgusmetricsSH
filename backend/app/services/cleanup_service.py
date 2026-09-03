@@ -147,12 +147,64 @@ class CleanupService:
             self.db.rollback()
             return 0
 
-    def run_all_cleanup_tasks(self) -> Tuple[int, int, int]:
+    def purge_old_event_data(self) -> int:
+        """
+        Data retention: delete analytics events older than DATA_RETENTION_DAYS.
+
+        Off by default (0 = keep forever — the self-hoster's data, their call).
+        When enabled it prunes every event table, plus email_logs on their own
+        shorter clock (EMAIL_LOG_RETENTION_DAYS) since those rows contain
+        recipient addresses and have no analytics value.
+        """
+        from sqlalchemy import text
+        from app.config import settings
+
+        total = 0
+        now = datetime.now(timezone.utc)
+
+        try:
+            if settings.DATA_RETENTION_DAYS > 0:
+                cutoff = now - timedelta(days=settings.DATA_RETENTION_DAYS)
+                for table, ts_col in [
+                    ("pageviews", "timestamp"),
+                    ("custom_events", "timestamp"),
+                    ("ecommerce_events", "timestamp"),
+                    ("goal_conversions", "timestamp"),
+                    ("funnel_events", "timestamp"),
+                    ("revenue_transactions", "timestamp"),
+                ]:
+                    result = self.db.execute(
+                        text(f"DELETE FROM {table} WHERE {ts_col} < :cutoff"),  # nosec: table names are a fixed allowlist above
+                        {"cutoff": cutoff},
+                    )
+                    if result.rowcount:
+                        logger.info(f"Retention: deleted {result.rowcount} rows from {table} (older than {settings.DATA_RETENTION_DAYS}d)")
+                        total += result.rowcount
+                self.db.commit()
+
+            # Email logs always age out (they hold recipient addresses)
+            email_cutoff = now - timedelta(days=settings.EMAIL_LOG_RETENTION_DAYS)
+            result = self.db.execute(
+                text("DELETE FROM email_logs WHERE sent_at < :cutoff"), {"cutoff": email_cutoff}
+            )
+            if result.rowcount:
+                logger.info(f"Retention: deleted {result.rowcount} email_logs older than {settings.EMAIL_LOG_RETENTION_DAYS}d")
+                total += result.rowcount
+            self.db.commit()
+
+            return total
+
+        except Exception as e:
+            logger.error(f"Error purging old event data: {e}")
+            self.db.rollback()
+            return total
+
+    def run_all_cleanup_tasks(self) -> Tuple[int, int, int, int]:
         """
         Run all cleanup tasks.
 
         Returns:
-            Tuple[int, int, int]: (unverified_deleted, empty_inactive_deleted, sessions_deleted)
+            Tuple: (unverified_deleted, empty_inactive_deleted, sessions_deleted, retention_deleted)
         """
         logger.info("=" * 80)
         logger.info("RUNNING CLEANUP TASKS")
@@ -161,12 +213,13 @@ class CleanupService:
         unverified = self.cleanup_unverified_accounts(days=7)
         empty_inactive = self.cleanup_empty_inactive_accounts(days=30)
         sessions = self.cleanup_expired_sessions()
+        retained = self.purge_old_event_data()
 
         logger.info("=" * 80)
-        logger.info(f"CLEANUP COMPLETE - Deleted: {unverified} unverified, {empty_inactive} inactive, {sessions} sessions")
+        logger.info(f"CLEANUP COMPLETE - Deleted: {unverified} unverified, {empty_inactive} inactive, {sessions} sessions, {retained} retention rows")
         logger.info("=" * 80)
 
-        return (unverified, empty_inactive, sessions)
+        return (unverified, empty_inactive, sessions, retained)
 
 
 def run_daily_cleanup():

@@ -2,8 +2,8 @@
 Pageview model for storing analytics time-series data.
 
 Scaling note: When pageview volume exceeds ~50M rows/year, consider
-PostgreSQL native table partitioning (PARTITION BY RANGE on timestamp).
-This works on Railway's managed Postgres without additional extensions.
+PostgreSQL native table partitioning (PARTITION BY RANGE on timestamp),
+or TimescaleDB hypertables (the bundled image ships the extension).
 """
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Index, Text
 from sqlalchemy.dialects.postgresql import JSONB
@@ -40,15 +40,19 @@ class Pageview(Base):
 
     __tablename__ = "pageviews"
 
+    # Insert-heavy table: every index is a write tax, so single-column indexes
+    # that are prefix-covered by the composites below (website_id, visitor_hash,
+    # timestamp) or too low-cardinality to ever win (country, device, browser)
+    # are deliberately absent.
     id = Column(Integer, primary_key=True, index=True)
-    website_id = Column(Integer, ForeignKey("websites.id"), nullable=False, index=True)
+    website_id = Column(Integer, ForeignKey("websites.id"), nullable=False)
     path = Column(String(2048), nullable=False)
     referrer = Column(String(2048), nullable=True)
-    country = Column(String(2), nullable=True, index=True)
-    device_type = Column(String(50), nullable=True, index=True)
-    browser = Column(String(100), nullable=True, index=True)
-    visitor_hash = Column(String(64), nullable=False, index=True)
-    timestamp = Column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
+    country = Column(String(2), nullable=True)
+    device_type = Column(String(50), nullable=True)
+    browser = Column(String(100), nullable=True)
+    visitor_hash = Column(String(64), nullable=False)
+    timestamp = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     # UTM parameters for campaign tracking
     utm_source = Column(String(255), nullable=True)
@@ -71,6 +75,8 @@ class Pageview(Base):
     __table_args__ = (
         Index('idx_pageviews_website_timestamp', 'website_id', 'timestamp'),
         Index('idx_pageviews_website_visitor', 'website_id', 'visitor_hash'),
+        # "Top pages over a date range" is the most common dashboard query
+        Index('idx_pageviews_website_path_time', 'website_id', 'path', 'timestamp'),
         Index('idx_pageviews_properties', 'properties', postgresql_using='gin'),
     )
 

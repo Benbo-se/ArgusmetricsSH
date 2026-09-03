@@ -35,7 +35,7 @@ class User(Base):
     # code is typed on the /verify page). Stored hashed, limited attempts.
     pending_code_hash = Column(String(64), nullable=True)
     pending_code_expires_at = Column(DateTime(timezone=True), nullable=True)
-    pending_code_attempts = Column(Integer, default=0, nullable=False)
+    pending_code_attempts = Column(Integer, default=0, server_default="0", nullable=False)
 
     def __repr__(self) -> str:
         return f"<User(email='{self.email}', verified={self.is_verified})>"

@@ -52,7 +52,6 @@ class RevenueTransaction(Base):
     # Composite index for website + timestamp queries
     __table_args__ = (
         Index('idx_revenue_website_timestamp', 'website_id', 'timestamp'),
-        Index('idx_revenue_website_currency', 'website_id', 'currency'),
     )
 
     def __repr__(self) -> str:

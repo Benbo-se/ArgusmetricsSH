@@ -111,6 +111,7 @@ jobs:
       POSTGRES_DB: x
       POSTGRES_USER: x
       POSTGRES_PASSWORD: x
+      APP_DB_PASSWORD: x
       SECRET_KEY: x
       ALLOWED_ORIGINS: x
       BASE_URL: x

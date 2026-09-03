@@ -8,7 +8,12 @@
 #      so we adopt the schema by stamping the baseline first.
 set -e
 
-python <<'PY'
+# Migrations run as the DB owner; the app itself may run as a least-privilege
+# role (DATABASE_URL). MIGRATION_DATABASE_URL falls back to DATABASE_URL for
+# the simple single-role setup.
+MIG_URL="${MIGRATION_DATABASE_URL:-$DATABASE_URL}"
+
+DATABASE_URL="$MIG_URL" python <<'PY'
 from sqlalchemy import create_engine, inspect
 from app.config import settings
 import subprocess
@@ -23,6 +28,6 @@ if "users" in tables and "alembic_version" not in tables:
 PY
 
 echo "entrypoint: alembic upgrade head"
-alembic upgrade head
+DATABASE_URL="$MIG_URL" alembic upgrade head
 
 exec "$@"

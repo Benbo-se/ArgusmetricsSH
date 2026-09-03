@@ -68,6 +68,8 @@ class GoalConversion(Base):
     __table_args__ = (
         Index('idx_goal_conversions_website_timestamp', 'website_id', 'timestamp'),
         Index('idx_goal_conversions_goal_timestamp', 'goal_id', 'timestamp'),
+        # Unique-converter counts
+        Index('idx_goal_conversions_website_visitor', 'website_id', 'visitor_hash'),
     )
 
     def __repr__(self) -> str:
