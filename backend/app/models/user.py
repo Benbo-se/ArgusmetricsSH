@@ -27,5 +27,15 @@ class User(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
+    # Password login (bcrypt). Nullable: accounts from the magic-link-only era
+    # set one via the reset flow.
+    password_hash = Column(String(255), nullable=True)
+
+    # Email verification via 6-digit code (complement to the magic link; the
+    # code is typed on the /verify page). Stored hashed, limited attempts.
+    pending_code_hash = Column(String(64), nullable=True)
+    pending_code_expires_at = Column(DateTime(timezone=True), nullable=True)
+    pending_code_attempts = Column(Integer, default=0, nullable=False)
+
     def __repr__(self) -> str:
         return f"<User(email='{self.email}', verified={self.is_verified})>"

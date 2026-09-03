@@ -32,8 +32,14 @@ from app.schemas.auth import (
     VerifyResponse,
     LogoutResponse,
     ErrorResponse,
+    LoginRequest,
+    VerifyCodeRequest,
+    ResendVerificationRequest,
+    RequestResetRequest,
+    SetPasswordRequest,
 )
 from app.models.user import User
+from app.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -168,8 +174,32 @@ async def signup(
     """
     logger.info(f"Signup request received for email: {request.email}")
 
+    # Anti-bot gates (zero friction for humans):
+    # 1. Honeypot: the off-screen `website` field must stay empty. Bots that
+    #    fill every field get a fake success and no account.
+    if request.website:
+        logger.warning("Signup honeypot triggered - rejecting silently")
+        return SignupResponse(
+            message="Verification email sent. Please check your inbox.",
+            email=request.email,
+        )
+    # 2. Timing: the template stamps form_ts (epoch ms) at render; a submit
+    #    faster than 3s is no human, older than 1h is a replay. API clients
+    #    that omit the field entirely are allowed (it's a browser-flow gate).
+    if request.form_ts is not None:
+        import time
+        elapsed = time.time() - (request.form_ts / 1000.0)
+        if elapsed < 3 or elapsed > 3600:
+            logger.warning(f"Signup timing gate triggered (elapsed={elapsed:.1f}s) - rejecting silently")
+            return SignupResponse(
+                message="Verification email sent. Please check your inbox.",
+                email=request.email,
+            )
+
     try:
-        result = auth_service.signup_user(email=request.email, e2e_secret=x_e2e_secret)
+        result = auth_service.signup_user(
+            email=request.email, password=request.password, e2e_secret=x_e2e_secret
+        )
 
         return SignupResponse(
             message=result["message"],
@@ -467,3 +497,164 @@ async def get_user_sessions(
         )
 
 
+
+
+# ── Password auth, code verification, and reset ─────────────────────────────
+
+def _set_session_cookie(response, session) -> None:
+    """Attach the session cookie (same flags as the /verify page flow)."""
+    response.set_cookie(
+        key="session_token",
+        value=session._raw_token,
+        max_age=7 * 24 * 60 * 60,
+        httponly=True,
+        secure=settings.is_production,
+        samesite="lax",
+    )
+
+
+def _dual_rate_limit(request: Request, email: str, scope: str,
+                     per_email: int, per_ip: int, window_seconds: int) -> None:
+    """Rate-limit on BOTH the account and the client IP: per-account alone is
+    dodgeable by rotating emails, per-IP alone by rotating accounts."""
+    from app.middleware.rate_limit import rate_limiter
+    ip = get_client_ip(request)
+    limited = (
+        rate_limiter.is_rate_limited(f"{scope}:email:{email.lower()}", limit=per_email, window_seconds=window_seconds)
+        or rate_limiter.is_rate_limited(f"{scope}:ip:{ip}", limit=per_ip, window_seconds=window_seconds)
+    )
+    if limited:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many attempts. Please try again later.",
+        )
+
+
+@router.post("/login")
+async def login(
+    body: LoginRequest,
+    request: Request,
+    auth_service: AuthService = Depends(get_auth_service),
+):
+    """Password login. Generic error for every failure mode."""
+    from fastapi.responses import JSONResponse
+
+    _dual_rate_limit(request, body.email, "login", per_email=10, per_ip=50, window_seconds=900)
+
+    try:
+        session = auth_service.login_user(email=body.email, password=body.password)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid email or password",
+        )
+
+    # A pending team invite takes precedence over the dashboard
+    pending_invite = request.cookies.get("pending_invite")
+    redirect = f"/accept-invite?token={pending_invite}" if pending_invite else "/dashboard"
+
+    response = JSONResponse({"message": "Logged in", "email": body.email, "redirect": redirect})
+    _set_session_cookie(response, session)
+    if pending_invite:
+        response.delete_cookie("pending_invite")
+    return response
+
+
+@router.post("/verify-code")
+async def verify_code(
+    body: VerifyCodeRequest,
+    request: Request,
+    auth_service: AuthService = Depends(get_auth_service),
+):
+    """Verify email with the 6-digit code (same completion as the magic link)."""
+    from fastapi.responses import JSONResponse
+
+    _dual_rate_limit(request, body.email, "verify-code", per_email=10, per_ip=50, window_seconds=900)
+
+    try:
+        session = auth_service.verify_email_code(email=body.email, code=body.code)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+    # A pending team invite takes precedence over the dashboard
+    pending_invite = request.cookies.get("pending_invite")
+    redirect = f"/accept-invite?token={pending_invite}" if pending_invite else "/dashboard"
+
+    response = JSONResponse({"message": "Email verified", "redirect": redirect})
+    _set_session_cookie(response, session)
+    if pending_invite:
+        response.delete_cookie("pending_invite")
+    return response
+
+
+@router.post("/resend-verification")
+async def resend_verification(
+    body: ResendVerificationRequest,
+    request: Request,
+    auth_service: AuthService = Depends(get_auth_service),
+):
+    """Re-send the verification email. Always the same answer (no enumeration)."""
+    _dual_rate_limit(request, body.email, "resend", per_email=3, per_ip=20, window_seconds=3600)
+
+    try:
+        auth_service.resend_verification(email=body.email)
+    except Exception as e:
+        # Best-effort: never leak state through errors here
+        logger.error(f"Resend verification failed: {e}", exc_info=True)
+
+    return {"message": "If an unverified account exists for this email, a new verification email has been sent."}
+
+
+@router.post("/request-reset")
+async def request_reset(
+    body: RequestResetRequest,
+    request: Request,
+    auth_service: AuthService = Depends(get_auth_service),
+):
+    """Request a password-reset link. Always the same answer (no enumeration)."""
+    _dual_rate_limit(request, body.email, "reset", per_email=5, per_ip=20, window_seconds=3600)
+
+    reset_url = None
+    try:
+        reset_url = auth_service.request_password_reset(email=body.email)
+    except Exception as e:
+        logger.error(f"Password reset request failed: {e}", exc_info=True)
+
+    payload = {"message": "If an account exists for this email, a reset link has been sent."}
+    # Dev-mode convenience only (mirrors the signup dev flow); never in prod.
+    if reset_url:
+        payload["reset_url"] = reset_url
+    return payload
+
+
+@router.post("/set-password")
+async def set_password(
+    body: SetPasswordRequest,
+    request: Request,
+    auth_service: AuthService = Depends(get_auth_service),
+):
+    """Complete a password reset; revokes all sessions and signs in fresh."""
+    from fastapi.responses import JSONResponse
+
+    ip = get_client_ip(request)
+    from app.middleware.rate_limit import rate_limiter
+    if rate_limiter.is_rate_limited(f"set-password:ip:{ip}", limit=10, window_seconds=900):
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                            detail="Too many attempts. Please try again later.")
+
+    try:
+        session = auth_service.set_password_with_token(token=body.token, new_password=body.password)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+    response = JSONResponse({"message": "Password updated", "redirect": "/dashboard"})
+    _set_session_cookie(response, session)
+    return response
+
+
+@router.get("/password-rules")
+async def password_rules_info():
+    """The password rule ids + minimum length, so UIs can render the live
+    checklist from the same source the server enforces."""
+    from app.utils.password_rules import RULES, MIN_LENGTH
+    return {"rules": list(RULES), "min_length": MIN_LENGTH}

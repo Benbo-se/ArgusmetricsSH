@@ -282,7 +282,7 @@ class TeamService:
             }
 
             # Include invite URL if email failed or in dev/debug mode
-            if not email_sent or settings.DEBUG or not email_service.lettermint_configured:
+            if not email_sent or settings.DEBUG or not email_service.configured:
                 response["invite_url"] = invite_url
 
             return response

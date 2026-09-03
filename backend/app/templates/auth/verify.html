@@ -1,12 +1,93 @@
 {% extends "base.html" %}
 
-{% block title %}Email Verified{% endblock %}
+{% block title %}Verify Email{% endblock %}
 
 {% block content %}
 <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4">
     <div class="max-w-md w-full">
-        <div class="bg-white rounded-lg shadow-xl p-8 text-center">
-            {% if success %}
+        <div class="bg-white rounded-lg shadow-xl p-8 {% if mode != 'code_entry' %}text-center{% endif %}">
+            {% if mode == 'code_entry' %}
+            <h2 class="text-2xl font-bold text-gray-900 mb-2">Enter your code</h2>
+            <p class="text-gray-600 mb-6">Type the 6-digit code from the verification email.</p>
+
+            <div id="error-message" class="hidden mb-4 p-3 bg-red-50 border-l-4 border-red-400 text-red-700 text-sm"></div>
+
+            <form id="code-form" class="space-y-6" onsubmit="handleVerifyCode(event)">
+                <div>
+                    <label for="email" class="block text-sm font-medium text-gray-700 mb-2">Email address</label>
+                    <input id="email" name="email" type="email" required autocomplete="email" value="{{ email }}"
+                           class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                           placeholder="you@example.com">
+                </div>
+                <div>
+                    <label for="code" class="block text-sm font-medium text-gray-700 mb-2">Verification code</label>
+                    <input id="code" name="code" type="text" required inputmode="numeric" pattern="[0-9]{6}"
+                           maxlength="6" autocomplete="one-time-code" autofocus
+                           class="appearance-none block w-full px-3 py-3 border border-gray-300 rounded-md shadow-sm text-center text-2xl tracking-[0.5em] font-mono focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                           placeholder="000000">
+                </div>
+                <button type="submit" id="submit-btn"
+                        class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
+                    Verify
+                </button>
+            </form>
+            <div class="mt-6 text-center">
+                <button onclick="handleResend()" id="resend-btn" class="text-sm text-blue-600 hover:text-blue-800">
+                    Didn't get the email? Send a new one
+                </button>
+            </div>
+
+            <script>
+            async function handleVerifyCode(event) {
+                event.preventDefault();
+                const btn = document.getElementById('submit-btn');
+                const err = document.getElementById('error-message');
+                err.classList.add('hidden');
+                btn.disabled = true; btn.textContent = 'Verifying...';
+                try {
+                    const r = await fetch('/api/v1/auth/verify-code', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({
+                            email: document.getElementById('email').value,
+                            code: document.getElementById('code').value
+                        })
+                    });
+                    const data = await r.json();
+                    if (r.ok) {
+                        btn.textContent = 'Verified! Signing in...';
+                        window.location.href = data.redirect || '/dashboard';
+                    } else {
+                        err.textContent = data.message || data.detail || 'Invalid or expired code.';
+                        err.classList.remove('hidden');
+                        btn.disabled = false; btn.textContent = 'Verify';
+                    }
+                } catch (e) {
+                    err.textContent = 'Network error. Please try again.';
+                    err.classList.remove('hidden');
+                    btn.disabled = false; btn.textContent = 'Verify';
+                }
+            }
+            async function handleResend() {
+                const btn = document.getElementById('resend-btn');
+                const email = document.getElementById('email').value;
+                if (!email) {
+                    document.getElementById('email').focus();
+                    return;
+                }
+                btn.disabled = true;
+                try {
+                    await fetch('/api/v1/auth/resend-verification', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ email })
+                    });
+                } catch (e) {}
+                btn.textContent = 'If an unverified account exists, a new email is on its way.';
+            }
+            </script>
+
+            {% elif success %}
             <div class="text-6xl mb-4">✅</div>
             <h2 class="text-2xl font-bold text-gray-900 mb-4">Email Verified!</h2>
             <p class="text-gray-600 mb-6">Your email has been successfully verified.</p>
@@ -17,9 +98,14 @@
             <div class="text-6xl mb-4">❌</div>
             <h2 class="text-2xl font-bold text-gray-900 mb-4">Verification Failed</h2>
             <p class="text-gray-600 mb-6">{{ error_message | default("The verification link is invalid or has expired.") }}</p>
-            <a href="/login" class="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
-                Back to Login
-            </a>
+            <div class="space-y-3">
+                <a href="/verify" class="block w-full px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+                    Enter the 6-digit code instead
+                </a>
+                <a href="/login" class="block text-sm text-blue-600 hover:text-blue-800">
+                    Back to Login
+                </a>
+            </div>
             {% endif %}
         </div>
     </div>

@@ -82,12 +82,27 @@ jobs:
           # Signup skriver till users-tabellen -> fångar tomt/trasigt schema,
           # vilket rena sid-render-tester missar.
           CODE=$(curl -s -o /dev/null -w '%{http_code}' -X POST http://127.0.0.1:8020/api/v1/auth/signup \
-            -H 'Content-Type: application/json' -d '{"email":"ci-smoke@example.com"}')
+            -H 'Content-Type: application/json' -d '{"email":"ci-smoke@example.com","password":"ci-battery-staple7"}')
           echo "signup -> $CODE"
           case "$CODE" in 200|201) ;; *) echo "signup misslyckades"; exit 1;; esac
           COUNT=$(PGPASSWORD=argus psql -h localhost -U argus -d argus_ci -tAc "SELECT count(*) FROM users WHERE email='ci-smoke@example.com'")
           echo "users-rader: $COUNT"
           [ "$COUNT" = "1" ] || { echo "signup skapade ingen användarrad"; exit 1; }
+          # Full lösenords-rundtur utan e-postberoende: verifiera kontot direkt
+          # i databasen, logga in med lösenord, hämta /me med sessionscookien.
+          PGPASSWORD=argus psql -h localhost -U argus -d argus_ci -c "UPDATE users SET is_verified=true WHERE email='ci-smoke@example.com'" >/dev/null
+          CODE=$(curl -s -c /tmp/ci-cookies.txt -o /dev/null -w '%{http_code}' -X POST http://127.0.0.1:8020/api/v1/auth/login \
+            -H 'Content-Type: application/json' -d '{"email":"ci-smoke@example.com","password":"ci-battery-staple7"}')
+          echo "login -> $CODE"
+          [ "$CODE" = "200" ] || { echo "lösenordslogin misslyckades"; exit 1; }
+          CODE=$(curl -s -b /tmp/ci-cookies.txt -o /dev/null -w '%{http_code}' http://127.0.0.1:8020/api/v1/auth/me)
+          echo "/me (authed) -> $CODE"
+          [ "$CODE" = "200" ] || { echo "sessionen fungerar inte"; exit 1; }
+          # Fel lösenord ska ge generisk 401
+          CODE=$(curl -s -o /dev/null -w '%{http_code}' -X POST http://127.0.0.1:8020/api/v1/auth/login \
+            -H 'Content-Type: application/json' -d '{"email":"ci-smoke@example.com","password":"fel-lösenord"}')
+          echo "login fel pw -> $CODE"
+          [ "$CODE" = "401" ] || { echo "fel lösenord gav inte 401"; exit 1; }
 
   # ── 2. Hygien: prod-compose och nginx-conf är giltiga ────────────────────
   hygiene:

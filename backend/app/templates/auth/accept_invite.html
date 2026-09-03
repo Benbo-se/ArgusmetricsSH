@@ -58,29 +58,33 @@
                     <p class="mt-2 text-sm text-gray-500">Invited by {{ invited_by }}</p>
                 </div>
 
-                <p class="text-gray-700 mb-4">Log in with <strong>{{ invitee_email }}</strong> to accept this invitation.</p>
+                <p class="text-gray-700 mb-4">Sign in with <strong>{{ invitee_email }}</strong> to accept this invitation.</p>
 
                 <!-- Login Form -->
                 <div id="login-section">
+                    <div id="invite-error" class="hidden mb-4 p-3 bg-red-50 border-l-4 border-red-400 text-red-700 text-sm"></div>
                     <form id="invite-login-form" class="space-y-4" onsubmit="handleInviteLogin(event)">
                         <div>
                             <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email address</label>
-                            <input id="email" name="email" type="email" value="{{ invitee_email }}" required
+                            <input id="email" name="email" type="email" value="{{ invitee_email }}" required autocomplete="email"
+                                   class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                        </div>
+                        <div>
+                            <label for="password" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                            <input id="password" name="password" type="password" required autocomplete="current-password"
                                    class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
                         </div>
                         <button type="submit" id="submit-btn"
                                 class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
-                            Send Magic Link
+                            Sign in &amp; accept
                         </button>
                     </form>
-
-                    <div id="success-message" class="hidden mt-4 p-4 bg-green-50 border-l-4 border-green-400 text-green-700">
-                        <p class="font-bold mb-2">Check your email!</p>
-                        <p class="text-sm">We've sent a magic link. After verifying, you'll be redirected back here to accept the invitation.</p>
-                    </div>
                 </div>
 
-                <p class="mt-4 text-xs text-gray-500 text-center">No password needed. We'll email you a magic link.</p>
+                <p class="mt-4 text-xs text-gray-500 text-center">
+                    New here? <a href="/signup" class="text-blue-600 hover:text-blue-800 underline">Create an account</a>
+                    with this email — after verifying you'll be brought back here automatically.
+                </p>
             </div>
         </div>
 
@@ -118,46 +122,38 @@
 <script>
 async function handleInviteLogin(event) {
     event.preventDefault();
-    const email = document.getElementById('email').value;
     const submitBtn = document.getElementById('submit-btn');
-    const form = document.getElementById('invite-login-form');
-    const successMsg = document.getElementById('success-message');
+    const err = document.getElementById('invite-error');
+    err.classList.add('hidden');
 
     submitBtn.disabled = true;
-    submitBtn.textContent = 'Sending...';
+    submitBtn.textContent = 'Signing in...';
 
     try {
-        const response = await fetch('/api/v1/auth/signup', {
+        const response = await fetch('/api/v1/auth/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: email })
+            body: JSON.stringify({
+                email: document.getElementById('email').value,
+                password: document.getElementById('password').value
+            })
         });
 
-        const data = await response.json();
-
         if (response.ok) {
-            if (data.verify_url) {
-                successMsg.innerHTML = `
-                    <p class="font-bold mb-2">Development Mode</p>
-                    <p class="text-sm mb-3">Click the button below to verify:</p>
-                    <a href="${data.verify_url}"
-                       class="inline-block px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors">
-                        Verify &amp; Accept Invitation
-                    </a>
-                `;
-            }
-            successMsg.classList.remove('hidden');
-            form.classList.add('hidden');
+            // Reload: now authenticated, the page auto-accepts the invitation
+            window.location.href = '/accept-invite?token={{ token }}';
         } else {
-            alert('Error: ' + (data.message || data.detail || 'Failed to send magic link'));
+            err.textContent = 'Wrong email or password.';
+            err.classList.remove('hidden');
             submitBtn.disabled = false;
-            submitBtn.textContent = 'Send Magic Link';
+            submitBtn.textContent = 'Sign in & accept';
         }
     } catch (error) {
         console.error('Login error:', error);
-        alert('Network error. Please try again.');
+        err.textContent = 'Network error. Please try again.';
+        err.classList.remove('hidden');
         submitBtn.disabled = false;
-        submitBtn.textContent = 'Send Magic Link';
+        submitBtn.textContent = 'Sign in & accept';
     }
 }
 </script>

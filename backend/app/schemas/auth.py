@@ -27,13 +27,54 @@ class SignupRequest(BaseModel):
         description="User's email address for registration",
         example="user@example.com"
     )
+    password: str = Field(
+        ...,
+        min_length=1,
+        max_length=200,
+        description="Password (validated against the password rules)"
+    )
+    # Anti-bot fields (filled by the signup template, never by humans):
+    # `website` is an off-screen honeypot that must stay empty; `form_ts` is
+    # the epoch-ms the form rendered — submissions faster than a human can
+    # type are rejected.
+    website: Optional[str] = Field(default=None, max_length=255)
+    form_ts: Optional[float] = Field(default=None)
 
     class Config:
         json_schema_extra = {
             "example": {
-                "email": "user@example.com"
+                "email": "user@example.com",
+                "password": "correct-horse-battery"
             }
         }
+
+
+class LoginRequest(BaseModel):
+    """Password login."""
+    email: EmailStr
+    password: str = Field(..., min_length=1, max_length=200)
+
+
+class VerifyCodeRequest(BaseModel):
+    """Verify email with the 6-digit code from the verification email."""
+    email: EmailStr
+    code: str = Field(..., min_length=1, max_length=16)
+
+
+class ResendVerificationRequest(BaseModel):
+    """Re-send the verification email."""
+    email: EmailStr
+
+
+class RequestResetRequest(BaseModel):
+    """Request a password-reset link."""
+    email: EmailStr
+
+
+class SetPasswordRequest(BaseModel):
+    """Complete a password reset with the emailed token."""
+    token: str = Field(..., min_length=1)
+    password: str = Field(..., min_length=1, max_length=200)
 
 
 class SignupResponse(BaseModel):

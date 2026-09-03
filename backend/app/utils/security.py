@@ -17,7 +17,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def generate_magic_token(email: str, secret: str, expires_in: int = 900) -> str:
+def generate_magic_token(email: str, secret: str, expires_in: int = 900, purpose: str = "verify") -> str:
     """
     Generate a time-limited magic link token for email verification.
 
@@ -43,6 +43,7 @@ def generate_magic_token(email: str, secret: str, expires_in: int = 900) -> str:
         "email": email,
         "jti": secrets.token_urlsafe(16),
         "max_age": int(expires_in),
+        "purpose": purpose,
     }
     token = serializer.dumps(payload, salt="email-verification")
 
@@ -50,7 +51,7 @@ def generate_magic_token(email: str, secret: str, expires_in: int = 900) -> str:
     return token
 
 
-def verify_magic_token(token: str, secret: str, max_age: int = 900) -> dict:
+def verify_magic_token(token: str, secret: str, max_age: int = 900, expected_purpose: str = "verify") -> dict:
     """
     Verify and decode a magic link token.
 
@@ -77,6 +78,12 @@ def verify_magic_token(token: str, secret: str, max_age: int = 900) -> dict:
         # then re-validate against the smaller of the embedded/explicit ages.
         raw = serializer.loads(token, salt="email-verification")
         if isinstance(raw, dict):
+            # A verify-token must not be usable as a reset-token or vice versa.
+            # Tokens minted before purposes existed count as "verify".
+            token_purpose = raw.get("purpose", "verify")
+            if token_purpose != expected_purpose:
+                logger.warning("Magic token purpose mismatch: %s != %s", token_purpose, expected_purpose)
+                raise BadSignature("purpose mismatch")
             effective_age = min(int(raw.get("max_age", max_age)), max_age)
             # Re-load with the effective age so an expired token raises.
             serializer.loads(token, salt="email-verification", max_age=effective_age)

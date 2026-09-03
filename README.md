@@ -33,7 +33,7 @@ Tracking + ingest, dashboards, real-time visitors, goals, funnels, e-commerce/re
 | Feature | Needs | If unset |
 |--------|-------|----------|
 | Country stats | `GEOIP_DB_PATH` → a MaxMind GeoLite2-Country.mmdb | country = "Unknown"; **no third-party IP lookups ever** |
-| Email (magic-link login, reports) | `LETTERMINT_API_KEY` | login links only shown in `DEBUG` mode |
+| Email (signup verification, password reset, invites, reports) | `SMTP_*` (any provider) | verification links/codes printed to backend logs; password login works regardless |
 
 To enable country stats, download `GeoLite2-Country.mmdb` (free MaxMind account) to `backend/app/data/` and set `GEOIP_DB_PATH=/app/data/GeoLite2-Country.mmdb`.
 

@@ -180,16 +180,39 @@ async def signup_page(request: Request):
     })
 
 
+@router.get("/reset", response_class=HTMLResponse)
+async def reset_page(request: Request, token: str):
+    """Render the set-new-password page (link from the reset email). The token
+    is validated when the form posts to /api/v1/auth/set-password."""
+    return templates.TemplateResponse("auth/reset.html", {
+        "request": request,
+        "token": token,
+        "current_user": None
+    })
+
+
 @router.get("/verify", response_class=HTMLResponse)
 async def verify_page(
     request: Request,
-    token: str,
+    token: Optional[str] = None,
+    email: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
-    """Render email verification page."""
+    """Render email verification page.
+
+    With ?token= (magic link): verify immediately. Without a token: render
+    the 6-digit code entry form (?email= prefills the address)."""
     from app.services.auth_service import AuthService
 
     auth_service = AuthService(db)
+
+    if not token:
+        return templates.TemplateResponse("auth/verify.html", {
+            "request": request,
+            "mode": "code_entry",
+            "email": email or "",
+            "current_user": None
+        })
 
     try:
         session = auth_service.verify_email(token)

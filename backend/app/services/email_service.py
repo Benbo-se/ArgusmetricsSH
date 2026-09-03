@@ -1,7 +1,7 @@
 """
 Email service for sending transactional emails.
 
-Supports Lettermint HTTP API (EU-based, GDPR-compliant) and stub mode for development.
+Supports generic SMTP (any provider), the legacy Lettermint HTTP API, and a stub mode for development.
 """
 import logging
 import httpx
@@ -19,8 +19,9 @@ class EmailService:
     """
     Service for sending transactional emails.
 
-    Supports:
-    - Lettermint HTTP API (EU-based, GDPR-compliant)
+    Supports, in priority order:
+    - Generic SMTP (any provider - Lettermint, Postmark, your own relay ...)
+    - Lettermint HTTP API (legacy path, kept for existing installs)
     - Stub mode (development/testing, logs verification links to console)
     """
 
@@ -28,23 +29,29 @@ class EmailService:
         """Initialize email service with configuration from settings."""
         self.email_backend = settings.EMAIL_BACKEND
 
-        # Lettermint configuration
+        # Generic SMTP configuration (preferred: works with any provider)
+        self.smtp_configured = bool(settings.SMTP_HOST)
+
+        # Lettermint configuration (legacy HTTP API path)
         self.lettermint_api_key = settings.LETTERMINT_API_KEY
         self.lettermint_api_url = settings.LETTERMINT_API_URL
         self.lettermint_from_email = settings.LETTERMINT_FROM_EMAIL
         self.lettermint_from_name = settings.LETTERMINT_FROM_NAME
-
-        # Check if Lettermint is configured
         self.lettermint_configured = (
             self.email_backend == "lettermint"
             and self.lettermint_api_key
             and self.lettermint_api_key != "changeme"
         )
 
-        if self.lettermint_configured:
-            logger.info(f"EmailService initialized with Lettermint HTTP API - EU-based, GDPR-compliant")
+        # One flag the rest of the app checks: can we actually deliver mail?
+        self.configured = self.smtp_configured or self.lettermint_configured
+
+        if self.smtp_configured:
+            logger.info(f"EmailService initialized with SMTP ({settings.SMTP_HOST}:{settings.SMTP_PORT})")
+        elif self.lettermint_configured:
+            logger.info("EmailService initialized with Lettermint HTTP API")
         else:
-            logger.info(f"EmailService initialized in STUB mode - configure Lettermint to send real emails")
+            logger.info("EmailService initialized in STUB mode - configure SMTP_HOST to send real emails")
 
     def _log_email(self, to: str, email_type: str, subject: str, success: bool, error_message: Optional[str] = None):
         """
@@ -114,13 +121,61 @@ class EmailService:
             logger.error(f"Failed to send email via Lettermint: {e}")
             return False
 
-    def send_verification_email(self, to: str, verify_url: str) -> bool:
+    def _send_via_smtp(self, to: str, subject: str, text: str, html: str) -> bool:
         """
-        Send email verification magic link.
+        Send a multipart (text + HTML) email over plain SMTP.
+
+        Multipart matters: HTML-only mail scores worse with strict providers,
+        and the text part is the accessible fallback.
+        """
+        import smtplib
+        from email.mime.multipart import MIMEMultipart
+        from email.mime.text import MIMEText
+        from email.utils import formataddr
+
+        try:
+            msg = MIMEMultipart("alternative")
+            msg["Subject"] = subject
+            msg["From"] = formataddr((settings.SMTP_FROM_NAME, settings.SMTP_FROM_EMAIL))
+            msg["To"] = to
+            msg.attach(MIMEText(text, "plain", "utf-8"))
+            msg.attach(MIMEText(html, "html", "utf-8"))
+
+            with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=15) as smtp:
+                if settings.SMTP_USE_TLS:
+                    smtp.starttls()
+                if settings.SMTP_USER and settings.SMTP_PASSWORD:
+                    smtp.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
+                smtp.sendmail(settings.SMTP_FROM_EMAIL, [to], msg.as_string())
+
+            logger.info(f"Email sent successfully via SMTP to {to}")
+            return True
+
+        except Exception as e:
+            # Log BEFORE returning: callers treat mail as best-effort and a
+            # silent False here is how delivery regressions go unnoticed.
+            logger.error(f"Failed to send email via SMTP ({settings.SMTP_HOST}): {e}")
+            return False
+
+    def _deliver(self, to: str, subject: str, text: str, html: str) -> bool:
+        """Single delivery chokepoint: SMTP first, Lettermint API as legacy fallback."""
+        if self.smtp_configured:
+            return self._send_via_smtp(to, subject, text, html)
+        if self.lettermint_configured:
+            return self._send_via_lettermint(to, subject, text, html)
+        logger.warning(f"Email NOT sent (no backend configured): '{subject}' to {to}")
+        return False
+
+    def send_verification_email(self, to: str, verify_url: str, code: Optional[str] = None) -> bool:
+        """
+        Send email verification: a magic link AND (when provided) a 6-digit
+        code that can be typed on the /verify page — for mail clients where
+        links are awkward (corporate scanners, another device, etc).
 
         Args:
             to: Recipient email address
             verify_url: Full URL for verification (includes magic token)
+            code: Optional 6-digit verification code
 
         Returns:
             bool: True if email was sent successfully
@@ -131,13 +186,19 @@ class EmailService:
         logger.info(f"To: {to}")
         logger.info(f"Subject: Verify your email for {settings.APP_NAME}")
 
+        code_text = f"\nOr enter this code on the verification page: {code}\n" if code else ""
+        code_html = (
+            f'<p>Or enter this code on the verification page:</p>'
+            f'<p style="font-size: 28px; letter-spacing: 6px; font-family: monospace; font-weight: bold;">{code}</p>'
+        ) if code else ""
+
         # Plain text version
         text = f"""Welcome to {settings.APP_NAME}!
 
 Please click the link below to verify your email address:
 
 {verify_url}
-
+{code_text}
 This link will expire in 15 minutes.
 
 If you didn't request this, you can safely ignore this email.
@@ -162,9 +223,10 @@ The {settings.APP_NAME} Team
         <h2>Welcome to {settings.APP_NAME}!</h2>
         <p>Please click the button below to verify your email address:</p>
         <p><a href="{verify_url}" class="button">Verify Email</a></p>
-        <p>Or copy and paste this link into your browser:</p>
+        {code_html}
+        <p>Button not working? Copy and paste this link into your browser:</p>
         <p><a href="{verify_url}">{verify_url}</a></p>
-        <p class="footer">This link will expire in 15 minutes. If you didn't request this, you can safely ignore this email.</p>
+        <p class="footer">This link and code expire in 15 minutes. If you didn't request this, you can safely ignore this email.</p>
         <p class="footer">Thanks,<br>The {settings.APP_NAME} Team</p>
     </div>
 </body>
@@ -174,17 +236,19 @@ The {settings.APP_NAME} Team
         subject = f"Verify your email for {settings.APP_NAME}"
 
         # If no email backend configured, use stub mode
-        if not self.lettermint_configured:
+        if not self.configured:
             logger.warning("NO EMAIL BACKEND CONFIGURED - Using stub mode")
             logger.info("-" * 80)
             logger.info("VERIFICATION LINK (copy this to browser):")
             logger.info(f"{verify_url}")
+            if code:
+                logger.info(f"VERIFICATION CODE: {code}")
             logger.info("=" * 80)
             self._log_email(to, "verification", subject, True)
             return True
 
         # Try Lettermint
-        success = self._send_via_lettermint(to, subject, text, html)
+        success = self._deliver(to, subject, text, html)
         if success:
             logger.info("=" * 80)
             self._log_email(to, "verification", subject, True)
@@ -210,7 +274,7 @@ The {settings.APP_NAME} Team
         """
         subject = f"Welcome to {settings.APP_NAME}!"
 
-        if not self.lettermint_configured:
+        if not self.configured:
             logger.info(f"STUB MODE: Welcome email would be sent to {to}")
             self._log_email(to, "welcome", subject, True)
             return True
@@ -237,7 +301,7 @@ The {settings.APP_NAME} Team
 """
 
         # Try Lettermint
-        if self._send_via_lettermint(to, subject, text, html):
+        if self._deliver(to, subject, text, html):
             self._log_email(to, "welcome", subject, True)
             return True
 
@@ -257,7 +321,7 @@ The {settings.APP_NAME} Team
         Returns:
             bool: True if email was sent successfully
         """
-        if not self.lettermint_configured:
+        if not self.configured:
             logger.info(f"STUB MODE: Password reset email - Link: {reset_url}")
             return True
 
@@ -289,7 +353,7 @@ The {settings.APP_NAME} Team
 """
 
         # Try Lettermint
-        if self._send_via_lettermint(to, f"Reset your {settings.APP_NAME} password", text, html):
+        if self._deliver(to, f"Reset your {settings.APP_NAME} password", text, html):
             return True
 
         # Lettermint failed
@@ -319,7 +383,7 @@ The {settings.APP_NAME} Team
         logger.info(f"To: {to}")
         logger.info(f"Subject: {subject}")
 
-        if not self.lettermint_configured:
+        if not self.configured:
             logger.warning("NO EMAIL BACKEND CONFIGURED - Using stub mode")
             logger.info("-" * 80)
             logger.info("INVITATION LINK (copy this to browser):")
@@ -437,7 +501,7 @@ The {settings.APP_NAME} Team
 """
 
         # Try Lettermint
-        success = self._send_via_lettermint(to, subject, text, html)
+        success = self._deliver(to, subject, text, html)
         if success:
             logger.info("=" * 80)
             self._log_email(to, "team_invitation", subject, True)
@@ -470,7 +534,7 @@ The {settings.APP_NAME} Team
         logger.info(f"To: {to}")
 
         # If no email backend configured, use stub mode
-        if not self.lettermint_configured:
+        if not self.configured:
             logger.warning("NO EMAIL BACKEND CONFIGURED - Using stub mode")
             logger.info("-" * 80)
             logger.info("EMAIL CONTENT (first 500 chars):")
@@ -485,7 +549,7 @@ The {settings.APP_NAME} Team
             text_content = re.sub('<[^<]+?>', '', html_content)
 
         # Try Lettermint
-        success = self._send_via_lettermint(to, subject, text_content, html_content)
+        success = self._deliver(to, subject, text_content, html_content)
         if success:
             logger.info("=" * 80)
             self._log_email(to, "generic", subject, True)

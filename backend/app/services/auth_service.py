@@ -24,9 +24,41 @@ from app.utils.security import (
     hash_token,
 )
 from app.services.email_service import email_service
+from app.utils.password_rules import password_ok, failed_rules
 from app.config import settings
 
 logger = logging.getLogger(__name__)
+
+# Compared against when no user matches at login, so unknown-email and
+# wrong-password cost the same bcrypt time (anti timing-enumeration).
+import bcrypt as _bcrypt
+HASH_COST = 12
+_DECOY_HASH = _bcrypt.hashpw(b"decoy-password-never-matches", _bcrypt.gensalt(rounds=HASH_COST))
+
+
+def _hash_password(password: str) -> str:
+    return _bcrypt.hashpw(password.encode("utf-8"), _bcrypt.gensalt(rounds=HASH_COST)).decode("utf-8")
+
+
+def _verify_password(password: str, password_hash: Optional[str]) -> bool:
+    """Constant-cost verify: always runs bcrypt, against the decoy if needed."""
+    target = password_hash.encode("utf-8") if password_hash else _DECOY_HASH
+    try:
+        matched = _bcrypt.checkpw(password.encode("utf-8"), target)
+    except ValueError:
+        return False
+    return matched and password_hash is not None
+
+
+def _hash_code(code: str) -> str:
+    """HMAC-style hash for the 6-digit verification code (peppered)."""
+    import hashlib
+    return hashlib.sha256(f"{settings.SECRET_KEY}:{code}".encode("utf-8")).hexdigest()
+
+
+def _generate_code() -> str:
+    import secrets
+    return f"{secrets.randbelow(1_000_000):06d}"
 
 
 def _mask_email(email: Optional[str]) -> str:
@@ -78,7 +110,7 @@ class AuthService:
             return False
         return _secrets.compare_digest(presented_secret, settings.E2E_TEST_SECRET)
 
-    def signup_user(self, email: str, e2e_secret: Optional[str] = None) -> Dict[str, str]:
+    def signup_user(self, email: str, password: Optional[str] = None, e2e_secret: Optional[str] = None) -> Dict[str, str]:
         """
         Register a new user and send verification email.
 
@@ -162,9 +194,16 @@ class AuthService:
                     logger.info(f"User exists but not verified, resending verification: {_mask_email(email)}")
                     # User exists but not verified, resend verification email
             else:
+                if not password:
+                    raise ValueError("Password is required")
+                if not password_ok(password, email):
+                    raise ValueError(
+                        "Password does not meet the requirements: " + ", ".join(failed_rules(password, email))
+                    )
                 new_user = User(
                     email=email,
                     is_verified=False,
+                    password_hash=_hash_password(password),
                 )
                 self.db.add(new_user)
                 self.db.commit()
@@ -182,6 +221,10 @@ class AuthService:
             # In production, this should be the frontend URL
             verify_url = f"{settings.BASE_URL}/verify?token={magic_token}"
 
+            # 6-digit code: same completion as the link, typed on /verify.
+            # Stored hashed with limited attempts; resend rotates it.
+            code = self._set_pending_code(email)
+
             # E2E bypass requires a *presented* secret (non-prod only)
             is_e2e_test = self._e2e_secret_ok(e2e_secret, email)
 
@@ -189,7 +232,8 @@ class AuthService:
                 # Send verification email
                 email_sent = email_service.send_verification_email(
                     to=email,
-                    verify_url=verify_url
+                    verify_url=verify_url,
+                    code=code
                 )
 
                 if not email_sent:
@@ -290,19 +334,8 @@ class AuthService:
                 logger.error(f"User not found for verified email: {_mask_email(email)}")
                 raise ValueError("User not found. Please sign up again.")
 
-            # Mark user as verified
-            if not user.is_verified:
-                user.is_verified = True
-                self.db.commit()
-                logger.info(f"User verified: {_mask_email(email)}")
-
-                # Send welcome email
-                email_service.send_welcome_email(email)
-            else:
-                logger.info(f"User already verified: {_mask_email(email)}")
-
-            # Create session for the user
-            session = self.create_session(user)
+            # Shared completion (same path as the 6-digit code)
+            session = self._complete_verification(user)
 
             logger.info(f"Email verification complete for: {_mask_email(email)}")
             return session
@@ -311,6 +344,176 @@ class AuthService:
             self.db.rollback()
             logger.error(f"Error during email verification for {_mask_email(email)}: {e}", exc_info=True)
             raise
+
+    def _set_pending_code(self, email: str) -> str:
+        """Mint (or rotate) the user's 6-digit verification code. Rotating also
+        resets the attempt counter, so a locked-out user isn't stuck with a
+        dead code until it expires."""
+        code = _generate_code()
+        user = self.db.query(User).filter(User.email == email).first()
+        if user:
+            user.pending_code_hash = _hash_code(code)
+            user.pending_code_expires_at = datetime.now(timezone.utc) + timedelta(minutes=15)
+            user.pending_code_attempts = 0
+            self.db.commit()
+        return code
+
+    def _complete_verification(self, user: User) -> SessionModel:
+        """Shared completion for BOTH verification paths (magic link and
+        6-digit code): mark verified, clear the pending code, welcome-mail
+        first-time verifications, and sign the user in."""
+        first_time = not user.is_verified
+        user.is_verified = True
+        user.pending_code_hash = None
+        user.pending_code_expires_at = None
+        user.pending_code_attempts = 0
+        self.db.commit()
+
+        if first_time:
+            logger.info(f"User verified: {_mask_email(user.email)}")
+            # Best-effort; never blocks the login
+            email_service.send_welcome_email(user.email)
+
+        return self.create_session(user)
+
+    def verify_email_code(self, email: str, code: str) -> SessionModel:
+        """
+        Verify email using the 6-digit code (alternative to the magic link).
+
+        Same generic error for unknown email, wrong code, expired code and
+        too many attempts — no oracle. Max 5 attempts per code.
+        """
+        import hmac as _hmac
+        generic = ValueError("Invalid or expired code. Please request a new one.")
+
+        # Pre-check: exactly 6 ASCII digits (full-width digits from mobile
+        # keyboards would otherwise blow up the comparison downstream).
+        code = (code or "").strip()
+        if len(code) != 6 or not code.isascii() or not code.isdigit():
+            raise generic
+
+        user = self.db.query(User).filter(User.email == email).first()
+        if not user or not user.pending_code_hash or not user.pending_code_expires_at:
+            raise generic
+
+        now = datetime.now(timezone.utc)
+        expires = user.pending_code_expires_at
+        if expires.tzinfo is None:
+            expires = expires.replace(tzinfo=timezone.utc)
+        if now > expires:
+            raise generic
+
+        # Count the attempt BEFORE comparing (parallel guesses can't skip it)
+        user.pending_code_attempts = (user.pending_code_attempts or 0) + 1
+        self.db.commit()
+        if user.pending_code_attempts > 5:
+            logger.warning(f"Verification code attempt limit hit for {_mask_email(email)}")
+            raise generic
+
+        if not _hmac.compare_digest(_hash_code(code), user.pending_code_hash):
+            raise generic
+
+        return self._complete_verification(user)
+
+    def login_user(self, email: str, password: str) -> SessionModel:
+        """
+        Password login. One generic error for every failure mode (unknown
+        email, wrong password, unverified account) and a decoy bcrypt compare
+        when the email is unknown, so failures are indistinguishable by
+        response AND by timing.
+        """
+        generic = ValueError("Invalid email or password")
+
+        user = self.db.query(User).filter(User.email == email).first()
+        password_hash = user.password_hash if user else None
+
+        if not _verify_password(password, password_hash):
+            raise generic
+
+        if not user.is_verified:
+            # Don't leak that the account exists but is unverified; the resend
+            # flow is the recovery path.
+            logger.info(f"Login attempt on unverified account: {_mask_email(email)}")
+            raise generic
+
+        logger.info(f"Password login OK: {_mask_email(email)}")
+        return self.create_session(user)
+
+    def resend_verification(self, email: str) -> None:
+        """Re-send the verification email. Always silent about whether the
+        account exists; already-verified accounts get nothing."""
+        user = self.db.query(User).filter(User.email == email).first()
+        if not user or user.is_verified:
+            return
+
+        magic_token = generate_magic_token(email=email, secret=settings.SECRET_KEY, expires_in=900)
+        verify_url = f"{settings.BASE_URL}/verify?token={magic_token}"
+        code = self._set_pending_code(email)
+        email_service.send_verification_email(to=email, verify_url=verify_url, code=code)
+
+    def request_password_reset(self, email: str) -> Optional[str]:
+        """Send a password-reset link (1h expiry). Silent for unknown emails.
+        Returns the reset URL ONLY for dev-mode display (None otherwise)."""
+        user = self.db.query(User).filter(User.email == email).first()
+        if not user:
+            return None
+
+        reset_token = generate_magic_token(
+            email=email, secret=settings.SECRET_KEY, expires_in=3600, purpose="reset"
+        )
+        reset_url = f"{settings.BASE_URL}/reset?token={reset_token}"
+        email_service.send_password_reset_email(to=email, reset_url=reset_url)
+
+        if settings.DEBUG and not settings.is_production:
+            return reset_url
+        return None
+
+    def set_password_with_token(self, token: str, new_password: str) -> SessionModel:
+        """
+        Complete a password reset: validate the token (single-use, purpose
+        'reset'), enforce the password rules, revoke EVERY existing session,
+        and sign the user in fresh. Also marks the account verified — the
+        emailed link proves address ownership.
+        """
+        try:
+            payload = verify_magic_token(
+                token=token, secret=settings.SECRET_KEY, max_age=3600, expected_purpose="reset"
+            )
+        except SignatureExpired:
+            raise ValueError("This reset link has expired. Please request a new one.")
+        except (BadSignature, Exception):
+            raise ValueError("Invalid reset link. Please request a new one.")
+
+        email = payload["email"]
+        magic_jti = payload.get("jti")
+
+        if not password_ok(new_password, email):
+            raise ValueError(
+                "Password does not meet the requirements: " + ", ".join(failed_rules(new_password, email))
+            )
+
+        # Single-use redemption
+        if magic_jti:
+            from app.models.used_magic_token import UsedMagicToken
+            self.db.add(UsedMagicToken(jti=magic_jti))
+            try:
+                self.db.commit()
+            except IntegrityError:
+                self.db.rollback()
+                raise ValueError("This link has already been used. Please request a new one.")
+
+        user = self.db.query(User).filter(User.email == email).first()
+        if not user:
+            raise ValueError("Invalid reset link. Please request a new one.")
+
+        user.password_hash = _hash_password(new_password)
+        user.is_verified = True
+        # Revoke everything: a reset means the old credentials can't be trusted
+        self.db.query(SessionModel).filter(SessionModel.user_email == email).delete()
+        self.db.commit()
+        logger.info(f"Password reset completed for {_mask_email(email)}; all sessions revoked")
+
+        return self.create_session(user)
 
     def create_session(self, user: User) -> SessionModel:
         """
