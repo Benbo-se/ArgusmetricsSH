@@ -6,7 +6,7 @@ and realtime analytics.
 """
 import logging
 from typing import Optional, Dict, List
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session
 from sqlalchemy import func, and_, distinct
 
@@ -237,7 +237,8 @@ class AnalyticsQueryService:
             # Time series data
             timeseries = self._get_timeseries_data(
                 website_id, start_date, end_date,
-                filter_country, filter_device, filter_browser, filter_page, filter_referrer
+                filter_country, filter_device, filter_browser, filter_page, filter_referrer,
+                filter_properties
             )
 
             stats = {
@@ -288,7 +289,8 @@ class AnalyticsQueryService:
 
                 timeseries_previous = self._get_timeseries_data(
                     website_id, prev_start_date, prev_end_date,
-                    filter_country, filter_device, filter_browser, filter_page, filter_referrer
+                    filter_country, filter_device, filter_browser, filter_page, filter_referrer,
+                    filter_properties
                 )
                 stats['timeseries_previous'] = timeseries_previous
 
@@ -334,7 +336,8 @@ class AnalyticsQueryService:
         filter_device: Optional[str] = None,
         filter_browser: Optional[str] = None,
         filter_page: Optional[str] = None,
-        filter_referrer: Optional[str] = None
+        filter_referrer: Optional[str] = None,
+        filter_properties: Optional[Dict[str, str]] = None
     ) -> List[Dict]:
         """Get pageviews over time (for graph)."""
         try:
@@ -354,6 +357,20 @@ class AnalyticsQueryService:
                 conditions.append(Pageview.path == filter_page)
             if filter_referrer:
                 conditions.append(Pageview.referrer == filter_referrer)
+            if filter_properties:
+                conditions.append(Pageview.properties.contains(filter_properties))
+
+            # Same system-URL exclusion as the headline totals — without it the
+            # graph disagrees with total_pageviews on any site with API traffic.
+            conditions.append(
+                and_(
+                    ~Pageview.path.like('/api/%'),
+                    ~Pageview.path.like('/static/%'),
+                    ~Pageview.path.like('/admin/%'),
+                    ~Pageview.path.like('/dashboard/%'),
+                    ~Pageview.path.like(r'/\_%', escape='\\')
+                )
+            )
 
             results = self.db.query(
                 func.date(Pageview.timestamp).label('date'),
@@ -465,7 +482,7 @@ class AnalyticsQueryService:
         logger.info(f"Getting realtime stats: website_id={website_id}")
 
         try:
-            now = datetime.utcnow()
+            now = datetime.now(timezone.utc)
             five_minutes_ago = now - timedelta(minutes=5)
             one_hour_ago = now - timedelta(hours=1)
 
@@ -485,12 +502,17 @@ class AnalyticsQueryService:
                 )
             ).scalar()
 
+            # Bounded to the last hour: without a time filter this returned the
+            # 50 most recent pageviews EVER and presented them as "live".
             live_visitors_query = self.db.query(
                 Pageview.country,
                 Pageview.path,
                 Pageview.timestamp
             ).filter(
-                Pageview.website_id == website_id
+                and_(
+                    Pageview.website_id == website_id,
+                    Pageview.timestamp >= one_hour_ago
+                )
             ).order_by(Pageview.timestamp.desc())\
              .limit(50)\
              .all()

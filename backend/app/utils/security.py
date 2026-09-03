@@ -203,3 +203,10 @@ def generate_visitor_hash(ip_address: str, user_agent: str, website_domain: str)
 
     combined = f"{daily_salt}:{website_domain}:{truncated_ip}:{user_agent}"
     return hashlib.sha256(combined.encode('utf-8')).hexdigest()
+
+
+def mask_email(email) -> str:
+    """Redact an email for logging, keeping only the domain (PII-safe)."""
+    if not email or "@" not in str(email):
+        return "<redacted>"
+    return "<redacted>@" + str(email).split("@", 1)[1]

@@ -81,7 +81,14 @@ class AlertService:
                 Pageview.timestamp >= one_week_ago
             ).scalar() or 0
 
-            typical_hourly = total_views_week / (7 * 24)  # Average per hour
+            # Exclude the current hour from the baseline (it IS the potential
+            # spike) and require real history — otherwise a new site's first
+            # traffic reads as a huge multiple of its own tiny average.
+            baseline_views = max(0, total_views_week - current_hour_views)
+            typical_hourly = baseline_views / (7 * 24)  # Average per hour
+            if baseline_views < 24:
+                logger.debug(f"Spike check skipped: insufficient history ({baseline_views} views/week)")
+                return None
 
             # Check if spike detected
             threshold = settings.spike_threshold

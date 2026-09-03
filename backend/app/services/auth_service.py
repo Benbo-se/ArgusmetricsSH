@@ -188,7 +188,14 @@ class AuthService:
                     }
                 else:
                     logger.info(f"User exists but not verified, resending verification: {_mask_email(email)}")
-                    # User exists but not verified, resend verification email
+                    # Unverified account, someone signs up again: adopt the NEW
+                    # password. The address owner proves ownership by clicking
+                    # the link; keeping the ORIGINAL password would let whoever
+                    # signed up first (possibly an attacker squatting the
+                    # address) retain the credentials after the real owner
+                    # verifies — a pre-registration account takeover.
+                    existing_user.password_hash = _hash_password(password)
+                    self.db.commit()
             else:
                 new_user = User(
                     email=email,

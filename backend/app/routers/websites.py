@@ -38,6 +38,7 @@ from app.schemas.auth import ErrorResponse
 from app.models.user import User
 from app.routers.auth import get_current_user
 
+from app.utils.security import mask_email
 logger = logging.getLogger(__name__)
 
 # Create router
@@ -123,7 +124,7 @@ async def create_website(
             "updated_at": null
         }
     """
-    logger.info(f"Website creation request from user: {current_user.email}")
+    logger.info(f"Website creation request from user: {mask_email(current_user.email)}")
 
     try:
         website = website_service.create_website(
@@ -132,7 +133,7 @@ async def create_website(
             domain=request.domain
         )
 
-        logger.info(f"Website created successfully: {website.id} for user {current_user.email}")
+        logger.info(f"Website created successfully: {website.id} for user {mask_email(current_user.email)}")
 
         return WebsiteResponse.model_validate(website)
 
@@ -210,12 +211,12 @@ async def list_websites(
             "total": 1
         }
     """
-    logger.info(f"Website list request from user: {current_user.email}")
+    logger.info(f"Website list request from user: {mask_email(current_user.email)}")
 
     try:
         websites = website_service.get_user_websites(current_user.email)
 
-        logger.debug(f"Returning {len(websites)} websites for user {current_user.email}")
+        logger.debug(f"Returning {len(websites)} websites for user {mask_email(current_user.email)}")
 
         return WebsiteListResponse(
             websites=[WebsiteResponse.model_validate(w) for w in websites],
@@ -291,19 +292,19 @@ async def get_website(
             "updated_at": null
         }
     """
-    logger.info(f"Website details request for {website_id} from user: {current_user.email}")
+    logger.info(f"Website details request for {website_id} from user: {mask_email(current_user.email)}")
 
     try:
         website = website_service.get_website_by_id(website_id, current_user.email)
 
         if not website:
-            logger.warning(f"Website {website_id} not found for user {current_user.email}")
+            logger.warning(f"Website {website_id} not found for user {mask_email(current_user.email)}")
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Website not found or access denied"
             )
 
-        logger.debug(f"Returning website {website_id} for user {current_user.email}")
+        logger.debug(f"Returning website {website_id} for user {mask_email(current_user.email)}")
 
         return WebsiteResponse.model_validate(website)
 
@@ -392,7 +393,7 @@ async def update_website(
             "updated_at": "2024-01-02T10:30:00Z"
         }
     """
-    logger.info(f"Website update request for {website_id} from user: {current_user.email}")
+    logger.info(f"Website update request for {website_id} from user: {mask_email(current_user.email)}")
 
     # Renaming/deactivating a site is not for viewers
     from app.services.team_service import require_website_role_or_404
@@ -415,7 +416,7 @@ async def update_website(
             is_active=request.is_active
         )
 
-        logger.info(f"Website {website_id} updated successfully for user {current_user.email}")
+        logger.info(f"Website {website_id} updated successfully for user {mask_email(current_user.email)}")
 
         return WebsiteResponse.model_validate(website)
 
@@ -498,7 +499,7 @@ async def delete_website(
             "message": "Website deleted successfully"
         }
     """
-    logger.info(f"Website deletion request for {website_id} from user: {current_user.email}")
+    logger.info(f"Website deletion request for {website_id} from user: {mask_email(current_user.email)}")
 
     # Destroying the site and all its data is owner-only
     from app.services.team_service import require_website_role_or_404
@@ -509,13 +510,13 @@ async def delete_website(
         success = website_service.delete_website(website_id, current_user.email)
 
         if not success:
-            logger.warning(f"Failed to delete website {website_id} for user {current_user.email}")
+            logger.warning(f"Failed to delete website {website_id} for user {mask_email(current_user.email)}")
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Website not found or access denied"
             )
 
-        logger.info(f"Website {website_id} deleted successfully for user {current_user.email}")
+        logger.info(f"Website {website_id} deleted successfully for user {mask_email(current_user.email)}")
 
         return {
             "message": "Website deleted successfully"
@@ -599,14 +600,14 @@ async def get_verification_instructions(
             "instructions": "To verify ownership of REDACTED.se, add the following DNS record:..."
         }
     """
-    logger.info(f"Verification instructions request for website {website_id} from user: {current_user.email}")
+    logger.info(f"Verification instructions request for website {website_id} from user: {mask_email(current_user.email)}")
 
     try:
         # Get website
         website = website_service.get_website_by_id(website_id, current_user.email)
 
         if not website:
-            logger.warning(f"Website {website_id} not found for user {current_user.email}")
+            logger.warning(f"Website {website_id} not found for user {mask_email(current_user.email)}")
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Website not found or access denied"
@@ -707,14 +708,14 @@ async def verify_domain(
             "verified_at": null
         }
     """
-    logger.info(f"Domain verification request for website {website_id} from user: {current_user.email}")
+    logger.info(f"Domain verification request for website {website_id} from user: {mask_email(current_user.email)}")
 
     try:
         # Get website
         website = website_service.get_website_by_id(website_id, current_user.email)
 
         if not website:
-            logger.warning(f"Website {website_id} not found for user {current_user.email}")
+            logger.warning(f"Website {website_id} not found for user {mask_email(current_user.email)}")
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Website not found or access denied"
@@ -850,7 +851,7 @@ async def update_email_reports(
             ...
         }
     """
-    logger.info(f"Email reports update request for website {website_id} from user: {current_user.email}")
+    logger.info(f"Email reports update request for website {website_id} from user: {mask_email(current_user.email)}")
 
     # Reports exfiltrate analytics to an arbitrary address: not for viewers
     from app.services.team_service import require_website_role_or_404
@@ -965,7 +966,7 @@ async def update_public_access(
             "public_url": "https://analytics.example.com/public/abc123xyz456..."
         }
     """
-    logger.info(f"Public access update request for website {website_id} from user: {current_user.email}")
+    logger.info(f"Public access update request for website {website_id} from user: {mask_email(current_user.email)}")
 
     try:
         from app.models.website_member import MemberRole
@@ -974,7 +975,7 @@ async def update_public_access(
         team_service = TeamService(db)
         role = team_service.check_website_access(current_user.email, website_id)
         if not role:
-            logger.warning(f"Website {website_id} not found for user {current_user.email}")
+            logger.warning(f"Website {website_id} not found for user {mask_email(current_user.email)}")
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Website not found or access denied"
@@ -1065,7 +1066,7 @@ async def list_team_members(
         HTTPException: 403 if insufficient permissions
         HTTPException: 404 if website not found
     """
-    logger.info(f"Team members list request for website {website_id} from user: {current_user.email}")
+    logger.info(f"Team members list request for website {website_id} from user: {mask_email(current_user.email)}")
 
     try:
         members = team_service.get_team_members(website_id, current_user.email)
@@ -1437,7 +1438,7 @@ async def accept_invitation(
         HTTPException: 400 if invitation invalid or email mismatch
         HTTPException: 401 if not authenticated
     """
-    logger.info(f"Accept invitation request from user: {current_user.email}")
+    logger.info(f"Accept invitation request from user: {mask_email(current_user.email)}")
 
     try:
         result = team_service.accept_invitation(token, current_user.email)

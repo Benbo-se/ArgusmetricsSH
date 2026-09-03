@@ -10,7 +10,7 @@ Handles the business logic for:
 """
 import logging
 from typing import Optional, Dict, List, Tuple
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from sqlalchemy.orm import Session
 from sqlalchemy import func, and_, distinct, case
@@ -256,7 +256,7 @@ class EcommerceService:
                 country=country,
                 device_type=device_type,
                 browser=browser,
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(timezone.utc),
                 utm_source=utm_source,
                 utm_medium=utm_medium,
                 utm_campaign=utm_campaign,
@@ -267,14 +267,21 @@ class EcommerceService:
             self.db.add(ecommerce_event)
             try:
                 self.db.commit()
-            except IntegrityError:
-                # Duplicate (website, transaction_id) purchase — idempotent no-op.
+            except IntegrityError as e:
                 self.db.rollback()
-                logger.info(
-                    f"Duplicate purchase ignored: website_id={website.id}, "
-                    f"transaction_id={transaction_id}"
-                )
-                return True, "Duplicate transaction ignored", None
+                # ONLY a unique-violation on the idempotency index is a
+                # legitimate duplicate; every other IntegrityError (check
+                # constraints, FKs) is a real failure that must not be
+                # reported as success — that silently drops revenue.
+                pgcode = getattr(getattr(e, "orig", None), "pgcode", None)
+                if pgcode == "23505":  # unique_violation
+                    logger.info(
+                        f"Duplicate purchase ignored: website_id={website.id}, "
+                        f"transaction_id={transaction_id}"
+                    )
+                    return True, "Duplicate transaction ignored", None
+                logger.error(f"E-commerce event integrity error: {e}")
+                return False, "Invalid event data", None
             self.db.refresh(ecommerce_event)
 
             logger.info(

@@ -15,6 +15,7 @@ from app.models.website import Website
 from app.routers.auth import get_current_user
 from app.services.anomaly_detection_service import AnomalyDetectionService
 
+from app.utils.security import mask_email
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/anomalies", tags=["anomalies"])
@@ -75,7 +76,7 @@ async def detect_anomalies(
             "ai_quota_remaining": 49
         }
     """
-    logger.info(f"Anomaly detection request: website_id={website_id}, user={current_user.email}")
+    logger.info(f"Anomaly detection request: website_id={website_id}, user={mask_email(current_user.email)}")
 
     # Verify website exists and user owns it (ownership is by email, not user_id)
     website = db.query(Website).filter(

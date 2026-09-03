@@ -17,6 +17,7 @@ from app.services.email_reports_service import EmailReportsService
 from app.models.website_member import MemberRole
 import logging
 
+from app.utils.security import mask_email
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/email-reports", tags=["Email Reports"])
@@ -131,7 +132,7 @@ async def configure_email_reports(
 
         db.commit()
 
-        logger.info(f"Email reports configured for website {website.id} by {current_user.email}")
+        logger.info(f"Email reports configured for website {website.id} by {mask_email(current_user.email)}")
 
         return {
             "success": True,
@@ -253,7 +254,7 @@ async def send_test_report(
                 detail="Failed to send test report - check logs for details"
             )
 
-        logger.info(f"Test email report sent for website {website.id} by {current_user.email}")
+        logger.info(f"Test email report sent for website {website.id} by {mask_email(current_user.email)}")
 
         return {
             "success": True,
@@ -307,7 +308,7 @@ async def disable_email_reports(
         website.email_reports_enabled = False
         db.commit()
 
-        logger.info(f"Email reports disabled for website {website_id} by {current_user.email}")
+        logger.info(f"Email reports disabled for website {website_id} by {mask_email(current_user.email)}")
 
         return {
             "success": True,

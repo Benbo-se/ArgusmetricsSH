@@ -41,6 +41,7 @@ from app.schemas.auth import (
 from app.models.user import User
 from app.config import settings
 
+from app.utils.security import mask_email
 logger = logging.getLogger(__name__)
 
 # Create router
@@ -347,7 +348,7 @@ async def logout(
             "message": "Logged out successfully"
         }
     """
-    logger.info(f"Logout request for user: {current_user.email}")
+    logger.info(f"Logout request for user: {mask_email(current_user.email)}")
 
     # Get token from header or cookie
     token = None
@@ -419,7 +420,7 @@ async def get_current_user_info(
             "created_at": "2024-01-01T12:00:00Z"
         }
     """
-    logger.debug(f"User info request for: {current_user.email}")
+    logger.debug(f"User info request for: {mask_email(current_user.email)}")
 
     return {
         "id": current_user.id,
@@ -473,7 +474,7 @@ async def get_user_sessions(
             ]
         }
     """
-    logger.debug(f"Sessions list request for: {current_user.email}")
+    logger.debug(f"Sessions list request for: {mask_email(current_user.email)}")
 
     try:
         sessions = auth_service.get_user_sessions(current_user.email)

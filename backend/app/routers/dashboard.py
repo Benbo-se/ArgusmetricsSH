@@ -27,6 +27,7 @@ from app.routers.auth import get_current_user
 from app.utils.date_helpers import parse_date_range
 from app.config import settings
 
+from app.utils.security import mask_email
 logger = logging.getLogger(__name__)
 
 # Create router
@@ -379,7 +380,7 @@ async def dashboard_index(
     db: Session = Depends(get_db)
 ):
     """Render dashboard index page with list of websites."""
-    logger.info(f"Dashboard index request from user: {current_user.email}")
+    logger.info(f"Dashboard index request from user: {mask_email(current_user.email)}")
 
     # Get all websites for the user
     websites = website_service.get_user_websites(current_user.email)
@@ -403,7 +404,7 @@ async def cross_domain_dashboard(
     website_service: WebsiteService = Depends(get_website_service)
 ):
     """Render cross-domain analytics dashboard showing aggregated stats across all websites."""
-    logger.info(f"Cross-domain dashboard request from user: {current_user.email}")
+    logger.info(f"Cross-domain dashboard request from user: {mask_email(current_user.email)}")
 
     # Get all websites for the user
     websites = website_service.get_user_websites(current_user.email)
@@ -689,7 +690,7 @@ async def website_settings(
     website_service: WebsiteService = Depends(get_website_service)
 ):
     """Render website settings page."""
-    logger.info(f"Website settings request: website_id={website_id}, user={current_user.email}")
+    logger.info(f"Website settings request: website_id={website_id}, user={mask_email(current_user.email)}")
 
     # Verify website ownership
     website = website_service.get_website_by_id(website_id, current_user.email)
@@ -718,7 +719,7 @@ async def website_team(
     website_service: WebsiteService = Depends(get_website_service)
 ):
     """Render team management page."""
-    logger.info(f"Team management request: website_id={website_id}, user={current_user.email}")
+    logger.info(f"Team management request: website_id={website_id}, user={mask_email(current_user.email)}")
 
     # Verify website access (ownership or team member)
     website = website_service.get_website_by_id(website_id, current_user.email)
@@ -790,7 +791,7 @@ async def website_goals(
     website_service: WebsiteService = Depends(get_website_service)
 ):
     """Render website goals management page."""
-    logger.info(f"Website goals request: website_id={website_id}, user={current_user.email}")
+    logger.info(f"Website goals request: website_id={website_id}, user={mask_email(current_user.email)}")
 
     # Verify website ownership
     website = website_service.get_website_by_id(website_id, current_user.email)
@@ -833,7 +834,7 @@ async def website_funnels(
     db: Session = Depends(get_db)
 ):
     """Render website funnels management page."""
-    logger.info(f"Website funnels request: website_id={website_id}, user={current_user.email}")
+    logger.info(f"Website funnels request: website_id={website_id}, user={mask_email(current_user.email)}")
 
     # Verify website ownership
     website = website_service.get_website_by_id(website_id, current_user.email)
@@ -878,7 +879,7 @@ async def website_event_details(
     website_service: WebsiteService = Depends(get_website_service)
 ):
     """Render custom event details page."""
-    logger.info(f"Event details request: website_id={website_id}, event={event_name}, user={current_user.email}")
+    logger.info(f"Event details request: website_id={website_id}, event={event_name}, user={mask_email(current_user.email)}")
 
     # Verify website ownership
     website = website_service.get_website_by_id(website_id, current_user.email)
@@ -916,7 +917,7 @@ async def website_debug_console(
     website_service: WebsiteService = Depends(get_website_service)
 ):
     """Render live debug mode console."""
-    logger.info(f"Debug console request: website_id={website_id}, user={current_user.email}")
+    logger.info(f"Debug console request: website_id={website_id}, user={mask_email(current_user.email)}")
 
     # Verify website ownership
     website = website_service.get_website_by_id(website_id, current_user.email)
@@ -1120,7 +1121,7 @@ async def website_revenue_dashboard(
     db: Session = Depends(get_db)
 ):
     """Render revenue analytics dashboard."""
-    logger.info(f"Revenue dashboard request: website_id={website_id}, user={current_user.email}")
+    logger.info(f"Revenue dashboard request: website_id={website_id}, user={mask_email(current_user.email)}")
 
     # Verify website ownership
     website = website_service.get_website_by_id(website_id, current_user.email)

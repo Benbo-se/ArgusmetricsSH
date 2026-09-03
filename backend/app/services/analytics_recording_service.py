@@ -6,7 +6,7 @@ writing pageview/event records to the database.
 """
 import logging
 from typing import Optional, Dict, Tuple
-from datetime import datetime
+from datetime import datetime, timezone
 from urllib.parse import urlparse, parse_qs, urlencode
 from sqlalchemy.orm import Session
 from user_agents import parse
@@ -219,7 +219,7 @@ class AnalyticsRecordingService:
                 device_type=device_type,
                 browser=browser,
                 visitor_hash=visitor_hash,
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(timezone.utc),
                 utm_source=utm_source,
                 utm_medium=utm_medium,
                 utm_campaign=utm_campaign,
@@ -291,7 +291,7 @@ class AnalyticsRecordingService:
                 device_type=device_type,
                 browser=browser,
                 visitor_hash=visitor_hash,
-                timestamp=datetime.utcnow()
+                timestamp=datetime.now(timezone.utc)
             )
 
             self.db.add(custom_event)

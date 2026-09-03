@@ -18,6 +18,7 @@ from app.models.website_member import MemberRole
 from app.middleware.rate_limit import rate_limiter
 import logging
 
+from app.utils.security import mask_email
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/dashboard-password", tags=["Dashboard Password"])
@@ -117,7 +118,7 @@ async def set_dashboard_password(
 
         db.commit()
 
-        logger.info(f"Password protection enabled for website {website.id} by {current_user.email}")
+        logger.info(f"Password protection enabled for website {website.id} by {mask_email(current_user.email)}")
 
         return {
             "success": True,
@@ -176,7 +177,7 @@ async def remove_dashboard_password(
 
         db.commit()
 
-        logger.info(f"Password protection removed from website {website.id} by {current_user.email}")
+        logger.info(f"Password protection removed from website {website.id} by {mask_email(current_user.email)}")
 
         return {
             "success": True,

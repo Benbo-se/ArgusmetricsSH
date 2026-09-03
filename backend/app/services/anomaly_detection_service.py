@@ -110,16 +110,25 @@ class AnomalyDetectionService:
             Pageview.timestamp >= hour_start
         ).scalar() or 0
 
+        # Exclude the current hour from the baseline (it contains the very
+        # spike being measured) and require a real history: a brand-new site
+        # whose only traffic is this hour would otherwise compute
+        # baseline = N/24 and flag its own first visitors as a ~24x spike.
+        baseline_count_excl = max(0, baseline['total_pageviews'] - current_hour_count)
+        baseline_avg = baseline_count_excl / 24
+        if baseline_count_excl < 24:
+            return None
+
         # Check if current traffic exceeds threshold
-        if baseline['avg_pageviews_per_hour'] > 0:
-            spike_ratio = current_hour_count / baseline['avg_pageviews_per_hour']
+        if baseline_avg > 0:
+            spike_ratio = current_hour_count / baseline_avg
 
             if spike_ratio >= threshold_multiplier:
                 return {
                     'type': 'traffic_spike',
                     'severity': 'high' if spike_ratio >= 5.0 else 'medium',
                     'current_pageviews': current_hour_count,
-                    'baseline_avg': baseline['avg_pageviews_per_hour'],
+                    'baseline_avg': round(baseline_avg, 2),
                     'spike_ratio': round(spike_ratio, 2),
                     'message': f"Traffic spike detected: {int(spike_ratio)}x normal volume",
                     'timestamp': now.isoformat()

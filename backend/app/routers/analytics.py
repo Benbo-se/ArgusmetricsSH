@@ -42,6 +42,7 @@ from app.routers.auth import get_current_user
 from app.services.team_service import TeamService
 from app.models.website_member import MemberRole
 
+from app.utils.security import mask_email
 logger = logging.getLogger(__name__)
 
 # Create router
@@ -333,7 +334,7 @@ async def get_dashboard_stats(
     website_service: WebsiteService = Depends(get_website_service)
 ) -> DashboardStatsResponse:
     """Get dashboard statistics for a website (authentication required)."""
-    logger.info(f"Dashboard stats request: website_id={website_id}, user={current_user.email}")
+    logger.info(f"Dashboard stats request: website_id={website_id}, user={mask_email(current_user.email)}")
     
     # Verify website ownership
     website = website_service.get_website_by_id(website_id, current_user.email)
@@ -374,7 +375,7 @@ async def get_realtime_stats(
     website_service: WebsiteService = Depends(get_website_service)
 ) -> RealtimeStatsResponse:
     """Get realtime analytics for a website (authentication required)."""
-    logger.info(f"Realtime stats request: website_id={website_id}, user={current_user.email}")
+    logger.info(f"Realtime stats request: website_id={website_id}, user={mask_email(current_user.email)}")
     
     # Verify website ownership
     website = website_service.get_website_by_id(website_id, current_user.email)
