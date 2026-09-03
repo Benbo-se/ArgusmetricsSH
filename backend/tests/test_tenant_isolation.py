@@ -185,3 +185,46 @@ def test_a_stranger_sees_nothing(tenants):
     conn, _ = tenants
     _context(conn, "user", user_email="nobody@example.invalid")
     assert conn.execute(text("SELECT count(*) FROM pageviews")).scalar() == 0
+
+
+def _add_member(conn, website_id, user_email, status):
+    conn.execute(
+        text(
+            "INSERT INTO website_members "
+            "  (website_id, user_email, role, invited_at, status) "
+            "VALUES (:w, :e, 'viewer', now(), CAST(:s AS memberstatus))"
+        ),
+        {"w": website_id, "e": user_email, "s": status},
+    )
+
+
+@pytest.mark.parametrize("status", ["pending", "revoked"])
+def test_a_member_who_is_not_active_reads_nothing(tenants, status):
+    """Membership alone is not access. The status decides.
+
+    The application requires status ACTIVE everywhere it checks a role, so a
+    policy that accepts any membership row is more permissive than the code
+    above it. That matters most for 'revoked', which is the case where someone
+    has deliberately had their access taken away, and where the database
+    refusing is the whole point of having policies at all.
+    """
+    conn, made = tenants
+    _add_member(conn, made["alice"]["website_id"], made["bob"]["email"], status)
+
+    _context(conn, "user", user_email=made["bob"]["email"])
+    paths = {r[0] for r in conn.execute(text("SELECT path FROM pageviews"))}
+
+    assert made["alice"]["path"] not in paths, (
+        f"a {status} member can read the website's pageviews"
+    )
+
+
+def test_an_active_member_reads_the_shared_website(tenants):
+    """The other half: sharing has to keep working."""
+    conn, made = tenants
+    _add_member(conn, made["alice"]["website_id"], made["bob"]["email"], "active")
+
+    _context(conn, "user", user_email=made["bob"]["email"])
+    paths = {r[0] for r in conn.execute(text("SELECT path FROM pageviews"))}
+
+    assert made["alice"]["path"] in paths, "an active member lost access"
