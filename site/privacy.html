@@ -344,9 +344,9 @@
                 <section class="mb-8">
                     <h2 class="text-2xl font-bold text-gray-900 mb-4">4. Data Storage & Security</h2>
                     <p class="text-gray-700 mb-4">
-                        Your data is stored in a PostgreSQL database on servers we operate.
-                        <!-- TODO before launch: state the hosting provider and the country the server is in.
-                             Do not leave this vague, and do not claim EU hosting unless the server really is in the EU. -->
+                        Your data is stored in a PostgreSQL database on a server we operate ourselves,
+                        hosted with <strong>Bahnhof</strong> in <strong>Sweden</strong>. It stays there. We do not
+                        replicate it to other regions, and no part of it is processed outside the EU.
                     </p>
                     <ul class="list-disc list-inside space-y-2 text-gray-700 ml-4 mb-4">
                         <li><strong>In transit:</strong> all traffic to the dashboard and the tracking endpoint is served over HTTPS</li>
@@ -391,7 +391,9 @@
                         You can see and change your email address in the dashboard, export your data as CSV or JSON at any time, and
                         delete your account, which erases your account and the analytics data belonging to your websites. For access,
                         correction, portability, erasure or a complaint, email us and we will respond within 30 days. You also have the
-                        right to complain to your national data protection authority.
+                        right to complain to your national data protection authority. Because we operate from Sweden, ours is
+                        <a href="https://www.imy.se/" class="text-blue-600 hover:text-blue-800 underline" rel="noopener" target="_blank">Integritetsskyddsmyndigheten (IMY)</a>,
+                        and you may complain to them or to the authority in your own country.
                     </p>
 
                     <h3 class="text-xl font-semibold text-gray-900 mb-3 mt-6">5.4 Requests From Your Visitors</h3>
@@ -415,11 +417,13 @@
                         Two third parties are involved in running the service:
                     </p>
                     <ul class="list-disc list-inside space-y-2 text-gray-700 ml-4 mb-4">
-                        <li><strong>Our hosting provider</strong>, which operates the physical servers the database runs on.
-                            <!-- TODO before launch: name the hosting provider and its country. --></li>
-                        <li><strong>Our email provider</strong>, which delivers verification emails, password resets, and the reports
-                            and alerts you opt into. It receives your email address and the contents of those messages.
-                            <!-- TODO before launch: name the email provider (SMTP_HOST) so this is specific. --></li>
+                        <li><strong>Bahnhof</strong> (Sweden), which operates the physical server the database runs on.
+                            They provide the hardware and the network; they do not process your data for any purpose
+                            of their own.</li>
+                        <li><strong>Lettermint&reg; B.V.</strong> (Netherlands), which delivers verification emails,
+                            password resets, and the reports and alerts you opt into. It receives your email address
+                            and the contents of those messages. Lettermint runs on European infrastructure, with its
+                            primary servers in the Netherlands and backups in Germany.</li>
                     </ul>
                     <p class="text-gray-700 mb-4">
                         Country lookups are done against a local database on our own servers, so your visitors' IP addresses are never
