@@ -198,6 +198,102 @@ def _add_member(conn, website_id, user_email, status):
     )
 
 
+class TestConfigurationTables:
+    """websites and website_members, which are not traffic and behave differently.
+
+    A traffic table is written by the tracking context and read by nobody
+    else. These two are read in every context, which is why they came last.
+    """
+
+    def test_a_stranger_sees_no_websites(self, tenants):
+        conn, made = tenants
+        _context(conn, "user", user_email="nobody@example.invalid")
+        assert conn.execute(text("SELECT count(*) FROM websites")).scalar() == 0
+
+    def test_neither_tenant_sees_the_other_s_website(self, tenants):
+        conn, made = tenants
+        for reader, other in (("alice", "bob"), ("bob", "alice")):
+            _context(conn, "user", user_email=made[reader]["email"])
+            rows = conn.execute(
+                text("SELECT count(*) FROM websites WHERE id = :w"),
+                {"w": made[other]["website_id"]},
+            ).scalar()
+            assert rows == 0, f"{reader} can see {other}'s website"
+
+    def test_an_owner_sees_their_own_website(self, tenants):
+        conn, made = tenants
+        _context(conn, "user", user_email=made["alice"]["email"])
+        rows = conn.execute(
+            text("SELECT count(*) FROM websites WHERE id = :w"),
+            {"w": made["alice"]["website_id"]},
+        ).scalar()
+        assert rows == 1
+
+    def test_an_active_member_sees_the_shared_website(self, tenants):
+        conn, made = tenants
+        _add_member(conn, made["alice"]["website_id"], made["bob"]["email"], "active")
+        _context(conn, "user", user_email=made["bob"]["email"])
+        rows = conn.execute(
+            text("SELECT count(*) FROM websites WHERE id = :w"),
+            {"w": made["alice"]["website_id"]},
+        ).scalar()
+        assert rows == 1, "an active member cannot see the website shared with them"
+
+    @pytest.mark.parametrize("status", ["pending", "revoked"])
+    def test_an_inactive_member_sees_no_website(self, tenants, status):
+        conn, made = tenants
+        _add_member(conn, made["alice"]["website_id"], made["bob"]["email"], status)
+        _context(conn, "user", user_email=made["bob"]["email"])
+        rows = conn.execute(
+            text("SELECT count(*) FROM websites WHERE id = :w"),
+            {"w": made["alice"]["website_id"]},
+        ).scalar()
+        assert rows == 0, f"a {status} member can see the website"
+
+    def test_the_tracking_context_cannot_read_websites(self, tenants):
+        """The whole reason the resolver functions exist.
+
+        Tracking is unauthenticated and takes a code from a visitor's browser.
+        It resolves that code through a SECURITY DEFINER function, so it needs
+        no read access here, and a websites row carries verification_token,
+        public_share_token and public_password_hash.
+        """
+        conn, _ = tenants
+        _context(conn, "tracking")
+        assert conn.execute(text("SELECT count(*) FROM websites")).scalar() == 0
+
+    def test_a_member_list_is_visible_to_the_owner_and_the_member_only(self, tenants):
+        conn, made = tenants
+        _add_member(conn, made["alice"]["website_id"], made["bob"]["email"], "active")
+
+        _context(conn, "user", user_email=made["alice"]["email"])
+        assert conn.execute(
+            text("SELECT count(*) FROM website_members WHERE website_id = :w"),
+            {"w": made["alice"]["website_id"]},
+        ).scalar() == 1, "the owner cannot see their own team"
+
+        _context(conn, "user", user_email=made["bob"]["email"])
+        assert conn.execute(
+            text("SELECT count(*) FROM website_members WHERE website_id = :w"),
+            {"w": made["alice"]["website_id"]},
+        ).scalar() == 1, "a member cannot see their own membership"
+
+        _context(conn, "user", user_email="nobody@example.invalid")
+        assert conn.execute(
+            text("SELECT count(*) FROM website_members WHERE website_id = :w"),
+            {"w": made["alice"]["website_id"]},
+        ).scalar() == 0, "a stranger can read someone's team list"
+
+    def test_no_context_reads_neither_table(self, tenants):
+        """Fail closed: a request that declares nothing sees nothing."""
+        conn, _ = tenants
+        _context(conn, "")
+        assert conn.execute(text("SELECT count(*) FROM websites")).scalar() == 0
+        assert conn.execute(text("SELECT count(*) FROM website_members")).scalar() == 0
+
+
+
+
 @pytest.mark.parametrize("status", ["pending", "revoked"])
 def test_a_member_who_is_not_active_reads_nothing(tenants, status):
     """Membership alone is not access. The status decides.
