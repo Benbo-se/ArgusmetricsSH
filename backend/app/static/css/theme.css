@@ -262,6 +262,33 @@ td, .tabular, [x-text*="views"], [x-text*="count"] {
 .inset-y-0 { top: 0; bottom: 0; }
 .inset-0 { top: 0; right: 0; bottom: 0; left: 0; }
 
+/* Sidebar (components/sidebar.html): same story, a fresh batch of classes
+   this frozen build never scanned. Composed to match the existing pattern
+   (.transform already applies --tw-translate-x via CSS custom property, so
+   the translate utilities below only need to set that variable, not
+   `transform` directly — writing `transform: ...` here would fight the
+   existing .transform rule depending on cascade order). */
+.z-30 { z-index: 30; }
+.h-14 { height: 3.5rem; }
+.h-7 { height: 1.75rem; }
+.w-7 { width: 1.75rem; }
+.p-1 { padding: 0.25rem; }
+.px-5 { padding-left: 1.25rem; padding-right: 1.25rem; }
+.-ml-2 { margin-left: -0.5rem; }
+.self-start { align-self: flex-start; }
+.transition-transform { transition-property: transform; }
+.-translate-x-full { --tw-translate-x: -100%; }
+.translate-x-0 { --tw-translate-x: 0px; }
+.bg-gray-900\/30 { background-color: rgb(17 24 39 / 0.3); }
+
+@media (min-width: 1024px) {
+    .lg\:hidden { display: none; }
+    .lg\:flex { display: flex; }
+    .lg\:translate-x-0 { --tw-translate-x: 0px; }
+    .lg\:pl-64 { padding-left: 16rem; }
+    .lg\:inset-y-0 { top: 0; bottom: 0; }
+}
+
 /* --- Focus --------------------------------------------------------------- */
 a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible {
     outline: 2px solid var(--accent);

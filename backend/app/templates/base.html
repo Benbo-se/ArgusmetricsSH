@@ -84,7 +84,10 @@
     {% endif %}
     {% endblock %}
 
-    <main class="{% if current_user %}pt-16{% endif %}">
+    {# Pages with the left sidebar (components/sidebar.html) override this to
+       empty — they handle their own top spacing via the sidebar's own mobile
+       bar + lg:pl-64 content offset, not a fixed top navbar. #}
+    <main class="{% block main_class %}{% if current_user %}pt-16{% endif %}{% endblock %}">
         {% block content %}{% endblock %}
     </main>
 

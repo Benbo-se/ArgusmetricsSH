@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 
 {% block title %}{{ website.name }} - Goals{% endblock %}
+{% block navbar %}{% endblock %}
+{% block main_class %}{% endblock %}
 
 {% block extra_head %}
 <script>
@@ -12,15 +14,15 @@
 {% endblock %}
 
 {% block content %}
+{% set active = 'goals' %}
+{% include 'components/sidebar.html' with context %}
+<div class="lg:pl-64">
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <!-- Header -->
     <div class="mb-2">
         <h1 class="text-3xl font-bold text-gray-900">Goals Management</h1>
         <p class="mt-2 text-gray-600">{{ website.name }} - Track conversions and important events</p>
     </div>
-
-    {% set active = 'goals' %}
-    {% include 'dashboard/_website_subnav.html' with context %}
 
     <!-- Goals List Section -->
     <!-- JSON island: |tojson doesn't escape double quotes, so it must never
@@ -370,6 +372,7 @@
         </div>
     </div>
 
+</div>
 </div>
 
 <style>

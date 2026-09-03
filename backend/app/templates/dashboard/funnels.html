@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 
 {% block title %}{{ website.name }} - Funnels{% endblock %}
+{% block navbar %}{% endblock %}
+{% block main_class %}{% endblock %}
 
 {% block extra_head %}
 <script>
@@ -12,15 +14,15 @@
 {% endblock %}
 
 {% block content %}
+{% set active = 'funnels' %}
+{% include 'components/sidebar.html' with context %}
+<div class="lg:pl-64">
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <!-- Header -->
     <div class="mb-2">
         <h1 class="text-3xl font-bold text-gray-900">Funnel Analysis</h1>
         <p class="mt-2 text-gray-600">{{ website.name }} - Track and optimize your conversion funnels</p>
     </div>
-
-    {% set active = 'funnels' %}
-    {% include 'dashboard/_website_subnav.html' with context %}
 
     <!-- Funnels Management Section -->
     <!-- JSON island: |tojson doesn't escape double quotes, so it must never
@@ -630,6 +632,7 @@
         </div>
     </div>
 
+</div>
 </div>
 
 <style>

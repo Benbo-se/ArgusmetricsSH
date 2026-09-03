@@ -1,16 +1,18 @@
 {% extends "base.html" %}
 
 {% block title %}{{ website.name }} - Team{% endblock %}
+{% block navbar %}{% endblock %}
+{% block main_class %}{% endblock %}
 
 {% block content %}
+{% set active = 'team' %}
+{% include 'components/sidebar.html' with context %}
+<div class="lg:pl-64">
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <div class="mb-2">
         <h1 class="text-3xl font-bold text-gray-900">Team Members</h1>
         <p class="mt-2 text-gray-600">{{ website.name }} - {{ website.domain }}</p>
     </div>
-
-    {% set active = 'team' %}
-    {% include 'dashboard/_website_subnav.html' with context %}
 
     <!-- Team Members Section -->
     <div class="bg-white rounded-lg shadow p-6 mb-6"
@@ -380,5 +382,6 @@
         </div>
     </div>
 
+</div>
 </div>
 {% endblock %}
