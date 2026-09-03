@@ -4,10 +4,13 @@
 
 {% block content %}
 <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <div class="mb-8">
+    <div class="mb-2">
         <h1 class="text-3xl font-bold text-gray-900">Website Settings</h1>
         <p class="mt-2 text-gray-600">{{ website.name }} - {{ website.domain }}</p>
     </div>
+
+    {% set active = 'settings' %}
+    {% include 'dashboard/_website_subnav.html' with context %}
 
     <!-- Domain Verification Section -->
     <div class="bg-white rounded-lg shadow border-l-4 {% if website.is_verified %}border-green-500{% else %}border-yellow-500{% endif %} p-6 mb-6"
@@ -679,16 +682,6 @@ export default function Custom404() {
         </button>
     </div>
 
-    <!-- Back to Dashboard -->
-    <div class="mt-6">
-        <a href="/dashboard/website/{{ website.id }}"
-           class="inline-flex items-center text-sm text-blue-600 hover:text-blue-800">
-            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-            </svg>
-            Back to Analytics
-        </a>
-    </div>
 </div>
 {% endblock %}
 
