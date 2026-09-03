@@ -458,19 +458,21 @@ async def track_event(
     analytics_service: AnalyticsService = Depends(get_analytics_service)
 ) -> GoalConversionResponse:
     """
-    Track an event (supports both Goals and Custom Events).
+    Track an event. The same event can be both a Custom Event and a Goal.
 
-    - If event has no properties: checks for matching Goal and records goal conversion
-    - If event has properties: records as Custom Event with properties
-    - Both can coexist: same event can be both a Goal and Custom Event
+    - Properties, when sent, are recorded as a Custom Event.
+    - Either way, a Goal matching the event name converts.
+
+    Properties describe the event, so they say nothing about whether a goal
+    converted. Sending them used to skip the goal lookup entirely, which meant
+    a goal whose event carried properties never recorded a single conversion.
     """
     client_ip = get_client_ip(request)
     user_agent = get_user_agent(request)
 
-    # Check if properties are provided in the request
     properties = getattr(event_request, 'properties', None)
+    recorded = []
 
-    # Record custom event if properties provided
     if properties:
         success, message = analytics_service.record_custom_event(
             tracking_code=event_request.tracking_code,
@@ -480,23 +482,29 @@ async def track_event(
             user_agent=user_agent
         )
 
+        # An explicit request to record a custom event, so a failure here is
+        # the caller's answer even if the goal below converts.
         if not success:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=message)
 
-        return GoalConversionResponse(success=True, message=message)
+        recorded.append("custom event")
 
-    # If no properties, try to record as goal conversion
-    success, message = analytics_service.record_goal_conversion(
+    goal_success, goal_message = analytics_service.record_goal_conversion(
         tracking_code=event_request.tracking_code,
         event_name=event_request.event_name,
         ip_address=client_ip,
         user_agent=user_agent
     )
 
-    if not success:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=message)
+    if goal_success:
+        recorded.append("goal conversion")
 
-    return GoalConversionResponse(success=True, message=message)
+    # Most events have no goal behind them, so "Goal not found" is only worth
+    # reporting when it means nothing at all was recorded.
+    if not recorded:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=goal_message)
+
+    return GoalConversionResponse(success=True, message=f"Recorded {' and '.join(recorded)}")
 
 
 @router.post("/track-ecommerce", response_model=EcommerceEventResponse, status_code=status.HTTP_200_OK, dependencies=[Depends(check_track_rate_limit), Depends(use_tracking_context)])
