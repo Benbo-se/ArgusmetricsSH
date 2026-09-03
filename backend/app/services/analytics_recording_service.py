@@ -14,7 +14,6 @@ from user_agents import parse
 from fastapi import HTTPException
 
 from app.config import settings
-from app.middleware.billing import check_trial_and_limits, increment_pageview_counter
 from app.models.pageview import Pageview
 from app.models.website import Website
 from app.models.user import User
@@ -169,45 +168,6 @@ class AnalyticsRecordingService:
         except Exception:
             return None
 
-    def _enforce_billing_limits(self, website: Website) -> Optional[Tuple[bool, str]]:
-        """Check the website owner's trial/quota before accepting a pageview.
-
-        Returns a ``(False, reason)`` failure tuple matching record_pageview's
-        return shape when the pageview must be rejected (trial expired or
-        monthly limit reached), or ``None`` when ingest may proceed.
-
-        ``check_trial_and_limits`` is declared ``async`` but performs no awaits;
-        it signals over-limit/trial-expired by raising ``HTTPException``. We
-        drive the coroutine to completion synchronously and translate any raised
-        ``HTTPException`` into the failure tuple.
-        """
-        owner = self.db.query(User).filter(User.email == website.user_email).first()
-        if owner is None:
-            # No owner to bill against; fail closed when enforcement is on.
-            logger.warning(
-                f"Billing enforcement: owner '{website.user_email}' not found "
-                f"for website {website.id}; rejecting pageview."
-            )
-            return False, "Account not found"
-
-        coro = check_trial_and_limits(owner, self.db)
-        try:
-            coro.send(None)
-        except StopIteration:
-            # Coroutine completed without raising: within limits.
-            return None
-        except HTTPException as exc:
-            logger.info(
-                f"Billing enforcement rejected pageview for website {website.id} "
-                f"(owner={owner.email}): {exc.detail}"
-            )
-            return False, str(exc.detail)
-        finally:
-            coro.close()
-
-        # Coroutine yielded (awaited something); not expected for this function.
-        return None
-
     def record_pageview(
         self,
         tracking_code: str,
@@ -246,12 +206,6 @@ class AnalyticsRecordingService:
                 )
                 return False, "Domain not verified. Please verify domain ownership via DNS before tracking."
 
-            # Billing enforcement (disabled by default; self-host is unaffected).
-            if settings.BILLING_ENFORCEMENT_ENABLED:
-                rejected = self._enforce_billing_limits(website)
-                if rejected is not None:
-                    return rejected
-
             visitor_hash = self._generate_visitor_hash(ip_address, user_agent, website.domain)
             device_type = self._detect_device_type(screen_width, user_agent)
             browser = self._detect_browser(user_agent)
@@ -279,10 +233,6 @@ class AnalyticsRecordingService:
 
             self.db.add(pageview)
             self.db.commit()
-
-            # Count this accepted pageview against the owner's monthly quota.
-            if settings.BILLING_ENFORCEMENT_ENABLED:
-                increment_pageview_counter(website.user_email, self.db)
 
             logger.info(
                 f"Pageview recorded: website_id={website.id}, "

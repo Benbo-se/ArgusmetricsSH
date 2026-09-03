@@ -78,7 +78,7 @@ class AuthService:
             return False
         return _secrets.compare_digest(presented_secret, settings.E2E_TEST_SECRET)
 
-    def signup_user(self, email: str, plan: str = 'free', e2e_secret: Optional[str] = None) -> Dict[str, str]:
+    def signup_user(self, email: str, e2e_secret: Optional[str] = None) -> Dict[str, str]:
         """
         Register a new user and send verification email.
 
@@ -87,7 +87,6 @@ class AuthService:
 
         Args:
             email: User's email address
-            plan: Subscription plan (free, starter, pro, business). Defaults to 'free'.
 
         Returns:
             dict: Contains message and email
@@ -102,7 +101,7 @@ class AuthService:
 
         Example:
             service = AuthService(db)
-            result = service.signup_user("user@example.com", plan="starter")
+            result = service.signup_user("user@example.com")
             print(result["message"])
         """
         # Validate email format
@@ -163,51 +162,14 @@ class AuthService:
                     logger.info(f"User exists but not verified, resending verification: {_mask_email(email)}")
                     # User exists but not verified, resend verification email
             else:
-                # Create new user with trial and billing fields
-                from datetime import datetime, timedelta, timezone
-
-                def get_next_month_start():
-                    now = datetime.now(timezone.utc)
-                    if now.month == 12:
-                        return datetime(now.year + 1, 1, 1, tzinfo=timezone.utc)
-                    else:
-                        return datetime(now.year, now.month + 1, 1, tzinfo=timezone.utc)
-
-                # Determine trial and quota based on plan
-                if plan in ['starter', 'pro', 'business']:
-                    # Paid plans get 14-day trial
-                    trial_expires = datetime.now(timezone.utc) + timedelta(days=14)
-                    subscription_status = 'trial'
-                    # AI quotas per plan (FREE TIER = ZERO AI)
-                    ai_quota_map = {
-                        'starter': 50,
-                        'pro': 1000,
-                        'business': 10000
-                    }
-                    ai_quota = ai_quota_map[plan]
-                else:
-                    # Free plan = no trial, active immediately
-                    trial_expires = None
-                    subscription_status = 'active'
-                    ai_quota = 0  # FREE = NO AI
-
                 new_user = User(
                     email=email,
                     is_verified=False,
-                    trial_expires=trial_expires,
-                    plan=plan,
-                    subscription_status=subscription_status,
-                    monthly_pageviews_used=0,
-                    monthly_reset_date=get_next_month_start(),
-                    # AI quota fields
-                    ai_chatbot_quota=ai_quota,
-                    ai_chatbot_used_this_month=0,
-                    ai_quota_reset_date=get_next_month_start()
                 )
                 self.db.add(new_user)
                 self.db.commit()
                 self.db.refresh(new_user)
-                logger.info(f"New user created on {plan.upper()} plan: {_mask_email(email)}, status: {subscription_status}, trial_expires: {trial_expires}, AI quota: {ai_quota}")
+                logger.info(f"New user created: {_mask_email(email)}")
 
             # Generate magic link token (expires in 15 minutes)
             magic_token = generate_magic_token(

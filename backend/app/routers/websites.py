@@ -126,16 +126,6 @@ async def create_website(
     logger.info(f"Website creation request from user: {current_user.email}")
 
     try:
-        # Check website limit for FREE tier users
-        if current_user.plan and current_user.plan.lower() == 'free':
-            user_websites = website_service.get_user_websites(current_user.email)
-            if len(user_websites) >= 1:
-                logger.warning(f"FREE user {current_user.email} attempted to create 2nd website")
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="FREE plan is limited to 1 website. Please upgrade to add more websites."
-                )
-
         website = website_service.create_website(
             user_email=current_user.email,
             name=request.name,
@@ -954,7 +944,7 @@ async def update_public_access(
             "name": "My Blog",
             "domain": "https://myblog.com",
             "is_public": true,
-            "public_url": "https://app.argusmetrics.io/public/abc123xyz456..."
+            "public_url": "https://analytics.example.com/public/abc123xyz456..."
         }
     """
     logger.info(f"Public access update request for website {website_id} from user: {current_user.email}")

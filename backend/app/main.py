@@ -263,15 +263,11 @@ async def sitemap_xml():
     base_url = settings.BASE_URL
     today = datetime.utcnow().strftime("%Y-%m-%d")
 
-    # Define all public URLs
+    # Only the app's own public pages; the marketing site ships its own
+    # sitemap (site/sitemap.xml), which nginx serves ahead of this one.
     urls = [
         {"loc": f"{base_url}/", "priority": "1.0", "changefreq": "daily"},
-        {"loc": f"{base_url}/docs", "priority": "0.8", "changefreq": "weekly"},
-        {"loc": f"{base_url}/privacy", "priority": "0.6", "changefreq": "monthly"},
-        {"loc": f"{base_url}/terms", "priority": "0.6", "changefreq": "monthly"},
-        {"loc": f"{base_url}/contact", "priority": "0.7", "changefreq": "monthly"},
         {"loc": f"{base_url}/login", "priority": "0.9", "changefreq": "monthly"},
-        {"loc": f"{base_url}/public/demo-argusmetrics-public", "priority": "0.9", "changefreq": "daily"},
     ]
 
     # Build XML
@@ -292,7 +288,7 @@ async def sitemap_xml():
 
 
 # Import and include routers
-from app.routers import auth, websites, analytics, dashboard, websocket, chatbot, stripe, ai_quota, team, dashboard_password, email_reports, revenue, funnels, anomaly, ai_insights
+from app.routers import auth, websites, analytics, dashboard, websocket, dashboard_password, email_reports, revenue, funnels, anomaly
 
 app.include_router(
     auth.router,
@@ -333,33 +329,6 @@ app.include_router(
     tags=["Anomaly Detection"],
 )
 
-# Include chatbot router
-app.include_router(
-    chatbot.router,
-    prefix=f"{settings.API_V1_PREFIX}/chatbot",
-    tags=["Chatbot"],
-)
-
-# Include AI quota router
-app.include_router(
-    ai_quota.router,
-    prefix=f"{settings.API_V1_PREFIX}/ai",
-    tags=["AI Quota"],
-)
-
-# Include AI insights router
-app.include_router(
-    ai_insights.router,
-    prefix=f"{settings.API_V1_PREFIX}",
-    tags=["AI Insights"],
-)
-
-# Include Team router
-app.include_router(
-    team.router,
-    tags=["Team"],
-)
-
 # Include Dashboard Password router
 app.include_router(
     dashboard_password.router,
@@ -370,13 +339,6 @@ app.include_router(
 app.include_router(
     email_reports.router,
     tags=["Email Reports"],
-)
-
-# Include Stripe router
-app.include_router(
-    stripe.router,
-    prefix=f"{settings.API_V1_PREFIX}",
-    tags=["Stripe"],
 )
 
 # Include WebSocket router

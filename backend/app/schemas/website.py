@@ -185,7 +185,7 @@ class WebsiteResponse(BaseModel):
     public_url: Optional[str] = Field(
         None,
         description="Public dashboard URL (only if is_public=True)",
-        example="https://app.argusmetrics.io/public/abc123xyz456"
+        example="https://analytics.example.com/public/abc123xyz456"
     )
     public_share_token: Optional[str] = Field(
         None,
@@ -196,7 +196,8 @@ class WebsiteResponse(BaseModel):
     def compute_public_url(self):
         """Compute public_url from is_public and public_share_token."""
         if self.is_public and self.public_share_token:
-            self.public_url = f"https://app.argusmetrics.io/public/{self.public_share_token}"
+            from app.config import settings
+            self.public_url = f"{settings.BASE_URL.rstrip('/')}/public/{self.public_share_token}"
         else:
             self.public_url = None
         return self

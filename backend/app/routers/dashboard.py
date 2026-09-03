@@ -36,6 +36,8 @@ router = APIRouter()
 import os
 templates_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "templates")
 templates = Jinja2Templates(directory=templates_dir)
+# base.html builds canonical/og URLs from the instance's own BASE_URL
+templates.env.globals["base_url"] = settings.BASE_URL.rstrip("/")
 
 # Add custom Jinja2 filters
 def format_number(value):
@@ -142,8 +144,9 @@ def get_current_user_optional(
 
 @router.get("/", response_class=RedirectResponse)
 async def root():
-    """Redirect to marketing site."""
-    return RedirectResponse(url="https://argusmetrics.io", status_code=301)
+    """In production nginx serves the marketing site at /; a bare backend
+    instance sends visitors to the login page instead."""
+    return RedirectResponse(url="/login", status_code=302)
 
 
 @router.get("/logout", response_class=RedirectResponse)
@@ -157,24 +160,6 @@ async def logout(request: Request, db: Session = Depends(get_db)):
     response = RedirectResponse(url="/login", status_code=302)
     response.delete_cookie("session_token")
     return response
-
-
-@router.get("/demo", response_class=RedirectResponse)
-async def demo_redirect():
-    """Redirect to live demo (public dashboard)."""
-    return RedirectResponse(url="https://app.argusmetrics.io/public/demo-argusmetrics-public", status_code=302)
-
-
-@router.get("/about", response_class=RedirectResponse)
-async def about_page():
-    """Redirect to marketing site."""
-    return RedirectResponse(url="https://argusmetrics.io/about", status_code=301)
-
-
-@router.get("/contact", response_class=RedirectResponse)
-async def contact_page():
-    """Redirect to marketing site."""
-    return RedirectResponse(url="https://argusmetrics.io/contact", status_code=301)
 
 
 @router.get("/login", response_class=HTMLResponse)
@@ -342,24 +327,6 @@ async def accept_invite_page(
             samesite="lax"
         )
         return response
-
-
-@router.get("/docs", response_class=RedirectResponse)
-async def docs_page():
-    """Redirect to marketing site."""
-    return RedirectResponse(url="https://argusmetrics.io/docs", status_code=301)
-
-
-@router.get("/privacy", response_class=RedirectResponse)
-async def privacy_page():
-    """Redirect to marketing site."""
-    return RedirectResponse(url="https://argusmetrics.io/privacy", status_code=301)
-
-
-@router.get("/terms", response_class=RedirectResponse)
-async def terms_page():
-    """Redirect to marketing site."""
-    return RedirectResponse(url="https://argusmetrics.io/terms", status_code=301)
 
 
 @router.get("/dashboard", response_class=HTMLResponse)
@@ -1158,63 +1125,6 @@ async def website_revenue_dashboard(
         "selected_range": range,
         "selected_currency": currency
     })
-
-
-@router.get("/billing", response_class=HTMLResponse)
-async def billing_page(
-    request: Request,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-    website_service: WebsiteService = Depends(get_website_service)
-):
-    """
-    Billing page - show current plan, usage, and upgrade options.
-    """
-    try:
-        from datetime import timezone
-        from sqlalchemy import text
-
-        # Calculate trial days remaining
-        trial_days_left = None
-        trial_expired = False
-        if current_user.trial_expires:
-            now = datetime.now(timezone.utc)
-            if now < current_user.trial_expires:
-                delta = current_user.trial_expires - now
-                trial_days_left = delta.days
-            else:
-                trial_expired = True
-
-        # Get usage stats from service
-        usage = website_service.get_usage_stats(current_user)
-        monthly_pageviews = usage["monthly_pageviews"]
-        pageview_limit = usage["pageview_limit"]
-        usage_percentage = usage["usage_percentage"]
-
-        # Format next reset date
-        next_reset = None
-        if current_user.monthly_reset_date:
-            next_reset = current_user.monthly_reset_date.strftime("%B %d, %Y")
-
-        return templates.TemplateResponse("dashboard/billing.html", {
-            "request": request,
-            "current_user": current_user,
-            "monthly_pageviews": monthly_pageviews,
-            "trial_days_left": trial_days_left,
-            "trial_expired": trial_expired,
-            "pageview_limit": pageview_limit,
-            "usage_percentage": usage_percentage,
-            "next_reset": next_reset,
-            "app_name": settings.APP_NAME,
-            "stripe_publishable_key": settings.STRIPE_PUBLISHABLE_KEY
-        })
-    
-    except Exception as e:
-        logger.error(f"Error rendering billing page: {e}", exc_info=True)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="An error occurred while loading the billing page"
-        )
 
 
 @router.get("/dashboard/website/{website_id}/export-csv")

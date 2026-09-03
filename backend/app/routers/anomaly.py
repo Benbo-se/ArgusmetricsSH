@@ -95,20 +95,8 @@ async def detect_anomalies(
     # Run anomaly detection
     anomalies = anomaly_service.run_all_detections(website_id, current_user)
 
-    # Check for quota exceeded
-    if anomalies and anomalies[0].get('type') == 'quota_exceeded':
-        raise HTTPException(
-            status_code=status.HTTP_402_PAYMENT_REQUIRED,
-            detail=anomalies[0]['message']
-        )
-
-    # Calculate remaining quota
-    ai_quota_remaining = (current_user.ai_chatbot_quota or 0) - (current_user.ai_chatbot_used_this_month or 0)
-
     return {
         "website_id": website_id,
         "anomalies_detected": len(anomalies),
         "anomalies": anomalies,
-        "ai_quota_used": 1 if anomalies else 0,
-        "ai_quota_remaining": max(0, ai_quota_remaining)
     }

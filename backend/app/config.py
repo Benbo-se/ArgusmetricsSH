@@ -36,11 +36,6 @@ class Settings(BaseSettings):
         default=None,
         description="Path to a MaxMind GeoLite2-Country.mmdb. If unset/absent, country resolution is skipped (no third-party IP lookups)."
     )
-    BILLING_ENFORCEMENT_ENABLED: bool = Field(
-        default=False,
-        description="Enforce plan pageview quotas + trial expiry on ingest. Off by default so self-host is not blocked."
-    )
-
     # Database
     DATABASE_URL: str = Field(
         default="postgresql://argusmetrics:argusmetrics@localhost/argusmetrics",
@@ -88,9 +83,6 @@ class Settings(BaseSettings):
     SENTRY_DSN: Optional[str] = Field(default=None, description="Sentry DSN for error tracking")
     LOG_LEVEL: str = Field(default="INFO", description="Logging level")
 
-    # External APIs
-    DEEPSEEK_API_KEY: Optional[str] = Field(default=None, description="DeepSeek API key")
-
     # Feature Flags
     ENABLE_REGISTRATION: bool = Field(default=True, description="Enable user registration")
     ENABLE_EMAIL_VERIFICATION: bool = Field(default=False, description="Require email verification")
@@ -98,14 +90,6 @@ class Settings(BaseSettings):
 
     # E2E Testing (allows test emails to get verify_url without DEBUG mode)
     E2E_TEST_SECRET: Optional[str] = Field(default=None, description="Secret for E2E tests to get verify_url for @test.argusmetrics.io emails")
-
-    # Stripe Configuration
-    STRIPE_SECRET_KEY: Optional[str] = Field(default=None, description="Stripe secret key")
-    STRIPE_PUBLISHABLE_KEY: Optional[str] = Field(default=None, description="Stripe publishable key")
-    STRIPE_WEBHOOK_SECRET: Optional[str] = Field(default=None, description="Stripe webhook signing secret")
-    STRIPE_PRICE_ID_STARTER: Optional[str] = Field(default=None, description="Stripe price ID for Starter plan ($4/mo)")
-    STRIPE_PRICE_ID_PRO: Optional[str] = Field(default=None, description="Stripe price ID for Pro plan ($7/mo)")
-    STRIPE_PRICE_ID_BUSINESS: Optional[str] = Field(default=None, description="Stripe price ID for Business plan ($17/mo)")
 
     model_config = SettingsConfigDict(
         env_file=".env",

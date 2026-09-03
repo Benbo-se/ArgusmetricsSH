@@ -166,10 +166,10 @@ async def signup(
             "email": "user@example.com"
         }
     """
-    logger.info(f"Signup request received for email: {request.email}, plan: {request.plan}")
+    logger.info(f"Signup request received for email: {request.email}")
 
     try:
-        result = auth_service.signup_user(email=request.email, plan=request.plan, e2e_secret=x_e2e_secret)
+        result = auth_service.signup_user(email=request.email, e2e_secret=x_e2e_secret)
 
         return SignupResponse(
             message=result["message"],
@@ -467,95 +467,3 @@ async def get_user_sessions(
         )
 
 
-@router.get("/me/monthly-usage")
-async def get_monthly_usage(
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-) -> dict:
-    """
-    Get current month's pageview usage for authenticated user.
-
-    Calculates real-time pageview count from all user's websites
-    for the current month. Used for auto-refreshing usage displays.
-
-    Args:
-        current_user: Current authenticated user (from dependency)
-        db: Database session
-
-    Returns:
-        dict: Monthly usage information
-
-    Example:
-        GET /auth/me/monthly-usage
-        Authorization: Bearer a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6
-
-        Response:
-        {
-            "monthly_pageviews": 255,
-            "pageview_limit": 10000,
-            "usage_percentage": 2,
-            "plan": "free"
-        }
-    """
-    logger.debug(f"Monthly usage request for: {current_user.email}")
-
-    try:
-        from sqlalchemy import text
-        from datetime import datetime, timezone
-
-        # Get user's websites via team_members
-        website_result = db.execute(text("""
-            SELECT DISTINCT w.id
-            FROM websites w
-            JOIN team_members tm ON w.id = tm.website_id
-            WHERE tm.user_email = :email
-        """), {"email": current_user.email})
-
-        website_ids = [row[0] for row in website_result.fetchall()]
-
-        # Get start of current month
-        now = datetime.now(timezone.utc)
-        month_start = datetime(now.year, now.month, 1, tzinfo=timezone.utc)
-
-        # Count pageviews this month
-        monthly_pageviews = 0
-        if website_ids:
-            result = db.execute(text("""
-                SELECT COUNT(*)
-                FROM pageviews
-                WHERE website_id = ANY(:website_ids)
-                AND timestamp >= :month_start
-            """), {
-                "website_ids": website_ids,
-                "month_start": month_start
-            })
-            monthly_pageviews = result.scalar() or 0
-
-        # Determine pageview limit based on plan
-        pageview_limit = 10000  # FREE
-        if current_user.plan == 'starter':
-            pageview_limit = 100000
-        elif current_user.plan == 'pro':
-            pageview_limit = 500000
-        elif current_user.plan == 'business':
-            pageview_limit = 1000000
-
-        # Calculate usage percentage
-        usage_percentage = 0
-        if pageview_limit > 0:
-            usage_percentage = min(100, int((monthly_pageviews / pageview_limit) * 100))
-
-        return {
-            "monthly_pageviews": monthly_pageviews,
-            "pageview_limit": pageview_limit,
-            "usage_percentage": usage_percentage,
-            "plan": current_user.plan,
-            "website_count": len(website_ids)
-        }
-
-    except Exception as e:
-        logger.error(f"Error getting monthly usage: {e}", exc_info=True)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="An error occurred while fetching usage data."
-        )

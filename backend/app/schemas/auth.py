@@ -16,12 +16,10 @@ class SignupRequest(BaseModel):
 
     Attributes:
         email: User's email address (validated as proper email format)
-        plan: Subscription plan (free, starter, pro, business)
 
     Example:
         {
-            "email": "user@example.com",
-            "plan": "free"
+            "email": "user@example.com"
         }
     """
     email: EmailStr = Field(
@@ -29,26 +27,11 @@ class SignupRequest(BaseModel):
         description="User's email address for registration",
         example="user@example.com"
     )
-    plan: Optional[str] = Field(
-        default="free",
-        description="Subscription plan (free/starter/pro/business)",
-        example="free"
-    )
-
-    @field_validator('plan')
-    @classmethod
-    def validate_plan(cls, v):
-        """Validate that plan is one of the allowed values."""
-        allowed = ['free', 'starter', 'pro', 'business']
-        if v not in allowed:
-            raise ValueError(f'Plan must be one of: {allowed}')
-        return v
 
     class Config:
         json_schema_extra = {
             "example": {
-                "email": "user@example.com",
-                "plan": "free"
+                "email": "user@example.com"
             }
         }
 

@@ -49,11 +49,7 @@ services:
       # Värd-nginx + web-containern sitter framför → lita på docker-nätets XFF.
       TRUSTED_PROXIES: ${TRUSTED_PROXIES:-}
       GEOIP_DB_PATH: ${GEOIP_DB_PATH:-}
-      BILLING_ENFORCEMENT_ENABLED: ${BILLING_ENFORCEMENT_ENABLED:-false}
       LETTERMINT_API_KEY: ${LETTERMINT_API_KEY:-}
-      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
-      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
-      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
     depends_on:
       postgres:
         condition: service_healthy

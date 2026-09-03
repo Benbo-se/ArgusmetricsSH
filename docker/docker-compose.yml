@@ -35,6 +35,9 @@ services:
       ENVIRONMENT: ${ENVIRONMENT:-development}
       DEBUG: ${DEBUG:-false}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:8020}
+      # Without this, magic-link/invite emails would mint links to the default
+      # BASE_URL (a domain this instance does not own).
+      BASE_URL: ${BASE_URL:-http://localhost:8020}
     ports:
       # Loopback-only: backend reachable from this host, never from the LAN.
       - "127.0.0.1:8020:8020"

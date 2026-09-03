@@ -34,14 +34,12 @@ Tracking + ingest, dashboards, real-time visitors, goals, funnels, e-commerce/re
 |--------|-------|----------|
 | Country stats | `GEOIP_DB_PATH` → a MaxMind GeoLite2-Country.mmdb | country = "Unknown"; **no third-party IP lookups ever** |
 | Email (magic-link login, reports) | `LETTERMINT_API_KEY` | login links only shown in `DEBUG` mode |
-| AI chatbot / insights | `DEEPSEEK_API_KEY` | AI features disabled |
-| Paid plans | `STRIPE_*` | billing disabled (not needed for personal use) |
 
 To enable country stats, download `GeoLite2-Country.mmdb` (free MaxMind account) to `backend/app/data/` and set `GEOIP_DB_PATH=/app/data/GeoLite2-Country.mmdb`.
 
 ## Configuration
 
-All config is via environment variables (see `docker/.env.example`). Only `SECRET_KEY` is required. Notable hardening flags: `TRUSTED_PROXIES` (only trust `X-Forwarded-For` from listed proxies), `BILLING_ENFORCEMENT_ENABLED` (keep `false` for personal use so your own traffic is never rate-limited).
+All config is via environment variables (see `docker/.env.example`). Only `SECRET_KEY` is required. Notable hardening flag: `TRUSTED_PROXIES` (only trust `X-Forwarded-For` from listed proxies).
 
 ## Tech stack
 

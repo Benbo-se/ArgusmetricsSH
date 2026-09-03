@@ -571,28 +571,6 @@ class WebsiteService:
             logger.error(f"Error getting monthly pageviews: {e}", exc_info=True)
             return 0
 
-    def get_usage_stats(self, user) -> Dict:
-        """Get plan usage stats for billing display."""
-        websites = self.get_user_websites(user.email)
-        website_ids = [w.id for w in websites] if websites else []
-        monthly_pageviews = self.get_monthly_pageviews(website_ids)
-
-        pageview_limit = 10000  # Free plan default
-        if user.plan == 'starter':
-            pageview_limit = 100000
-        elif user.plan == 'pro':
-            pageview_limit = 500000
-
-        usage_percentage = 0
-        if pageview_limit > 0:
-            usage_percentage = min(100, int((monthly_pageviews / pageview_limit) * 100))
-
-        return {
-            "monthly_pageviews": monthly_pageviews,
-            "pageview_limit": pageview_limit,
-            "usage_percentage": usage_percentage,
-        }
-
     def get_public_website(self, share_token: str) -> Optional[Website]:
         """Get a publicly shared website by its share token."""
         try:

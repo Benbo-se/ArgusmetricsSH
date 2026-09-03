@@ -16,7 +16,6 @@ from sqlalchemy import func, and_
 from app.models.pageview import Pageview
 from app.models.website import Website
 from app.models.user import User
-from app.services.ai_quota_service import check_ai_quota_available, consume_ai_quota
 
 logger = logging.getLogger(__name__)
 
@@ -279,15 +278,6 @@ class AnomalyDetectionService:
         Returns:
             list: List of detected anomalies
         """
-        # Check AI quota
-        if not check_ai_quota_available(user, amount=1):
-            logger.warning(f"AI quota exhausted for user {user.email}")
-            return [{
-                'type': 'quota_exceeded',
-                'severity': 'info',
-                'message': 'AI quota exhausted. Upgrade to continue using anomaly detection.'
-            }]
-
         anomalies = []
 
         # Run all detection methods
@@ -302,11 +292,6 @@ class AnomalyDetectionService:
         for anomaly in detections:
             if anomaly:
                 anomalies.append(anomaly)
-
-        # Consume AI quota if anomalies were detected
-        if anomalies:
-            consume_ai_quota(user, amount=1)
-            self.db.commit()
 
         logger.info(f"Anomaly detection for website {website_id}: {len(anomalies)} anomalies found")
 
