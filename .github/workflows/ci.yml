@@ -60,6 +60,26 @@ jobs:
       - name: Migrera (alembic upgrade head mot tom databas = fresh-install-testet)
         working-directory: backend
         run: alembic upgrade head
+      - name: Cross-tenant-isolering (RLS) mot en icke-priviligierad roll
+        env:
+          PGPASSWORD: argus
+        run: |
+          # Policies never apply to a table's owner, and CI migrates as the
+          # owner, so the test has to connect as someone else. Without this the
+          # assertions would pass while proving nothing; the test itself checks
+          # that its role is neither owner, superuser nor BYPASSRLS and fails
+          # loudly if that stops being true.
+          psql -h localhost -U argus -d argus_ci -v ON_ERROR_STOP=1 <<'SQL'
+          CREATE ROLE rls_test LOGIN PASSWORD 'rls_test';
+          GRANT CONNECT ON DATABASE argus_ci TO rls_test;
+          GRANT USAGE ON SCHEMA public TO rls_test;
+          GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO rls_test;
+          GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO rls_test;
+          SQL
+          cd backend
+          RLS_TEST_DATABASE_URL=postgresql://rls_test:rls_test@localhost:5432/argus_ci \
+            python -m pytest tests/test_tenant_isolation.py -v
+
       - name: Starta appen (prod-läge, schemat kommer från migrationerna)
         working-directory: backend
         run: |
