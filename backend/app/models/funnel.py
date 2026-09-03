@@ -61,6 +61,13 @@ class FunnelEvent(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     funnel_id = Column(Integer, ForeignKey("funnels.id", ondelete="CASCADE"), nullable=False, index=True)
+
+    # Denormalised from websites.user_email so row-level security policies can
+    # filter on an indexed column instead of joining through websites on every
+    # row. Maintained by a database trigger, not by application code: this is a
+    # security-relevant value, and a trigger cannot be forgotten by a new code
+    # path or a manual fix over psql. Do not set it by hand.
+    owner_email = Column(String(255), nullable=True, index=True)
     visitor_id = Column(String(255), nullable=False, index=True)
     step_number = Column(Integer, nullable=False)
     step_name = Column(String(255), nullable=False)

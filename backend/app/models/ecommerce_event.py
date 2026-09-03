@@ -51,6 +51,13 @@ class EcommerceEvent(Base):
     id = Column(Integer, primary_key=True, index=True)
     website_id = Column(Integer, ForeignKey("websites.id", ondelete="CASCADE"), nullable=False, index=True)
 
+    # Denormalised from websites.user_email so row-level security policies can
+    # filter on an indexed column instead of joining through websites on every
+    # row. Maintained by a database trigger, not by application code: this is a
+    # security-relevant value, and a trigger cannot be forgotten by a new code
+    # path or a manual fix over psql. Do not set it by hand.
+    owner_email = Column(String(255), nullable=True, index=True)
+
     # Event details
     event_type = Column(String(50), nullable=False, index=True)
     event_name = Column(String(255), nullable=False)

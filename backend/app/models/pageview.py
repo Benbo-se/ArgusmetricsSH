@@ -46,6 +46,13 @@ class Pageview(Base):
     # are deliberately absent.
     id = Column(Integer, primary_key=True, index=True)
     website_id = Column(Integer, ForeignKey("websites.id", ondelete="CASCADE"), nullable=False)
+
+    # Denormalised from websites.user_email so row-level security policies can
+    # filter on an indexed column instead of joining through websites on every
+    # row. Maintained by a database trigger, not by application code: this is a
+    # security-relevant value, and a trigger cannot be forgotten by a new code
+    # path or a manual fix over psql. Do not set it by hand.
+    owner_email = Column(String(255), nullable=True, index=True)
     path = Column(String(2048), nullable=False)
     referrer = Column(String(2048), nullable=True)
     country = Column(String(2), nullable=True)
