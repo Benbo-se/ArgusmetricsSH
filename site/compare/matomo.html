@@ -6,18 +6,18 @@
     <title>Argusmetrics vs Matomo - Argusmetrics</title>
     <meta name="theme-color" content="#2563eb">
     <link rel="canonical" href="https://argusmetrics.io/compare/matomo">
-    <meta name="description" content="Argusmetrics vs Matomo — both are self-hosted and GDPR compliant, but Argusmetrics ships as a single Docker stack instead of a PHP/MySQL install to maintain.">
+    <meta name="description" content="Argusmetrics vs Matomo, both are self-hosted and GDPR compliant, but Argusmetrics ships as a single Docker stack instead of a PHP/MySQL install to maintain.">
     <meta property="og:site_name" content="Argusmetrics">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://argusmetrics.io/compare/matomo">
     <meta property="og:title" content="Argusmetrics vs Matomo - Argusmetrics">
-    <meta property="og:description" content="Argusmetrics vs Matomo — both are self-hosted and GDPR compliant, but Argusmetrics ships as a single Docker stack instead of a PHP/MySQL install to maintain.">
+    <meta property="og:description" content="Argusmetrics vs Matomo, both are self-hosted and GDPR compliant, but Argusmetrics ships as a single Docker stack instead of a PHP/MySQL install to maintain.">
     <meta property="og:image" content="https://argusmetrics.io/static/img/og-image.png">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="Argusmetrics vs Matomo - Argusmetrics">
-    <meta name="twitter:description" content="Both self-hosted and GDPR compliant — Argusmetrics is a single Docker stack instead of a PHP/MySQL install.">
+    <meta name="twitter:description" content="Both self-hosted and GDPR compliant, Argusmetrics is a single Docker stack instead of a PHP/MySQL install.">
     <meta name="twitter:image" content="https://argusmetrics.io/static/img/og-image.png">
     <link rel="icon" type="image/x-icon" href="../static/favicon.ico">
     <link rel="icon" type="image/png" sizes="32x32" href="../static/img/favicon-32.png">
@@ -197,7 +197,7 @@
                     Self-hosted analytics,<br>without the ops burden
                 </h1>
                 <p class="text-xl text-gray-500 max-w-2xl mx-auto">
-                    Both are free, open source and self-hosted. But Matomo means a PHP/MySQL stack, cron jobs and constant patching. Argusmetrics is a single Docker stack you bring up in minutes &mdash; so you spend your time on your actual work.
+                    Both are free, open source and self-hosted. But Matomo means a PHP/MySQL stack, cron jobs and constant patching. Argusmetrics is a single Docker stack you bring up in minutes, so you spend your time on your actual work.
                 </p>
                 <div class="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
                     <a href="https://github.com/Benbo-se/ArgusmetricsSH" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-lg transition-colors">
@@ -225,27 +225,27 @@
                         <ul class="space-y-3 text-sm text-gray-600">
                             <li class="flex items-start gap-3">
                                 <span class="w-5 h-5 rounded-full bg-orange-100 text-orange-600 text-xs flex items-center justify-center font-bold flex-shrink-0 mt-0.5">1</span>
-                                <span><strong class="text-gray-800">Provision a server</strong> — Choose a VPS, configure firewall, set up SSH. (1–2 hours)</span>
+                                <span><strong class="text-gray-800">Provision a server</strong>: Choose a VPS, configure firewall, set up SSH. (1–2 hours)</span>
                             </li>
                             <li class="flex items-start gap-3">
                                 <span class="w-5 h-5 rounded-full bg-orange-100 text-orange-600 text-xs flex items-center justify-center font-bold flex-shrink-0 mt-0.5">2</span>
-                                <span><strong class="text-gray-800">Install the stack</strong> — PHP, MySQL/MariaDB, web server (Nginx or Apache), Matomo itself. (2–4 hours)</span>
+                                <span><strong class="text-gray-800">Install the stack</strong>: PHP, MySQL/MariaDB, web server (Nginx or Apache), Matomo itself. (2–4 hours)</span>
                             </li>
                             <li class="flex items-start gap-3">
                                 <span class="w-5 h-5 rounded-full bg-orange-100 text-orange-600 text-xs flex items-center justify-center font-bold flex-shrink-0 mt-0.5">3</span>
-                                <span><strong class="text-gray-800">Configure cron jobs</strong> — Archive reports, process queues. Debug when they fail silently. (1–3 hours)</span>
+                                <span><strong class="text-gray-800">Configure cron jobs</strong>: Archive reports, process queues. Debug when they fail silently. (1–3 hours)</span>
                             </li>
                             <li class="flex items-start gap-3">
                                 <span class="w-5 h-5 rounded-full bg-orange-100 text-orange-600 text-xs flex items-center justify-center font-bold flex-shrink-0 mt-0.5">4</span>
-                                <span><strong class="text-gray-800">Apply security updates</strong> — Regularly patch PHP, the OS, Matomo core, and plugins. (~2 hours/month ongoing)</span>
+                                <span><strong class="text-gray-800">Apply security updates</strong>: Regularly patch PHP, the OS, Matomo core, and plugins. (~2 hours/month ongoing)</span>
                             </li>
                             <li class="flex items-start gap-3">
                                 <span class="w-5 h-5 rounded-full bg-orange-100 text-orange-600 text-xs flex items-center justify-center font-bold flex-shrink-0 mt-0.5">5</span>
-                                <span><strong class="text-gray-800">Handle database bloat</strong> — Matomo stores granular log data. At scale the database grows aggressively and needs manual archiving. (ongoing)</span>
+                                <span><strong class="text-gray-800">Handle database bloat</strong>: Matomo stores granular log data. At scale the database grows aggressively and needs manual archiving. (ongoing)</span>
                             </li>
                             <li class="flex items-start gap-3">
                                 <span class="w-5 h-5 rounded-full bg-orange-100 text-orange-600 text-xs flex items-center justify-center font-bold flex-shrink-0 mt-0.5">6</span>
-                                <span><strong class="text-gray-800">Set up backups</strong> — Database backups, config backups, off-site replication. (2–4 hours to do properly)</span>
+                                <span><strong class="text-gray-800">Set up backups</strong>: Database backups, config backups, off-site replication. (2–4 hours to do properly)</span>
                             </li>
                         </ul>
                         <div class="mt-5 pt-4 border-t border-orange-100 flex items-center gap-2 text-orange-700 text-sm font-semibold">
@@ -262,21 +262,21 @@
                         <ul class="space-y-3 text-sm text-gray-600">
                             <li class="flex items-start gap-3">
                                 <span class="w-5 h-5 rounded-full bg-blue-100 text-blue-600 text-xs flex items-center justify-center font-bold flex-shrink-0 mt-0.5">1</span>
-                                <span><strong class="text-gray-800">Clone &amp; run</strong> — <code class="bg-gray-100 px-1 rounded text-xs">git clone</code> the repo and <code class="bg-gray-100 px-1 rounded text-xs">docker compose up -d</code>. One self-contained stack, no separate PHP/MySQL install. (a few minutes)</span>
+                                <span><strong class="text-gray-800">Clone &amp; run</strong>, <code class="bg-gray-100 px-1 rounded text-xs">git clone</code> the repo and <code class="bg-gray-100 px-1 rounded text-xs">docker compose up -d</code>. One self-contained stack, no separate PHP/MySQL install. (a few minutes)</span>
                             </li>
                             <li class="flex items-start gap-3">
                                 <span class="w-5 h-5 rounded-full bg-blue-100 text-blue-600 text-xs flex items-center justify-center font-bold flex-shrink-0 mt-0.5">2</span>
-                                <span><strong class="text-gray-800">Add your site</strong> — Open your dashboard and enter your domain name. (30 seconds)</span>
+                                <span><strong class="text-gray-800">Add your site</strong>: Open your dashboard and enter your domain name. (30 seconds)</span>
                             </li>
                             <li class="flex items-start gap-3">
                                 <span class="w-5 h-5 rounded-full bg-blue-100 text-blue-600 text-xs flex items-center justify-center font-bold flex-shrink-0 mt-0.5">3</span>
-                                <span><strong class="text-gray-800">Add the script tag</strong> — One &lt;script&gt; line in your &lt;head&gt;, pointing at your instance. (2 minutes)</span>
+                                <span><strong class="text-gray-800">Add the script tag</strong>: One &lt;script&gt; line in your &lt;head&gt;, pointing at your instance. (2 minutes)</span>
                             </li>
                             <li class="flex items-start gap-3">
                                 <span class="w-5 h-5 rounded-full bg-green-100 text-green-600 text-xs flex items-center justify-center font-bold flex-shrink-0 mt-0.5">
                                     <i class="fas fa-check text-xs"></i>
                                 </span>
-                                <span><strong class="text-gray-800">Done</strong> — Data starts flowing immediately. Updates are a single <code class="bg-gray-100 px-1 rounded text-xs">docker compose pull</code> — no cron jobs, no archiving rituals.</span>
+                                <span><strong class="text-gray-800">Done</strong>: Data starts flowing immediately. Updates are a single <code class="bg-gray-100 px-1 rounded text-xs">docker compose pull</code>, no cron jobs, no archiving rituals.</span>
                             </li>
                         </ul>
                         <div class="mt-5 pt-4 border-t border-blue-100 flex items-center gap-2 text-blue-700 text-sm font-semibold">
@@ -393,7 +393,7 @@
                             </li>
                             <li class="flex items-start gap-3">
                                 <i class="fas fa-check text-orange-400 flex-shrink-0 mt-0.5"></i>
-                                <span>You need advanced features like heatmaps, session recordings, A/B testing, and funnel visualizations — Matomo has a broad plugin ecosystem.</span>
+                                <span>You need advanced features like heatmaps, session recordings, A/B testing, and funnel visualizations, Matomo has a broad plugin ecosystem.</span>
                             </li>
                             <li class="flex items-start gap-3">
                                 <i class="fas fa-check text-orange-400 flex-shrink-0 mt-0.5"></i>
@@ -411,7 +411,7 @@
                             </li>
                             <li class="flex items-start gap-3">
                                 <i class="fas fa-check text-blue-500 flex-shrink-0 mt-0.5"></i>
-                                <span>You want GDPR compliance by default — no additional configuration, no cookie consent popup, no legal grey area.</span>
+                                <span>You want GDPR compliance by default, no additional configuration, no cookie consent popup, no legal grey area.</span>
                             </li>
                             <li class="flex items-start gap-3">
                                 <i class="fas fa-check text-blue-500 flex-shrink-0 mt-0.5"></i>

@@ -278,13 +278,14 @@
                     <section id="getting-started" class="mb-12">
                         <h2 class="text-3xl font-bold text-gray-900 mb-4 pb-2 border-b-2 border-blue-600">Getting Started</h2>
                         <p class="text-gray-700 mb-4">
-                            Argusmetrics is a free, open-source, self-hosted privacy-first web analytics platform (AGPL-3.0).
-                            You run it on your own server &mdash; your data never leaves your infrastructure.
+                            Argusmetrics is privacy-first web analytics: no cookies, no consent banner,
+                            and no personal data collected about your visitors. The source is open under
+                            the AGPL-3.0.
                         </p>
                         <ol class="list-decimal list-inside space-y-2 text-gray-700 ml-4">
-                            <li>Deploy Argusmetrics on your own server (see <a href="https://github.com/Benbo-se/ArgusmetricsSH" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">the GitHub repo</a> for the Docker quickstart)</li>
-                            <li>Add your website in your dashboard</li>
-                            <li>Install the tracking script (pointing at your instance)</li>
+                            <li><a href="/signup" class="text-blue-600 hover:underline">Create an account</a> and verify your email address</li>
+                            <li>Add your website in the dashboard to get a tracking code</li>
+                            <li>Paste the tracking script into your site's <code class="bg-gray-100 px-1 rounded">&lt;head&gt;</code></li>
                             <li>Start seeing data in real-time</li>
                         </ol>
                         <div class="bg-blue-50 border-l-4 border-blue-600 p-4 mt-4">
@@ -536,9 +537,9 @@
                                     <!-- Step 1: Deploy & sign in -->
                                     <h4 class="font-semibold text-gray-900 mb-2 text-sm">Step 1: Deploy Argusmetrics &amp; sign in</h4>
                                     <ol class="list-decimal list-inside space-y-1 ml-4 mb-4 text-sm text-gray-700">
-                                        <li>Self-host Argusmetrics on your own server &mdash; see <a href="https://github.com/Benbo-se/ArgusmetricsSH" class="text-blue-600 hover:underline font-medium" target="_blank" rel="noopener noreferrer">the GitHub repo</a> for the Docker quickstart</li>
+                                        <li>Self-host Argusmetrics on your own server, see <a href="https://github.com/Benbo-se/ArgusmetricsSH" class="text-blue-600 hover:underline font-medium" target="_blank" rel="noopener noreferrer">the GitHub repo</a> for the Docker quickstart</li>
                                         <li>Open your instance at <code class="bg-gray-200 px-1 rounded">https://your-argusmetrics-instance.com</code> and sign in</li>
-                                        <li>It's free and open source (AGPL-3.0) &mdash; unlimited sites and pageviews</li>
+                                        <li>It's free and open source (AGPL-3.0), unlimited sites and pageviews</li>
                                     </ol>
 
                                     <!-- Step 2: Add Website -->
@@ -593,13 +594,13 @@
 
                                     <div class="bg-green-50 border-l-4 border-green-600 p-3 mb-4">
                                         <p class="text-sm text-green-900">
-                                            <strong>Done!</strong> Visit your site and check your dashboard on your Argusmetrics instance — data appears in real-time.
+                                            <strong>Done!</strong> Visit your site and check your dashboard on your Argusmetrics instance, data appears in real-time.
                                         </p>
                                     </div>
 
                                     <div class="bg-gray-100 border-l-4 border-gray-400 p-3 mb-4">
                                         <p class="text-sm text-gray-700">
-                                            <strong>Tip:</strong> Argusmetrics is cookieless and GDPR-compliant — you can remove any cookie consent plugin (e.g. Complianz, CookieYes) since it is no longer needed.
+                                            <strong>Tip:</strong> Argusmetrics is cookieless and GDPR-compliant. You can remove any cookie consent plugin (e.g. Complianz, CookieYes) since it is no longer needed.
                                         </p>
                                     </div>
 
@@ -777,7 +778,7 @@ export default function Document() {
 &gt;&lt;/script&gt;</code></pre>
                                     </div>
 
-                                    <p class="text-sm text-gray-700 mb-3">Without <code class="bg-gray-200 px-1 rounded">data-api-endpoint</code>, the script sends POST requests to your static host (e.g., GitHub Pages), which returns a 405 error. The script catches errors silently, so you won't see any error messages — tracking just doesn't work.</p>
+                                    <p class="text-sm text-gray-700 mb-3">Without <code class="bg-gray-200 px-1 rounded">data-api-endpoint</code>, the script sends POST requests to your static host (e.g., GitHub Pages), which returns a 405 error. The script catches errors silently, so you won't see any error messages, tracking just doesn't work.</p>
 
                                     <div class="bg-green-50 border-l-4 border-green-600 p-3 rounded">
                                         <p class="text-sm text-green-800">
@@ -854,7 +855,7 @@ export default function Document() {
                         <h3 class="text-xl font-semibold text-gray-900 mb-3 mt-6">Example: Track a Visitor's Plan on Your Site</h3>
                         <div class="bg-gray-900 text-gray-100 p-4 rounded-lg mb-4 overflow-x-auto">
                             <pre><code>&lt;script&gt;
-  // Track pageview with this visitor's plan on YOUR site (not Argusmetrics' — Argusmetrics has no plans, it's free and self-hosted)
+  // Track pageview with this visitor's plan on YOUR site (not Argusmetrics', Argusmetrics has no plans, it's free and self-hosted)
   window.argus.track({
     plan: 'premium',
     userId: '12345',
@@ -1018,14 +1019,14 @@ export default function Document() {
 
                         <h3 class="text-xl font-semibold text-gray-900 mb-3 mt-6">What You See in the Dashboard</h3>
                         <ul class="list-disc list-inside space-y-2 text-gray-700 ml-4 mb-4">
-                            <li><strong>UTM Campaigns</strong> &mdash; Table showing source, medium, campaign name, and visitor count</li>
-                            <li><strong>Traffic Channels</strong> &mdash; Chart breaking down Paid vs Organic vs Direct vs Social traffic</li>
-                            <li><strong>Goals</strong> &mdash; Combine with conversion goals to see which campaigns actually convert</li>
+                            <li><strong>UTM Campaigns</strong>: Table showing source, medium, campaign name, and visitor count</li>
+                            <li><strong>Traffic Channels</strong>: Chart breaking down Paid vs Organic vs Direct vs Social traffic</li>
+                            <li><strong>Goals</strong>: Combine with conversion goals to see which campaigns actually convert</li>
                         </ul>
 
                         <h3 class="text-xl font-semibold text-gray-900 mb-3 mt-6">Combining with Goals</h3>
                         <p class="text-gray-700 mb-4">
-                            Set up a conversion goal (e.g., "signup") and then check the UTM Campaigns section to see which ad campaigns are driving actual conversions &mdash; not just clicks.
+                            Set up a conversion goal (e.g., "signup") and then check the UTM Campaigns section to see which ad campaigns are driving actual conversions, not just clicks.
                         </p>
 
                         <div class="bg-yellow-50 border-l-4 border-yellow-600 p-4 mb-4">
@@ -1233,12 +1234,12 @@ Content-Type: application/json
 
                         <h3 class="text-xl font-semibold text-gray-900 mb-3 mt-6">What You See in the Dashboard</h3>
                         <ul class="list-disc list-inside space-y-2 text-gray-700 ml-4 mb-4">
-                            <li><strong>Total Revenue</strong> &mdash; Sum of all purchases in the selected period</li>
-                            <li><strong>Total Transactions</strong> &mdash; Number of completed purchases</li>
-                            <li><strong>Average Order Value</strong> &mdash; Revenue / transactions</li>
-                            <li><strong>Top Products</strong> &mdash; Best-selling products by revenue</li>
-                            <li><strong>Revenue Chart</strong> &mdash; Revenue over time (daily)</li>
-                            <li><strong>Conversion Funnel</strong> &mdash; Drop-off rates from view to purchase</li>
+                            <li><strong>Total Revenue</strong>: Sum of all purchases in the selected period</li>
+                            <li><strong>Total Transactions</strong>: Number of completed purchases</li>
+                            <li><strong>Average Order Value</strong>: Revenue / transactions</li>
+                            <li><strong>Top Products</strong>: Best-selling products by revenue</li>
+                            <li><strong>Revenue Chart</strong>: Revenue over time (daily)</li>
+                            <li><strong>Conversion Funnel</strong>: Drop-off rates from view to purchase</li>
                         </ul>
 
                         <div class="bg-blue-50 border-l-4 border-blue-600 p-4 mb-4">
