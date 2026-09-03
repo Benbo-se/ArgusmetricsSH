@@ -171,30 +171,44 @@ async def get_current_user_or_token(
         HTTPException: If authentication fails
     """
     from app.models.api_token import ApiToken
-    from app.models.website import Website
     from app.routers.auth import get_auth_service
     from app.services.token_service import TokenService
+    from app.services.website_lookup import resolve_api_token
 
     # Try API token first
     if x_api_token:
         token_hash = TokenService.hash_token(x_api_token)
-        token_obj = db.query(ApiToken).filter(ApiToken.token == token_hash).first()
-        if token_obj:
-            # Update last_used_at
-            token_obj.last_used_at = datetime.now(timezone.utc)
-            db.commit()
 
-            # Get website and user
-            website = db.query(Website).filter(Website.id == token_obj.website_id).first()
-            if website:
-                user = db.query(User).filter(User.email == website.user_email).first()
-                if user:
-                    # Scope marker: an API token is minted FOR ONE WEBSITE and
-                    # must not unlock the owner's other sites. Endpoints check
-                    # this via _enforce_token_scope.
-                    user._api_token_website_id = token_obj.website_id
-                    logger.debug(f"Authenticated via API token (website {token_obj.website_id}): {user.email}")
-                    return user
+        # Resolved through a SECURITY DEFINER function, because this runs
+        # before any row-level security context exists. Reading the token's
+        # website with a plain query is exactly what a context-less request
+        # cannot do once websites is policied.
+        owner = resolve_api_token(db, token_hash)
+
+        if owner:
+            user = db.query(User).filter(User.email == owner.owner_email).first()
+            if user:
+                # Declare who this request acts as. Without this the request
+                # carries no context, matches no policy, and silently reads
+                # nothing from every policied table.
+                set_rls_context(db, context="user", user_email=user.email)
+
+                token_obj = db.query(ApiToken).filter(
+                    ApiToken.token == token_hash
+                ).first()
+                if token_obj:
+                    token_obj.last_used_at = datetime.now(timezone.utc)
+                    db.commit()
+
+                # Scope marker: an API token is minted FOR ONE WEBSITE and
+                # must not unlock the owner's other sites. Endpoints check
+                # this via _enforce_token_scope.
+                user._api_token_website_id = owner.website_id
+                logger.debug(
+                    f"Authenticated via API token (website {owner.website_id}): "
+                    f"{mask_email(user.email)}"
+                )
+                return user
 
         logger.warning(f"Invalid API token provided")
         raise HTTPException(

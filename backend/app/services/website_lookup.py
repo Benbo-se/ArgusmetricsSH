@@ -102,6 +102,34 @@ def resolve_share_token(db: Session, share_token: str) -> Optional[PublicWebsite
     )
 
 
+@dataclass(frozen=True)
+class ApiTokenOwner:
+    """Who an API token belongs to, and which website it is scoped to."""
+
+    website_id: int
+    owner_email: str
+
+
+def resolve_api_token(db: Session, token_hash: str) -> Optional[ApiTokenOwner]:
+    """The website and owner behind an API token, or None.
+
+    Runs before any context is declared, which is the whole point: this is how
+    an API-token request learns who it is acting as, so it cannot depend on
+    already knowing.
+    """
+    row = db.execute(
+        text(
+            "SELECT website_id, owner_email FROM argus_resolve_api_token(:hash)"
+        ),
+        {"hash": token_hash},
+    ).first()
+
+    if row is None:
+        return None
+
+    return ApiTokenOwner(website_id=row.website_id, owner_email=row.owner_email)
+
+
 def tracking_code_exists(db: Session, tracking_code: str) -> bool:
     """Whether any website already uses this code.
 
