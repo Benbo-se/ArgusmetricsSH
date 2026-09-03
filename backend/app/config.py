@@ -86,6 +86,17 @@ class Settings(BaseSettings):
     RATE_LIMIT_PER_MINUTE: int = Field(default=60, description="Requests per minute per IP")
     RATE_LIMIT_PER_HOUR: int = Field(default=1000, description="Requests per hour per IP")
     RATE_LIMIT_PER_DAY: int = Field(default=10000, description="Requests per day per IP")
+    # Signup, login, verification and password reset, throttled harder than the
+    # rest because they are what a brute-force or email-bombing run targets.
+    # Configurable so an end-to-end suite, which drives dozens of signups from
+    # one address, can raise it without the limiter being removed from the code
+    # it is meant to protect. test_auth_rate_limit proves it still works.
+    AUTH_RATE_LIMIT_ATTEMPTS: int = Field(
+        default=10, description="Auth attempts allowed per IP per window"
+    )
+    AUTH_RATE_LIMIT_WINDOW_SECONDS: int = Field(
+        default=300, description="Window for AUTH_RATE_LIMIT_ATTEMPTS"
+    )
 
     # Analytics & Monitoring
     SENTRY_DSN: Optional[str] = Field(default=None, description="Sentry DSN for error tracking")

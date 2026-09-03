@@ -20,7 +20,11 @@ async def _auth_rate_limit(request: Request):
     """Throttle auth endpoints per client IP (anti brute-force / email-bombing)."""
     from app.middleware.rate_limit import rate_limiter
     ip = get_client_ip(request)
-    if rate_limiter.is_rate_limited(f"auth:{ip}", limit=10, window_seconds=300):
+    if rate_limiter.is_rate_limited(
+        f"auth:{ip}",
+        limit=settings.AUTH_RATE_LIMIT_ATTEMPTS,
+        window_seconds=settings.AUTH_RATE_LIMIT_WINDOW_SECONDS,
+    ):
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail="Too many attempts. Please try again in a few minutes.",
@@ -537,7 +541,7 @@ def _dual_rate_limit(request: Request, email: str, scope: str,
         )
 
 
-@router.post("/login")
+@router.post("/login", dependencies=[Depends(_auth_rate_limit)])
 async def login(
     body: LoginRequest,
     request: Request,
@@ -567,7 +571,7 @@ async def login(
     return response
 
 
-@router.post("/verify-code")
+@router.post("/verify-code", dependencies=[Depends(_auth_rate_limit)])
 async def verify_code(
     body: VerifyCodeRequest,
     request: Request,
@@ -594,7 +598,7 @@ async def verify_code(
     return response
 
 
-@router.post("/resend-verification")
+@router.post("/resend-verification", dependencies=[Depends(_auth_rate_limit)])
 async def resend_verification(
     body: ResendVerificationRequest,
     request: Request,
@@ -612,7 +616,7 @@ async def resend_verification(
     return {"message": "If an unverified account exists for this email, a new verification email has been sent."}
 
 
-@router.post("/request-reset")
+@router.post("/request-reset", dependencies=[Depends(_auth_rate_limit)])
 async def request_reset(
     body: RequestResetRequest,
     request: Request,
@@ -634,7 +638,7 @@ async def request_reset(
     return payload
 
 
-@router.post("/set-password")
+@router.post("/set-password", dependencies=[Depends(_auth_rate_limit)])
 async def set_password(
     body: SetPasswordRequest,
     request: Request,

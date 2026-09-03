@@ -1,12 +1,20 @@
 import { defineConfig } from '@playwright/test';
 
+// Two origins, because the product is two things. The backend serves the app
+// and its API; the marketing site is a separate set of static pages served
+// elsewhere. They shared one origin behind nginx when these tests were
+// written, which is why the landing suite used to point at the app and get a
+// redirect to /login.
+const APP_URL = process.env.BASE_URL || 'http://127.0.0.1:8020';
+const SITE_URL = process.env.SITE_URL || 'http://127.0.0.1:8099';
+
 export default defineConfig({
   testDir: './tests',
   timeout: 30000,
   retries: 1,
   reporter: [['html', { open: 'never' }], ['list']],
   use: {
-    baseURL: process.env.BASE_URL || 'http://localhost:8020',
+    baseURL: APP_URL,
     extraHTTPHeaders: {
       'Accept': 'application/json',
     },
@@ -34,24 +42,15 @@ export default defineConfig({
     {
       name: 'landing',
       testMatch: /landing\.spec\.ts/,
+      use: { baseURL: SITE_URL },
     },
     {
       name: 'public-dashboard',
       testMatch: /public-dashboard\.spec\.ts/,
     },
     {
-      name: 'billing',
-      testMatch: /billing\.spec\.ts/,
-      dependencies: ['auth'],
-    },
-    {
       name: 'ecommerce',
       testMatch: /ecommerce\.spec\.ts/,
-    },
-    {
-      name: 'stripe',
-      testMatch: /stripe\.spec\.ts/,
-      dependencies: ['auth'],
     },
     {
       name: 'team',

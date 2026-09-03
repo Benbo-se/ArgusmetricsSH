@@ -215,6 +215,43 @@ class TestLogout:
         ).scalar() == 0, "the session outlived the logout"
 
 
+class TestRateLimiting:
+    """Proof the throttle works, so raising it elsewhere is a known trade-off.
+
+    The end-to-end suite drives dozens of signups from one address and would
+    otherwise spend most of its run getting 429s. It raises the limit through
+    configuration rather than the limiter being weakened or removed, and this
+    is what keeps that honest: if the throttle ever stops working, this fails
+    regardless of what any other suite is configured to allow.
+    """
+
+    def test_repeated_attempts_are_throttled(self, client, db):
+        from app.config import settings
+
+        limit = settings.AUTH_RATE_LIMIT_ATTEMPTS
+        statuses = [
+            client.post(
+                "/api/v1/auth/login",
+                json={"email": f"nobody-{i}@example.com", "password": PASSWORD},
+            ).status_code
+            for i in range(limit + 3)
+        ]
+
+        assert 429 in statuses, (
+            f"{limit + 3} attempts from one address were all allowed: {statuses}"
+        )
+        assert statuses.index(429) <= limit + 1, (
+            f"the throttle let far more than {limit} through: {statuses}"
+        )
+
+    def test_the_limit_is_configurable_and_sane(self):
+        """A limit of zero would lock everyone out; a huge one protects nobody."""
+        from app.config import settings
+
+        assert 1 <= settings.AUTH_RATE_LIMIT_ATTEMPTS
+        assert settings.AUTH_RATE_LIMIT_WINDOW_SECONDS >= 1
+
+
 class TestPasswordReset:
     def test_an_unknown_address_answers_the_same_as_a_known_one(self, client, db):
         """A reset form is the easiest place to enumerate accounts."""
