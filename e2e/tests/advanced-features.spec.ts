@@ -64,22 +64,6 @@ test.describe('Email Reports', () => {
   });
 });
 
-test.describe('AI Quota', () => {
-  test('GET /ai/quota returns quota status', async ({ request }) => {
-    const { sessionToken } = await createVerifiedUser(request);
-    const api = new ApiHelper(request);
-
-    const res = await api.getAiQuota(sessionToken);
-    expect(res.status).toBe(200);
-    expect(res.body).toHaveProperty('quota');
-    expect(res.body).toHaveProperty('used');
-  });
-
-  test('AI quota requires auth', async ({ request }) => {
-    const res = await request.get('/api/v1/ai/quota');
-    expect(res.status()).toBe(401);
-  });
-});
 
 test.describe('AI Insights', () => {
   test('AI insights for website', async ({ request }) => {

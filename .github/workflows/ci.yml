@@ -122,6 +122,13 @@ jobs:
 
       - name: Starta appen (prod-läge, schemat kommer från migrationerna)
         working-directory: backend
+        env:
+          # Only for this process, so the pytest step above keeps the real
+          # defaults. The end-to-end suite drives a hundred signups and logins
+          # from one address and would otherwise spend the run being throttled.
+          # The throttle itself is still verified: test_auth.py drives it to a
+          # 429 both per account and per address.
+          AUTH_RATE_LIMIT_ATTEMPTS: 5000
         run: |
           uvicorn app.main:app --host 127.0.0.1 --port 8020 &
           for i in $(seq 1 30); do
@@ -163,6 +170,41 @@ jobs:
             -H 'Content-Type: application/json' -d '{"email":"ci-smoke@example.com","password":"fel-lösenord"}')
           echo "login fel pw -> $CODE"
           [ "$CODE" = "401" ] || { echo "fel lösenord gav inte 401"; exit 1; }
+
+      - name: Servera marknadssajten (egen origin, som i produktion)
+        run: |
+          # The app and the site are two things behind one domain in
+          # production. The landing suite needs the site, not the app, which
+          # redirects / to /login.
+          python -m http.server 8099 --directory site --bind 127.0.0.1 &
+          for i in $(seq 1 15); do
+            curl -fsS http://127.0.0.1:8099/ >/dev/null 2>&1 && break
+            echo "väntar på sajten ($i)"; sleep 1
+          done
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: e2e/package-lock.json
+      - name: End-to-end (Playwright mot den körande appen)
+        working-directory: e2e
+        env:
+          BASE_URL: http://127.0.0.1:8020
+          SITE_URL: http://127.0.0.1:8099
+        run: |
+          npm ci --no-audit --no-fund
+          npx playwright install --with-deps chromium
+          npx playwright test --reporter=line
+      - name: Spara Playwright-artefakter när något faller
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            e2e/playwright-report
+            e2e/test-results
+          retention-days: 7
 
   # ── 2. Hygien: prod-compose och nginx-conf är giltiga ────────────────────
   hygiene:

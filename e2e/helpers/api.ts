@@ -247,23 +247,26 @@ export class ApiHelper {
 
   // ---- Team ----
 
+  /** Returns invite_url as well, which is the only way to reach the token:
+   *  there is no endpoint listing the invitations waiting for a user, and a
+   *  real invitee gets the link by email. */
   async inviteTeamMember(sessionToken: string, websiteId: number, email: string, role: string) {
-    const res = await this.request.post(`${API_PREFIX}/team/invite`, {
+    const res = await this.request.post(`${API_PREFIX}/websites/${websiteId}/members`, {
       headers: { Authorization: `Bearer ${sessionToken}` },
-      data: { website_id: websiteId, email, role },
+      data: { email, role },
     });
     return { status: res.status(), body: await res.json() };
   }
 
   async getTeamMembers(sessionToken: string, websiteId: number) {
-    const res = await this.request.get(`${API_PREFIX}/team/websites/${websiteId}/members`, {
+    const res = await this.request.get(`${API_PREFIX}/websites/${websiteId}/members`, {
       headers: { Authorization: `Bearer ${sessionToken}` },
     });
     return { status: res.status(), body: await res.json() };
   }
 
   async removeTeamMember(sessionToken: string, websiteId: number, email: string) {
-    const res = await this.request.delete(`${API_PREFIX}/team/remove`, {
+    const res = await this.request.delete(`${API_PREFIX}/websites/${websiteId}/members/${encodeURIComponent(email)}`, {
       headers: { Authorization: `Bearer ${sessionToken}` },
       data: { website_id: websiteId, email },
     });
@@ -271,30 +274,26 @@ export class ApiHelper {
   }
 
   async changeMemberRole(sessionToken: string, websiteId: number, email: string, role: string) {
-    const res = await this.request.put(`${API_PREFIX}/team/role`, {
+    const res = await this.request.put(`${API_PREFIX}/websites/${websiteId}/members/${encodeURIComponent(email)}/role`, {
       headers: { Authorization: `Bearer ${sessionToken}` },
-      data: { website_id: websiteId, email, new_role: role },
+      data: { role },
     });
     return { status: res.status(), body: await res.json() };
   }
 
-  async getPendingInvitations(sessionToken: string) {
-    const res = await this.request.get(`${API_PREFIX}/team/pending`, {
-      headers: { Authorization: `Bearer ${sessionToken}` },
-    });
-    return { status: res.status(), body: await res.json() };
-  }
 
   async acceptInvitation(sessionToken: string, inviteToken: string) {
-    const res = await this.request.post(`${API_PREFIX}/team/accept`, {
+    const res = await this.request.post(`${API_PREFIX}/websites/invites/${inviteToken}/accept`, {
       headers: { Authorization: `Bearer ${sessionToken}` },
       data: { invite_token: inviteToken },
     });
     return { status: res.status(), body: await res.json() };
   }
 
+  /** Websites the user can reach, which includes ones shared with them:
+   *  there is no separate "team websites" endpoint. */
   async getTeamWebsites(sessionToken: string) {
-    const res = await this.request.get(`${API_PREFIX}/team/websites`, {
+    const res = await this.request.get(`${API_PREFIX}/websites/`, {
       headers: { Authorization: `Bearer ${sessionToken}` },
     });
     return { status: res.status(), body: await res.json() };

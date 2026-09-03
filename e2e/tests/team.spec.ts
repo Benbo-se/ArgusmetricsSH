@@ -10,7 +10,7 @@ test.describe('Team Invite & Members', () => {
 
     // Invite member as viewer
     const inviteRes = await api.inviteTeamMember(ownerToken, websiteId, memberEmail, 'viewer');
-    expect(inviteRes.status).toBe(200);
+    expect([200, 201]).toContain(inviteRes.status);
 
     // List members — should include the invited member
     const membersRes = await api.getTeamMembers(ownerToken, websiteId);
@@ -20,21 +20,19 @@ test.describe('Team Invite & Members', () => {
     expect(member).toBeTruthy();
   });
 
-  test('invited member sees pending invitation', async ({ request }) => {
+  test('an invitation produces a working link', async ({ request }) => {
     const { sessionToken: ownerToken, websiteId } = await createUserWithWebsite(request);
-    const { email: memberEmail, sessionToken: memberToken } = await createVerifiedUser(request);
+    const { email: memberEmail } = await createVerifiedUser(request);
     const api = new ApiHelper(request);
 
-    // Invite
-    await api.inviteTeamMember(ownerToken, websiteId, memberEmail, 'viewer');
+    const inviteRes = await api.inviteTeamMember(ownerToken, websiteId, memberEmail, 'viewer');
+    expect([200, 201]).toContain(inviteRes.status);
+    expect(inviteRes.body.invite_url).toBeTruthy();
 
-    // Member checks pending invitations
-    const pendingRes = await api.getPendingInvitations(memberToken);
-    expect(pendingRes.status).toBe(200);
-    // Response is { success: true, invitations: [...] }
-    const invitations = pendingRes.body.invitations || pendingRes.body || [];
-    expect(Array.isArray(invitations)).toBe(true);
-    expect(invitations.length).toBeGreaterThanOrEqual(1);
+    // The link has to resolve for someone who is not logged in at all.
+    const token = new URL(inviteRes.body.invite_url).searchParams.get('token');
+    const detailsRes = await request.get(`/api/v1/websites/invites/${token}`);
+    expect(detailsRes.status()).toBe(200);
   });
 
   test('member can access website after accepting invite', async ({ request }) => {
@@ -44,24 +42,20 @@ test.describe('Team Invite & Members', () => {
 
     // Invite
     const inviteRes = await api.inviteTeamMember(ownerToken, websiteId, memberEmail, 'viewer');
-    expect(inviteRes.status).toBe(200);
+    expect([200, 201]).toContain(inviteRes.status);
 
-    // Get pending invitations to find the token
-    const pendingRes = await api.getPendingInvitations(memberToken);
-    const invitations = pendingRes.body.invitations || pendingRes.body || [];
-    expect(invitations.length).toBeGreaterThanOrEqual(1);
-    const invitation = invitations.find((inv: any) => inv.website_id === websiteId);
-    expect(invitation).toBeTruthy();
+    const inviteToken = new URL(inviteRes.body.invite_url).searchParams.get('token')!;
 
-    // Accept invitation
-    if (invitation?.invite_token) {
-      const acceptRes = await api.acceptInvitation(memberToken, invitation.invite_token);
-      expect([200, 201]).toContain(acceptRes.status);
-    }
+    const acceptRes = await api.acceptInvitation(memberToken, inviteToken);
+    expect([200, 201]).toContain(acceptRes.status);
 
-    // Member should now see the website in their team websites
+    // The point of accepting: the shared website is now in their list.
     const teamWebsites = await api.getTeamWebsites(memberToken);
     expect(teamWebsites.status).toBe(200);
+    const list = Array.isArray(teamWebsites.body)
+      ? teamWebsites.body
+      : teamWebsites.body.websites || [];
+    expect(list.some((w: any) => w.id === websiteId)).toBe(true);
   });
 });
 
@@ -71,14 +65,10 @@ test.describe('Role-Based Permissions', () => {
     const { email: viewerEmail, sessionToken: viewerToken } = await createVerifiedUser(request);
     const api = new ApiHelper(request);
 
-    // Invite as viewer and accept
-    await api.inviteTeamMember(ownerToken, websiteId, viewerEmail, 'viewer');
-    const pendingRes = await api.getPendingInvitations(viewerToken);
-    const invitations = pendingRes.body.invitations || [];
-    const invitation = invitations.find((inv: any) => inv.website_id === websiteId);
-    if (invitation?.invite_token) {
-      await api.acceptInvitation(viewerToken, invitation.invite_token);
-    }
+    // Invite as viewer and accept, via the link the invite response returns
+    const inviteRes0 = await api.inviteTeamMember(ownerToken, websiteId, viewerEmail, 'viewer');
+    const viewerInviteToken = new URL(inviteRes0.body.invite_url).searchParams.get('token')!;
+    await api.acceptInvitation(viewerToken, viewerInviteToken);
 
     // Viewer can read stats
     const statsRes = await api.getStats(viewerToken, websiteId);
@@ -94,18 +84,11 @@ test.describe('Role-Based Permissions', () => {
     const { email: memberEmail, sessionToken: memberToken } = await createVerifiedUser(request);
     const api = new ApiHelper(request);
 
-    // Invite as viewer
-    await api.inviteTeamMember(ownerToken, websiteId, memberEmail, 'viewer');
-
-    // Accept invitation first (role change requires ACTIVE status)
-    const pendingRes = await api.getPendingInvitations(memberToken);
-    const invitations = pendingRes.body.invitations || [];
-    const invitation = invitations.find((inv: any) => inv.website_id === websiteId);
-    expect(invitation).toBeTruthy();
-    if (invitation?.invite_token) {
-      const acceptRes = await api.acceptInvitation(memberToken, invitation.invite_token);
-      expect([200, 201]).toContain(acceptRes.status);
-    }
+    // Invite as viewer, then accept: a role change needs an ACTIVE membership
+    const inviteRes = await api.inviteTeamMember(ownerToken, websiteId, memberEmail, 'viewer');
+    const inviteToken = new URL(inviteRes.body.invite_url).searchParams.get('token')!;
+    const acceptRes = await api.acceptInvitation(memberToken, inviteToken);
+    expect([200, 201]).toContain(acceptRes.status);
 
     // Change to admin
     const roleRes = await api.changeMemberRole(ownerToken, websiteId, memberEmail, 'admin');
