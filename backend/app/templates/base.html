@@ -45,7 +45,13 @@
         } catch (e) {}
     </script>
 
-    <!-- HTMX (local) -->
+    <!-- HTMX (local). includeIndicatorStyles defaults to true, which makes
+         htmx inject its own <style> tag via insertAdjacentHTML on init -
+         blocked outright now that style-src has no unsafe-inline (nothing
+         in this app uses hx-indicator, so there's no behavior to preserve;
+         this just stops htmx from throwing a CSP violation on every page
+         load trying to inject CSS nobody needs). -->
+    <meta name="htmx-config" content='{"includeIndicatorStyles": false}'>
     <script src="/static/js/htmx.min.js"></script>
 
     <!-- Alpine.js, Chart.js and Font Awesome are served from this instance,

@@ -326,9 +326,12 @@ td, .tabular, [x-text*="views"], [x-text*="count"] {
    own <style> block; theme.css is loaded everywhere, so a bare element
    selector here would also repaint the (unrelated, dark-background)
    <pre><code> blocks on Settings/Revenue/Events — scope to this one snippet
-   instead of the tag. */
+   instead of the tag. Its parent toolbar is a fixed bg-gray-800, not a
+   theme-adaptive surface, so this uses a fixed light-on-dark overlay
+   (not a --surface-* token) rather than something that would itself go
+   dark — and nearly vanish against gray-800 — in the app's own dark mode. */
 .debug-ws-url {
-    background-color: var(--surface-sunken);
+    background-color: rgba(255, 255, 255, 0.12);
     padding: 2px 6px;
     border-radius: 4px;
     font-family: 'Courier New', monospace;
