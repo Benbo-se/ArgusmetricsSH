@@ -6,7 +6,7 @@ recorded, so a status code on its own proves nothing.
 """
 from sqlalchemy import text
 
-from tests.conftest import count
+from tests.conftest import count, reason
 
 
 class TestTrackEvent:
@@ -74,6 +74,7 @@ class TestTrackEvent:
         )
 
         assert response.status_code == 400
+        assert "goal not found" in reason(response)
 
     def test_an_invalid_tracking_code_records_nothing(self, client, db):
         before = count(db, "custom_events")
@@ -88,6 +89,7 @@ class TestTrackEvent:
         )
 
         assert response.status_code == 400
+        assert "tracking code" in reason(response)
         assert count(db, "custom_events") == before
 
 
@@ -132,4 +134,5 @@ class TestTrackPageview:
         )
 
         assert response.status_code == 400
+        assert "tracking code" in reason(response)
         assert count(db, "pageviews") == before

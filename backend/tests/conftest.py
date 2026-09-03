@@ -27,7 +27,8 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session
 
-from app.database import Base, get_db
+from app.config import settings
+from app.database import get_db
 from app.main import app
 
 TEST_DATABASE_URL = os.environ.get(
@@ -90,9 +91,30 @@ def client(db):
 
     Nothing in lifespan is needed here anyway: it logs, checks the connection
     and starts jobs that have no business running during a test.
+
+    base_url matters. In production mode the app adds TrustedHostMiddleware
+    with the one host from BASE_URL, and TestClient's default host of
+    "testserver" is not it, so every request is rejected with 400 before it
+    reaches a route. That failure is quiet in the worst way: a test expecting
+    a 400 passes on the middleware's 400 while never exercising the endpoint
+    at all. Three of these did exactly that in CI. Use the host the app
+    actually accepts, and assert on why a request failed, never just on 400.
     """
     app.dependency_overrides[get_db] = lambda: db
-    yield TestClient(app)
+    test_client = TestClient(app, base_url=settings.BASE_URL.rstrip("/"))
+
+    # Prove requests reach a route before any test draws a conclusion from a
+    # status code. Without this, a middleware rejecting every request looks
+    # like a handful of endpoint failures plus some suspiciously green
+    # negative tests.
+    probe = test_client.get("/health")
+    assert probe.status_code == 200, (
+        f"requests are not reaching the app: /health returned "
+        f"{probe.status_code} for host {settings.BASE_URL}. No test below "
+        "is testing what it claims to."
+    )
+
+    yield test_client
     app.dependency_overrides.clear()
 
 
@@ -154,6 +176,20 @@ def goal(db, website):
     ).scalar()
     db.commit()
     return {"id": goal_id, "event_name": event_name}
+
+
+def reason(response):
+    """The app's explanation for a failed request, lowercased.
+
+    Asserting on a bare status code is how three tests here passed against a
+    middleware that was rejecting every request. A negative test should say
+    which failure it expects.
+    """
+    try:
+        body = response.json()
+    except ValueError:
+        return response.text.lower()
+    return str(body.get("message") or body.get("detail") or body).lower()
 
 
 def count(db, table, **where):
