@@ -211,7 +211,11 @@ async def get_current_user_or_token(
             detail="Not authenticated. Please log in."
         )
 
-    return get_current_user(authorization, session_token, get_auth_service(db))
+    # Called directly rather than through Depends, so every argument has to be
+    # passed explicitly. Missing the db argument left get_current_user holding
+    # an unresolved Depends object and broke CSV export with
+    # "'Depends' object has no attribute 'info'".
+    return get_current_user(authorization, session_token, get_auth_service(db), db)
 
 
 def _enforce_token_scope(current_user: User, website_id: int) -> None:

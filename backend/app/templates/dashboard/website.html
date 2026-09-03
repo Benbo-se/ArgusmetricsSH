@@ -1260,35 +1260,39 @@ argus.trackEvent('button_click', {
                      data attribute (autoescape covers double-quoted attrs) instead of
                      interpolating into the Alpine expression, where a decoded quote
                      would break out of the JS string. -->
-                <div data-browser="{{ browser.browser }}"
+                <div data-browser="{{ browser.browser or 'Unknown' }}"
                      @click="applyFilter('browser', $el.dataset.browser)"
                      class="flex items-center justify-between py-2 px-2 -mx-2 cursor-pointer hover:bg-gray-50 transition-colors rounded"
                      :class="{ 'bg-blue-50 border-l-4 border-blue-500': filters.browser === $el.dataset.browser }">
                     <div class="flex items-center gap-2">
-                        {%- if 'Chrome' in browser.browser and 'Chromium' not in browser.browser -%}
+                        {#- browser can be NULL for rows recorded without a
+                            parseable User-Agent; 'x' in None raises, and one
+                            such row would 500 the whole page. -#}
+                        {%- set b = browser.browser or '' -%}
+                        {%- if 'Chrome' in b and 'Chromium' not in b -%}
                             <i class="fab fa-chrome text-lg icon-chrome"></i>
-                        {%- elif 'Firefox' in browser.browser -%}
+                        {%- elif 'Firefox' in b -%}
                             <i class="fab fa-firefox-browser text-lg icon-firefox"></i>
-                        {%- elif 'Safari' in browser.browser -%}
+                        {%- elif 'Safari' in b -%}
                             <i class="fab fa-safari text-lg icon-safari"></i>
-                        {%- elif 'Edge' in browser.browser -%}
+                        {%- elif 'Edge' in b -%}
                             <i class="fab fa-edge text-lg icon-edge"></i>
-                        {%- elif 'Opera' in browser.browser -%}
+                        {%- elif 'Opera' in b -%}
                             <i class="fab fa-opera text-lg icon-opera"></i>
-                        {%- elif 'Brave' in browser.browser -%}
+                        {%- elif 'Brave' in b -%}
                             <i class="fab fa-brave text-lg icon-brave"></i>
-                        {%- elif 'Chromium' in browser.browser -%}
+                        {%- elif 'Chromium' in b -%}
                             <i class="fas fa-circle-notch text-lg icon-chromium"></i>
-                        {%- elif 'IE' in browser.browser or 'Internet Explorer' in browser.browser -%}
+                        {%- elif 'IE' in b or 'Internet Explorer' in b -%}
                             <i class="fab fa-internet-explorer text-lg icon-ie"></i>
-                        {%- elif 'Android' in browser.browser -%}
+                        {%- elif 'Android' in b -%}
                             <i class="fab fa-android text-lg icon-android"></i>
-                        {%- elif 'Samsung' in browser.browser -%}
+                        {%- elif 'Samsung' in b -%}
                             <i class="fas fa-mobile-alt text-lg icon-samsung"></i>
                         {%- else -%}
                             <i class="fas fa-globe text-lg text-gray-600"></i>
                         {%- endif -%}
-                        <span class="text-sm text-gray-700">{{ browser.browser }}</span>
+                        <span class="text-sm text-gray-700">{{ browser.browser or 'Unknown' }}</span>
                     </div>
                     <span class="text-sm font-semibold text-gray-900">{{ browser.views }}</span>
                 </div>

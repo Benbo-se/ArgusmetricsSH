@@ -256,8 +256,11 @@ class AnalyticsQueryService:
                 "top_countries": [
                     {"country": c.country, "views": c.views} for c in top_countries
                 ],
+                # device_type is nullable, and a None key here is not merely
+                # ugly: json.dumps sorts keys, so mixing None with strings
+                # raises and takes the whole dashboard down with a 500.
                 "devices": {
-                    d.device_type: d.views for d in device_stats
+                    (d.device_type or "Unknown"): d.views for d in device_stats
                 },
                 "top_referrers": [
                     {"referrer": r.referrer, "views": r.views} for r in top_referrers

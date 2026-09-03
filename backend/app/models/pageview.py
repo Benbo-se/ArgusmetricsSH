@@ -40,6 +40,7 @@ class Pageview(Base):
 
     __tablename__ = "pageviews"
 
+
     # Insert-heavy table: every index is a write tax, so single-column indexes
     # that are prefix-covered by the composites below (website_id, visitor_hash,
     # timestamp) or too low-cardinality to ever win (country, device, browser)
@@ -85,6 +86,12 @@ class Pageview(Base):
         # "Top pages over a date range" is the most common dashboard query
         Index('idx_pageviews_website_path_time', 'website_id', 'path', 'timestamp'),
         Index('idx_pageviews_properties', 'properties', postgresql_using='gin'),
+        # Row-level security makes the tracking context write-only, and
+        # INSERT ... RETURNING needs the new row to be readable to return it.
+        # SQLAlchemy uses RETURNING by default to fetch the primary key, so
+        # this makes it read the id from the sequence before inserting instead,
+        # letting a write-only context still write.
+        {"implicit_returning": False},
     )
 
     def __repr__(self) -> str:
