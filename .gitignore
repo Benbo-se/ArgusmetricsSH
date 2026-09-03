@@ -161,7 +161,8 @@ backup/
 # ============================================
 e2e/playwright-report/
 e2e/test-results/
-e2e/package-lock.json
+# e2e/package-lock.json is committed on purpose: npm ci needs it, and
+# pinning Playwright is the point of having a lockfile at all.
 
 # ============================================
 # MISC
