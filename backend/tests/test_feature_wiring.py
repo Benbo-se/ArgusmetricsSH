@@ -243,6 +243,51 @@ class TestPublicSharing:
         assert row.is_public is True
         assert row.public_share_token, "sharing was enabled with no link to share"
 
+    def test_the_settings_page_exposes_password_protection(
+        self, owner_client, db, website
+    ):
+        """The third feature found complete in the backend and absent from the UI.
+
+        Sharing could be switched on from the settings page, but nothing there
+        called dashboard-password/set, so a customer could publish a dashboard
+        and had no way to put a password on it. The public page has rendered a
+        password prompt the whole time, for a password nobody could set.
+        """
+        page = owner_client.get(f"/dashboard/website/{website['id']}/settings")
+
+        assert page.status_code == 200
+        assert "Password protection" in page.text, "no way to protect a shared link"
+        assert "dashboard-password/set" in page.text
+        assert "dashboard-password/remove" in page.text, (
+            "a password can be set and never taken off"
+        )
+
+    def test_removing_the_password_reopens_the_link(self, owner_client, db, website):
+        owner_client.put(
+            f"/api/v1/websites/{website['id']}/public-access",
+            json={"is_public": True},
+        )
+        owner_client.post(
+            "/api/v1/dashboard-password/set",
+            json={"website_id": website["id"], "password": "a-good-password-9"},
+        )
+
+        response = owner_client.post(
+            "/api/v1/dashboard-password/remove",
+            json={"website_id": website["id"]},
+        )
+
+        assert response.status_code == 200, response.text
+        row = db.execute(
+            text(
+                "SELECT public_password_enabled, public_password_hash "
+                "FROM websites WHERE id = :w"
+            ),
+            {"w": website["id"]},
+        ).first()
+        assert row.public_password_enabled is False
+        assert not row.public_password_hash, "the old hash is still on the row"
+
     def test_setting_a_password_stores_a_hash(self, owner_client, db, website):
         owner_client.put(
             f"/api/v1/websites/{website['id']}/public-access",

@@ -13,11 +13,11 @@ test.describe('Signup', () => {
     expect(res.body.message).toBeTruthy();
   });
 
-  test('signup with plan returns verify_url in dev mode', async ({ request }) => {
+  test('signup returns verify_url in dev mode', async ({ request }) => {
     const api = new ApiHelper(request);
     const email = generateTestEmail();
 
-    const res = await api.signup(email, 'starter');
+    const res = await api.signup(email);
     expect(res.status).toBe(201);
     expect(res.body.verify_url).toBeTruthy();
   });
@@ -92,12 +92,12 @@ test.describe('UI Auth Pages', () => {
   test('login page renders', async ({ page }) => {
     await page.goto('/login');
     expect(await page.title()).toBeTruthy();
-    await expect(page.locator('input[type="email"]')).toBeVisible();
+    await expect(page.locator('input[type="email"]').first()).toBeVisible();
   });
 
   test('signup page renders with plan selection', async ({ page }) => {
     await page.goto('/signup');
     expect(await page.title()).toBeTruthy();
-    await expect(page.locator('input[type="email"]')).toBeVisible();
+    await expect(page.locator('input[type="email"]').first()).toBeVisible();
   });
 });

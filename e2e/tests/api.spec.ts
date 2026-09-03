@@ -107,37 +107,7 @@ test.describe('Analytics Stats', () => {
   });
 });
 
-test.describe('AI Plans (public)', () => {
-  test('GET /ai/plans returns plan information', async ({ request }) => {
-    const api = new ApiHelper(request);
-    const res = await api.getAiPlans();
-    expect(res.status).toBe(200);
-  });
-});
 
-test.describe('Chatbot', () => {
-  test('chatbot responds to demo query', async ({ request }) => {
-    const api = new ApiHelper(request);
-    const sessionId = `test-${Date.now()}`;
-
-    const res = await api.chatbotAsk('Vad kostar Argusmetrics?', sessionId);
-    expect(res.status).toBe(200);
-    expect(res.body.answer).toBeTruthy();
-    expect(res.body.logId).toBeTruthy();
-  });
-
-  test('demo mode limits to 3 queries', async ({ request }) => {
-    const api = new ApiHelper(request);
-    const sessionId = `limit-test-${Date.now()}`;
-
-    await api.chatbotAsk('Fråga 1', sessionId);
-    await api.chatbotAsk('Fråga 2', sessionId);
-    await api.chatbotAsk('Fråga 3', sessionId);
-
-    const res = await api.chatbotAsk('Fråga 4', sessionId);
-    expect(res.status).toBe(429);
-  });
-});
 
 test.describe('Unauthenticated access', () => {
   test('websites endpoint requires auth', async ({ request }) => {

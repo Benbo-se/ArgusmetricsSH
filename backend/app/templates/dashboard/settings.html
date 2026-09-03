@@ -382,6 +382,74 @@ export default function Custom404() {
              publicUrl: '{{ base_url }}/public/{{ website.public_share_token if website.public_share_token else '' }}',
              updating: false,
              linkCopied: false,
+             passwordEnabled: {{ 'true' if website.public_password_enabled else 'false' }},
+             newPassword: '',
+             savingPassword: false,
+
+             async setPassword() {
+                 this.savingPassword = true;
+                 try {
+                     const response = await fetch('/api/v1/dashboard-password/set', {
+                         method: 'POST',
+                         credentials: 'same-origin',
+                         headers: { 'Content-Type': 'application/json' },
+                         body: JSON.stringify({
+                             website_id: {{ website.id }},
+                             password: this.newPassword
+                         })
+                     });
+                     const data = await response.json();
+                     if (response.ok) {
+                         this.passwordEnabled = true;
+                         this.newPassword = '';
+                         window.dispatchEvent(new CustomEvent('toast', {
+                            detail: { message: 'Password protection enabled', type: 'success' }
+                        }));
+                     } else {
+                         window.dispatchEvent(new CustomEvent('toast', {
+                            detail: { message: data.message || data.detail || 'Could not set the password.', type: 'error' }
+                        }));
+                     }
+                 } catch (error) {
+                     console.error('Error setting dashboard password:', error);
+                     window.dispatchEvent(new CustomEvent('toast', {
+                        detail: { message: 'Failed to set the password. Please try again.', type: 'error' }
+                    }));
+                 } finally {
+                     this.savingPassword = false;
+                 }
+             },
+
+             async removePassword() {
+                 this.savingPassword = true;
+                 try {
+                     const response = await fetch('/api/v1/dashboard-password/remove', {
+                         method: 'POST',
+                         credentials: 'same-origin',
+                         headers: { 'Content-Type': 'application/json' },
+                         body: JSON.stringify({ website_id: {{ website.id }} })
+                     });
+                     const data = await response.json();
+                     if (response.ok) {
+                         this.passwordEnabled = false;
+                         window.dispatchEvent(new CustomEvent('toast', {
+                            detail: { message: 'Password protection removed', type: 'success' }
+                        }));
+                     } else {
+                         window.dispatchEvent(new CustomEvent('toast', {
+                            detail: { message: data.message || data.detail || 'Could not remove the password.', type: 'error' }
+                        }));
+                     }
+                 } catch (error) {
+                     console.error('Error removing dashboard password:', error);
+                     window.dispatchEvent(new CustomEvent('toast', {
+                        detail: { message: 'Failed to remove the password. Please try again.', type: 'error' }
+                    }));
+                 } finally {
+                     this.savingPassword = false;
+                 }
+             },
+
              async togglePublicAccess() {
                  this.updating = true;
                  try {
@@ -461,13 +529,54 @@ export default function Custom404() {
                     </svg>
                 </a>
             </div>
-            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <div x-show="!passwordEnabled" class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                 <div class="flex">
                     <svg class="w-5 h-5 text-yellow-600 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                         <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
                     </svg>
-                    <p class="text-sm text-yellow-800">Anyone with this link can view your analytics data. No login required.</p>
+                    <p class="text-sm text-yellow-800">Anyone with this link can view your analytics data. No login required. Add a password below if the link will travel further than you can see.</p>
                 </div>
+            </div>
+
+            <!-- Password protection -->
+            <div class="border border-gray-200 rounded-lg p-4">
+                <div class="flex items-start justify-between mb-3">
+                    <div>
+                        <h3 class="text-sm font-semibold text-gray-900">Password protection</h3>
+                        <p class="mt-1 text-sm text-gray-600">
+                            Require a password before the dashboard is shown. The link alone
+                            stops being enough.
+                        </p>
+                    </div>
+                    <span x-show="passwordEnabled"
+                          class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        Protected
+                    </span>
+                </div>
+
+                <div class="flex flex-col sm:flex-row gap-2">
+                    <input type="password"
+                           x-model="newPassword"
+                           autocomplete="new-password"
+                           :placeholder="passwordEnabled ? 'Enter a new password to replace it' : 'At least 10 characters, with a digit'"
+                           class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    <button @click="await setPassword()"
+                            :disabled="savingPassword || newPassword.length === 0"
+                            class="px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed whitespace-nowrap">
+                        <span x-show="!savingPassword" x-text="passwordEnabled ? 'Change' : 'Set password'"></span>
+                        <span x-show="savingPassword">Saving...</span>
+                    </button>
+                    <button x-show="passwordEnabled"
+                            @click="await removePassword()"
+                            :disabled="savingPassword"
+                            class="px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 whitespace-nowrap">
+                        Remove
+                    </button>
+                </div>
+                <p class="mt-2 text-xs text-gray-500">
+                    Changing or removing the password signs out everyone who already unlocked
+                    the dashboard.
+                </p>
             </div>
         </div>
 

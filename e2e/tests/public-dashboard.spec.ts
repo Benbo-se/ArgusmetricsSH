@@ -97,7 +97,7 @@ test.describe('Password Protected Dashboard', () => {
     });
     await request.post('/api/v1/dashboard-password/set', {
       headers: { Authorization: `Bearer ${sessionToken}` },
-      data: { website_id: websiteId, password: 'secretpass' },
+      data: { website_id: websiteId, password: 'share-password-9' },
     });
 
     const api = new ApiHelper(request);
@@ -106,7 +106,7 @@ test.describe('Password Protected Dashboard', () => {
 
     // Verify with correct password
     const verifyRes = await request.post(`/api/v1/dashboard-password/verify/${shareToken}`, {
-      data: { password: 'secretpass' },
+      data: { password: 'share-password-9' },
     });
     expect(verifyRes.status()).toBe(200);
     const body = await verifyRes.json();
@@ -122,7 +122,7 @@ test.describe('Password Protected Dashboard', () => {
     });
     await request.post('/api/v1/dashboard-password/set', {
       headers: { Authorization: `Bearer ${sessionToken}` },
-      data: { website_id: websiteId, password: 'correctpass' },
+      data: { website_id: websiteId, password: 'share-password-9' },
     });
 
     const api = new ApiHelper(request);
@@ -130,7 +130,7 @@ test.describe('Password Protected Dashboard', () => {
     const shareToken = websiteRes.body.public_share_token;
 
     const verifyRes = await request.post(`/api/v1/dashboard-password/verify/${shareToken}`, {
-      data: { password: 'wrongpass' },
+      data: { password: 'wrong-password-9' },
     });
     expect(verifyRes.status()).toBe(200);
     const body = await verifyRes.json();
