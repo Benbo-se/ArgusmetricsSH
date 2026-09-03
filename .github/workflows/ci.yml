@@ -84,7 +84,7 @@ jobs:
           CODE=$(curl -s -o /dev/null -w '%{http_code}' -X POST http://127.0.0.1:8020/api/v1/auth/signup \
             -H 'Content-Type: application/json' -d '{"email":"ci-smoke@example.com"}')
           echo "signup -> $CODE"
-          [ "$CODE" = "200" ] || { echo "signup misslyckades"; exit 1; }
+          case "$CODE" in 200|201) ;; *) echo "signup misslyckades"; exit 1;; esac
           COUNT=$(PGPASSWORD=argus psql -h localhost -U argus -d argus_ci -tAc "SELECT count(*) FROM users WHERE email='ci-smoke@example.com'")
           echo "users-rader: $COUNT"
           [ "$COUNT" = "1" ] || { echo "signup skapade ingen användarrad"; exit 1; }
