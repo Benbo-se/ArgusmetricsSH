@@ -179,6 +179,50 @@ class TestShareTokenResolution:
         assert resolve_share_token(db, "nope-not-a-real-token") is None
 
 
+class TestRevenueTracking:
+    """The legacy /revenue/track endpoint, which writes ecommerce events."""
+
+    def test_it_records_a_purchase(self, client, db, website):
+        """It was the one tracking endpoint without use_tracking_context.
+
+        Its inserts were therefore refused by policy, while every other
+        tracking endpoint worked. Invisible in development, where the app
+        connects as the table owner.
+        """
+        transaction_id = f"txn-{uuid.uuid4().hex[:8]}"
+
+        response = client.post(
+            "/api/v1/revenue/track",
+            json={
+                "tracking_code": website["tracking_code"],
+                "transaction_id": transaction_id,
+                "amount": 249.0,
+                "currency": "SEK",
+            },
+        )
+
+        assert response.status_code == 200
+        assert count(db, "ecommerce_events", transaction_id=transaction_id) == 1
+
+    def test_it_declares_the_tracking_context(self, client, db, website):
+        from app.database import RLS_INFO_KEY
+
+        db.info.pop(RLS_INFO_KEY, None)
+        client.post(
+            "/api/v1/revenue/track",
+            json={
+                "tracking_code": website["tracking_code"],
+                "transaction_id": f"txn-{uuid.uuid4().hex[:8]}",
+                "amount": 10.0,
+                "currency": "SEK",
+            },
+        )
+
+        declared = db.info.get(RLS_INFO_KEY)
+        assert declared is not None, "the endpoint declared no context"
+        assert declared["context"] == "tracking"
+
+
 class TestTrackPageview:
     def test_a_pageview_is_recorded(self, client, db, website):
         response = client.post(

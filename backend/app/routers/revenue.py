@@ -21,7 +21,7 @@ from app.models.user import User
 from app.routers.auth import get_current_user
 from app.services.ecommerce_service import EcommerceService
 from app.services.website_service import WebsiteService
-from app.routers.analytics import check_track_rate_limit
+from app.routers.analytics import check_track_rate_limit, use_tracking_context
 from app.utils.network import get_client_ip
 
 logger = logging.getLogger(__name__)
@@ -32,7 +32,10 @@ router = APIRouter(prefix="/revenue", tags=["revenue"])
 @router.post(
     "/track",
     response_model=RevenueTrackResponse,
-    dependencies=[Depends(check_track_rate_limit)],
+    # use_tracking_context was missing here while every other tracking
+    # endpoint had it, so this one wrote with no context declared and its
+    # inserts were refused by policy.
+    dependencies=[Depends(check_track_rate_limit), Depends(use_tracking_context)],
 )
 async def track_revenue(
     request: Request,

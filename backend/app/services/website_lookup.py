@@ -130,6 +130,50 @@ def resolve_api_token(db: Session, token_hash: str) -> Optional[ApiTokenOwner]:
     return ApiTokenOwner(website_id=row.website_id, owner_email=row.owner_email)
 
 
+@dataclass(frozen=True)
+class PendingInvite:
+    """What an invitation page shows, for someone who is not logged in."""
+
+    website_name: str
+    website_domain: str
+    role: str
+    invited_by: Optional[str]
+    invited_at: object
+    invitee_email: str
+
+
+def resolve_invite_token(db: Session, invite_token: str) -> Optional[PendingInvite]:
+    """A pending invitation, or None.
+
+    Whoever opens an invitation link is not authenticated and may not have an
+    account at all, so there is no user to declare a context for. The token is
+    the credential, as a tracking code or a share token is.
+
+    Only pending invitations resolve. An accepted or revoked one comes back as
+    None, so a used link cannot be replayed.
+    """
+    row = db.execute(
+        text(
+            "SELECT website_name, website_domain, role, invited_by,"
+            "       invited_at, invitee_email "
+            "FROM argus_resolve_invite_token(:token)"
+        ),
+        {"token": invite_token},
+    ).first()
+
+    if row is None:
+        return None
+
+    return PendingInvite(
+        website_name=row.website_name,
+        website_domain=row.website_domain,
+        role=row.role,
+        invited_by=row.invited_by,
+        invited_at=row.invited_at,
+        invitee_email=row.invitee_email,
+    )
+
+
 def tracking_code_exists(db: Session, tracking_code: str) -> bool:
     """Whether any website already uses this code.
 

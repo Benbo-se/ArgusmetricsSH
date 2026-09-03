@@ -285,7 +285,14 @@ class EcommerceService:
                     return True, "Duplicate transaction ignored", None
                 logger.error(f"E-commerce event integrity error: {e}")
                 return False, "Invalid event data", None
-            self.db.refresh(ecommerce_event)
+
+            # No refresh here. It would issue a SELECT, and the tracking
+            # context may insert but never read, so under row-level security
+            # this raised and the whole call reported failure after the row
+            # had already been written. Nothing needs re-reading anyway: the
+            # id comes from the sequence before the insert (see
+            # implicit_returning on the model) and the session does not expire
+            # attributes on commit.
 
             logger.info(
                 f"E-commerce event recorded: website_id={website.id}, "

@@ -45,6 +45,7 @@ from app.models.website import Website
 from app.models.user import User
 from app.services.email_service import email_service
 from app.config import settings
+from app.services.website_lookup import resolve_invite_token
 
 logger = logging.getLogger(__name__)
 
@@ -440,28 +441,25 @@ class TeamService:
             ValueError: If invitation not found or expired
         """
         try:
-            member = self.db.query(WebsiteMember).filter(
-                WebsiteMember.invite_token == invite_token,
-                WebsiteMember.status == MemberStatus.PENDING
-            ).first()
+            # Whoever opens the link is not logged in and may have no account,
+            # so there is no user to declare a row-level security context for.
+            # The token is the credential; resolving it goes through a
+            # SECURITY DEFINER function, as tracking codes and share tokens
+            # do. See app/services/website_lookup.py.
+            invite = resolve_invite_token(self.db, invite_token)
 
-            if not member:
+            if not invite:
                 raise ValueError("Invitation not found or already accepted")
 
             # Check if invitation expired (7 days)
-            if member.invited_at < datetime.now(timezone.utc) - timedelta(days=7):
+            if invite.invited_at < datetime.now(timezone.utc) - timedelta(days=7):
                 raise ValueError("Invitation has expired. Please request a new one.")
 
-            # Get website details
-            website = self.db.query(Website).filter(Website.id == member.website_id).first()
-            if not website:
-                raise ValueError("Website not found")
-
             return {
-                "website_name": website.name,
-                "website_domain": website.domain,
-                "role": member.role.value,
-                "invited_by": member.invited_by
+                "website_name": invite.website_name,
+                "website_domain": invite.website_domain,
+                "role": invite.role,
+                "invited_by": invite.invited_by
             }
 
         except Exception as e:

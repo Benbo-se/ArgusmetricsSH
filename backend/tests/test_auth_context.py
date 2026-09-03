@@ -33,6 +33,64 @@ def _make_api_token(db, website_id):
     return raw
 
 
+class TestUnauthenticatedCredentials:
+    """Paths whose credential is a token in a URL, with nobody logged in.
+
+    A tracking code, a share token and an invitation token all identify the
+    request without identifying a user, so there is no context to declare.
+    Each resolves through a SECURITY DEFINER function instead.
+    """
+
+    def test_an_invitation_link_resolves_without_a_context(self, client, db, website):
+        """Broken by the website_members policies until this was fixed.
+
+        Whoever opens the link is not logged in and may have no account, so
+        the lookup matched no policy and every invitation reported "not found
+        or already accepted".
+        """
+        from app.services.website_lookup import resolve_invite_token
+
+        token = f"inv-{uuid.uuid4().hex}"
+        db.execute(
+            text(
+                "INSERT INTO website_members "
+                "  (website_id, user_email, role, invited_at, status, invite_token) "
+                "VALUES (:w, :e, 'viewer', now(), 'pending'::memberstatus, :t)"
+            ),
+            {"w": website["id"], "e": "invitee@example.invalid", "t": token},
+        )
+        db.commit()
+
+        invite = resolve_invite_token(db, token)
+
+        assert invite is not None, "the invitation link resolved to nothing"
+        assert invite.website_name.startswith("Test site")
+        assert invite.role == "viewer"
+        assert invite.invitee_email == "invitee@example.invalid"
+
+    def test_an_accepted_invitation_cannot_be_replayed(self, client, db, website):
+        """Only pending invitations resolve, so a used link reveals nothing."""
+        from app.services.website_lookup import resolve_invite_token
+
+        token = f"inv-{uuid.uuid4().hex}"
+        db.execute(
+            text(
+                "INSERT INTO website_members "
+                "  (website_id, user_email, role, invited_at, status, invite_token) "
+                "VALUES (:w, :e, 'viewer', now(), 'active'::memberstatus, :t)"
+            ),
+            {"w": website["id"], "e": "accepted@example.invalid", "t": token},
+        )
+        db.commit()
+
+        assert resolve_invite_token(db, token) is None
+
+    def test_an_unknown_invitation_token_resolves_to_nothing(self, db):
+        from app.services.website_lookup import resolve_invite_token
+
+        assert resolve_invite_token(db, "inv-nope") is None
+
+
 class TestApiTokenAuthentication:
     def test_it_declares_a_user_context(self, client, db, website):
         """The bug this file exists for.
