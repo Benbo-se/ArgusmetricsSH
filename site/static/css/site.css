@@ -1,0 +1,136 @@
+/* Argusmetrics marketing site styles.
+
+   Shared by every page, so these rules live in one place instead of being
+   duplicated inline across eleven HTML files. Loaded after tailwind.min.css.
+*/
+
+.hero-frame { box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); }
+
+/* ------------------------------------------------------------------
+   Missing Tailwind utilities.
+
+   static/css/tailwind.min.css is a frozen build, scanned against an
+   older version of this markup. Any class added since then simply is
+   not in the file and fails silently: no error, just an element that
+   renders with browser defaults. An audit of every class used across
+   these pages against the build found ~70 of them, including the
+   gradients, several breakpoint grid rules, and most of the vertical
+   spacing scale.
+
+   Re-run that audit before adding new classes, or replace this whole
+   arrangement with a real Tailwind build step.
+   ------------------------------------------------------------------ */
+
+/* spacing */
+.py-24 { padding-top: 6rem; padding-bottom: 6rem; }
+.py-28 { padding-top: 7rem; padding-bottom: 7rem; }
+.py-10 { padding-top: 2.5rem; padding-bottom: 2.5rem; }
+.py-5  { padding-top: 1.25rem; padding-bottom: 1.25rem; }
+.py-2\.5 { padding-top: 0.625rem; padding-bottom: 0.625rem; }
+.pb-12 { padding-bottom: 3rem; }
+.px-5  { padding-left: 1.25rem; padding-right: 1.25rem; }
+.px-1\.5 { padding-left: 0.375rem; padding-right: 0.375rem; }
+.mb-5  { margin-bottom: 1.25rem; }
+.mb-10 { margin-bottom: 2.5rem; }
+.gap-5  { gap: 1.25rem; }
+.gap-10 { gap: 2.5rem; }
+.gap-12 { gap: 3rem; }
+.space-y-12 > :not([hidden]) ~ :not([hidden]) { margin-top: 3rem; }
+
+/* sizing */
+.h-9  { height: 2.25rem; }
+.h-11 { height: 2.75rem; }
+.h-14 { height: 3.5rem; }
+.h-3\.5 { height: 0.875rem; }
+.w-9  { width: 2.25rem; }
+.w-14 { width: 3.5rem; }
+.w-16 { width: 4rem; }
+.w-3\.5 { width: 0.875rem; }
+.w-px { width: 1px; }
+.w-1\/2 { width: 50%; }
+.w-1\/4 { width: 25%; }
+.max-w-2xl { max-width: 42rem; }
+
+/* position */
+.bottom-0 { bottom: 0; }
+.top-1 { top: 0.25rem; }
+.left-6 { left: 1.5rem; }
+
+/* typography */
+.italic { font-style: italic; }
+.font-light { font-weight: 300; }
+.leading-tight { line-height: 1.25; }
+
+/* gradients: without these the "gradient" sections render as plain white */
+.bg-gradient-to-b { background-image: linear-gradient(to bottom, var(--tw-gradient-stops)); }
+.from-white { --tw-gradient-from: #fff; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgb(255 255 255 / 0)); }
+.via-gray-50 { --tw-gradient-stops: var(--tw-gradient-from), #f9fafb, var(--tw-gradient-to, rgb(249 250 251 / 0)); }
+.to-white { --tw-gradient-to: #fff; }
+
+/* colour */
+.text-blue-200 { color: #bfdbfe; }
+.text-green-300 { color: #86efac; }
+.text-cyan-500 { color: #06b6d4; }
+.text-cyan-700 { color: #0e7490; }
+.text-orange-400 { color: #fb923c; }
+.text-orange-500 { color: #f97316; }
+.text-orange-700 { color: #c2410c; }
+.text-purple-500 { color: #a855f7; }
+.bg-cyan-100 { background-color: #cffafe; }
+.bg-orange-50 { background-color: #fff7ed; }
+.bg-green-400 { background-color: #4ade80; }
+.bg-red-400 { background-color: #f87171; }
+.bg-yellow-200 { background-color: #fef08a; }
+.bg-yellow-400 { background-color: #facc15; }
+.hover\:bg-yellow-100:hover { background-color: #fef9c3; }
+.border-blue-100 { border-color: #dbeafe; }
+.border-gray-400 { border-color: #9ca3af; }
+.border-green-100 { border-color: #dcfce7; }
+.border-orange-100 { border-color: #ffedd5; }
+.border-purple-100 { border-color: #f3e8ff; }
+.border-red-100 { border-color: #fee2e2; }
+.border-yellow-100 { border-color: #fef9c3; }
+.hover\:border-blue-700:hover { border-color: #1d4ed8; }
+.divide-gray-50 > :not([hidden]) ~ :not([hidden]) { border-color: #f9fafb; }
+.ring-gray-800 { --tw-ring-color: #1f2937; }
+
+/* layout */
+.col-span-2 { grid-column: span 2 / span 2; }
+.transition-transform { transition-property: transform; transition-timing-function: cubic-bezier(.4,0,.2,1); transition-duration: .15s; }
+
+@media (min-width: 640px) {
+    .sm\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .sm\:text-5xl { font-size: 3rem; line-height: 1; }
+    .sm\:pl-16 { padding-left: 4rem; }
+}
+@media (min-width: 768px) {
+    .md\:col-span-1 { grid-column: span 1 / span 1; }
+    .md\:col-span-2 { grid-column: span 2 / span 2; }
+    .md\:text-3xl { font-size: 1.875rem; line-height: 2.25rem; }
+    .md\:max-w-md { max-width: 28rem; }
+    .md\:mx-auto { margin-left: auto; margin-right: auto; }
+    .md\:space-x-1 > :not([hidden]) ~ :not([hidden]) { margin-left: 0.25rem; }
+}
+@media (min-width: 1024px) {
+    .lg\:gap-16 { gap: 4rem; }
+}
+
+
+/* Full-bleed photo bands: the image carries atmosphere, the overlay keeps
+   the text readable regardless of what is behind it. */
+.band { position: relative; background-size: cover; background-position: center; }
+.band::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(100deg, rgba(9,13,32,.94) 0%, rgba(9,13,32,.86) 45%, rgba(9,13,32,.62) 100%);
+}
+.band > * { position: relative; }
+.band-server { background-image: url('static/img/band-server.jpg'); }
+.band-aurora { background-image: url('static/img/band-aurora.jpg'); }
+.eyebrow { letter-spacing: .14em; text-transform: uppercase; font-size: .75rem; font-weight: 700; }
+.rule { display: block; width: 2.5rem; height: 3px; background: #3b82f6; border-radius: 2px; }
+/* This frozen Tailwind build was scanned without these, so they'd
+   silently do nothing: the terminal's command verbs rendered as dark
+   text on a dark background, and the screenshot grid had no gap. */
+.text-green-300 { color: rgb(134 239 172); }

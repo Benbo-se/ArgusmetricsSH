@@ -75,6 +75,7 @@
 
     <!-- Tailwind CSS -->
     <link rel="stylesheet" href="static/css/tailwind.min.css">
+    <link rel="stylesheet" href="/static/css/site.css">
 
     <!-- Alpine.js (deferred, non-blocking) -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.5/dist/cdn.min.js"></script>
@@ -83,33 +84,9 @@
     <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
 
-    <style>
-        /* Custom loading spinner */
-        .htmx-indicator {
-            display: none;
-        }
-        .htmx-request .htmx-indicator {
-            display: inline-block;
-        }
-        
-        :root {
-            --primary: #2563eb;
-            --primary-dark: #1e40af;
-            --success: #10b981;
-            --bg-light: #f9fafb;
-            --text-dark: #111827;
-            --text-light: #6b7280;
-            --border: #e5e7eb;
-        }
-    </style>
 
     <style>
         body { background-color: white !important; }
-        .hero-frame { box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); }
-        /* This frozen Tailwind build was scanned without these, so they'd
-           silently do nothing: the terminal's command verbs rendered as dark
-           text on a dark background, and the screenshot grid had no gap. */
-        .text-green-300 { color: rgb(134 239 172); }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-900 antialiased">
@@ -574,17 +551,22 @@
     </section>
 
     <!-- Self-host Section -->
+    <!-- Photo band intro: the image is literally the subject here, a server you run
+         yourself. Dense content stays on the light background below it. -->
+    <section class="band band-server py-24 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-3xl mx-auto text-center">
+            <span class="eyebrow text-blue-300">Self-host edition: coming soon</span>
+            <h2 class="text-4xl sm:text-5xl font-bold text-white mb-5 mt-3">Or run it on your own server</h2>
+            <p class="text-xl text-gray-300">
+                Argusmetrics is <strong class="text-white">AGPL-3.0</strong> and the source is public today. A packaged
+                self-host release is still being finished. Until then, the hosted version above is the
+                supported way to use it.
+            </p>
+        </div>
+    </section>
+
     <section id="self-host" class="py-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-white via-gray-50 to-white">
         <div class="max-w-6xl mx-auto">
-            <div class="text-center mb-14">
-                <span class="inline-block bg-yellow-100 text-yellow-800 text-xs font-bold px-3 py-1 rounded-full mb-4 uppercase tracking-wider">Self-host edition: coming soon</span>
-                <h2 class="text-4xl sm:text-5xl font-bold text-gray-900 mb-4">Or run it on your own server</h2>
-                <p class="text-xl text-gray-600 max-w-2xl mx-auto">
-                    Argusmetrics is <strong>AGPL-3.0</strong> and the source is public today. A packaged
-                    self-host release is still being finished. Until then, the hosted version above
-                    is the supported way to use it.
-                </p>
-            </div>
 
             <div class="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
                 <!-- Left: what you get -->
@@ -661,9 +643,10 @@
     </section>
 
     <!-- CTA Section -->
-    <section class="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-blue-600 to-indigo-600">
+    <section class="band band-aurora py-28 px-4 sm:px-6 lg:px-8">
         <div class="max-w-4xl mx-auto text-center">
-            <h2 class="text-4xl font-bold text-white mb-6">Ready to get started?</h2>
+            <span class="eyebrow text-blue-300">Made in Sweden</span>
+            <h2 class="text-4xl font-bold text-white mb-6 mt-3">Ready to get started?</h2>
             <p class="text-xl text-blue-100 mb-8">Add one small script and watch your traffic arrive. No cookie banner required.</p>
             <a href="/signup" class="inline-block bg-white text-blue-600 hover:bg-gray-100 px-8 py-4 rounded-lg text-lg font-semibold transition-all transform hover:scale-105 shadow-xl">
                 Get started free
