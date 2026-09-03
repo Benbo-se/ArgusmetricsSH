@@ -75,6 +75,59 @@ def email_reports_task():
         db.close()
 
 
+def traffic_alerts_task():
+    """Hourly traffic-spike alert check.
+
+    AlertService could already detect a spike and email about it, but nothing
+    ever called it: the routers only read and write the settings, so a site
+    with alerts enabled would never actually hear about a spike. This is the
+    job that connects the two.
+
+    check_traffic_spike() compares the last hour against the weekly hourly
+    baseline and returns None unless the site has email alerts enabled, so
+    sites that never opted in cost one cheap query and nothing else.
+    """
+    from app.database import SessionLocal
+    from app.models.website import Website
+    from app.services.alert_service import AlertService
+
+    logger.info(f"[SCHEDULED] Running traffic-spike alert check at {datetime.now(timezone.utc)}")
+    db = SessionLocal()
+    try:
+        with _single_runner(918_271_003) as acquired:
+            if not acquired:
+                return
+
+            alert_service = AlertService(db)
+            websites = db.query(Website).filter(Website.is_active == True).all()
+            sent = 0
+
+            for website in websites:
+                try:
+                    spike = alert_service.check_traffic_spike(website.id)
+                    if not spike:
+                        continue
+                    if alert_service.send_spike_alert(
+                        website_id=website.id,
+                        spike_data=spike,
+                        user_email=website.user_email,
+                        website_name=website.name,
+                    ):
+                        sent += 1
+                except Exception as e:
+                    # One bad site must not stop alerts for every other site.
+                    logger.error(
+                        f"[SCHEDULED] Error checking alerts for website {website.id}: {e}",
+                        exc_info=True,
+                    )
+
+            logger.info(f"[SCHEDULED] Traffic-spike check done: {sent} alert(s) sent")
+    except Exception as e:
+        logger.error(f"[SCHEDULED] Error running traffic-spike alerts: {e}", exc_info=True)
+    finally:
+        db.close()
+
+
 def start_scheduler():
     """Initialize and start the background scheduler."""
     scheduler = BackgroundScheduler(timezone="UTC")
@@ -97,8 +150,21 @@ def start_scheduler():
         replace_existing=True
     )
 
+    # Check for traffic spikes hourly (the alert compares the last hour to the
+    # weekly hourly baseline, so checking more often than hourly is pointless)
+    scheduler.add_job(
+        traffic_alerts_task,
+        trigger=CronTrigger(minute=5),
+        id="traffic_alerts",
+        name="Check for traffic spikes and send alerts",
+        replace_existing=True
+    )
+
     scheduler.start()
-    logger.info("Background scheduler started - cleanup 02:00 UTC, email reports 07:00 UTC")
+    logger.info(
+        "Background scheduler started - cleanup 02:00 UTC, email reports 07:00 UTC, "
+        "traffic-spike alerts hourly at :05"
+    )
 
     return scheduler
 
