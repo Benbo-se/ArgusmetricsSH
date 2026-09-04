@@ -58,10 +58,11 @@ services:
       # (t.ex. lägg till Cloudflares ranges).
       TRUSTED_PROXIES: ${TRUSTED_PROXIES:-172.16.0.0/12}
       GEOIP_DB_PATH: ${GEOIP_DB_PATH:-}
-      # 365 by default now: twelve months, stated in the privacy policy.
-      # The purge batches, so it cannot lock the tracking tables. See
-      # .env.example for the ceiling to set on the first run.
-      DATA_RETENTION_DAYS: ${DATA_RETENTION_DAYS:-365}
+      # 730 by default: twenty-four months, stated in the privacy policy.
+      # The dashboard's 365 day view compares against the 365 days before it,
+      # so anything less makes that comparison empty. The purge batches, so it
+      # cannot lock the tracking tables. See .env.example.
+      DATA_RETENTION_DAYS: ${DATA_RETENTION_DAYS:-730}
       RETENTION_BATCH_SIZE: ${RETENTION_BATCH_SIZE:-10000}
       RETENTION_MAX_ROWS_PER_RUN: ${RETENTION_MAX_ROWS_PER_RUN:-0}
       EMAIL_LOG_RETENTION_DAYS: ${EMAIL_LOG_RETENTION_DAYS:-90}
