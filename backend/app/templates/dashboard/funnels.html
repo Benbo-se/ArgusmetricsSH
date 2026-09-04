@@ -5,7 +5,7 @@
 {% block main_class %}{% endblock %}
 
 {% block extra_head %}
-<script>
+<script nonce="{{ request.state.csp_nonce }}">
     // Store website ID for use in API calls.
     // Auth uses the httponly session_token cookie (SameSite=Lax mitigates CSRF) sent
     // automatically with same-origin fetch; no token is exposed to JS.

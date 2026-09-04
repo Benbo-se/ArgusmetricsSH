@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { ApiHelper } from '../helpers/api';
+import { ApiHelper, TEST_PASSWORD } from '../helpers/api';
 import { generateTestEmail, createVerifiedUser } from '../helpers/auth';
 
 test.describe('Signup', () => {
@@ -99,5 +99,50 @@ test.describe('UI Auth Pages', () => {
     await page.goto('/signup');
     expect(await page.title()).toBeTruthy();
     await expect(page.locator('input[type="email"]').first()).toBeVisible();
+  });
+});
+
+test.describe('UI login, in a real browser', () => {
+  test('the login form signs a verified user in', async ({ page, request }) => {
+    // These pages carry no inline handlers any more: the CSP has no
+    // 'unsafe-inline', so onclick="" and onsubmit="" would be refused
+    // silently. The attributes name a function and a delegated listener in
+    // base.html calls it. Nothing but a real browser can tell whether that
+    // still works, which is why this test exists rather than another API one.
+    const api = new ApiHelper(request);
+    const email = generateTestEmail();
+
+    const signupRes = await api.signup(email);
+    expect(signupRes.status).toBe(201);
+    const token = new URL(signupRes.body.verify_url).searchParams.get('token');
+    await api.verify(token!);
+
+    await page.goto('/login');
+    await page.locator('#email').fill(email);
+    await page.locator('#password').fill(TEST_PASSWORD);
+    await page.locator('button[type="submit"]').first().click();
+
+    await expect(page).toHaveURL(/\/dashboard/, { timeout: 10000 });
+  });
+
+  test('the reset link swaps the form without leaving the page', async ({ page }) => {
+    await page.goto('/login');
+    await expect(page.locator('#login-section')).toBeVisible();
+
+    await page.getByRole('button', { name: /forgot password/i }).click();
+
+    await expect(page.locator('#reset-section')).toBeVisible();
+    await expect(page.locator('#login-section')).toBeHidden();
+  });
+
+  test('the eye reveals the password', async ({ page }) => {
+    await page.goto('/login');
+    const password = page.locator('#password');
+    await password.fill('visible-check-9');
+    await expect(password).toHaveAttribute('type', 'password');
+
+    await page.locator('button[data-on-click="togglePw"]').first().click();
+
+    await expect(password).toHaveAttribute('type', 'text');
   });
 });

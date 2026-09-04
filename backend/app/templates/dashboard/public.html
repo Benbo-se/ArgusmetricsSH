@@ -3,7 +3,7 @@
 {% block title %}{{ website.name }} - Public Analytics Dashboard{% endblock %}
 
 {% block extra_head %}
-<script>
+<script nonce="{{ request.state.csp_nonce }}">
     // Store website ID for use in dashboard.js
     window.WEBSITE_ID = {{ website.id }};
     window.WEBSITE_NAME = "{{ website.name }}";
@@ -842,7 +842,7 @@ argus.trackEvent('button_click', {
 </div>
 
 <!-- Initialize charts -->
-<script>
+<script nonce="{{ request.state.csp_nonce }}">
     document.addEventListener('DOMContentLoaded', function() {
         // Initialize pageviews chart
         const timeseriesData = {{ stats.timeseries | tojson | safe }};

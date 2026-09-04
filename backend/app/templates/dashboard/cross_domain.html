@@ -3,7 +3,7 @@
 {% block title %}Cross-Domain Analytics{% endblock %}
 
 {% block extra_head %}
-<script>
+<script nonce="{{ request.state.csp_nonce }}">
     // Store all website IDs for API calls
     window.WEBSITE_IDS = {{ website_ids | tojson | safe }};
     window.WEBSITES = {{ websites | tojson | safe }};
@@ -258,7 +258,7 @@
     </div>
 </div>
 
-<script>
+<script nonce="{{ request.state.csp_nonce }}">
 function crossDomainDashboard() {
     return {
         range: '7d',

@@ -19,7 +19,7 @@
             <div id="success-message" class="hidden mb-6 p-4 bg-green-50 border-l-4 border-green-400 text-green-700"></div>
             <div id="error-message" class="hidden mb-4 p-3 bg-red-50 border-l-4 border-red-400 text-red-700 text-sm"></div>
 
-            <form id="signup-form" class="space-y-6" onsubmit="handleSignup(event)">
+            <form id="signup-form" class="space-y-6" data-on-submit="handleSignup">
                 <div>
                     <label for="email" class="block text-sm font-medium text-gray-700 mb-2">Email address</label>
                     <input id="email" name="email" type="email" required autocomplete="email"
@@ -30,9 +30,9 @@
                     <label for="password" class="block text-sm font-medium text-gray-700 mb-2">Password</label>
                     <div class="relative">
                         <input id="password" name="password" type="password" required autocomplete="new-password"
-                               oninput="updateChecklist()"
+                               data-on-input="updateChecklist"
                                class="appearance-none block w-full px-3 py-2 pr-10 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
-                        <button type="button" onclick="togglePw('password', this)" aria-label="Show password"
+                        <button type="button" data-on-click="togglePw" data-target="password" aria-label="Show password"
                                 class="absolute inset-y-0 right-0 flex items-center px-3 text-gray-400 hover:text-gray-600">👁</button>
                     </div>
                     <!-- Live checklist: UX only, the server always re-validates -->
@@ -46,7 +46,7 @@
                 <div>
                     <label for="password2" class="block text-sm font-medium text-gray-700 mb-2">Confirm password</label>
                     <input id="password2" name="password2" type="password" required autocomplete="new-password"
-                           oninput="updateChecklist()"
+                           data-on-input="updateChecklist"
                            class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
                 </div>
 
@@ -72,12 +72,15 @@
     </div>
 </div>
 
-<script>
+<script nonce="{{ request.state.csp_nonce }}">
 // Timing gate: stamped at render, checked server-side (bots submit instantly)
 document.getElementById('form_ts').value = Date.now();
 
-function togglePw(id, btn) {
-    const el = document.getElementById(id);
+// Called by the delegated listener in base.html: it hands over the event and
+// the button, and the input's id comes from data-target on the button itself.
+function togglePw(event, btn) {
+    const el = document.getElementById(btn.dataset.target);
+    if (!el) return;
     el.type = el.type === 'password' ? 'text' : 'password';
     btn.setAttribute('aria-label', el.type === 'password' ? 'Show password' : 'Hide password');
 }

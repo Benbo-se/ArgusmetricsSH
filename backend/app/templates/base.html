@@ -37,7 +37,7 @@
     <!-- Tailwind CSS (prebuilt dump) + the theme layer that retints it -->
     <link rel="stylesheet" href="/static/css/tailwind.min.css">
     <link rel="stylesheet" href="/static/css/theme.css">
-    <script>
+    <script nonce="{{ request.state.csp_nonce }}">
         // Apply the saved theme before first paint (no flash of wrong theme).
         try {
             var t = localStorage.getItem('argus-theme');
@@ -117,7 +117,7 @@
 
     <!-- Custom JavaScript -->
     <script src="/static/js/dashboard.js"></script>
-    <script>
+    <script nonce="{{ request.state.csp_nonce }}">
         function toggleTheme() {
             var root = document.documentElement;
             var current = root.getAttribute('data-theme');
@@ -132,5 +132,32 @@
     </script>
 
     {% block extra_scripts %}{% endblock %}
+
+    <script nonce="{{ request.state.csp_nonce }}">
+    /* Delegated event handling, so script-src can drop 'unsafe-inline'.
+     *
+     * These used to be data-on-click="fn" attributes, which a CSP without
+     * 'unsafe-inline' refuses to run, and which an attacker who gets markup
+     * onto the page can also use. The attribute now names the function
+     * instead of containing code, and this listener looks it up.
+     *
+     * Anything the handler needs comes from data attributes on the element,
+     * which is why data-target exists: the code lives here, the data lives in
+     * the markup, and nothing on the page is executed as text.
+     */
+    (function () {
+        function delegate(eventName, attribute) {
+            document.addEventListener(eventName, function (event) {
+                var el = event.target.closest('[' + attribute + ']');
+                if (!el) return;
+                var fn = window[el.getAttribute(attribute)];
+                if (typeof fn === 'function') fn.call(el, event, el);
+            });
+        }
+        delegate('click', 'data-on-click');
+        delegate('submit', 'data-on-submit');
+        delegate('input', 'data-on-input');
+    })();
+    </script>
 </body>
 </html>

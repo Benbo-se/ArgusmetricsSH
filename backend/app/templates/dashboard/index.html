@@ -100,7 +100,7 @@
                 <h2 class="text-2xl font-bold text-gray-900 mb-6">Add Website</h2>
 
                 <!-- Form -->
-                <form id="add-website-form" onsubmit="handleAddWebsite(event)">
+                <form id="add-website-form" data-on-submit="handleAddWebsite">
                     <div class="space-y-4">
                         <!-- Website Name -->
                         <div>
@@ -154,7 +154,7 @@
     </div>
 </div>
 
-<script>
+<script nonce="{{ request.state.csp_nonce }}">
 async function handleAddWebsite(event) {
     event.preventDefault();
 

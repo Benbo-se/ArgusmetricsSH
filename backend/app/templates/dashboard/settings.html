@@ -278,7 +278,7 @@
     });
   }
 &lt;/script&gt;</code></pre>
-                    <button @click="navigator.clipboard.writeText(`<script>\n  if (window.argus) {\n    argus.trackEvent('404 Error', {\n      path: window.location.pathname,\n      referrer: document.referrer\n    });\n  }\n</script>`); copied = true; setTimeout(() => copied = false, 2000)"
+                    <button @click="navigator.clipboard.writeText(`<script nonce="{{ request.state.csp_nonce }}">\n  if (window.argus) {\n    argus.trackEvent('404 Error', {\n      path: window.location.pathname,\n      referrer: document.referrer\n    });\n  }\n</script>`); copied = true; setTimeout(() => copied = false, 2000)"
                             class="absolute top-2 right-2 px-3 py-1 text-xs font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                         <span x-show="!copied">Copy</span>
                         <span x-show="copied">Copied!</span>
@@ -1021,7 +1021,7 @@ export default function Custom404() {
 {% endblock %}
 
 {% block extra_js %}
-<script>
+<script nonce="{{ request.state.csp_nonce }}">
     // Copy tracking code to clipboard
     function copyTrackingCode() {
         const code = document.getElementById('tracking-code').textContent;

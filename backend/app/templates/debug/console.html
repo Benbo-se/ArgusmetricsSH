@@ -152,7 +152,7 @@
             <div class="flex space-x-4">
                 <input type="text" id="test-path" placeholder="/test-page" value="/test-debug"
                        class="flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                <button onclick="sendTestEvent()" class="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700">
+                <button data-on-click="sendTestEvent" class="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700">
                     <i class="fas fa-paper-plane mr-2"></i>Send Test Event
                 </button>
             </div>
@@ -160,7 +160,7 @@
     </div>
 </div>
 
-<script>
+<script nonce="{{ request.state.csp_nonce }}">
 function debugConsole() {
     return {
         ws: null,

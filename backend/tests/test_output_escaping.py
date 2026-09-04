@@ -55,6 +55,75 @@ def _assert_not_executable(body: str, payload: str):
         )
 
 
+class TestContentSecurityPolicy:
+    """What the header promises, and that a page can satisfy it."""
+
+    def test_it_has_no_unsafe_inline(self, client):
+        """Dropped in favour of a per-request nonce.
+
+        Without it, an injected <script> or onerror= handler cannot run even
+        if the escaping that should have stopped it fails. That is the whole
+        value of the header here, and it is one careless edit away from being
+        given back.
+        """
+        header = client.get("/login").headers["content-security-policy"]
+
+        assert "'unsafe-inline'" not in header, (
+            "script-src allows inline scripts again, so an injected <script> "
+            "or onerror= would execute"
+        )
+        assert "'nonce-" in header, "no nonce, so the page's own scripts cannot run"
+
+    def test_the_page_nonce_matches_the_header(self, client):
+        """They come from the same request or nothing on the page runs."""
+        import re
+
+        response = client.get("/login")
+        header_nonce = re.search(
+            r"'nonce-([^']+)'", response.headers["content-security-policy"]
+        ).group(1)
+        page_nonces = set(re.findall(r'nonce="([^"]+)"', response.text))
+
+        assert page_nonces, "no inline script carries a nonce"
+        assert page_nonces == {header_nonce}, (
+            f"page nonces {page_nonces} do not match the header's {header_nonce!r}"
+        )
+
+    def test_a_second_request_gets_a_different_nonce(self, client):
+        """A reused nonce is barely better than 'unsafe-inline'."""
+        import re
+
+        def nonce_of(response):
+            return re.search(
+                r"'nonce-([^']+)'", response.headers["content-security-policy"]
+            ).group(1)
+
+        assert nonce_of(client.get("/login")) != nonce_of(client.get("/login"))
+
+    def test_no_template_still_uses_an_inline_handler(self):
+        """onclick="" and friends are silently dead under this policy.
+
+        Silently is the problem: the button renders, the page looks right, and
+        nothing happens when it is pressed.
+        """
+        import pathlib
+        import re
+
+        offenders = []
+        for path in pathlib.Path("app/templates").rglob("*.html"):
+            for line_no, line in enumerate(path.read_text().splitlines(), 1):
+                # Escaped example code shown to customers is not a handler.
+                if "&lt;" in line or "<code>" in line:
+                    continue
+                if re.search(r'\son(click|submit|input|change|load)="', line):
+                    offenders.append(f"{path}:{line_no}")
+
+        assert not offenders, (
+            "inline event handlers do nothing under this CSP:\n  "
+            + "\n  ".join(offenders)
+        )
+
+
 class TestScriptIslands:
     def test_tojson_cannot_close_the_script_tag(self):
         """The property the eight chart-data blocks rely on."""

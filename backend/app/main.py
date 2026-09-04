@@ -3,6 +3,7 @@ FastAPI application entry point for Argusmetrics.
 Initializes the app, middleware, routers, and event handlers.
 """
 import logging
+import secrets
 from contextlib import asynccontextmanager
 from typing import Dict, Any
 
@@ -142,6 +143,19 @@ if settings.is_production:
 # object-literal form (CSSOM .style.setProperty, never gated by style-src).
 @app.middleware("http")
 async def security_headers(request: Request, call_next):
+    # A fresh nonce per request, which every inline <script> in the templates
+    # carries. That is what lets script-src drop 'unsafe-inline': an injected
+    # <script> or onerror= handler has no nonce and does not run, even if the
+    # escaping that is supposed to stop it ever fails.
+    #
+    # 'unsafe-eval' stays. Alpine evaluates its x-* attributes with new
+    # Function(), so without it every dropdown, tab and modal in the dashboard
+    # silently stops working. Removing it means moving ~250 expressions into
+    # Alpine.data() components against the CSP build, which is worth doing and
+    # is a separate piece of work.
+    nonce = secrets.token_urlsafe(16)
+    request.state.csp_nonce = nonce
+
     response = await call_next(request)
     response.headers.setdefault("X-Content-Type-Options", "nosniff")
     response.headers.setdefault("X-Frame-Options", "DENY")
@@ -149,7 +163,7 @@ async def security_headers(request: Request, call_next):
     response.headers.setdefault(
         "Content-Security-Policy",
         "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
+        f"script-src 'self' 'nonce-{nonce}' 'unsafe-eval'; "
         "style-src 'self'; "
         "img-src 'self' data: https:; "
         "font-src 'self' data:; "

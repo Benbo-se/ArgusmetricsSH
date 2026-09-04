@@ -5,7 +5,7 @@
 {% block main_class %}{% endblock %}
 
 {% block extra_head %}
-<script>
+<script nonce="{{ request.state.csp_nonce }}">
     // Store website ID for use in revenue dashboard
     window.WEBSITE_ID = {{ website.id }};
     window.WEBSITE_NAME = "{{ website.name }}";
@@ -293,7 +293,7 @@ argus.trackEcommerce('purchase', {
 </div>
 
 <!-- Initialize charts -->
-<script>
+<script nonce="{{ request.state.csp_nonce }}">
     document.addEventListener('DOMContentLoaded', function() {
         // Revenue chart data
         const revenueData = {{ revenue_chart.data | tojson | safe if revenue_chart and revenue_chart.data else '[]' }};
