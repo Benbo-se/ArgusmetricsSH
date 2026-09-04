@@ -91,6 +91,28 @@ class TestRetention:
             )
         }
 
+    def _inside_the_current_chunk(self, db):
+        """A time safely inside the chunk that holds now(), and its start.
+
+        The batched delete only runs on the chunk straddling the cutoff:
+        anything older is a whole chunk and gets dropped, which is the point of
+        the rewrite. So a test of batching has to put its rows where dropping
+        cannot reach them.
+
+        Read from the catalog rather than guessed, because chunk boundaries are
+        aligned to a fixed epoch, and "now minus five minutes" lands in the
+        previous chunk roughly once a week.
+        """
+        start = db.execute(
+            text(
+                "SELECT range_start FROM timescaledb_information.chunks "
+                " WHERE hypertable_name = 'pageviews' "
+                "   AND range_start <= now() AND range_end > now()"
+            )
+        ).scalar()
+        assert start is not None, "no chunk covers now(); insert a row first"
+        return start
+
     def test_zero_days_keeps_everything(self, db, website, monkeypatch):
         """The default, and a contract: 0 means keep forever.
 
@@ -141,7 +163,20 @@ class TestRetention:
         monkeypatch.setattr(settings, "RETENTION_BATCH_SIZE", 3)
         set_rls_context(db, context="job")
 
-        old = datetime.now(timezone.utc) - timedelta(days=5000)
+        # One row so a chunk exists around now(), then everything inside it.
+        db.execute(
+            text(
+                "INSERT INTO pageviews (website_id, path, visitor_hash, timestamp) "
+                "VALUES (:w, '/anchor', :h, now())"
+            ),
+            {"w": website["id"], "h": uuid.uuid4().hex[:16]},
+        )
+        db.commit()
+
+        chunk_start = self._inside_the_current_chunk(db)
+        old = chunk_start + timedelta(seconds=1)
+        cutoff = chunk_start + timedelta(seconds=30)
+
         for i in range(10):
             db.execute(
                 text(
@@ -152,12 +187,10 @@ class TestRetention:
             )
         db.commit()
 
-        deleted = CleanupService(db)._purge_in_batches(
-            "pageviews", "timestamp", datetime.now(timezone.utc) - timedelta(days=30)
-        )
+        deleted = CleanupService(db)._purge_in_batches("pageviews", "timestamp", cutoff)
 
         assert deleted >= 10, f"batching stopped early, deleted only {deleted}"
-        assert self._paths(db, website["id"]) == set(), "old rows survived"
+        assert self._paths(db, website["id"]) == {"/anchor"}, "old rows survived"
 
     def test_a_per_run_ceiling_leaves_the_rest_for_tomorrow(self, db, website, monkeypatch):
         """So the first run on a large table can be bounded deliberately."""
@@ -169,7 +202,19 @@ class TestRetention:
         monkeypatch.setattr(settings, "RETENTION_MAX_ROWS_PER_RUN", 4)
         set_rls_context(db, context="job")
 
-        old = datetime.now(timezone.utc) - timedelta(days=5000)
+        db.execute(
+            text(
+                "INSERT INTO pageviews (website_id, path, visitor_hash, timestamp) "
+                "VALUES (:w, '/anchor', :h, now())"
+            ),
+            {"w": website["id"], "h": uuid.uuid4().hex[:16]},
+        )
+        db.commit()
+
+        chunk_start = self._inside_the_current_chunk(db)
+        old = chunk_start + timedelta(seconds=1)
+        cutoff = chunk_start + timedelta(seconds=30)
+
         for i in range(10):
             db.execute(
                 text(
@@ -180,12 +225,18 @@ class TestRetention:
             )
         db.commit()
 
-        deleted = CleanupService(db)._purge_in_batches(
-            "pageviews", "timestamp", datetime.now(timezone.utc) - timedelta(days=30)
-        )
+        CleanupService(db)._purge_in_batches("pageviews", "timestamp", cutoff)
 
-        assert deleted == 4, f"the ceiling was ignored: deleted {deleted}"
-        assert len(self._paths(db, website["id"])) == 6, "wrong number left behind"
+        # Measured on this website's own rows rather than on the return value,
+        # which also counts whole chunks dropped elsewhere in the table and
+        # would therefore depend on whatever else the database happens to
+        # hold. Six old ones left for tomorrow, plus the anchor.
+        remaining = self._paths(db, website["id"])
+        assert len(remaining) == 7, (
+            f"the ceiling was ignored: {10 - (len(remaining) - 1)} deleted, "
+            f"expected 4. Left: {sorted(remaining)}"
+        )
+        assert "/anchor" in remaining, "a row inside the window was deleted"
 
     def test_expired_sessions_are_deleted(self, db, website):
         from app.services.cleanup_service import CleanupService

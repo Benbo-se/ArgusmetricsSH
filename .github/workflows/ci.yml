@@ -123,15 +123,42 @@ jobs:
           # data load aborted on a conflict in TimescaleDB's own catalog.
           # It looks like success unless you count something, which is why
           # this counts.
+          # Seeded deliberately, because a comparison of zero against zero
+          # passes without proving anything. The pageviews go into two chunks
+          # so the restore has to bring back the partitioning, not just rows.
           psql -h localhost -U argus -d argus_ci -v ON_ERROR_STOP=1 -q <<'SQL'
           INSERT INTO users (email, is_verified, created_at)
           VALUES ('restore-check@example.com', true, now())
           ON CONFLICT (email) DO NOTHING;
+
+          INSERT INTO websites (name, domain, user_email, tracking_code,
+                                verification_token, is_verified, is_active,
+                                email_reports_enabled, is_public,
+                                public_password_enabled, created_at)
+          VALUES ('Restore check', 'https://restore-check.example',
+                  'restore-check@example.com', 'restorechk', 'tok-restorechk',
+                  true, true, false, false, false, now())
+          ON CONFLICT (domain) DO NOTHING;
+
+          INSERT INTO pageviews (website_id, path, visitor_hash, "timestamp")
+          SELECT w.id, '/restore-' || g, 'hash-' || g,
+                 now() - make_interval(days => g * 10)
+            FROM websites w, generate_series(0, 4) g
+           WHERE w.tracking_code = 'restorechk';
           SQL
 
           BEFORE=$(psql -h localhost -U argus -d argus_ci -tAc 'SELECT count(*) FROM users')
           REVISION=$(psql -h localhost -U argus -d argus_ci -tAc 'SELECT version_num FROM alembic_version')
-          echo "före: $BEFORE users, revision $REVISION"
+          # users is an ordinary table, and counting only it was the weak
+          # point of this drill: the failure being guarded against is
+          # TimescaleDB's catalog aborting the data load, and that is exactly
+          # what would leave the HYPERTABLES empty while users came back fine.
+          # So count a hypertable, its chunks, and the policies that isolate
+          # tenants — a restore that loses those is not a restore.
+          BEFORE_PV=$(psql -h localhost -U argus -d argus_ci -tAc 'SELECT count(*) FROM pageviews')
+          BEFORE_CHUNKS=$(psql -h localhost -U argus -d argus_ci -tAc 'SELECT count(*) FROM timescaledb_information.chunks')
+          BEFORE_POLICIES=$(psql -h localhost -U argus -d argus_ci -tAc 'SELECT count(*) FROM pg_policies')
+          echo "före: $BEFORE users, $BEFORE_PV pageviews, $BEFORE_CHUNKS chunkar, $BEFORE_POLICIES policyer, revision $REVISION"
 
           pg_dump --clean --if-exists -h localhost -U argus argus_ci | gzip > /tmp/ci-backup.sql.gz
           gzip -t /tmp/ci-backup.sql.gz
@@ -148,10 +175,16 @@ jobs:
           psql -h localhost -U argus -d restore_check -q -c 'SELECT timescaledb_post_restore();'
 
           AFTER=$(psql -h localhost -U argus -d restore_check -tAc 'SELECT count(*) FROM users')
+          AFTER_PV=$(psql -h localhost -U argus -d restore_check -tAc 'SELECT count(*) FROM pageviews')
+          AFTER_CHUNKS=$(psql -h localhost -U argus -d restore_check -tAc 'SELECT count(*) FROM timescaledb_information.chunks')
+          AFTER_POLICIES=$(psql -h localhost -U argus -d restore_check -tAc 'SELECT count(*) FROM pg_policies')
           RESTORED_REVISION=$(psql -h localhost -U argus -d restore_check -tAc 'SELECT version_num FROM alembic_version')
-          echo "efter: $AFTER users, revision $RESTORED_REVISION"
+          echo "efter: $AFTER users, $AFTER_PV pageviews, $AFTER_CHUNKS chunkar, $AFTER_POLICIES policyer, revision $RESTORED_REVISION"
 
-          [ "$AFTER" = "$BEFORE" ] || { echo "::error::Återställningen gav $AFTER rader, källan hade $BEFORE"; exit 1; }
+          [ "$AFTER" = "$BEFORE" ] || { echo "::error::Återställningen gav $AFTER users, källan hade $BEFORE"; exit 1; }
+          [ "$AFTER_PV" = "$BEFORE_PV" ] || { echo "::error::Hypertabellen kom tillbaka med $AFTER_PV rader, källan hade $BEFORE_PV"; exit 1; }
+          [ "$AFTER_CHUNKS" = "$BEFORE_CHUNKS" ] || { echo "::error::$AFTER_CHUNKS chunkar återställda, källan hade $BEFORE_CHUNKS"; exit 1; }
+          [ "$AFTER_POLICIES" = "$BEFORE_POLICIES" ] || { echo "::error::$AFTER_POLICIES RLS-policyer återställda, källan hade $BEFORE_POLICIES. En återställning utan policyer är oisolerad."; exit 1; }
           [ "$RESTORED_REVISION" = "$REVISION" ] || { echo "::error::Fel schemarevision efter återställning"; exit 1; }
           psql -h localhost -U argus -d restore_check -tAc \
             "SELECT count(*) FROM users WHERE email='restore-check@example.com'" | grep -q 1 \
