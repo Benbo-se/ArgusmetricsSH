@@ -654,6 +654,13 @@
                                 <p class="text-sm font-medium text-gray-900 truncate" x-text="page.path"></p>
                             </div>
                             <div class="ml-4 flex items-center">
+                                <!-- How far down the page visitors got, averaged. Collected
+                                     on every pageview since the tracker was written and
+                                     displayed nowhere until now. A dash when no visitor on
+                                     that page reported a depth, which is not the same as 0%. -->
+                                <span class="mr-3 text-xs text-gray-400 tabular-nums"
+                                      :title="page.avg_scroll === null ? 'no scroll data for this page' : 'visitors scrolled ' + page.avg_scroll + '% down on average'"
+                                      x-text="page.avg_scroll === null ? '–' : page.avg_scroll + '% read'"></span>
                                 <span class="text-sm font-semibold text-gray-900" x-text="page.views"></span>
                                 <span class="ml-2 text-xs text-gray-500"
                                       x-text="'(' + ({{ stats.total_pageviews }} > 0 ? Math.round((page.views / {{ stats.total_pageviews }}) * 100) : 0) + '%)'"></span>

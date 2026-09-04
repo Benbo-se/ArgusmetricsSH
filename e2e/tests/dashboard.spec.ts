@@ -116,3 +116,36 @@ test.describe('Team Page', () => {
     await expect(page.locator('text=Team').first()).toBeVisible({ timeout: 10000 });
   });
 });
+
+test.describe('Scroll depth on top pages', () => {
+  test('a page with scroll data shows how far visitors read', async ({ page, request }) => {
+    // Scroll depth was written on every pageview since the tracker was built
+    // and displayed nowhere, which made it data collected for no purpose. It
+    // is shown now, and this is what stops it going quiet again: the number
+    // reaching the JSON island is not the same as it reaching the screen.
+    const { sessionToken, websiteId, trackingCode } = await createUserWithWebsite(request);
+
+    for (const depth of [40, 60, 80]) {
+      const res = await request.post('/api/v1/analytics/track', {
+        data: { tracking_code: trackingCode, path: '/long-article', scroll_depth: depth },
+        headers: { 'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) Chrome/120' },
+      });
+      expect(res.status()).toBe(200);
+    }
+
+    // Same shape as the tests above: visit a page first, then set the cookie
+    // from inside it. addCookies needs an origin and a blank page has none.
+    await page.goto('/login');
+    await page.evaluate((token) => {
+      document.cookie = `session_token=${token}; path=/`;
+    }, sessionToken);
+
+    await page.goto(`/dashboard/website/${websiteId}?range=30d`);
+
+    const row = page.locator('text=/long-article').first();
+    await expect(row).toBeVisible();
+
+    // 40, 60 and 80 average to 60.
+    await expect(page.getByText('60% read')).toBeVisible();
+  });
+});

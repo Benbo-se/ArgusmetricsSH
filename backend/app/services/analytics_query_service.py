@@ -91,9 +91,15 @@ class AnalyticsQueryService:
             ).scalar()
 
             # Top pages
+            # avg_scroll comes along for free: it is the same grouping, and
+            # the column has been written on every pageview since the tracker
+            # was built while nothing ever read it. Averaged over the rows
+            # that have a value, since a visitor who leaves before the script
+            # measures anything records NULL rather than nought.
             top_pages = self.db.query(
                 Pageview.path,
-                func.count(Pageview.id).label('views')
+                func.count(Pageview.id).label('views'),
+                func.avg(Pageview.scroll_depth).label('avg_scroll')
             ).filter(
                 and_(*base_conditions)
             ).group_by(Pageview.path)\
@@ -245,7 +251,14 @@ class AnalyticsQueryService:
                 "total_pageviews": total_pageviews or 0,
                 "unique_visitors": unique_visitors or 0,
                 "top_pages": [
-                    {"path": p.path, "views": p.views} for p in top_pages
+                    {
+                        "path": p.path,
+                        "views": p.views,
+                        # None when no visitor on that page reported a depth,
+                        # which the template shows as a dash rather than 0%.
+                        "avg_scroll": round(float(p.avg_scroll)) if p.avg_scroll is not None else None,
+                    }
+                    for p in top_pages
                 ],
                 "entry_pages": [
                     {"path": e.path, "entries": e.entries} for e in entry_pages
