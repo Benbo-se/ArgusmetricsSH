@@ -24,7 +24,6 @@ till backend-containern. En deploy släpper alltså sajt + app atomiskt ihop.
    sudo git clone https://github.com/Benbo-se/ArgusmetricsSH.git /opt/argusmetrics
    cd /opt/argusmetrics
    cp docker/.env.example docker/.env   # fyll i POSTGRES_PASSWORD, SECRET_KEY,
-                                        # ALLOWED_ORIGINS=https://argusmetrics.io
                                         # BASE_URL=https://www.argusmetrics.io
                                         # ev. WEB_PORT (default 8021)
    ```

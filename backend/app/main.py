@@ -51,6 +51,23 @@ async def lifespan(app: FastAPI):
     logger.info(f"Debug mode: {settings.DEBUG}")
     logger.info(f"Base URL: {settings.BASE_URL}")
 
+    # Open registration with verification turned off lets anyone create an
+    # account for an address they do not own, including one belonging to
+    # somebody who has not signed up yet. Each setting is reasonable alone: a
+    # closed instance does not need verification, and a public one requires
+    # it. Together they are an open door, so a production process refuses to
+    # start rather than serve in that state.
+    if (
+        settings.is_production
+        and settings.ENABLE_REGISTRATION
+        and not settings.ENABLE_EMAIL_VERIFICATION
+    ):
+        raise RuntimeError(
+            "ENABLE_REGISTRATION is on while ENABLE_EMAIL_VERIFICATION is off. "
+            "Anyone could then register an address they do not own. Turn "
+            "verification on (and configure email), or close registration."
+        )
+
     # Check database connection
     if not check_db_connection():
         logger.error("Failed to connect to database")

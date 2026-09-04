@@ -43,7 +43,6 @@ services:
       SECRET_KEY: ${SECRET_KEY:-dev-secret-key-change-in-production}
       ENVIRONMENT: ${ENVIRONMENT:-development}
       DEBUG: ${DEBUG:-false}
-      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:8020}
       # Without this, magic-link/invite emails would mint links to the default
       # BASE_URL (a domain this instance does not own).
       BASE_URL: ${BASE_URL:-http://localhost:8020}

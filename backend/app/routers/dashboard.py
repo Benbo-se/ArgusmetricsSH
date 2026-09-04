@@ -201,7 +201,14 @@ async def login_page(request: Request):
 
 @router.get("/signup", response_class=HTMLResponse)
 async def signup_page(request: Request):
-    """Render signup page with plan selection."""
+    """Render signup page with plan selection.
+
+    Sends people to the login page when registration is closed, rather than
+    showing a form whose submit would be refused.
+    """
+    if not settings.ENABLE_REGISTRATION:
+        return RedirectResponse(url="/login", status_code=302)
+
     return templates.TemplateResponse("auth/signup.html", {
         "request": request,
         "current_user": None

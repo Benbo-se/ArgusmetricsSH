@@ -197,15 +197,36 @@ class AuthService:
                     existing_user.password_hash = _hash_password(password)
                     self.db.commit()
             else:
+                # ENABLE_EMAIL_VERIFICATION off means an account is usable
+                # immediately. That is the only way to sign in on an instance
+                # with no email configured, which would otherwise create
+                # accounts that can never be verified and never log in.
+                #
+                # Safe only because such an instance is closed: nobody but the
+                # operator can reach signup. Turning registration on without
+                # verification lets a stranger claim any address, so the two
+                # settings are checked together below.
+                verified_on_creation = not settings.ENABLE_EMAIL_VERIFICATION
+
                 new_user = User(
                     email=email,
-                    is_verified=False,
+                    is_verified=verified_on_creation,
                     password_hash=_hash_password(password),
                 )
                 self.db.add(new_user)
                 self.db.commit()
                 self.db.refresh(new_user)
                 logger.info(f"New user created: {_mask_email(email)}")
+
+                if verified_on_creation:
+                    logger.info(
+                        "Email verification is disabled: account is usable now"
+                    )
+                    return {
+                        "message": "Account created. You can sign in now.",
+                        "email": email,
+                        "verification_required": False,
+                    }
 
             # Generate magic link token (expires in 15 minutes)
             magic_token = generate_magic_token(

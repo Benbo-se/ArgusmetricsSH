@@ -50,7 +50,6 @@ services:
       BASE_URL: ${BASE_URL:?BASE_URL saknas i docker/.env}
       ENVIRONMENT: production
       DEBUG: "false"
-      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:?ALLOWED_ORIGINS saknas i docker/.env}
       # Värd-nginx + web-containern sitter framför → lita på docker-nätets XFF.
       # Backend sitter bakom web-nginx-containern: lita på docker-nätets
       # proxy-hopp som default, annars ser rate-limiter/visitor-hash bara
@@ -80,7 +79,40 @@ services:
       SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL:-}
       SMTP_FROM_NAME: ${SMTP_FROM_NAME:-Argusmetrics}
       SMTP_USE_TLS: ${SMTP_USE_TLS:-true}
+      EMAIL_BACKEND: ${EMAIL_BACKEND:-lettermint}
       LETTERMINT_API_KEY: ${LETTERMINT_API_KEY:-}
+      LETTERMINT_FROM_EMAIL: ${LETTERMINT_FROM_EMAIL:-noreply@argusmetrics.io}
+      LETTERMINT_FROM_NAME: ${LETTERMINT_FROM_NAME:-Argusmetrics}
+
+      # Vem som får använda instansen. ENABLE_REGISTRATION=true betyder att
+      # vem som helst på internet kan skapa konto.
+      ENABLE_REGISTRATION: ${ENABLE_REGISTRATION:-false}
+      ENABLE_EMAIL_VERIFICATION: ${ENABLE_EMAIL_VERIFICATION:-true}
+
+      # Sessioner och engångslänkar.
+      SESSION_EXPIRY_DAYS: ${SESSION_EXPIRY_DAYS:-30}
+      MAGIC_TOKEN_EXPIRY_SECONDS: ${MAGIC_TOKEN_EXPIRY_SECONDS:-900}
+
+      # Strypning. Auth-gränserna är hårdare än de allmänna eftersom det är
+      # dem en brute force eller e-postbombning riktar sig mot.
+      RATE_LIMIT_ENABLED: ${RATE_LIMIT_ENABLED:-true}
+      RATE_LIMIT_PER_MINUTE: ${RATE_LIMIT_PER_MINUTE:-60}
+      RATE_LIMIT_PER_HOUR: ${RATE_LIMIT_PER_HOUR:-1000}
+      RATE_LIMIT_PER_DAY: ${RATE_LIMIT_PER_DAY:-10000}
+      AUTH_RATE_LIMIT_ATTEMPTS: ${AUTH_RATE_LIMIT_ATTEMPTS:-10}
+      AUTH_RATE_LIMIT_WINDOW_SECONDS: ${AUTH_RATE_LIMIT_WINDOW_SECONDS:-300}
+
+      # Drift.
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      DB_POOL_SIZE: ${DB_POOL_SIZE:-5}
+      DB_MAX_OVERFLOW: ${DB_MAX_OVERFLOW:-10}
+
+      # Varumärke. Byt om du kör instansen under eget namn. BRAND_NAME används
+      # också i DNS-verifieringens TXT-post, så den får inte ändras efter att
+      # någon verifierat en domän.
+      APP_NAME: ${APP_NAME:-Argusmetrics}
+      BRAND_NAME: ${BRAND_NAME:-argusmetrics}
     depends_on:
       postgres:
         condition: service_healthy

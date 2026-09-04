@@ -185,6 +185,16 @@ async def signup(
     """
     logger.info(f"Signup request received for email: {request.email}")
 
+    # Registration closed. Checked here rather than only on the page, because
+    # hiding the form closes nothing: this endpoint is what actually creates
+    # accounts, and it is reachable directly.
+    if not settings.ENABLE_REGISTRATION:
+        logger.warning("Signup attempted while registration is closed")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Registration is closed on this instance.",
+        )
+
     # Anti-bot gates (zero friction for humans):
     # 1. Honeypot: the off-screen `website` field must stay empty. Bots that
     #    fill every field get a fake success and no account.

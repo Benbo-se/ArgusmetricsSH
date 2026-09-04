@@ -64,11 +64,12 @@ class Settings(BaseSettings):
     DB_POOL_PRE_PING: bool = Field(default=True, description="Enable connection health checks")
     DB_ECHO: bool = Field(default=False, description="Enable SQLAlchemy query logging")
 
-    # CORS
-    CORS_ORIGINS: str = Field(
-        default="*",
-        description="Allowed CORS origins (comma-separated or * for all)"
-    )
+    # CORS. There is deliberately no origin setting: the tracking endpoints
+    # are called from every customer's website, so the origin is a wildcard,
+    # and it is safe only because credentials are off. See main.py, where the
+    # reasoning is written out in full. A CORS_ORIGINS setting used to exist
+    # here and was read by nothing, while the compose file refused to start
+    # without an ALLOWED_ORIGINS that reached no code at all.
     CORS_ALLOW_CREDENTIALS: bool = Field(default=False, description="Allow credentials in CORS")
     CORS_ALLOW_METHODS: List[str] = Field(default=["*"], description="Allowed HTTP methods")
     CORS_ALLOW_HEADERS: List[str] = Field(default=["*"], description="Allowed HTTP headers")
@@ -96,22 +97,12 @@ class Settings(BaseSettings):
     RATE_LIMIT_PER_MINUTE: int = Field(default=60, description="Requests per minute per IP")
     RATE_LIMIT_PER_HOUR: int = Field(default=1000, description="Requests per hour per IP")
     RATE_LIMIT_PER_DAY: int = Field(default=10000, description="Requests per day per IP")
-    # Signup, login, verification and password reset, throttled harder than the
-    # rest because they are what a brute-force or email-bombing run targets.
-    # Configurable so an end-to-end suite, which drives dozens of signups from
-    # one address, can raise it without the limiter being removed from the code
-    # it is meant to protect. test_auth_rate_limit proves it still works.
-    # "memory" counts per process, which is correct for a single worker and
-    # wrong for several. See app/middleware/rate_limit.py.
     # Declared rather than inferred. Left unset, is_production falls back to
     # the old rule, so nothing changes for a deployment that does not set it.
     ENVIRONMENT: Optional[str] = Field(
         default=None,
         description="production | development | test. Decides is_production.",
     )
-    # "text" for a person reading along while developing, "json" for a
-    # deployment where the log is read by a machine first. See
-    # app/logging_setup.py.
     # Per account, not per website: a pageview costs the same whichever
     # domain it came from, and splitting a blog, a shop and a landing page
     # across three domains is normal rather than three customers' worth of
@@ -125,10 +116,20 @@ class Settings(BaseSettings):
     MAX_WEBSITES_PER_ACCOUNT: int = Field(
         default=100, description="Websites one account may create"
     )
+    # "text" for a person reading along while developing, "json" for a
+    # deployment where the log is read by a machine first. See
+    # app/logging_setup.py.
     LOG_FORMAT: str = Field(default="text", description="Log format: text | json")
+    # "memory" counts per process, which is correct for a single worker and
+    # wrong for several. See app/middleware/rate_limit.py.
     RATE_LIMIT_BACKEND: str = Field(
         default="memory", description="Rate limiter backend: 'memory' today"
     )
+    # Signup, login, verification and password reset, throttled harder than the
+    # rest because they are what a brute-force or email-bombing run targets.
+    # Configurable so an end-to-end suite, which drives dozens of signups from
+    # one address, can raise it without the limiter being removed from the code
+    # it is meant to protect. test_auth_rate_limit proves it still works.
     AUTH_RATE_LIMIT_ATTEMPTS: int = Field(
         default=10, description="Auth attempts allowed per IP per window"
     )
@@ -140,10 +141,22 @@ class Settings(BaseSettings):
     SENTRY_DSN: Optional[str] = Field(default=None, description="Sentry DSN for error tracking")
     LOG_LEVEL: str = Field(default="INFO", description="Logging level")
 
-    # Feature Flags
-    ENABLE_REGISTRATION: bool = Field(default=True, description="Enable user registration")
-    ENABLE_EMAIL_VERIFICATION: bool = Field(default=False, description="Require email verification")
-    ENABLE_ANALYTICS: bool = Field(default=True, description="Enable analytics tracking")
+    # Feature Flags. Both are checked where the behaviour happens, and
+    # test_feature_flags proves it: all three flags in this section were read
+    # by nothing, and ENABLE_REGISTRATION=false closed nothing at all while
+    # looking exactly like it had. A third, ENABLE_ANALYTICS, was removed
+    # rather than wired, because switching it off only stopped the product
+    # doing its job.
+    ENABLE_REGISTRATION: bool = Field(
+        default=True, description="Whether anyone may create an account"
+    )
+    # True by default. It was False while nothing read it, which meant
+    # nothing; now that it is wired, False would silently make every new
+    # account usable without proving the address. Turning it off has to be a
+    # decision, and it is only safe on an instance with registration closed.
+    ENABLE_EMAIL_VERIFICATION: bool = Field(
+        default=True, description="Require email verification before an account works"
+    )
 
     # E2E Testing (allows test emails to get verify_url without DEBUG mode)
     E2E_TEST_SECRET: Optional[str] = Field(default=None, description="Secret for E2E tests to get verify_url for @test.argusmetrics.io emails")
@@ -154,13 +167,6 @@ class Settings(BaseSettings):
         case_sensitive=True,
         extra="ignore"
     )
-
-    @property
-    def cors_origins_list(self) -> List[str]:
-        """Get CORS origins as a list."""
-        if isinstance(self.CORS_ORIGINS, str):
-            return [origin.strip() for origin in self.CORS_ORIGINS.split(",")]
-        return self.CORS_ORIGINS
 
     @field_validator("DATABASE_URL", mode="after")
     @classmethod
@@ -200,6 +206,67 @@ class Settings(BaseSettings):
             return False
 
         return not self.DEBUG and "localhost" not in self.BASE_URL
+
+
+#: Settings a person running their own instance is expected to set, or at
+#: least to know exists. Everything here must appear in docker/.env.example
+#: with an explanation, and must be forwarded by docker-compose.prod.yml: a
+#: variable the compose file does not pass through does nothing at all, which
+#: is a worse failure than an undocumented one because it looks like it worked.
+#:
+#: ENABLE_REGISTRATION is the reason this list exists. An instance exposed to
+#: the internet with open signup, whose owner never knew the setting was there,
+#: is a real problem rather than a documentation gap.
+OPERATOR_SETTINGS = frozenset({
+    # Identity and mode
+    "APP_NAME", "BRAND_NAME", "BASE_URL", "ENVIRONMENT", "DEBUG",
+    # Secrets and storage
+    "SECRET_KEY", "DATABASE_URL",
+    # Sessions and links
+    "SESSION_EXPIRY_DAYS", "MAGIC_TOKEN_EXPIRY_SECONDS",
+    # Network trust
+    "TRUSTED_PROXIES", "GEOIP_DB_PATH",
+    # Retention, which is a promise made in the privacy policy
+    "DATA_RETENTION_DAYS", "RETENTION_BATCH_SIZE", "RETENTION_MAX_ROWS_PER_RUN",
+    "EMAIL_LOG_RETENTION_DAYS",
+    # Who may use the instance
+    "ENABLE_REGISTRATION", "ENABLE_EMAIL_VERIFICATION",
+    "MONTHLY_EVENT_LIMIT", "MAX_WEBSITES_PER_ACCOUNT",
+    # Throttling
+    "RATE_LIMIT_ENABLED", "RATE_LIMIT_PER_MINUTE", "RATE_LIMIT_PER_HOUR",
+    "RATE_LIMIT_PER_DAY", "AUTH_RATE_LIMIT_ATTEMPTS",
+    "AUTH_RATE_LIMIT_WINDOW_SECONDS",
+    # Email delivery
+    "EMAIL_BACKEND",
+    "LETTERMINT_API_KEY", "LETTERMINT_FROM_EMAIL", "LETTERMINT_FROM_NAME",
+    "SMTP_HOST", "SMTP_PORT", "SMTP_USER", "SMTP_PASSWORD",
+    "SMTP_FROM_EMAIL", "SMTP_FROM_NAME", "SMTP_USE_TLS",
+    # Operations
+    "LOG_LEVEL", "LOG_FORMAT", "SENTRY_DSN",
+    "DB_POOL_SIZE", "DB_MAX_OVERFLOW",
+})
+
+#: Settings nobody deploying this should touch, listed rather than merely left
+#: out. Together with OPERATOR_SETTINGS these must cover every field exactly,
+#: which test_settings_are_documented enforces: a setting added later belongs
+#: to neither set, the test fails, and somebody has to decide which it is.
+#: That decision is the whole point. Leaving it undecided is how the gap in
+#: issue #13 opened in the first place.
+INTERNAL_SETTINGS = frozenset({
+    # Protocol details. Changing these breaks clients, not deployments.
+    "API_V1_PREFIX", "ALGORITHM", "ACCESS_TOKEN_EXPIRE_MINUTES",
+    "LETTERMINT_API_URL",
+    # CORS beyond the origin list: the app decides these, not the operator.
+    "CORS_ALLOW_CREDENTIALS", "CORS_ALLOW_METHODS", "CORS_ALLOW_HEADERS",
+    # Connection tuning with one sensible answer, and query logging that would
+    # write every visitor's data to the log if switched on in a deployment.
+    "DB_POOL_PRE_PING", "DB_ECHO",
+    # Only one backend exists today. It becomes operator-facing the day a
+    # second one does.
+    "RATE_LIMIT_BACKEND",
+    # Set by the test harness, never by a deployment.
+    "E2E_TEST_SECRET",
+})
 
 
 # Global settings instance
