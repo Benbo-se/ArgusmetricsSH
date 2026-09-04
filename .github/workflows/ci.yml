@@ -199,7 +199,12 @@ jobs:
           # The app and the site are two things behind one domain in
           # production. The landing suite needs the site, not the app, which
           # redirects / to /login.
-          python -m http.server 8099 --directory site --bind 127.0.0.1 &
+          #
+          # site/serve.py rather than http.server, because nginx serves
+          # /contact from contact.html (try_files $uri $uri.html) and
+          # http.server 404s it. The suite fetches the clean URLs the site
+          # really has.
+          SERVE_QUIET=1 python3 site/serve.py 8099 &
           for i in $(seq 1 15); do
             curl -fsS http://127.0.0.1:8099/ >/dev/null 2>&1 && break
             echo "väntar på sajten ($i)"; sleep 1
