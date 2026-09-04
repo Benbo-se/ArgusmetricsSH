@@ -7,6 +7,7 @@ Handles periodic tasks like:
 - Analytics aggregation
 """
 import logging
+import time
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from datetime import datetime, timezone
@@ -17,8 +18,61 @@ logger = logging.getLogger(__name__)
 from contextlib import contextmanager
 
 
+def _record_start(db, job_name: str) -> None:
+    """Note that the job began. Separate from success on purpose: a job that
+    fails every night still has a recent start, and only one of the two tells
+    you it is working."""
+    from sqlalchemy import text as _text
+
+    db.execute(
+        _text(
+            "INSERT INTO job_runs (job_name, last_started_at) VALUES (:n, now()) "
+            "ON CONFLICT (job_name) DO UPDATE SET last_started_at = now()"
+        ),
+        {"n": job_name},
+    )
+    db.commit()
+
+
+def _record_success(db, job_name: str, started: float) -> None:
+    from sqlalchemy import text as _text
+
+    db.execute(
+        _text(
+            "UPDATE job_runs SET last_success_at = now(), consecutive_failures = 0,"
+            "       last_duration_ms = :ms "
+            " WHERE job_name = :n"
+        ),
+        {"n": job_name, "ms": int((time.monotonic() - started) * 1000)},
+    )
+    db.commit()
+
+
+def _record_failure(db, job_name: str, exc: Exception, started: float) -> None:
+    """Keep the message after a later success too, so a job that fails every
+    other night is visible rather than looking healthy every second morning."""
+    from sqlalchemy import text as _text
+
+    try:
+        db.rollback()
+        db.execute(
+            _text(
+                "UPDATE job_runs SET last_error = :e,"
+                "       consecutive_failures = consecutive_failures + 1,"
+                "       last_duration_ms = :ms "
+                " WHERE job_name = :n"
+            ),
+            {"n": job_name, "e": str(exc)[:2000],
+             "ms": int((time.monotonic() - started) * 1000)},
+        )
+        db.commit()
+    except Exception:
+        # Never let bookkeeping mask the real failure.
+        logger.exception(f"[SCHEDULED] Could not record failure for {job_name}")
+
+
 @contextmanager
-def _single_runner(lock_key: int):
+def _single_runner(lock_key: int, job_name: str):
     """Run a scheduled job on at most one process.
 
     The scheduler is a per-process object, so with multiple uvicorn workers
@@ -31,11 +85,22 @@ def _single_runner(lock_key: int):
 
     db = SessionLocal()
     acquired = False
+    started = time.monotonic()
     try:
         acquired = bool(db.execute(text("SELECT pg_try_advisory_lock(:k)"), {"k": lock_key}).scalar())
         if not acquired:
             logger.info(f"[SCHEDULED] Job {lock_key} already running in another worker - skipping")
-        yield acquired
+            yield acquired
+            return
+
+        set_rls_context(db, context="job")
+        _record_start(db, job_name)
+        try:
+            yield acquired
+        except Exception as exc:
+            _record_failure(db, job_name, exc, started)
+            raise
+        _record_success(db, job_name, started)
     finally:
         if acquired:
             db.execute(text("SELECT pg_advisory_unlock(:k)"), {"k": lock_key})
@@ -49,7 +114,7 @@ def cleanup_task():
 
     logger.info(f"[SCHEDULED] Running daily cleanup at {datetime.now(timezone.utc)}")
     try:
-        with _single_runner(918_271_001) as acquired:
+        with _single_runner(918_271_001, "daily_cleanup") as acquired:
             if acquired:
                 run_daily_cleanup()
     except Exception as e:
@@ -66,7 +131,7 @@ def email_reports_task():
     db = SessionLocal()
     set_rls_context(db, context="job")
     try:
-        with _single_runner(918_271_002) as acquired:
+        with _single_runner(918_271_002, "email_reports") as acquired:
             if acquired:
                 stats = EmailReportsService(db).send_scheduled_reports()
                 logger.info(f"[SCHEDULED] Email reports done: {stats}")
@@ -96,7 +161,7 @@ def traffic_alerts_task():
     db = SessionLocal()
     set_rls_context(db, context="job")
     try:
-        with _single_runner(918_271_003) as acquired:
+        with _single_runner(918_271_003, "traffic_alerts") as acquired:
             if not acquired:
                 return
 

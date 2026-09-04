@@ -3,11 +3,12 @@ FastAPI application entry point for Argusmetrics.
 Initializes the app, middleware, routers, and event handlers.
 """
 import logging
+import time
 import secrets
 from contextlib import asynccontextmanager
 from typing import Dict, Any
 
-from fastapi import FastAPI, Request, status
+from fastapi import Depends, FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
@@ -15,8 +16,10 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from sqlalchemy.orm import Session
+
 from app.config import settings
-from app.database import check_db_connection, close_db_connection
+from app.database import check_db_connection, close_db_connection, get_db
 
 # Configure logging
 logging.basicConfig(
@@ -250,8 +253,79 @@ async def general_exception_handler(request: Request, exc: Exception) -> JSONRes
 
 
 # Health check endpoint
+# How long each scheduled job may go without a success before something is
+# wrong. Generous compared to the schedule, because one missed run is a
+# restart and three is a problem.
+# When this process started, so a job that has never run is only judged once
+# it has had the chance. Without it a fresh deployment reports degraded until
+# the first nightly job fires, which is crying wolf on every single deploy and
+# is the fastest way to teach people to ignore the endpoint.
+_STARTED_AT = time.monotonic()
+
+JOB_MAX_AGE_SECONDS = {
+    "daily_cleanup": 36 * 3600,     # runs 02:00 daily
+    "email_reports": 36 * 3600,     # runs 07:00 daily
+    "traffic_alerts": 3 * 3600,     # runs hourly at :05
+}
+
+
+def _job_health(db) -> Dict[str, Any]:
+    """When each scheduled job last succeeded, and whether that is too long ago.
+
+    Takes the request's session rather than opening its own, like every other
+    route. Read without a row-level security context on purpose: job_runs
+    holds nothing tenant-specific and this endpoint has no user.
+
+    It reports rather than raises. A health endpoint that fails because of its
+    own bookkeeping is worse than one that says less.
+    """
+    from datetime import datetime, timezone
+
+    from sqlalchemy import text
+
+    out: Dict[str, Any] = {}
+    try:
+        rows = {
+            r.job_name: r
+            for r in db.execute(
+                text(
+                    "SELECT job_name, last_success_at, last_error,"
+                    "       consecutive_failures, last_duration_ms FROM job_runs"
+                )
+            )
+        }
+    except Exception as exc:
+        logger.warning(f"Could not read job health: {exc}")
+        return {}
+
+    now = datetime.now(timezone.utc)
+    for name, max_age in JOB_MAX_AGE_SECONDS.items():
+        row = rows.get(name)
+        age = None
+        if row is not None and row.last_success_at is not None:
+            age = int((now - row.last_success_at).total_seconds())
+
+        uptime = time.monotonic() - _STARTED_AT
+        if age is not None:
+            overdue = age > max_age
+        else:
+            # Never succeeded. Only a problem once this process has been up
+            # long enough that it should have.
+            overdue = uptime > max_age
+
+        out[name] = {
+            "seconds_since_success": age,
+            "overdue": overdue,
+            "max_age_seconds": max_age,
+            "consecutive_failures": row.consecutive_failures if row else 0,
+            "last_error": row.last_error if row else None,
+            "last_duration_ms": row.last_duration_ms if row else None,
+        }
+    return out
+
+
 @app.get("/health", tags=["Health"])
-async def health_check() -> Dict[str, Any]:
+async def health_check(db: Session = Depends(get_db)) -> Dict[str, Any]:
     """
     Health check endpoint for monitoring and load balancers.
 
@@ -259,13 +333,30 @@ async def health_check() -> Dict[str, Any]:
         dict: Health status information
     """
     db_healthy = check_db_connection()
+    jobs = _job_health(db)
+
+    # A stalled job makes the instance degraded rather than down: the site is
+    # serving and tracking is recording, but something that should be
+    # happening is not. An uptime check watching only "healthy" would never
+    # have noticed the traffic-alert job doing nothing for weeks, which is the
+    # case this exists for.
+    stalled = [name for name, j in jobs.items() if j["overdue"]]
+
+    if not db_healthy:
+        status = "unhealthy"
+    elif stalled:
+        status = "degraded"
+    else:
+        status = "healthy"
 
     return {
-        "status": "healthy" if db_healthy else "unhealthy",
+        "status": status,
         "app_name": settings.APP_NAME,
         "version": "1.0.0",
         "database": "connected" if db_healthy else "disconnected",
         "debug": settings.DEBUG,
+        "jobs": jobs,
+        "stalled_jobs": stalled,
     }
 
 

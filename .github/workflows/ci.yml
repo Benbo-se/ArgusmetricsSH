@@ -181,7 +181,12 @@ jobs:
           set -euo pipefail
           BODY=$(curl -fsS http://127.0.0.1:8020/health)
           echo "health: $BODY"
-          echo "$BODY" | grep -q '"status":"healthy"' || { echo 'health svarar men status != healthy (DB?)'; exit 1; }
+          # "degraded" is a real state now: the database is fine and a
+          # scheduled job has not succeeded recently. A fresh CI instance has
+          # never run one, so healthy is what it should report, and degraded
+          # here would mean the never-run grace period is broken.
+          echo "$BODY" | grep -q '"status":"healthy"' \
+            || { echo 'health svarar men status != healthy (DB, eller ett jobb rapporteras stannat på en ny instans?)'; exit 1; }
           for path in /login /signup; do
             CODE=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:8020$path")
             echo "$path -> $CODE"

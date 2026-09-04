@@ -19,9 +19,11 @@ from app.models.website_member import WebsiteMember, MemberRole, MemberStatus
 from app.models.ecommerce_event import EcommerceEvent
 from app.models.used_magic_token import UsedMagicToken
 from app.models.email_log import EmailLog
+from app.models.job_run import JobRun
 
 __all__ = [
     "User",
+    "JobRun",
     "Session",
     "Website",
     "Pageview",
