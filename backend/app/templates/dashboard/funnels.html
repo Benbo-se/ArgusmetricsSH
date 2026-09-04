@@ -43,7 +43,7 @@
         <!-- Funnels List -->
         <template x-if="hasFunnels">
             <div class="space-y-4">
-                <template x-for="funnel in funnels" :key="funnel">
+                <template x-for="(funnel, index) in funnels" :key="index">
                     <div x-data="funnelCard" class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                         <div class="flex items-center justify-between mb-3">
                             <div>
@@ -68,7 +68,7 @@
 
                         <!-- Steps Preview -->
                         <div class="mb-3 flex items-center space-x-2 overflow-x-auto pb-2">
-                            <template x-for="entry in funnelSteps" :key="entry">
+                            <template x-for="(entry, index) in funnelSteps" :key="index">
                                 <div x-data="funnelCardStep" class="flex items-center">
                                     <div class="flex-shrink-0 bg-gray-100 rounded-lg px-3 py-2 min-w-max">
                                         <div class="text-xs text-gray-500" x-text="label"></div>
@@ -164,7 +164,7 @@
                                 </div>
 
                                 <div class="space-y-3">
-                                    <template x-for="(step, index) in steps" :key="step">
+                                    <template x-for="(step, index) in steps" :key="index">
                                         <div x-data="funnelFormStep" class="border border-gray-200 rounded-lg p-3">
                                             <div class="flex items-start justify-between mb-2">
                                                 <span class="text-sm font-medium text-gray-700" x-text="label"></span>
@@ -281,7 +281,7 @@
 
                                 <!-- Funnel Visualization -->
                                 <div class="space-y-3">
-                                    <template x-for="entry in statsSteps" :key="entry">
+                                    <template x-for="(entry, index) in statsSteps" :key="index">
                                         <div x-data="funnelStatsStep">
                                             <div class="flex items-center justify-between mb-2">
                                                 <div class="flex items-center space-x-3">

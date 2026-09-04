@@ -91,7 +91,7 @@
            icon, anything else keeps the original blue check. Without this, an
            error routed through here would announce itself with a success
            tick. #}
-        <template x-for="toast in toasts" :key="toast">
+        <template x-for="(toast, index) in toasts" :key="index">
             <div class="bg-white border-l-4 shadow-lg rounded-lg p-4 max-w-sm"
                  x-data="toastItem"
                  :class="borderClass"

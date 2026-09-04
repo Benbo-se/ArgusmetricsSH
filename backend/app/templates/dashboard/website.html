@@ -112,7 +112,7 @@
                 </template>
 
                 <!-- Property Filter Badges -->
-                <template x-for="chip in propertyChips" :key="chip">
+                <template x-for="(chip, index) in propertyChips" :key="index">
                     <div class="inline-flex items-center gap-1.5 px-3 py-1 bg-purple-100 border border-purple-300 rounded-full text-sm">
                         <svg class="w-4 h-4 flex-shrink-0 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
@@ -367,7 +367,7 @@
 
         <!-- Anomalies List -->
         <div x-show="hasAnomalies" class="space-y-3">
-            <template x-for="entry in visibleAnomalies" :key="entry">
+            <template x-for="(entry, index) in visibleAnomalies" :key="index">
                 <div x-show="true"
                      :class="severityClasses"
                      class="border-l-4 p-4 rounded-r-lg transition-all duration-200 hover:shadow-md">
@@ -477,7 +477,7 @@
                      Script context is safe (tojson escapes </script>). -->
                 {{ '' }}<script type="application/json" id="top-pages-data">{{ stats.top_pages|tojson }}</script>
                 <div class="space-y-3" x-data="topPagesList" data-total-pageviews="{{ stats.total_pageviews }}">
-                    <template x-for="row in pageRows" :key="row">
+                    <template x-for="(row, index) in pageRows" :key="index">
                         <div x-data="listRow" @click="applyFilter"
                              class="flex items-center justify-between py-2 border-b border-gray-100 last:border-0 cursor-pointer hover:bg-gray-50 transition-colors rounded px-2 -mx-2"
                              :class="activeClass">
@@ -560,7 +560,7 @@
                  a double-quoted attribute. -->
             {{ '' }}<script type="application/json" id="top-referrers-data">{{ stats.top_referrers|tojson }}</script>
             <div class="space-y-3" x-data="topReferrersList" data-total-pageviews="{{ stats.total_pageviews }}">
-                <template x-for="row in referrerRows" :key="row">
+                <template x-for="(row, index) in referrerRows" :key="index">
                     <div x-data="listRow" @click="applyFilter"
                          class="flex items-center justify-between py-2 border-b border-gray-100 last:border-0 cursor-pointer hover:bg-gray-50 transition-colors rounded px-2 -mx-2"
                          :class="activeClass">

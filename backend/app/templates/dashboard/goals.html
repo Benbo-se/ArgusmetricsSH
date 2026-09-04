@@ -55,7 +55,7 @@
                     <tbody class="bg-white divide-y divide-gray-200">
                         {# :key is the goal object itself: the CSP build cannot
                            read goal.id, and object identity is a valid key. #}
-                        <template x-for="goal in goals" :key="goal">
+                        <template x-for="(goal, index) in goals" :key="index">
                             <tr x-data="goalRow">
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <div class="text-sm font-medium text-gray-900" x-text="name"></div>

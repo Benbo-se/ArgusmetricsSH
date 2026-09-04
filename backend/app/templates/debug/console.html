@@ -103,7 +103,7 @@
                                 </td>
                             </tr>
                         </template>
-                        <template x-for="event in events" :key="event">
+                        <template x-for="(event, index) in events" :key="index">
                             <tr class="hover:bg-gray-50" x-data="debugEventRow">
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" x-text="time"></td>
                                 <td class="px-6 py-4 whitespace-nowrap">

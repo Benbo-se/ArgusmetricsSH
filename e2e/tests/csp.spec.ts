@@ -37,7 +37,11 @@ test.describe('Content-Security-Policy', () => {
     page.on('console', (message) => {
       const text = message.text();
       if (
+        // Warnings too, not only errors. Alpine says "Alpine Warning: x-for
+        // key cannot be an object" and carries on, and that one slipped
+        // through this very check while it only looked for "Alpine Error".
         text.includes('Alpine Error') ||
+        text.includes('Alpine Warning') ||
         text.includes('unable to interpret') ||
         text.includes('Content Security Policy') ||
         text.includes('Refused to evaluate') ||

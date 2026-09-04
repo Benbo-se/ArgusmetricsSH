@@ -40,6 +40,11 @@ export default defineConfig({
       dependencies: ['auth'],
     },
     {
+      name: 'invite',
+      testMatch: /invite\.spec\.ts/,
+      dependencies: ['auth'],
+    },
+    {
       // Reads the browser console. Alpine's CSP build does not throw on an
       // expression it cannot evaluate, it warns and renders nothing, so this
       // is the only project that can catch a silently dead control.

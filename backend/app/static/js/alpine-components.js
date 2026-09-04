@@ -471,6 +471,10 @@ document.addEventListener('alpine:init', () => {
         email: '',
         role: 'viewer',
         inviting: false,
+        //: The link to send by hand when no invitation email went out, which
+        //: is every time on an instance with no email configured.
+        inviteLink: '',
+        linkCopied: false,
 
         get inviteEmail() { return modelFor(this, 'email') },
         get inviteRole() { return modelFor(this, 'role') },
@@ -504,8 +508,24 @@ document.addEventListener('alpine:init', () => {
             return this.role === 'viewer' ? 'border-blue-500 bg-blue-50' : ''
         },
 
-        openInvite() { this.inviteOpen = true },
-        closeInvite() { this.inviteOpen = false },
+        openInvite() {
+            this.inviteLink = ''
+            this.inviteOpen = true
+        },
+        closeInvite() {
+            this.inviteOpen = false
+            this.inviteLink = ''
+        },
+
+        get hasInviteLink() { return !!this.inviteLink },
+        get isLinkCopied() { return this.linkCopied },
+        get isLinkNotCopied() { return !this.linkCopied },
+
+        copyInviteLink() {
+            navigator.clipboard.writeText(this.inviteLink)
+            this.linkCopied = true
+            setTimeout(() => { this.linkCopied = false }, 2000)
+        },
 
         async loadMembers() {
             this.loading = true
@@ -561,16 +581,18 @@ document.addEventListener('alpine:init', () => {
                     return
                 }
 
-                if (data.email_sent) {
-                    this.notify(`Invitation email sent to ${this.email}`)
-                } else if (data.invite_url) {
-                    this.notify(
-                        `Invitation created but the email could not be sent. Share this link: ${data.invite_url}`
-                    )
-                } else {
-                    this.notify(`Invitation sent to ${this.email}`)
+                if (data.invite_url) {
+                    // No email went out, so the link has to be shown and kept
+                    // on screen. It used to go into a toast that disappeared
+                    // after five seconds, taking the only copy with it.
+                    this.inviteLink = data.invite_url
+                    this.email = ''
+                    this.role = 'viewer'
+                    await this.loadMembers()
+                    return
                 }
 
+                this.notify(`Invitation email sent to ${this.email}`)
                 this.inviteOpen = false
                 this.email = ''
                 this.role = 'viewer'

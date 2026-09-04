@@ -54,7 +54,7 @@
                     class="px-3 py-1.5 text-sm font-medium rounded-md transition-colors hover:opacity-80">
                 All (<span x-text="websiteCount"></span>)
             </button>
-            <template x-for="row in siteEntries" :key="row">
+            <template x-for="(row, index) in siteEntries" :key="index">
                 <button x-data="crossRow" @click="toggle"
                         :class="chipClass"
                         class="px-3 py-1.5 text-sm font-medium rounded-md transition-colors hover:opacity-80"
@@ -115,7 +115,7 @@
         <div class="bg-white rounded-lg shadow p-6">
             <h2 class="text-lg font-semibold text-gray-900 mb-4">Website Performance</h2>
             <div class="space-y-3">
-                <template x-for="row in siteRows" :key="row">
+                <template x-for="(row, index) in siteRows" :key="index">
                     <div x-data="crossRow" class="border-b border-gray-100 last:border-0 pb-3 last:pb-0">
                         <div class="flex items-center justify-between mb-2">
                             <div class="flex-1">
@@ -151,7 +151,7 @@
         <div class="bg-white rounded-lg shadow p-6">
             <h2 class="text-lg font-semibold text-gray-900 mb-4">Top Performing Sites</h2>
             <div class="space-y-4">
-                <template x-for="row in topSiteRows" :key="row">
+                <template x-for="(row, index) in topSiteRows" :key="index">
                     <div x-data="crossRow" class="flex items-center gap-3">
                         <div class="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
                             <span class="text-white font-bold text-sm" x-text="rank"></span>
@@ -187,7 +187,7 @@
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
-                    <template x-for="row in pageRows" :key="row">
+                    <template x-for="(row, index) in pageRows" :key="index">
                         <tr x-data="crossRow" class="hover:bg-gray-50">
                             <td class="px-4 py-3 text-sm text-gray-900" x-text="path"></td>
                             <td class="px-4 py-3 text-sm">
@@ -216,7 +216,7 @@
         <div class="bg-white rounded-lg shadow p-6">
             <h2 class="text-lg font-semibold text-gray-900 mb-4">Traffic Sources</h2>
             <div class="space-y-3">
-                <template x-for="row in sourceRows" :key="row">
+                <template x-for="(row, index) in sourceRows" :key="index">
                     <div x-data="crossRow" class="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
                         <div class="flex-1 min-w-0 flex items-center gap-2">
                             <span class="text-lg flex-shrink-0" x-text="icon"></span>
@@ -240,7 +240,7 @@
         <div class="bg-white rounded-lg shadow p-6">
             <h2 class="text-lg font-semibold text-gray-900 mb-4">Top Countries</h2>
             <div class="space-y-3">
-                <template x-for="row in countryRows" :key="row">
+                <template x-for="(row, index) in countryRows" :key="index">
                     <div x-data="crossRow" class="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
                         <div class="flex items-center space-x-2">
                             <span class="text-xl" x-text="flag"></span>
