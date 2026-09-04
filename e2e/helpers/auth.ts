@@ -5,7 +5,9 @@ let userCounter = 0;
 
 export function generateTestEmail(): string {
   userCounter++;
-  return `test_e2e_${Date.now()}_${userCounter}_${Math.random().toString(36).slice(2, 8)}@example.com`;
+  // The domain matters: the E2E bypass only applies to
+  // @test.argusmetrics.io, so a test account cannot be minted for a real one.
+  return `test_e2e_${Date.now()}_${userCounter}_${Math.random().toString(36).slice(2, 8)}@test.argusmetrics.io`;
 }
 
 export async function createVerifiedUser(

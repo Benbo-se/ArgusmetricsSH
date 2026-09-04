@@ -122,13 +122,6 @@ jobs:
 
       - name: Starta appen (prod-läge, schemat kommer från migrationerna)
         working-directory: backend
-        env:
-          # Only for this process, so the pytest step above keeps the real
-          # defaults. The end-to-end suite drives a hundred signups and logins
-          # from one address and would otherwise spend the run being throttled.
-          # The throttle itself is still verified: test_auth.py drives it to a
-          # 429 both per account and per address.
-          AUTH_RATE_LIMIT_ATTEMPTS: 5000
         run: |
           uvicorn app.main:app --host 127.0.0.1 --port 8020 &
           for i in $(seq 1 30); do
@@ -171,6 +164,31 @@ jobs:
           echo "login fel pw -> $CODE"
           [ "$CODE" = "401" ] || { echo "fel lösenord gav inte 401"; exit 1; }
 
+      - name: Starta en andra instans för end-to-end (icke-prod)
+        working-directory: backend
+        env:
+          # A second process, not a weakened first one. The instance above
+          # stays in production mode, which is what the smoke test and the
+          # pytest suite exercise.
+          #
+          # End-to-end needs to read a verification link, and there is no mail
+          # server in CI. The codebase already has the answer: X-E2E-Secret,
+          # which works only outside production, only for
+          # @test.argusmetrics.io addresses, and only when presented. Keeping
+          # that closed in production is the point, so this runs somewhere
+          # else rather than opening it.
+          ENVIRONMENT: development
+          DEBUG: "false"
+          E2E_TEST_SECRET: ci-e2e-secret-not-a-production-value
+          AUTH_RATE_LIMIT_ATTEMPTS: 5000
+          BASE_URL: http://127.0.0.1:8021
+        run: |
+          uvicorn app.main:app --host 127.0.0.1 --port 8021 &
+          for i in $(seq 1 30); do
+            curl -fsS http://127.0.0.1:8021/health >/dev/null 2>&1 && break
+            echo "väntar på e2e-appen ($i)"; sleep 2
+          done
+
       - name: Servera marknadssajten (egen origin, som i produktion)
         run: |
           # The app and the site are two things behind one domain in
@@ -190,8 +208,9 @@ jobs:
       - name: End-to-end (Playwright mot den körande appen)
         working-directory: e2e
         env:
-          BASE_URL: http://127.0.0.1:8020
+          BASE_URL: http://127.0.0.1:8021
           SITE_URL: http://127.0.0.1:8099
+          E2E_TEST_SECRET: ci-e2e-secret-not-a-production-value
         run: |
           npm ci --no-audit --no-fund
           npx playwright install --with-deps chromium

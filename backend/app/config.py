@@ -93,6 +93,12 @@ class Settings(BaseSettings):
     # it is meant to protect. test_auth_rate_limit proves it still works.
     # "memory" counts per process, which is correct for a single worker and
     # wrong for several. See app/middleware/rate_limit.py.
+    # Declared rather than inferred. Left unset, is_production falls back to
+    # the old rule, so nothing changes for a deployment that does not set it.
+    ENVIRONMENT: Optional[str] = Field(
+        default=None,
+        description="production | development | test. Decides is_production.",
+    )
     RATE_LIMIT_BACKEND: str = Field(
         default="memory", description="Rate limiter backend: 'memory' today"
     )
@@ -145,7 +151,27 @@ class Settings(BaseSettings):
 
     @property
     def is_production(self) -> bool:
-        """Check if running in production mode."""
+        """Whether this process is serving real users.
+
+        It decides whether TrustedHostMiddleware is installed, whether session
+        cookies are Secure, whether the API docs are exposed, and whether the
+        signup endpoint may ever hand back a verification link. Getting it
+        wrong is not a small thing in either direction.
+
+        ENVIRONMENT decides it when set, because a deployment should be able to
+        say what it is rather than have it guessed.
+
+        The fallback is the original rule, kept so existing deployments that
+        set neither behave exactly as before: not DEBUG, and a BASE_URL that
+        does not look local. That inference is why ENVIRONMENT existed as an
+        undeclared variable being passed around and quietly ignored.
+        """
+        declared = (self.ENVIRONMENT or "").strip().lower()
+        if declared in ("production", "prod"):
+            return True
+        if declared in ("development", "dev", "test", "testing", "ci", "staging"):
+            return False
+
         return not self.DEBUG and "localhost" not in self.BASE_URL
 
 

@@ -10,8 +10,17 @@ export class ApiHelper {
   // Signup takes a password now. It used to be a magic link with a plan, from
   // when this was a paid hosted product; both are gone.
   async signup(email: string, password: string = TEST_PASSWORD) {
+    // X-E2E-Secret is how this codebase already lets a test read the
+    // verification link instead of an inbox. It only works outside
+    // production, only for @test.argusmetrics.io addresses, and only when the
+    // caller presents the configured secret, so production stays closed.
+    const headers: Record<string, string> = {};
+    if (process.env.E2E_TEST_SECRET) {
+      headers['X-E2E-Secret'] = process.env.E2E_TEST_SECRET;
+    }
     const res = await this.request.post(`${API_PREFIX}/auth/signup`, {
       data: { email, password },
+      headers,
     });
     return { status: res.status(), body: await res.json() };
   }

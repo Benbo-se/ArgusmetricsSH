@@ -37,6 +37,9 @@ services:
       # signups from one address, is not throttled. Production uses the
       # default; test_repeated_attempts_are_throttled proves it still works.
       AUTH_RATE_LIMIT_ATTEMPTS: ${AUTH_RATE_LIMIT_ATTEMPTS:-10}
+      # Lets the end-to-end suite read a verification link instead of an
+      # inbox. Refused in production regardless of this value.
+      E2E_TEST_SECRET: ${E2E_TEST_SECRET:-}
       SECRET_KEY: ${SECRET_KEY:-dev-secret-key-change-in-production}
       ENVIRONMENT: ${ENVIRONMENT:-development}
       DEBUG: ${DEBUG:-false}
