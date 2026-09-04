@@ -31,6 +31,8 @@ KEEP_DAYS="${BACKUP_KEEP_DAYS:-30}"
 COMPOSE="${COMPOSE:-docker compose -f docker/docker-compose.prod.yml}"
 STAMP="$(date -u +%Y%m%d-%H%M%SZ)"
 ARCHIVE="$BACKUP_DIR/argusmetrics-$STAMP.sql.gz"
+TABLE_LIST="$(mktemp)"
+trap 'rm -f "$TABLE_LIST"' EXIT
 MANIFEST="$BACKUP_DIR/argusmetrics-$STAMP.manifest"
 
 mkdir -p "$BACKUP_DIR"
@@ -66,11 +68,55 @@ echo "==> Recording row counts, so a restore can be checked against them"
 # psql looked for a column by that name, errored out, and left a zero-byte
 # manifest behind. Since the manifest is the only thing verify-backup.sh has to
 # compare a restore against, that quietly disarmed the row-count check.
-$COMPOSE exec -T postgres sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tA -F= -c "
-SELECT relname, n_live_tup
-  FROM pg_stat_user_tables
- ORDER BY relname"' > "$MANIFEST"
+#
+# Exact counts, and only tables in the public schema. The previous version read
+# n_live_tup from pg_stat_user_tables, which was wrong twice over once the
+# traffic tables became hypertables:
+#
+#   * a hypertable's rows live in its chunks, so the parent reports zero. On a
+#     database holding 3569 pageviews the manifest recorded pageviews=0, and a
+#     restore that came back empty compared 0 against 0 and passed. Those are
+#     exactly the tables a broken TimescaleDB restore empties, so the check was
+#     blind to the only failure it exists to catch.
+#   * pg_stat_user_tables also lists every chunk, so the manifest filled with
+#     _hyper_2_7_chunk lines that verify-backup.sh could not resolve and
+#     counted as compared anyway.
+#
+# Counted one table at a time rather than in a single clever statement. The
+# clever version needed a string literal nested inside psql -c inside sh -c,
+# and got a zero-length identifier instead. A loop is slower and readable.
+#
+# Each psql gets its own /dev/null on stdin, and the table list is read on
+# fd 3, for the reason verify-backup.sh documents: `docker compose exec -T`
+# reads stdin even with the TTY off, and a loop fed on stdin runs once.
+: > "$MANIFEST"
+$COMPOSE exec -T postgres sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc "
+SELECT table_name FROM information_schema.tables
+ WHERE table_schema = '"'"'public'"'"' AND table_type = '"'"'BASE TABLE'"'"'
+ ORDER BY table_name"' </dev/null | tr -d '\r' > "$TABLE_LIST"
+
+while read -r table <&3; do
+    [ -n "$table" ] || continue
+    COUNT=$($COMPOSE exec -T postgres sh -c \
+        "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -tAc \"SELECT count(*) FROM $table\"" \
+        </dev/null | tr -d '\r')
+    echo "$table=$COUNT" >> "$MANIFEST"
+done 3< "$TABLE_LIST"
+
+# Two counts that are not tables and that a restore can lose silently. The
+# chunks are where every traffic row actually lives, and the policies are the
+# isolation between customers: a restore that brings back rows without them is
+# a database anyone can read across.
+CHUNKS=$($COMPOSE exec -T postgres sh -c \
+    'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc "SELECT count(*) FROM timescaledb_information.chunks"' \
+    </dev/null | tr -d '\r')
+POLICIES=$($COMPOSE exec -T postgres sh -c \
+    'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc "SELECT count(*) FROM pg_policies"' \
+    </dev/null | tr -d '\r')
+
 {
+    echo "chunks=$CHUNKS"
+    echo "policies=$POLICIES"
     echo "archive=$(basename "$ARCHIVE")"
     echo "bytes=$SIZE"
     echo "sha256=$(sha256sum "$ARCHIVE" | cut -d' ' -f1)"

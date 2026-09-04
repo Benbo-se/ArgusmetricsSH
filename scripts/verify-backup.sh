@@ -121,17 +121,36 @@ if [ -f "$MANIFEST" ]; then
     # first psql call swallowed the rest of the file and the loop ran exactly
     # once. Every table after the first went unchecked, silently.
     COMPARED=0
+    NON_EMPTY=0
     while IFS='=' read -r table expected <&3; do
         case "$table" in ''|archive|bytes|sha256|taken_at) continue ;; esac
+
+        # chunks and policies are not tables. They are counted because a
+        # TimescaleDB restore can bring back rows while losing the
+        # partitioning or the row-level security policies, and a database
+        # that restored its rows without its policies is one every customer
+        # can read across.
+        case "$table" in
+            chunks)
+                QUERY="SELECT count(*) FROM timescaledb_information.chunks" ;;
+            policies)
+                QUERY="SELECT count(*) FROM pg_policies" ;;
+            *)
+                QUERY="SELECT count(*) FROM $table" ;;
+        esac
+
         ACTUAL=$($COMPOSE exec -T postgres sh -c \
-            "psql -U \"\$POSTGRES_USER\" -d $SCRATCH_DB -tAc \"SELECT count(*) FROM $table\"" \
+            "psql -U \"\$POSTGRES_USER\" -d $SCRATCH_DB -tAc \"$QUERY\"" \
             </dev/null 2>/dev/null || echo "missing")
         COMPARED=$((COMPARED + 1))
-        # n_live_tup is an estimate, so this reports rather than fails. A
-        # table that was populated and restored empty is the signal worth
-        # seeing.
+        [ "$expected" != "0" ] && NON_EMPTY=$((NON_EMPTY + 1))
+
         if [ "$expected" != "0" ] && [ "$ACTUAL" = "0" ]; then
-            echo "    FAILED: $table had roughly $expected rows and restored empty" >&2
+            echo "    FAILED: $table had $expected rows and restored empty" >&2
+            exit 1
+        fi
+        if [ "$ACTUAL" = "missing" ]; then
+            echo "    FAILED: $table is in the manifest but not in the restore" >&2
             exit 1
         fi
     done 3< "$MANIFEST"
@@ -144,7 +163,19 @@ if [ -f "$MANIFEST" ]; then
         exit 1
     fi
 
-    echo "    no table that had rows came back empty ($COMPARED tables compared)"
+    # A comparison where nothing had any rows proves nothing. Every count
+    # matching zero is the same as not checking, and it is the shape a drill
+    # takes on a freshly built instance: users survives a broken TimescaleDB
+    # restore, the hypertables are the ones that come back silent, and if they
+    # were empty to begin with the check cannot tell the difference.
+    if [ "$NON_EMPTY" -eq 0 ]; then
+        echo "FAILED: every count in the manifest was zero, so this restore was" >&2
+        echo "        compared against nothing. Put some real traffic in the" >&2
+        echo "        database, spanning at least two chunks, and run it again." >&2
+        exit 1
+    fi
+
+    echo "    $COMPARED counts compared, $NON_EMPTY of them non-empty, none lost"
 fi
 
 echo

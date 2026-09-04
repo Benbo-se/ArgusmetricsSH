@@ -32,9 +32,19 @@ till backend-containern. En deploy släpper alltså sajt + app atomiskt ihop.
                                         # BASE_URL=https://www.argusmetrics.io
                                         # ev. WEB_PORT (default 8021)
    ```
-   `BASE_URL` styr backendens TrustedHost-allowlist: bara den hosten släpps
-   igenom i prod-läge (`www.`-formen täcker även apex). Låt värd-nginx
-   301:a `www` → apex så all trafik är kanonisk.
+   `BASE_URL` styr backendens TrustedHost-allowlist, och den innehåller
+   **exakt en host**, den som står i `BASE_URL`. Inga varianter byggs:
+
+   ```python
+   allowed_hosts = [settings.BASE_URL.replace("https://", "").replace("http://", "")]
+   ```
+
+   Sätter du `https://www.exempel.se` avvisas all apex-trafik med 400. Denna
+   fil påstod tidigare att www-formen "täcker även apex", vilket är fel och
+   skulle ha stängt ute apex vid första driftsättningen.
+
+   Sätt `BASE_URL` till apex och låt värd-nginx 301:a `www` → apex, så är all
+   trafik kanonisk och allowlistan behöver bara en post.
 2. **GHCR-pull**: paketen `argusmetrics-backend` och `argusmetrics-web` är
    privata (orgens paketpolicy tillåter inte publika paket i nuläget), så
    servern behöver en engångsinloggning: skapa en classic PAT med enbart
@@ -42,7 +52,15 @@ till backend-containern. En deploy släpper alltså sajt + app atomiskt ihop.
    PAT:en som lösenord (sparas i deploy-användarens `~/.docker/config.json`).
    Görs paketen publika i framtiden kan inloggningen tas bort.
 3. **Första start**: `docker compose -f docker/docker-compose.prod.yml up -d`
-   och verifiera `curl -s http://127.0.0.1:8021/health`.
+   och verifiera hälsan. Host-headern behövs, annars avvisar TrustedHost
+   anropet med 400 innan det når hälsokontrollen:
+
+   ```bash
+   curl -s -H 'Host: argusmetrics.io' http://127.0.0.1:8021/health
+   ```
+
+   Utan headern får du 400 och det ser ut som att appen är trasig. Deploy-
+   workflowen gör redan rätt; det var bara den här raden som var fel.
 4. **Värd-nginx**: vhost för `argusmetrics.io` som terminerar TLS (certbot) och
    proxyar till `http://127.0.0.1:8021` med `X-Forwarded-Proto https` och
    websocket-upgrade för `/ws/`.
