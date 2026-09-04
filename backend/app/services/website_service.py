@@ -306,43 +306,21 @@ class WebsiteService:
             logger.error(f"Error retrieving website {website_id}: {e}", exc_info=True)
             return None
 
-    def get_website_by_tracking_code(self, tracking_code: str) -> Optional[Website]:
-        """
-        Get a website by its tracking code.
-
-        Used for analytics tracking - does not verify ownership.
-        Only returns active websites.
-
-        Args:
-            tracking_code: Unique tracking code
-
-        Returns:
-            Website: Website object if found and active, None otherwise
-
-        Example:
-            service = WebsiteService(db)
-            website = service.get_website_by_tracking_code("a1b2c3d4")
-            if website and website.is_active:
-                print(f"Tracking enabled for: {website.domain}")
-        """
-        logger.debug(f"Retrieving website by tracking code: {tracking_code}")
-
-        try:
-            website = self.db.query(Website).filter(
-                Website.tracking_code == tracking_code,
-                Website.is_active == True
-            ).first()
-
-            if website:
-                logger.debug(f"Website found for tracking code: {website.domain}")
-            else:
-                logger.debug(f"No active website found for tracking code: {tracking_code}")
-
-            return website
-
-        except Exception as e:
-            logger.error(f"Error retrieving website by tracking code: {e}", exc_info=True)
-            return None
+    # get_website_by_tracking_code was here and is gone. It had no callers,
+    # only its own docstring example, and it read the websites table directly
+    # by tracking code, which is exactly the read that was removed from the
+    # tracking path: a policy cannot see a query's WHERE clause, so allowing
+    # one lookup by code allows reading every row, and a websites row carries
+    # verification_token, public_share_token and public_password_hash.
+    #
+    # Left in place it was a trap. Named helpfully, sitting in the service,
+    # waiting for whoever adds the next tracking feature. And it would not
+    # even fail loudly: under row-level security it returns None, so the new
+    # feature would report an invalid tracking code and its author would look
+    # somewhere else entirely.
+    #
+    # resolve_tracking_code in app/services/website_lookup.py is the answer,
+    # and it works in every context.
 
     def update_website(
         self,
