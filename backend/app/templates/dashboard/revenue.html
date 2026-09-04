@@ -16,16 +16,12 @@
 {% set active = 'revenue' %}
 {% include 'components/sidebar.html' with context %}
 <div class="lg:pl-64">
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" x-data="{
-    range: '{{ selected_range }}',
-    currency: '{{ selected_currency }}',
-    updateDashboard(newRange, newCurrency) {
-        const url = new URL(window.location.href);
-        url.searchParams.set('range', newRange || this.range);
-        url.searchParams.set('currency', newCurrency || this.currency);
-        window.location.href = url.toString();
-    }
-}">
+{# The range and currency reach Alpine as data attributes: a CSP-build
+   component takes no arguments, so there is nowhere to pass them. #}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8"
+     x-data="revenueControls"
+     data-range="{{ selected_range }}"
+     data-currency="{{ selected_currency }}">
     <!-- Header -->
     <div class="mb-2">
         <h1 class="text-3xl font-bold text-gray-900">Revenue Dashboard</h1>
@@ -36,16 +32,16 @@
     <div class="mb-8 flex justify-end">
         <div class="flex items-center gap-2">
             <!-- Currency selector -->
-            <div class="relative" x-data="{ open: false }">
-                <button @click="open = !open"
+            <div class="relative" x-data="disclosure">
+                <button @click="toggle"
                         class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
-                    <span x-text="currency"></span>
+                    <span x-text="currentCurrency"></span>
                     <svg class="ml-2 -mr-1 h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
                         <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
                     </svg>
                 </button>
-                <div x-show="open"
-                     @click.away="open = false"
+                <div x-show="isOpen"
+                     @click.away="close"
                      x-transition:enter="transition ease-out duration-100"
                      x-transition:enter-start="transform opacity-0 scale-95"
                      x-transition:enter-end="transform opacity-100 scale-100"
@@ -54,13 +50,13 @@
                      x-transition:leave-end="transform opacity-0 scale-95"
                      class="origin-top-right absolute right-0 mt-2 w-32 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
                     <div class="py-1">
-                        <button @click="currency='USD'; open=false; updateDashboard(range, 'USD')"
+                        <button @click="chooseCurrency" data-value="USD"
                                 class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">USD</button>
-                        <button @click="currency='EUR'; open=false; updateDashboard(range, 'EUR')"
+                        <button @click="chooseCurrency" data-value="EUR"
                                 class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">EUR</button>
-                        <button @click="currency='GBP'; open=false; updateDashboard(range, 'GBP')"
+                        <button @click="chooseCurrency" data-value="GBP"
                                 class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">GBP</button>
-                        <button @click="currency='SEK'; open=false; updateDashboard(range, 'SEK')"
+                        <button @click="chooseCurrency" data-value="SEK"
                                 class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">SEK</button>
                     </div>
                 </div>
@@ -68,18 +64,18 @@
 
             <!-- Quick select buttons -->
             <div class="inline-flex rounded-md shadow-sm" role="group">
-                <button @click="range='7d'; updateDashboard('7d', currency)"
-                        :class="range === '7d' ? 'bg-blue-50 text-blue-700 border-blue-300' : 'bg-white text-gray-700 border-gray-300'"
+                <button @click="chooseRange" data-value="7d"
+                        :class="rangeClass"
                         class="px-3 py-2 text-sm font-medium border hover:bg-gray-50 rounded-l-md transition-colors">
                     7D
                 </button>
-                <button @click="range='30d'; updateDashboard('30d', currency)"
-                        :class="range === '30d' ? 'bg-blue-50 text-blue-700 border-blue-300' : 'bg-white text-gray-700 border-gray-300'"
+                <button @click="chooseRange" data-value="30d"
+                        :class="rangeClass"
                         class="px-3 py-2 text-sm font-medium border-t border-b border-r hover:bg-gray-50 transition-colors">
                     30D
                 </button>
-                <button @click="range='90d'; updateDashboard('90d', currency)"
-                        :class="range === '90d' ? 'bg-blue-50 text-blue-700 border-blue-300' : 'bg-white text-gray-700 border-gray-300'"
+                <button @click="chooseRange" data-value="90d"
+                        :class="rangeClass"
                         class="px-3 py-2 text-sm font-medium border-t border-b border-r hover:bg-gray-50 rounded-r-md transition-colors">
                     90D
                 </button>

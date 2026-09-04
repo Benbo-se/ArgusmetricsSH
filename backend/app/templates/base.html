@@ -58,7 +58,12 @@
          not a CDN: a privacy-first self-hosted tool must not phone home to
          third parties on every dashboard load, and CDN outages used to take
          the app's icons (and, before this, its interactivity) with them. -->
-    <script defer src="/static/js/alpine.min.js"></script>
+    {# The CSP build, so script-src needs no 'unsafe-eval'. It evaluates an
+       x-* attribute as a single scope lookup rather than compiling it, which
+       is why every expression lives in alpine-components.js. That file has to
+       load first: it registers the components on alpine:init. #}
+    <script src="/static/js/alpine-components.js"></script>
+    <script defer src="/static/js/alpine-csp.min.js"></script>
     <script src="/static/js/chart.umd.min.js"></script>
     <link rel="stylesheet" href="/static/css/fontawesome.min.css">
 
@@ -81,17 +86,17 @@
     <!-- Toast notifications container -->
     <div id="toast-container"
          class="fixed bottom-4 right-4 z-50 space-y-2"
-         x-data="{ toasts: [] }"
-         @toast.window="toasts.push($event.detail); setTimeout(() => toasts.shift(), 5000)">
+         x-data="toasts">
         {# Toasts carry an optional type: 'error' renders red with a warning
            icon, anything else keeps the original blue check. Without this, an
            error routed through here would announce itself with a success
            tick. #}
-        <template x-for="(toast, index) in toasts" :key="index">
+        <template x-for="toast in toasts" :key="toast">
             <div class="bg-white border-l-4 shadow-lg rounded-lg p-4 max-w-sm"
-                 :class="toast.type === 'error' ? 'border-red-500' : 'border-blue-500'"
+                 x-data="toastItem"
+                 :class="borderClass"
                  role="status"
-                 :aria-live="toast.type === 'error' ? 'assertive' : 'polite'"
+                 :aria-live="ariaLive"
                  x-transition:enter="transition ease-out duration-300"
                  x-transition:enter-start="opacity-0 transform translate-x-8"
                  x-transition:enter-end="opacity-100 transform translate-x-0"
@@ -100,15 +105,15 @@
                  x-transition:leave-end="opacity-0">
                 <div class="flex items-center">
                     <div class="flex-shrink-0">
-                        <svg x-show="toast.type !== 'error'" class="h-5 w-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                        <svg x-show="isNotError" class="h-5 w-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
                             <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
                         </svg>
-                        <svg x-show="toast.type === 'error'" x-cloak class="h-5 w-5 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                        <svg x-show="isError" x-cloak class="h-5 w-5 text-red-500" fill="currentColor" viewBox="0 0 20 20">
                             <path fill-rule="evenodd" d="M18 10A8 8 0 11 2 10a8 8 0 0116 0zm-8-4a1 1 0 011 1v3a1 1 0 11-2 0V7a1 1 0 011-1zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/>
                         </svg>
                     </div>
                     <div class="ml-3">
-                        <p class="text-sm font-medium text-gray-900" x-text="toast.message"></p>
+                        <p class="text-sm font-medium text-gray-900" x-text="message"></p>
                     </div>
                 </div>
             </div>

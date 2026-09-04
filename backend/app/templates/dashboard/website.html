@@ -31,103 +31,7 @@
 {% set active = 'analytics' %}
 {% include 'components/sidebar.html' with context %}
 <div class="lg:pl-64">
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" x-data="{
-    _state: JSON.parse(document.getElementById('page-state-data').textContent),
-    get range() { return this._state.range }, set range(v) { this._state.range = v },
-    compareEnabled: false,
-    dropdownOpen: false,
-    pageTab: 'top',
-    propertyDropdownOpen: false,
-    get filters() { return this._state.filters },
-    init() { this.compareEnabled = this._state.compare },
-    get rangeText() {
-        switch(this.range) {
-            case '30d': return 'Last 30 days';
-            case '90d': return 'Last 90 days';
-            case '365d': return 'Last 12 months';
-            default: return 'Last 7 days';
-        }
-    },
-    get hasFilters() {
-        return this.filters.country || this.filters.device || this.filters.browser || this.filters.page || this.filters.referrer || Object.keys(this.filters.properties).length > 0;
-    },
-    get filterCount() {
-        let count = 0;
-        if (this.filters.country) count++;
-        if (this.filters.device) count++;
-        if (this.filters.browser) count++;
-        if (this.filters.page) count++;
-        if (this.filters.referrer) count++;
-        count += Object.keys(this.filters.properties).length;
-        return count;
-    },
-    applyFilter(filterType, value) {
-        this.filters[filterType] = value;
-        this.updateDashboard();
-    },
-    removeFilter(filterType) {
-        this.filters[filterType] = '';
-        this.updateDashboard();
-    },
-    applyPropertyFilter(key, value) {
-        this.filters.properties[key] = value;
-        this.propertyDropdownOpen = false;
-        this.updateDashboard();
-    },
-    removePropertyFilter(key) {
-        delete this.filters.properties[key];
-        this.filters.properties = {...this.filters.properties}; // Trigger reactivity
-        this.updateDashboard();
-    },
-    clearAllFilters() {
-        this.filters.country = '';
-        this.filters.device = '';
-        this.filters.browser = '';
-        this.filters.page = '';
-        this.filters.referrer = '';
-        this.filters.properties = {};
-        this.updateDashboard();
-    },
-    updateDashboard() {
-        const url = new URL(window.location.href);
-        url.searchParams.set('range', this.range);
-        url.searchParams.set('compare', this.compareEnabled ? 'true' : 'false');
-
-        // Set or remove filter params
-        if (this.filters.country) {
-            url.searchParams.set('country', this.filters.country);
-        } else {
-            url.searchParams.delete('country');
-        }
-        if (this.filters.device) {
-            url.searchParams.set('device', this.filters.device);
-        } else {
-            url.searchParams.delete('device');
-        }
-        if (this.filters.browser) {
-            url.searchParams.set('browser', this.filters.browser);
-        } else {
-            url.searchParams.delete('browser');
-        }
-        if (this.filters.page) {
-            url.searchParams.set('page', this.filters.page);
-        } else {
-            url.searchParams.delete('page');
-        }
-        if (this.filters.referrer) {
-            url.searchParams.set('referrer', this.filters.referrer);
-        } else {
-            url.searchParams.delete('referrer');
-        }
-        if (Object.keys(this.filters.properties).length > 0) {
-            url.searchParams.set('properties', JSON.stringify(this.filters.properties));
-        } else {
-            url.searchParams.delete('properties');
-        }
-
-        window.location.href = url.toString();
-    }
-}">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" x-data="websitePage">
     <!-- Active Filters Bar -->
     <div x-show="hasFilters" class="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
         <div class="flex items-center justify-between">
@@ -135,11 +39,11 @@
                 <span class="text-sm font-medium text-gray-700">Active Filters:</span>
 
                 <!-- Country Filter Badge -->
-                <template x-if="filters.country">
+                <template x-if="hasCountryFilter">
                     <div class="inline-flex items-center gap-1.5 px-3 py-1 bg-white border border-gray-300 rounded-full text-sm">
                         <span class="text-lg">🌍</span>
-                        <span class="font-medium" x-text="filters.country"></span>
-                        <button @click="removeFilter('country')" class="ml-1 text-gray-500 hover:text-red-600">
+                        <span class="font-medium" x-text="countryFilter"></span>
+                        <button @click="removeFilter" data-filter="country" class="ml-1 text-gray-500 hover:text-red-600">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                             </svg>
@@ -148,13 +52,13 @@
                 </template>
 
                 <!-- Device Filter Badge -->
-                <template x-if="filters.device">
+                <template x-if="hasDeviceFilter">
                     <div class="inline-flex items-center gap-1.5 px-3 py-1 bg-white border border-gray-300 rounded-full text-sm">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/>
                         </svg>
-                        <span class="font-medium capitalize" x-text="filters.device"></span>
-                        <button @click="removeFilter('device')" class="ml-1 text-gray-500 hover:text-red-600">
+                        <span class="font-medium capitalize" x-text="deviceFilter"></span>
+                        <button @click="removeFilter" data-filter="device" class="ml-1 text-gray-500 hover:text-red-600">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                             </svg>
@@ -163,13 +67,13 @@
                 </template>
 
                 <!-- Browser Filter Badge -->
-                <template x-if="filters.browser">
+                <template x-if="hasBrowserFilter">
                     <div class="inline-flex items-center gap-1.5 px-3 py-1 bg-white border border-gray-300 rounded-full text-sm">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"/>
                         </svg>
-                        <span class="font-medium" x-text="filters.browser"></span>
-                        <button @click="removeFilter('browser')" class="ml-1 text-gray-500 hover:text-red-600">
+                        <span class="font-medium" x-text="browserFilter"></span>
+                        <button @click="removeFilter" data-filter="browser" class="ml-1 text-gray-500 hover:text-red-600">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                             </svg>
@@ -178,13 +82,13 @@
                 </template>
 
                 <!-- Page Filter Badge -->
-                <template x-if="filters.page">
+                <template x-if="hasPageFilter">
                     <div class="inline-flex items-center gap-1.5 px-3 py-1 bg-white border border-gray-300 rounded-full text-sm max-w-xs">
                         <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
                         </svg>
-                        <span class="font-medium truncate" x-text="filters.page"></span>
-                        <button @click="removeFilter('page')" class="ml-1 text-gray-500 hover:text-red-600 flex-shrink-0">
+                        <span class="font-medium truncate" x-text="pageFilter"></span>
+                        <button @click="removeFilter" data-filter="page" class="ml-1 text-gray-500 hover:text-red-600 flex-shrink-0">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                             </svg>
@@ -193,13 +97,13 @@
                 </template>
 
                 <!-- Referrer Filter Badge -->
-                <template x-if="filters.referrer">
+                <template x-if="hasReferrerFilter">
                     <div class="inline-flex items-center gap-1.5 px-3 py-1 bg-white border border-gray-300 rounded-full text-sm max-w-xs">
                         <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
                         </svg>
-                        <span class="font-medium truncate" x-text="filters.referrer"></span>
-                        <button @click="removeFilter('referrer')" class="ml-1 text-gray-500 hover:text-red-600 flex-shrink-0">
+                        <span class="font-medium truncate" x-text="referrerFilter"></span>
+                        <button @click="removeFilter" data-filter="referrer" class="ml-1 text-gray-500 hover:text-red-600 flex-shrink-0">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                             </svg>
@@ -208,13 +112,13 @@
                 </template>
 
                 <!-- Property Filter Badges -->
-                <template x-for="(value, key) in filters.properties" :key="key">
+                <template x-for="chip in propertyChips" :key="chip">
                     <div class="inline-flex items-center gap-1.5 px-3 py-1 bg-purple-100 border border-purple-300 rounded-full text-sm">
                         <svg class="w-4 h-4 flex-shrink-0 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
                         </svg>
                         <span class="font-medium text-purple-800"><span x-text="key"></span>: <span x-text="value"></span></span>
-                        <button @click="removePropertyFilter(key)" class="ml-1 text-purple-600 hover:text-red-600 flex-shrink-0">
+                        <button @click="remove" class="ml-1 text-purple-600 hover:text-red-600 flex-shrink-0">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                             </svg>
@@ -251,18 +155,18 @@
             <div class="flex items-center gap-2">
                 <!-- Quick select buttons -->
                 <div class="inline-flex rounded-md shadow-sm" role="group">
-                    <button @click="range='7d'; updateDashboard()"
-                            :class="range === '7d' ? 'bg-blue-50 text-blue-700 border-blue-300' : 'bg-white text-gray-700 border-gray-300'"
+                    <button @click="chooseRange" data-value="7d"
+                            :class="rangeClass"
                             class="px-3 py-2 text-sm font-medium border hover:bg-gray-50 rounded-l-md transition-colors">
                         7D
                     </button>
-                    <button @click="range='30d'; updateDashboard()"
-                            :class="range === '30d' ? 'bg-blue-50 text-blue-700 border-blue-300' : 'bg-white text-gray-700 border-gray-300'"
+                    <button @click="chooseRange" data-value="30d"
+                            :class="rangeClass"
                             class="px-3 py-2 text-sm font-medium border-t border-b border-r hover:bg-gray-50 transition-colors">
                         30D
                     </button>
-                    <button @click="range='90d'; updateDashboard()"
-                            :class="range === '90d' ? 'bg-blue-50 text-blue-700 border-blue-300' : 'bg-white text-gray-700 border-gray-300'"
+                    <button @click="chooseRange" data-value="90d"
+                            :class="rangeClass"
                             class="px-3 py-2 text-sm font-medium border-t border-b border-r hover:bg-gray-50 rounded-r-md transition-colors">
                         90D
                     </button>
@@ -270,7 +174,7 @@
 
                 <!-- More options dropdown -->
                 <div class="relative">
-                    <button @click="dropdownOpen = !dropdownOpen"
+                    <button @click="toggleDropdown"
                             class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                         <span x-text="rangeText"></span>
                         <svg class="ml-2 -mr-1 h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
@@ -280,7 +184,7 @@
 
                 <!-- Dropdown menu -->
                 <div x-show="dropdownOpen"
-                     @click.away="dropdownOpen = false"
+                     @click.away="closeDropdown"
                      x-transition:enter="transition ease-out duration-100"
                      x-transition:enter-start="transform opacity-0 scale-95"
                      x-transition:enter-end="transform opacity-100 scale-100"
@@ -289,13 +193,13 @@
                      x-transition:leave-end="transform opacity-0 scale-95"
                      class="origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
                     <div class="py-1">
-                        <button @click="range='7d'; dropdownOpen=false; updateDashboard()"
+                        <button @click="chooseRange" data-value="7d"
                                 class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Last 7 days</button>
-                        <button @click="range='30d'; dropdownOpen=false; updateDashboard()"
+                        <button @click="chooseRange" data-value="30d"
                                 class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Last 30 days</button>
-                        <button @click="range='90d'; dropdownOpen=false; updateDashboard()"
+                        <button @click="chooseRange" data-value="90d"
                                 class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Last 90 days</button>
-                        <button @click="range='365d'; dropdownOpen=false; updateDashboard()"
+                        <button @click="chooseRange" data-value="365d"
                                 class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Last 12 months</button>
                     </div>
                 </div>
@@ -309,26 +213,14 @@
         <label class="inline-flex items-center cursor-pointer">
             <input type="checkbox"
                    x-model="compareEnabled"
-                   @change="updateDashboard()"
+                   @change="updateDashboard"
                    class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2">
             <span class="ml-2 text-sm font-medium text-gray-700">Compare to previous period</span>
         </label>
 
         <!-- Property Filter Dropdown -->
-        <div class="relative" x-data="{
-            showPropertyDialog: false,
-            propertyKey: '',
-            propertyValue: '',
-            addProperty() {
-                if (this.propertyKey && this.propertyValue) {
-                    $el.closest('[x-data]').__x.$data.applyPropertyFilter(this.propertyKey, this.propertyValue);
-                    this.propertyKey = '';
-                    this.propertyValue = '';
-                    this.showPropertyDialog = false;
-                }
-            }
-        }">
-            <button @click="showPropertyDialog = !showPropertyDialog"
+        <div class="relative" x-data="propertyFilterDialog">
+            <button @click="toggle"
                     type="button"
                     class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-purple-700 bg-purple-50 border border-purple-300 rounded-lg hover:bg-purple-100 focus:ring-2 focus:ring-purple-500">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -338,8 +230,8 @@
             </button>
 
             <!-- Property input dialog -->
-            <div x-show="showPropertyDialog"
-                 @click.away="showPropertyDialog = false"
+            <div x-show="isOpen"
+                 @click.away="close"
                  x-transition
                  class="absolute left-0 top-full mt-2 w-80 bg-white border border-gray-200 rounded-lg shadow-lg p-4 z-50">
                 <h3 class="text-sm font-semibold text-gray-900 mb-3">Filter by Custom Property</h3>
@@ -349,7 +241,7 @@
                         <label class="block text-xs font-medium text-gray-700 mb-1">Property Key</label>
                         <input type="text"
                                x-model="propertyKey"
-                               @keydown.enter="addProperty()"
+                               @keydown.enter="addProperty"
                                placeholder="e.g., userId, plan, experiment"
                                class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
                     </div>
@@ -358,12 +250,12 @@
                         <label class="block text-xs font-medium text-gray-700 mb-1">Property Value</label>
                         <input type="text"
                                x-model="propertyValue"
-                               @keydown.enter="addProperty()"
+                               @keydown.enter="addProperty"
                                placeholder="e.g., 123, pro, variant-A"
                                class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
                     </div>
 
-                    <button @click="addProperty()"
+                    <button @click="addProperty"
                             type="button"
                             class="w-full px-3 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700 focus:ring-2 focus:ring-purple-500">
                         Apply Filter
@@ -439,68 +331,7 @@
     </div>
 
     <!-- Anomaly Alerts -->
-    <div class="bg-white rounded-lg shadow p-6 mb-8" x-data="{
-        anomalies: [],
-        loading: true,
-        error: null,
-        dismissedAlerts: [],
-        async fetchAnomalies() {
-            try {
-                this.loading = true;
-                const response = await fetch(`/api/v1/anomalies/{{ website.id }}`);
-                const data = await response.json();
-
-                if (response.ok) {
-                    this.anomalies = data.anomalies || [];
-                } else if (response.status === 402) {
-                    this.error = 'AI quota exhausted';
-                } else {
-                    this.error = data.detail || 'Failed to fetch anomalies';
-                }
-            } catch (err) {
-                this.error = 'Network error';
-            } finally {
-                this.loading = false;
-            }
-        },
-        dismissAlert(index) {
-            this.dismissedAlerts.push(index);
-        },
-        getSeverityClasses(severity) {
-            if (severity === 'high') return 'border-red-200 bg-red-50';
-            if (severity === 'medium') return 'border-yellow-200 bg-yellow-50';
-            return 'border-blue-200 bg-blue-50';
-        },
-        getSeverityBadgeClasses(severity) {
-            if (severity === 'high') return 'bg-red-100 text-red-800';
-            if (severity === 'medium') return 'bg-yellow-100 text-yellow-800';
-            return 'bg-blue-100 text-blue-800';
-        },
-        getSeverityIcon(severity) {
-            if (severity === 'high') return '⚠️';
-            if (severity === 'medium') return '⚡';
-            return 'ℹ️';
-        },
-        getTypeLabel(type) {
-            const labels = {
-                'traffic_spike': 'Traffic Spike',
-                'bot_attack': 'Bot Attack',
-                'geographic_anomaly': 'Geographic Anomaly',
-                'referrer_spam': 'Referrer Spam'
-            };
-            return labels[type] || type;
-        },
-        formatTimestamp(timestamp) {
-            if (!timestamp) return '';
-            const date = new Date(timestamp);
-            return date.toLocaleString('en-US', {
-                month: 'short',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-        }
-    }" x-init="fetchAnomalies()">
+    <div class="bg-white rounded-lg shadow p-6 mb-8" x-data="anomalyPanel" data-website-id="{{ website.id }}">
         <div class="flex items-center justify-between mb-4">
             <h2 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
                 <svg class="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -508,10 +339,10 @@
                 </svg>
                 Anomaly Alerts
             </h2>
-            <button @click="fetchAnomalies()"
+            <button @click="fetchAnomalies"
                     :disabled="loading"
                     class="text-sm text-gray-600 hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed">
-                <svg class="w-4 h-4 inline" :class="{ 'animate-spin': loading }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-4 h-4 inline" :class="spinnerClass" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
                 </svg>
             </button>
@@ -527,7 +358,7 @@
         </div>
 
         <!-- Error State -->
-        <div x-show="!loading && error" class="text-center py-8">
+        <div x-show="hasError" class="text-center py-8">
             <svg class="w-12 h-12 mx-auto text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
             </svg>
@@ -535,52 +366,52 @@
         </div>
 
         <!-- Anomalies List -->
-        <div x-show="!loading && !error && anomalies.length > 0" class="space-y-3">
-            <template x-for="(anomaly, index) in anomalies" :key="index">
-                <div x-show="!dismissedAlerts.includes(index)"
-                     :class="getSeverityClasses(anomaly.severity)"
+        <div x-show="hasAnomalies" class="space-y-3">
+            <template x-for="entry in visibleAnomalies" :key="entry">
+                <div x-show="true"
+                     :class="severityClasses"
                      class="border-l-4 p-4 rounded-r-lg transition-all duration-200 hover:shadow-md">
                     <div class="flex items-start justify-between">
                         <div class="flex-1">
                             <div class="flex items-center gap-2 mb-2">
-                                <span x-text="getSeverityIcon(anomaly.severity)" class="text-xl"></span>
-                                <span :class="getSeverityBadgeClasses(anomaly.severity)"
+                                <span x-text="severityIcon" class="text-xl"></span>
+                                <span :class="severityBadgeClasses"
                                       class="px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase"
-                                      x-text="getTypeLabel(anomaly.type)">
+                                      x-text="typeLabel">
                                 </span>
-                                <span :class="getSeverityBadgeClasses(anomaly.severity)"
+                                <span :class="severityBadgeClasses"
                                       class="px-2 py-0.5 rounded text-xs font-medium"
-                                      x-text="anomaly.severity">
+                                      x-text="severity">
                                 </span>
                             </div>
-                            <p class="text-sm font-medium text-gray-900 mb-1" x-text="anomaly.message"></p>
+                            <p class="text-sm font-medium text-gray-900 mb-1" x-text="message"></p>
                             <div class="text-xs text-gray-600 space-y-1">
-                                <template x-if="anomaly.current_pageviews">
-                                    <div>Current: <span class="font-semibold" x-text="anomaly.current_pageviews"></span> pageviews</div>
+                                <template x-if="hasPageviews">
+                                    <div>Current: <span class="font-semibold" x-text="pageviews"></span> pageviews</div>
                                 </template>
-                                <template x-if="anomaly.baseline_avg">
-                                    <div>Baseline: <span class="font-semibold" x-text="anomaly.baseline_avg.toFixed(1)"></span> avg</div>
+                                <template x-if="hasBaseline">
+                                    <div>Baseline: <span class="font-semibold" x-text="baseline"></span> avg</div>
                                 </template>
-                                <template x-if="anomaly.spike_ratio">
-                                    <div>Spike ratio: <span class="font-semibold" x-text="anomaly.spike_ratio.toFixed(2) + 'x'"></span></div>
+                                <template x-if="hasSpikeRatio">
+                                    <div>Spike ratio: <span class="font-semibold" x-text="spikeRatio"></span></div>
                                 </template>
-                                <template x-if="anomaly.visitor_count">
-                                    <div>Suspicious visitors: <span class="font-semibold" x-text="anomaly.visitor_count"></span></div>
+                                <template x-if="hasVisitorCount">
+                                    <div>Suspicious visitors: <span class="font-semibold" x-text="visitorCount"></span></div>
                                 </template>
-                                <template x-if="anomaly.country">
-                                    <div>Country: <span class="font-semibold" x-text="anomaly.country"></span></div>
+                                <template x-if="hasCountry">
+                                    <div>Country: <span class="font-semibold" x-text="country"></span></div>
                                 </template>
-                                <template x-if="anomaly.timestamp">
+                                <template x-if="hasTimestamp">
                                     <div class="text-gray-500 mt-1">
                                         <svg class="w-3 h-3 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                         </svg>
-                                        <span x-text="formatTimestamp(anomaly.timestamp)"></span>
+                                        <span x-text="timestamp"></span>
                                     </div>
                                 </template>
                             </div>
                         </div>
-                        <button @click="dismissAlert(index)"
+                        <button @click="dismiss"
                                 class="ml-4 text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0"
                                 title="Dismiss alert">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -593,7 +424,7 @@
         </div>
 
         <!-- No Anomalies State -->
-        <div x-show="!loading && !error && anomalies.length === 0"
+        <div x-show="isEmpty"
              class="text-center py-8 bg-green-50 rounded-lg border border-green-200">
             <svg class="w-12 h-12 mx-auto text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -617,27 +448,27 @@
         <div class="bg-white rounded-lg shadow p-6">
             <div class="flex items-center justify-between mb-4">
                 <div class="flex gap-2">
-                    <button @click="pageTab = 'top'"
-                            :class="pageTab === 'top' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
+                    <button @click="selectTab" data-tab="top"
+                            :class="tabClass"
                             class="px-3 py-1.5 text-sm font-medium rounded">
                         Top Pages
                     </button>
-                    <button @click="pageTab = 'entry'"
-                            :class="pageTab === 'entry' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
+                    <button @click="selectTab" data-tab="entry"
+                            :class="tabClass"
                             class="px-3 py-1.5 text-sm font-medium rounded">
                         Entry Pages
                     </button>
-                    <button @click="pageTab = 'exit'"
-                            :class="pageTab === 'exit' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
+                    <button @click="selectTab" data-tab="exit"
+                            :class="tabClass"
                             class="px-3 py-1.5 text-sm font-medium rounded">
                         Exit Pages
                     </button>
                 </div>
-                <span x-show="filters.page && pageTab === 'top'" class="text-sm font-normal text-blue-600">(filtered)</span>
+                <span x-show="showsFilteredTopPages" class="text-sm font-normal text-blue-600">(filtered)</span>
             </div>
 
             <!-- Top Pages Tab Content -->
-            <div x-show="pageTab === 'top'">
+            <div x-show="isTabActive" data-tab="top">
                 {% if stats.top_pages and stats.top_pages|length > 0 %}
                 <!-- Visitor-controlled paths go through a JSON script island:
                      |tojson does NOT escape double quotes, so putting it inside a
@@ -645,13 +476,13 @@
                      attribute and inject a native event handler (stored XSS).
                      Script context is safe (tojson escapes </script>). -->
                 {{ '' }}<script type="application/json" id="top-pages-data">{{ stats.top_pages|tojson }}</script>
-                <div class="space-y-3" x-data="{ topPages: JSON.parse(document.getElementById('top-pages-data').textContent) }">
-                    <template x-for="page in topPages" :key="page.path">
-                        <div @click="applyFilter('page', page.path)"
+                <div class="space-y-3" x-data="topPagesList" data-total-pageviews="{{ stats.total_pageviews }}">
+                    <template x-for="row in pageRows" :key="row">
+                        <div x-data="listRow" @click="applyFilter"
                              class="flex items-center justify-between py-2 border-b border-gray-100 last:border-0 cursor-pointer hover:bg-gray-50 transition-colors rounded px-2 -mx-2"
-                             :class="{ 'bg-blue-50 border-blue-200': filters.page === page.path }">
+                             :class="activeClass">
                             <div class="flex-1 min-w-0">
-                                <p class="text-sm font-medium text-gray-900 truncate" x-text="page.path"></p>
+                                <p class="text-sm font-medium text-gray-900 truncate" x-text="path"></p>
                             </div>
                             <div class="ml-4 flex items-center">
                                 <!-- How far down the page visitors got, averaged. Collected
@@ -659,11 +490,11 @@
                                      displayed nowhere until now. A dash when no visitor on
                                      that page reported a depth, which is not the same as 0%. -->
                                 <span class="mr-3 text-xs text-gray-400 tabular-nums"
-                                      :title="page.avg_scroll === null ? 'no scroll data for this page' : 'visitors scrolled ' + page.avg_scroll + '% down on average'"
-                                      x-text="page.avg_scroll === null ? '–' : page.avg_scroll + '% read'"></span>
-                                <span class="text-sm font-semibold text-gray-900" x-text="page.views"></span>
+                                      :title="scrollTitle"
+                                      x-text="scroll"></span>
+                                <span class="text-sm font-semibold text-gray-900" x-text="views"></span>
                                 <span class="ml-2 text-xs text-gray-500"
-                                      x-text="'(' + ({{ stats.total_pageviews }} > 0 ? Math.round((page.views / {{ stats.total_pageviews }}) * 100) : 0) + '%)'"></span>
+                                      x-text="share"></span>
                             </div>
                         </div>
                     </template>
@@ -674,7 +505,7 @@
             </div>
 
             <!-- Entry Pages Tab Content -->
-            <div x-show="pageTab === 'entry'">
+            <div x-show="isTabActive" data-tab="entry">
                 {% if stats.entry_pages and stats.entry_pages|length > 0 %}
                 <div class="space-y-3">
                     {% for page in stats.entry_pages %}
@@ -696,7 +527,7 @@
             </div>
 
             <!-- Exit Pages Tab Content -->
-            <div x-show="pageTab === 'exit'">
+            <div x-show="isTabActive" data-tab="exit">
                 {% if stats.exit_pages and stats.exit_pages|length > 0 %}
                 <div class="space-y-3">
                     {% for page in stats.exit_pages %}
@@ -722,37 +553,25 @@
         <div class="bg-white rounded-lg shadow p-6">
             <h2 class="text-lg font-semibold text-gray-900 mb-4">
                 Top Referrers
-                <span x-show="filters.referrer" class="ml-2 text-sm font-normal text-blue-600">(filtered)</span>
+                <span x-show="hasReferrerFilter" class="ml-2 text-sm font-normal text-blue-600">(filtered)</span>
             </h2>
             {% if stats.top_referrers and stats.top_referrers|length > 0 %}
             <!-- Same XSS rationale as the Top Pages island: never |tojson inside
                  a double-quoted attribute. -->
             {{ '' }}<script type="application/json" id="top-referrers-data">{{ stats.top_referrers|tojson }}</script>
-            <div class="space-y-3" x-data="{
-                topReferrers: JSON.parse(document.getElementById('top-referrers-data').textContent),
-                referrerIcon(referrer) {
-                    const r = (referrer || '').toLowerCase();
-                    if (r.includes('google')) return '🔍';
-                    if (r.includes('facebook') || r.includes('fb.com')) return '📘';
-                    if (r.includes('twitter') || r.includes('t.co')) return '🐦';
-                    if (r.includes('linkedin')) return '💼';
-                    if (r.includes('github')) return '⚙️';
-                    if (referrer === '(Direct)' || referrer === 'Direct') return '➡️';
-                    return '🌐';
-                }
-            }">
-                <template x-for="referrer in topReferrers" :key="referrer.referrer">
-                    <div @click="applyFilter('referrer', referrer.referrer)"
+            <div class="space-y-3" x-data="topReferrersList" data-total-pageviews="{{ stats.total_pageviews }}">
+                <template x-for="row in referrerRows" :key="row">
+                    <div x-data="listRow" @click="applyFilter"
                          class="flex items-center justify-between py-2 border-b border-gray-100 last:border-0 cursor-pointer hover:bg-gray-50 transition-colors rounded px-2 -mx-2"
-                         :class="{ 'bg-blue-50 border-blue-200': filters.referrer === referrer.referrer }">
+                         :class="activeClass">
                         <div class="flex-1 min-w-0 flex items-center gap-2">
-                            <span class="text-lg flex-shrink-0" x-text="referrerIcon(referrer.referrer)"></span>
-                            <p class="text-sm font-medium text-gray-900 truncate" x-text="referrer.referrer"></p>
+                            <span class="text-lg flex-shrink-0" x-text="icon"></span>
+                            <p class="text-sm font-medium text-gray-900 truncate" x-text="referrer"></p>
                         </div>
                         <div class="ml-4 flex items-center">
-                            <span class="text-sm font-semibold text-gray-900" x-text="referrer.views"></span>
+                            <span class="text-sm font-semibold text-gray-900" x-text="views"></span>
                             <span class="ml-2 text-xs text-gray-500"
-                                  x-text="'(' + ({{ stats.total_pageviews }} > 0 ? Math.round((referrer.views / {{ stats.total_pageviews }}) * 100) : 0) + '%)'"></span>
+                                  x-text="share"></span>
                         </div>
                     </div>
                 </template>
@@ -816,24 +635,24 @@
     {% if stats.utm_campaigns and stats.utm_campaigns|length > 0 %}
     <div class="bg-white rounded-lg shadow p-6 mb-8">
         <h2 class="text-lg font-semibold text-gray-900 mb-4">Campaign Sources</h2>
-        <div class="overflow-x-auto" x-data="sortableTable()">
+        <div class="overflow-x-auto" x-data="sortableTable">
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
-                        <th @click="sortTable(0)" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
-                            Source <span x-text="getSortIcon(0)"></span>
+                        <th @click="sortTable" data-column="0" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
+                            Source <span data-column="0" x-text="sortIcon"></span>
                         </th>
-                        <th @click="sortTable(1)" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
-                            Medium <span x-text="getSortIcon(1)"></span>
+                        <th @click="sortTable" data-column="1" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
+                            Medium <span data-column="1" x-text="sortIcon"></span>
                         </th>
-                        <th @click="sortTable(2)" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
-                            Campaign <span x-text="getSortIcon(2)"></span>
+                        <th @click="sortTable" data-column="2" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
+                            Campaign <span data-column="2" x-text="sortIcon"></span>
                         </th>
-                        <th @click="sortTable(3, true)" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
-                            Views <span x-text="getSortIcon(3)"></span>
+                        <th @click="sortTable" data-column="3" data-numeric="true" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
+                            Views <span data-column="3" x-text="sortIcon"></span>
                         </th>
-                        <th @click="sortTable(4, true)" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
-                            Percentage <span x-text="getSortIcon(4)"></span>
+                        <th @click="sortTable" data-column="4" data-numeric="true" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
+                            Percentage <span data-column="4" x-text="sortIcon"></span>
                         </th>
                     </tr>
                 </thead>
@@ -873,18 +692,18 @@
                 Manage Goals →
             </a>
         </div>
-        <div class="overflow-x-auto" x-data="sortableTable()">
+        <div class="overflow-x-auto" x-data="sortableTable">
             <table class="min-w-full divide-y divide-gray-200">
                 <thead>
                     <tr>
-                        <th @click="sortTable(0)" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
-                            Goal Name <span x-text="getSortIcon(0)"></span>
+                        <th @click="sortTable" data-column="0" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
+                            Goal Name <span data-column="0" x-text="sortIcon"></span>
                         </th>
-                        <th @click="sortTable(1, true)" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
-                            Conversions <span x-text="getSortIcon(1)"></span>
+                        <th @click="sortTable" data-column="1" data-numeric="true" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
+                            Conversions <span data-column="1" x-text="sortIcon"></span>
                         </th>
-                        <th @click="sortTable(2, true)" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
-                            Conversion Rate <span x-text="getSortIcon(2)"></span>
+                        <th @click="sortTable" data-column="2" data-numeric="true" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
+                            Conversion Rate <span data-column="2" x-text="sortIcon"></span>
                         </th>
                     </tr>
                 </thead>
@@ -940,24 +759,24 @@
             <h2 class="text-lg font-semibold text-gray-900">Outbound Links</h2>
             <span class="text-sm text-gray-500">Top 20 external destinations</span>
         </div>
-        <div class="overflow-x-auto" x-data="sortableTable()">
+        <div class="overflow-x-auto" x-data="sortableTable">
             <table class="min-w-full divide-y divide-gray-200">
                 <thead>
                     <tr>
-                        <th @click="sortTable(0)" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
-                            Destination URL <span x-text="getSortIcon(0)"></span>
+                        <th @click="sortTable" data-column="0" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
+                            Destination URL <span data-column="0" x-text="sortIcon"></span>
                         </th>
-                        <th @click="sortTable(1)" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
-                            Link Text <span x-text="getSortIcon(1)"></span>
+                        <th @click="sortTable" data-column="1" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
+                            Link Text <span data-column="1" x-text="sortIcon"></span>
                         </th>
-                        <th @click="sortTable(2, true)" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
-                            Clicks <span x-text="getSortIcon(2)"></span>
+                        <th @click="sortTable" data-column="2" data-numeric="true" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
+                            Clicks <span data-column="2" x-text="sortIcon"></span>
                         </th>
-                        <th @click="sortTable(3, true)" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
-                            Percentage <span x-text="getSortIcon(3)"></span>
+                        <th @click="sortTable" data-column="3" data-numeric="true" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
+                            Percentage <span data-column="3" x-text="sortIcon"></span>
                         </th>
-                        <th @click="sortTable(4)" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
-                            From Page <span x-text="getSortIcon(4)"></span>
+                        <th @click="sortTable" data-column="4" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
+                            From Page <span data-column="4" x-text="sortIcon"></span>
                         </th>
                     </tr>
                 </thead>
@@ -1001,24 +820,24 @@
             <h2 class="text-lg font-semibold text-gray-900">File Downloads</h2>
             <span class="text-sm text-gray-500">Top 50 downloaded files</span>
         </div>
-        <div class="overflow-x-auto" x-data="sortableTable()">
+        <div class="overflow-x-auto" x-data="sortableTable">
             <table class="min-w-full divide-y divide-gray-200">
                 <thead>
                     <tr>
-                        <th @click="sortTable(0)" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
-                            Filename <span x-text="getSortIcon(0)"></span>
+                        <th @click="sortTable" data-column="0" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
+                            Filename <span data-column="0" x-text="sortIcon"></span>
                         </th>
-                        <th @click="sortTable(1)" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
-                            Type <span x-text="getSortIcon(1)"></span>
+                        <th @click="sortTable" data-column="1" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
+                            Type <span data-column="1" x-text="sortIcon"></span>
                         </th>
-                        <th @click="sortTable(2, true)" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
-                            Downloads <span x-text="getSortIcon(2)"></span>
+                        <th @click="sortTable" data-column="2" data-numeric="true" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
+                            Downloads <span data-column="2" x-text="sortIcon"></span>
                         </th>
-                        <th @click="sortTable(3, true)" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
-                            Unique Visitors <span x-text="getSortIcon(3)"></span>
+                        <th @click="sortTable" data-column="3" data-numeric="true" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
+                            Unique Visitors <span data-column="3" x-text="sortIcon"></span>
                         </th>
-                        <th @click="sortTable(4)" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
-                            From Page <span x-text="getSortIcon(4)"></span>
+                        <th @click="sortTable" data-column="4" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
+                            From Page <span data-column="4" x-text="sortIcon"></span>
                         </th>
                     </tr>
                 </thead>
@@ -1067,21 +886,21 @@
             </div>
             <span class="text-sm text-gray-500">{{ custom_events.total_events }} total events</span>
         </div>
-        <div class="overflow-x-auto" x-data="sortableTable()">
+        <div class="overflow-x-auto" x-data="sortableTable">
             <table class="min-w-full divide-y divide-gray-200">
                 <thead>
                     <tr>
-                        <th @click="sortTable(0)" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
-                            Event Name <span x-text="getSortIcon(0)"></span>
+                        <th @click="sortTable" data-column="0" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
+                            Event Name <span data-column="0" x-text="sortIcon"></span>
                         </th>
-                        <th @click="sortTable(1, true)" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
-                            Count <span x-text="getSortIcon(1)"></span>
+                        <th @click="sortTable" data-column="1" data-numeric="true" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
+                            Count <span data-column="1" x-text="sortIcon"></span>
                         </th>
-                        <th @click="sortTable(2, true)" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
-                            Unique Users <span x-text="getSortIcon(2)"></span>
+                        <th @click="sortTable" data-column="2" data-numeric="true" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
+                            Unique Users <span data-column="2" x-text="sortIcon"></span>
                         </th>
-                        <th @click="sortTable(3, true)" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
-                            Avg/User <span x-text="getSortIcon(3)"></span>
+                        <th @click="sortTable" data-column="3" data-numeric="true" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
+                            Avg/User <span data-column="3" x-text="sortIcon"></span>
                         </th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Top Properties</th>
                     </tr>
@@ -1144,19 +963,19 @@ argus.trackEvent('button_click', {
         <p class="text-sm text-gray-600 mb-4">
             Pages that returned 404 errors. Fix broken links to improve user experience.
         </p>
-        <div class="overflow-x-auto" x-data="sortableTable()">
+        <div class="overflow-x-auto" x-data="sortableTable">
             <table class="min-w-full divide-y divide-gray-200">
                 <thead>
                     <tr>
-                        <th @click="sortTable(0)" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
-                            Path <span x-text="getSortIcon(0)"></span>
+                        <th @click="sortTable" data-column="0" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
+                            Path <span data-column="0" x-text="sortIcon"></span>
                         </th>
-                        <th @click="sortTable(1, true)" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
-                            Errors <span x-text="getSortIcon(1)"></span>
+                        <th @click="sortTable" data-column="1" data-numeric="true" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
+                            Errors <span data-column="1" x-text="sortIcon"></span>
                         </th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Referred From</th>
-                        <th @click="sortTable(3)" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
-                            Last Seen <span x-text="getSortIcon(3)"></span>
+                        <th @click="sortTable" data-column="3" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
+                            Last Seen <span data-column="3" x-text="sortIcon"></span>
                         </th>
                     </tr>
                 </thead>
@@ -1208,14 +1027,14 @@ argus.trackEvent('button_click', {
         <div class="bg-white rounded-lg shadow p-6">
             <h2 class="text-lg font-semibold text-gray-900 mb-4">
                 Countries
-                <span x-show="filters.country" class="ml-2 text-sm font-normal text-blue-600">(filtered)</span>
+                <span x-show="hasCountryFilter" class="ml-2 text-sm font-normal text-blue-600">(filtered)</span>
             </h2>
             {% if stats.top_countries and stats.top_countries|length > 0 %}
             <div class="space-y-3">
                 {% for country in stats.top_countries %}
-                <div @click="applyFilter('country', '{{ country.country }}')"
+                <div @click="applyFilterFromData" data-filter="country" data-value="{{ country.country }}"
                      class="flex items-center justify-between py-2 cursor-pointer hover:bg-gray-50 transition-colors rounded px-2 -mx-2"
-                     :class="{ 'bg-blue-50 border-l-4 border-blue-500': filters.country === '{{ country.country }}' }">
+                     :class="serverRowClass">
                     <div class="flex items-center space-x-2">
                         <span class="text-xl">{{ country.country | country_flag }}</span>
                         <span class="text-sm text-gray-700">{{ country.country }}</span>
@@ -1235,7 +1054,7 @@ argus.trackEvent('button_click', {
         <div class="bg-white rounded-lg shadow p-6">
             <h2 class="text-lg font-semibold text-gray-900 mb-4">
                 Devices
-                <span x-show="filters.device" class="ml-2 text-sm font-normal text-blue-600">(filtered)</span>
+                <span x-show="hasDeviceFilter" class="ml-2 text-sm font-normal text-blue-600">(filtered)</span>
             </h2>
             <div class="relative h-48 mb-4">
                 <canvas id="devices-chart"></canvas>
@@ -1243,9 +1062,9 @@ argus.trackEvent('button_click', {
             {% if stats.devices %}
             <div class="space-y-2">
                 {% for device, count in stats.devices.items() %}
-                <div @click="applyFilter('device', '{{ device }}')"
+                <div @click="applyFilterFromData" data-filter="device" data-value="{{ device }}"
                      class="flex items-center justify-between text-sm py-2 px-2 -mx-2 cursor-pointer hover:bg-gray-50 transition-colors rounded"
-                     :class="{ 'bg-blue-50 border-l-4 border-blue-500': filters.device === '{{ device }}' }">
+                     :class="serverRowClass">
                     <span class="text-gray-700 capitalize">{{ device }}</span>
                     <span class="font-semibold text-gray-900">{{ count }}</span>
                 </div>
@@ -1258,7 +1077,7 @@ argus.trackEvent('button_click', {
         <div class="bg-white rounded-lg shadow p-6">
             <h2 class="text-lg font-semibold text-gray-900 mb-4">
                 Browsers
-                <span x-show="filters.browser" class="ml-2 text-sm font-normal text-blue-600">(filtered)</span>
+                <span x-show="hasBrowserFilter" class="ml-2 text-sm font-normal text-blue-600">(filtered)</span>
             </h2>
             {% if stats.top_browsers and stats.top_browsers|length > 0 %}
             <div class="space-y-3">
@@ -1268,9 +1087,9 @@ argus.trackEvent('button_click', {
                      interpolating into the Alpine expression, where a decoded quote
                      would break out of the JS string. -->
                 <div data-browser="{{ browser.browser or 'Unknown' }}"
-                     @click="applyFilter('browser', $el.dataset.browser)"
+                     @click="applyFilterFromData" data-filter="browser"
                      class="flex items-center justify-between py-2 px-2 -mx-2 cursor-pointer hover:bg-gray-50 transition-colors rounded"
-                     :class="{ 'bg-blue-50 border-l-4 border-blue-500': filters.browser === $el.dataset.browser }">
+                     :class="serverRowClass">
                     <div class="flex items-center gap-2">
                         {#- browser can be NULL for rows recorded without a
                             parseable User-Agent; 'x' in None raises, and one

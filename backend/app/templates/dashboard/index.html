@@ -3,7 +3,7 @@
 {% block title %}Dashboard{% endblock %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" x-data="{ showAddModal: false }">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" x-data="disclosure">
     <div class="mb-8 flex items-center justify-between">
         <div>
             <h1 class="text-3xl font-bold text-gray-900">Your Websites</h1>
@@ -19,7 +19,7 @@
                 Cross-Domain Analytics
             </a>
             {% endif %}
-            <button @click="showAddModal = true"
+            <button @click="show"
                     class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
@@ -107,7 +107,7 @@
         <div class="text-6xl mb-4">🌐</div>
         <h3 class="text-lg font-medium text-gray-900 mb-2">No websites yet</h3>
         <p class="text-gray-500 mb-6">Add your first website to start tracking analytics</p>
-        <button @click="showAddModal = true"
+        <button @click="show"
                 class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
             Add Website
         </button>
@@ -115,20 +115,20 @@
     {% endif %}
 
     <!-- Add Website Modal -->
-    <div x-show="showAddModal"
+    <div x-show="isOpen"
          x-cloak
          class="fixed inset-0 z-50 overflow-y-auto"
-         @keydown.escape.window="showAddModal = false">
+         @keydown.escape.window="close">
         <!-- Backdrop -->
         <div class="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
-             @click="showAddModal = false"></div>
+             @click="close"></div>
 
         <!-- Modal -->
         <div class="flex items-center justify-center min-h-screen p-4">
             <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full p-6"
-                 @click.away="showAddModal = false">
+                 @click.away="close">
                 <!-- Close button -->
-                <button @click="showAddModal = false"
+                <button @click="close"
                         class="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
@@ -176,7 +176,7 @@
                     <!-- Buttons -->
                     <div class="mt-6 flex gap-3">
                         <button type="button"
-                                @click="showAddModal = false"
+                                @click="close"
                                 class="flex-1 px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50">
                             Cancel
                         </button>

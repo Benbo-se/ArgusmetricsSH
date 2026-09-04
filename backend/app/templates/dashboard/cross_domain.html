@@ -3,15 +3,16 @@
 {% block title %}Cross-Domain Analytics{% endblock %}
 
 {% block extra_head %}
-<script nonce="{{ request.state.csp_nonce }}">
-    // Store all website IDs for API calls
-    window.WEBSITE_IDS = {{ website_ids | tojson | safe }};
-    window.WEBSITES = {{ websites | tojson | safe }};
-</script>
+{# Data as JSON islands rather than interpolated into JavaScript: the
+   browser parses these as data, so nothing in them can end a string literal
+   and become code. #}
+<script type="application/json" id="cross-domain-ids">{{ website_ids | tojson }}</script>
+<script type="application/json" id="cross-domain-websites">{{ websites | tojson }}</script>
+<script src="/static/js/cross-domain.js" defer></script>
 {% endblock %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" x-data="crossDomainDashboard()">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" x-data="crossDomain">
     <!-- Header -->
     <div class="mb-8 flex flex-col md:flex-row md:items-center md:justify-between">
         <div class="flex-1">
@@ -24,18 +25,18 @@
             <div class="flex items-center gap-2">
                 <!-- Quick select buttons -->
                 <div class="inline-flex rounded-md shadow-sm" role="group">
-                    <button @click="changeRange('7d')"
-                            :class="range === '7d' ? 'bg-blue-50 text-blue-700 border-blue-300' : 'bg-white text-gray-700 border-gray-300'"
+                    <button @click="chooseRange" data-value="7d"
+                            :class="rangeClass"
                             class="px-3 py-2 text-sm font-medium border hover:bg-gray-50 rounded-l-md transition-colors">
                         7D
                     </button>
-                    <button @click="changeRange('30d')"
-                            :class="range === '30d' ? 'bg-blue-50 text-blue-700 border-blue-300' : 'bg-white text-gray-700 border-gray-300'"
+                    <button @click="chooseRange" data-value="30d"
+                            :class="rangeClass"
                             class="px-3 py-2 text-sm font-medium border-t border-b border-r hover:bg-gray-50 transition-colors">
                         30D
                     </button>
-                    <button @click="changeRange('90d')"
-                            :class="range === '90d' ? 'bg-blue-50 text-blue-700 border-blue-300' : 'bg-white text-gray-700 border-gray-300'"
+                    <button @click="chooseRange" data-value="90d"
+                            :class="rangeClass"
                             class="px-3 py-2 text-sm font-medium border-t border-b border-r hover:bg-gray-50 rounded-r-md transition-colors">
                         90D
                     </button>
@@ -48,60 +49,60 @@
     <div class="mb-6 bg-white rounded-lg shadow p-4">
         <h3 class="text-sm font-medium text-gray-700 mb-3">Filter Websites</h3>
         <div class="flex flex-wrap gap-2">
-            <button @click="toggleAllWebsites()"
-                    :class="selectedWebsites.length === Object.keys(WEBSITES).length ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'"
+            <button @click="toggleAllWebsites"
+                    :class="allSitesClass"
                     class="px-3 py-1.5 text-sm font-medium rounded-md transition-colors hover:opacity-80">
-                All (<span x-text="Object.keys(WEBSITES).length"></span>)
+                All (<span x-text="websiteCount"></span>)
             </button>
-            <template x-for="(website, id) in WEBSITES" :key="id">
-                <button @click="toggleWebsite(id)"
-                        :class="selectedWebsites.includes(id) ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'"
+            <template x-for="row in siteEntries" :key="row">
+                <button x-data="crossRow" @click="toggle"
+                        :class="chipClass"
                         class="px-3 py-1.5 text-sm font-medium rounded-md transition-colors hover:opacity-80"
-                        x-text="website.name">
+                        x-text="name">
                 </button>
             </template>
         </div>
     </div>
 
     <!-- Loading State -->
-    <div x-show="loading" class="text-center py-12">
+    <div x-show="isLoading" class="text-center py-12">
         <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
         <p class="mt-4 text-gray-600">Loading analytics data...</p>
     </div>
 
     <!-- Stats Cards -->
-    <div x-show="!loading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <div x-show="isLoaded" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <!-- Total Pageviews -->
         <div class="bg-white rounded-lg shadow p-6">
             <p class="text-sm font-medium text-gray-600 mb-1">Total Pageviews</p>
-            <p class="text-3xl font-bold text-gray-900" x-text="formatNumber(aggregatedStats.totalPageviews)"></p>
-            <p class="text-xs text-gray-500 mt-2">Across <span x-text="selectedWebsites.length"></span> website(s)</p>
+            <p class="text-3xl font-bold text-gray-900" x-text="totalPageviews"></p>
+            <p class="text-xs text-gray-500 mt-2">Across <span x-text="selectedCount"></span> website(s)</p>
         </div>
 
         <!-- Unique Visitors -->
         <div class="bg-white rounded-lg shadow p-6">
             <p class="text-sm font-medium text-gray-600 mb-1">Unique Visitors</p>
-            <p class="text-3xl font-bold text-gray-900" x-text="formatNumber(aggregatedStats.uniqueVisitors)"></p>
+            <p class="text-3xl font-bold text-gray-900" x-text="uniqueVisitors"></p>
             <p class="text-xs text-gray-500 mt-2">Combined across all sites</p>
         </div>
 
         <!-- Average Views per Visitor -->
         <div class="bg-white rounded-lg shadow p-6">
             <p class="text-sm font-medium text-gray-600 mb-1">Avg. Views/Visitor</p>
-            <p class="text-3xl font-bold text-gray-900" x-text="aggregatedStats.avgViewsPerVisitor.toFixed(1)"></p>
+            <p class="text-3xl font-bold text-gray-900" x-text="avgViews"></p>
             <p class="text-xs text-gray-500 mt-2">Network-wide average</p>
         </div>
 
         <!-- Total Websites -->
         <div class="bg-white rounded-lg shadow p-6">
             <p class="text-sm font-medium text-gray-600 mb-1">Active Websites</p>
-            <p class="text-3xl font-bold text-green-600" x-text="selectedWebsites.length"></p>
+            <p class="text-3xl font-bold text-green-600" x-text="selectedCount"></p>
             <p class="text-xs text-gray-500 mt-2">Currently tracking</p>
         </div>
     </div>
 
     <!-- Combined Traffic Chart -->
-    <div x-show="!loading" class="bg-white rounded-lg shadow p-6 mb-8">
+    <div x-show="isLoaded" class="bg-white rounded-lg shadow p-6 mb-8">
         <h2 class="text-lg font-semibold text-gray-900 mb-4">Combined Traffic Over Time</h2>
         <div class="relative h-80">
             <canvas id="combined-traffic-chart"></canvas>
@@ -109,38 +110,38 @@
     </div>
 
     <!-- Two column layout -->
-    <div x-show="!loading" class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+    <div x-show="isLoaded" class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
         <!-- Per-Website Breakdown -->
         <div class="bg-white rounded-lg shadow p-6">
             <h2 class="text-lg font-semibold text-gray-900 mb-4">Website Performance</h2>
             <div class="space-y-3">
-                <template x-for="site in websiteStats" :key="site.id">
-                    <div class="border-b border-gray-100 last:border-0 pb-3 last:pb-0">
+                <template x-for="row in siteRows" :key="row">
+                    <div x-data="crossRow" class="border-b border-gray-100 last:border-0 pb-3 last:pb-0">
                         <div class="flex items-center justify-between mb-2">
                             <div class="flex-1">
-                                <a :href="'/dashboard/website/' + site.id"
+                                <a :href="siteHref"
                                    class="text-sm font-semibold text-blue-600 hover:text-blue-800"
-                                   x-text="site.name"></a>
-                                <p class="text-xs text-gray-500" x-text="site.domain"></p>
+                                   x-text="name"></a>
+                                <p class="text-xs text-gray-500" x-text="domain"></p>
                             </div>
                             <div class="text-right">
-                                <p class="text-sm font-bold text-gray-900" x-text="formatNumber(site.pageviews)"></p>
+                                <p class="text-sm font-bold text-gray-900" x-text="pageviews"></p>
                                 <p class="text-xs text-gray-500">pageviews</p>
                             </div>
                         </div>
                         <div class="flex items-center gap-4 text-xs text-gray-600">
-                            <span><span class="font-medium" x-text="formatNumber(site.visitors)"></span> visitors</span>
-                            <span><span class="font-medium" x-text="(site.pageviews / site.visitors).toFixed(1)"></span> views/visitor</span>
+                            <span><span class="font-medium" x-text="visitors"></span> visitors</span>
+                            <span><span class="font-medium" x-text="ratio"></span> views/visitor</span>
                         </div>
                         <!-- Progress bar -->
                         <div class="mt-2 w-full bg-gray-200 rounded-full h-2">
                             <div class="bg-blue-600 h-2 rounded-full transition-all"
-                                 :style="{ width: (site.pageviews / aggregatedStats.totalPageviews * 100).toFixed(1) + '%' }">
+                                 :style="barStyle">
                             </div>
                         </div>
                     </div>
                 </template>
-                <template x-if="websiteStats.length === 0">
+                <template x-if="noSites">
                     <p class="text-gray-500 text-center py-8">No data available</p>
                 </template>
             </div>
@@ -150,20 +151,20 @@
         <div class="bg-white rounded-lg shadow p-6">
             <h2 class="text-lg font-semibold text-gray-900 mb-4">Top Performing Sites</h2>
             <div class="space-y-4">
-                <template x-for="(site, index) in topPerformingSites" :key="site.id">
-                    <div class="flex items-center gap-3">
+                <template x-for="row in topSiteRows" :key="row">
+                    <div x-data="crossRow" class="flex items-center gap-3">
                         <div class="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
-                            <span class="text-white font-bold text-sm" x-text="index + 1"></span>
+                            <span class="text-white font-bold text-sm" x-text="rank"></span>
                         </div>
                         <div class="flex-1 min-w-0">
-                            <a :href="'/dashboard/website/' + site.id"
+                            <a :href="siteHref"
                                class="text-sm font-semibold text-gray-900 hover:text-blue-600"
-                               x-text="site.name"></a>
-                            <p class="text-xs text-gray-500" x-text="formatNumber(site.pageviews) + ' pageviews'"></p>
+                               x-text="name"></a>
+                            <p class="text-xs text-gray-500" x-text="pageviews"></p>
                         </div>
                         <div class="text-right">
                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"
-                                  x-text="(site.pageviews / aggregatedStats.totalPageviews * 100).toFixed(1) + '%'">
+                                  x-text="share">
                             </span>
                         </div>
                     </div>
@@ -173,7 +174,7 @@
     </div>
 
     <!-- Combined Top Pages -->
-    <div x-show="!loading" class="bg-white rounded-lg shadow p-6 mb-8">
+    <div x-show="isLoaded" class="bg-white rounded-lg shadow p-6 mb-8">
         <h2 class="text-lg font-semibold text-gray-900 mb-4">Top Pages Across All Sites</h2>
         <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200">
@@ -186,20 +187,20 @@
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
-                    <template x-for="page in combinedTopPages" :key="page.id + page.path">
-                        <tr class="hover:bg-gray-50">
-                            <td class="px-4 py-3 text-sm text-gray-900" x-text="page.path"></td>
+                    <template x-for="row in pageRows" :key="row">
+                        <tr x-data="crossRow" class="hover:bg-gray-50">
+                            <td class="px-4 py-3 text-sm text-gray-900" x-text="path"></td>
                             <td class="px-4 py-3 text-sm">
                                 <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800"
-                                      x-text="page.siteName">
+                                      x-text="siteName">
                                 </span>
                             </td>
-                            <td class="px-4 py-3 text-sm font-semibold text-gray-900 text-right" x-text="formatNumber(page.views)"></td>
+                            <td class="px-4 py-3 text-sm font-semibold text-gray-900 text-right" x-text="views"></td>
                             <td class="px-4 py-3 text-sm text-gray-500 text-right"
-                                x-text="(page.views / aggregatedStats.totalPageviews * 100).toFixed(1) + '%'"></td>
+                                x-text="share"></td>
                         </tr>
                     </template>
-                    <template x-if="combinedTopPages.length === 0">
+                    <template x-if="noPages">
                         <tr>
                             <td colspan="4" class="px-4 py-8 text-center text-gray-500">No page data available</td>
                         </tr>
@@ -210,26 +211,26 @@
     </div>
 
     <!-- Combined Traffic Sources -->
-    <div x-show="!loading" class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+    <div x-show="isLoaded" class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
         <!-- Traffic Sources Distribution -->
         <div class="bg-white rounded-lg shadow p-6">
             <h2 class="text-lg font-semibold text-gray-900 mb-4">Traffic Sources</h2>
             <div class="space-y-3">
-                <template x-for="source in combinedTrafficSources" :key="source.referrer">
-                    <div class="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+                <template x-for="row in sourceRows" :key="row">
+                    <div x-data="crossRow" class="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
                         <div class="flex-1 min-w-0 flex items-center gap-2">
-                            <span class="text-lg flex-shrink-0" x-text="getReferrerIcon(source.referrer)"></span>
-                            <p class="text-sm font-medium text-gray-900 truncate" x-text="source.referrer"></p>
+                            <span class="text-lg flex-shrink-0" x-text="icon"></span>
+                            <p class="text-sm font-medium text-gray-900 truncate" x-text="referrer"></p>
                         </div>
                         <div class="ml-4 flex items-center">
-                            <span class="text-sm font-semibold text-gray-900" x-text="formatNumber(source.views)"></span>
+                            <span class="text-sm font-semibold text-gray-900" x-text="views"></span>
                             <span class="ml-2 text-xs text-gray-500"
-                                  x-text="'(' + (source.views / aggregatedStats.totalPageviews * 100).toFixed(0) + '%)'">
+                                  x-text="share">
                             </span>
                         </div>
                     </div>
                 </template>
-                <template x-if="combinedTrafficSources.length === 0">
+                <template x-if="noSources">
                     <p class="text-gray-500 text-center py-8">No referrer data available</p>
                 </template>
             </div>
@@ -239,18 +240,18 @@
         <div class="bg-white rounded-lg shadow p-6">
             <h2 class="text-lg font-semibold text-gray-900 mb-4">Top Countries</h2>
             <div class="space-y-3">
-                <template x-for="country in combinedCountries" :key="country.country">
-                    <div class="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+                <template x-for="row in countryRows" :key="row">
+                    <div x-data="crossRow" class="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
                         <div class="flex items-center space-x-2">
-                            <span class="text-xl" x-text="getCountryFlag(country.country)"></span>
-                            <span class="text-sm text-gray-700" x-text="country.country"></span>
+                            <span class="text-xl" x-text="flag"></span>
+                            <span class="text-sm text-gray-700" x-text="country"></span>
                         </div>
                         <div class="text-sm font-semibold text-gray-900"
-                             x-text="(country.views / aggregatedStats.totalPageviews * 100).toFixed(0) + '%'">
+                             x-text="share">
                         </div>
                     </div>
                 </template>
-                <template x-if="combinedCountries.length === 0">
+                <template x-if="noCountries">
                     <p class="text-gray-500 text-center py-8">No country data available</p>
                 </template>
             </div>
@@ -258,299 +259,6 @@
     </div>
 </div>
 
-<script nonce="{{ request.state.csp_nonce }}">
-function crossDomainDashboard() {
-    return {
-        range: '7d',
-        selectedWebsites: WEBSITE_IDS,
-        loading: true,
-        websiteStats: [],
-        aggregatedStats: {
-            totalPageviews: 0,
-            uniqueVisitors: 0,
-            avgViewsPerVisitor: 0
-        },
-        combinedTimeseries: [],
-        combinedTopPages: [],
-        combinedTrafficSources: [],
-        combinedCountries: [],
-        topPerformingSites: [],
 
-        init() {
-            this.loadAllData();
-        },
-
-        async loadAllData() {
-            this.loading = true;
-            try {
-                const promises = this.selectedWebsites.map(id => this.fetchWebsiteStats(id));
-                const results = await Promise.all(promises);
-
-                this.websiteStats = results.filter(r => r !== null);
-                this.aggregateStats();
-                this.aggregateTimeseries();
-                this.aggregateTopPages();
-                this.aggregateTrafficSources();
-                this.aggregateCountries();
-                this.calculateTopPerformingSites();
-                this.renderCombinedChart();
-            } catch (error) {
-                console.error('Error loading cross-domain data:', error);
-            } finally {
-                this.loading = false;
-            }
-        },
-
-        async fetchWebsiteStats(websiteId) {
-            try {
-                // Calculate date range based on selected range
-                const endDate = new Date();
-                const startDate = new Date();
-
-                if (this.range === '7d') {
-                    startDate.setDate(endDate.getDate() - 7);
-                } else if (this.range === '30d') {
-                    startDate.setDate(endDate.getDate() - 30);
-                } else if (this.range === '90d') {
-                    startDate.setDate(endDate.getDate() - 90);
-                }
-
-                const startDateStr = startDate.toISOString();
-                const endDateStr = endDate.toISOString();
-
-                const response = await fetch(
-                    `/api/v1/analytics/stats/${websiteId}?start_date=${startDateStr}&end_date=${endDateStr}`,
-                    {
-                        credentials: 'include'
-                    }
-                );
-
-                if (!response.ok) {
-                    console.error(`Failed to fetch stats for website ${websiteId}`);
-                    return null;
-                }
-
-                const data = await response.json();
-                return {
-                    id: websiteId,
-                    name: WEBSITES[websiteId].name,
-                    domain: WEBSITES[websiteId].domain,
-                    pageviews: data.total_pageviews || 0,
-                    visitors: data.unique_visitors || 0,
-                    topPages: data.top_pages || [],
-                    referrers: data.top_referrers || [],
-                    countries: data.top_countries || [],
-                    timeseries: data.timeseries || []
-                };
-            } catch (error) {
-                console.error(`Error fetching stats for website ${websiteId}:`, error);
-                return null;
-            }
-        },
-
-        aggregateStats() {
-            this.aggregatedStats.totalPageviews = this.websiteStats.reduce((sum, site) => sum + site.pageviews, 0);
-            this.aggregatedStats.uniqueVisitors = this.websiteStats.reduce((sum, site) => sum + site.visitors, 0);
-            this.aggregatedStats.avgViewsPerVisitor = this.aggregatedStats.uniqueVisitors > 0
-                ? this.aggregatedStats.totalPageviews / this.aggregatedStats.uniqueVisitors
-                : 0;
-        },
-
-        aggregateTimeseries() {
-            const timeseriesMap = new Map();
-
-            this.websiteStats.forEach(site => {
-                site.timeseries.forEach(point => {
-                    const existing = timeseriesMap.get(point.date) || 0;
-                    timeseriesMap.set(point.date, existing + point.views);
-                });
-            });
-
-            this.combinedTimeseries = Array.from(timeseriesMap.entries())
-                .map(([date, views]) => ({ date, views }))
-                .sort((a, b) => new Date(a.date) - new Date(b.date));
-        },
-
-        aggregateTopPages() {
-            const pagesMap = new Map();
-
-            this.websiteStats.forEach(site => {
-                site.topPages.forEach(page => {
-                    const key = `${site.id}|${page.path}`;
-                    pagesMap.set(key, {
-                        id: site.id,
-                        siteName: site.name,
-                        path: page.path,
-                        views: page.views
-                    });
-                });
-            });
-
-            this.combinedTopPages = Array.from(pagesMap.values())
-                .sort((a, b) => b.views - a.views)
-                .slice(0, 20);
-        },
-
-        aggregateTrafficSources() {
-            const sourcesMap = new Map();
-
-            this.websiteStats.forEach(site => {
-                site.referrers.forEach(ref => {
-                    const existing = sourcesMap.get(ref.referrer) || 0;
-                    sourcesMap.set(ref.referrer, existing + ref.views);
-                });
-            });
-
-            this.combinedTrafficSources = Array.from(sourcesMap.entries())
-                .map(([referrer, views]) => ({ referrer, views }))
-                .sort((a, b) => b.views - a.views)
-                .slice(0, 10);
-        },
-
-        aggregateCountries() {
-            const countriesMap = new Map();
-
-            this.websiteStats.forEach(site => {
-                site.countries.forEach(country => {
-                    const existing = countriesMap.get(country.country) || 0;
-                    countriesMap.set(country.country, existing + country.views);
-                });
-            });
-
-            this.combinedCountries = Array.from(countriesMap.entries())
-                .map(([country, views]) => ({ country, views }))
-                .sort((a, b) => b.views - a.views)
-                .slice(0, 10);
-        },
-
-        calculateTopPerformingSites() {
-            this.topPerformingSites = [...this.websiteStats]
-                .sort((a, b) => b.pageviews - a.pageviews)
-                .slice(0, 5);
-        },
-
-        renderCombinedChart() {
-            const ctx = document.getElementById('combined-traffic-chart');
-            if (!ctx) return;
-
-            const labels = this.combinedTimeseries.map(d => {
-                const date = new Date(d.date);
-                return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-            });
-            const data = this.combinedTimeseries.map(d => d.views);
-
-            if (window.combinedTrafficChart) {
-                window.combinedTrafficChart.destroy();
-            }
-
-            window.combinedTrafficChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Combined Pageviews',
-                        data: data,
-                        borderColor: 'rgb(59, 130, 246)',
-                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                        borderWidth: 2,
-                        fill: true,
-                        tension: 0.4,
-                        pointRadius: 3,
-                        pointHoverRadius: 5,
-                        pointBackgroundColor: 'rgb(59, 130, 246)',
-                        pointBorderColor: '#fff',
-                        pointBorderWidth: 2,
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            enabled: true,
-                            backgroundColor: 'rgba(17, 24, 39, 0.95)',
-                            titleColor: '#fff',
-                            bodyColor: '#fff',
-                            borderColor: 'rgba(59, 130, 246, 0.3)',
-                            borderWidth: 1,
-                            padding: 16,
-                            cornerRadius: 8,
-                            callbacks: {
-                                label: function(context) {
-                                    return context.parsed.y.toLocaleString() + ' pageviews';
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                callback: function(value) {
-                                    return window.formatNumber(value);
-                                }
-                            },
-                            grid: { color: 'rgba(0, 0, 0, 0.05)' }
-                        },
-                        x: { grid: { display: false } }
-                    }
-                }
-            });
-        },
-
-        toggleAllWebsites() {
-            if (this.selectedWebsites.length === Object.keys(WEBSITES).length) {
-                this.selectedWebsites = [];
-            } else {
-                this.selectedWebsites = WEBSITE_IDS;
-            }
-            this.loadAllData();
-        },
-
-        toggleWebsite(websiteId) {
-            const index = this.selectedWebsites.indexOf(websiteId);
-            if (index > -1) {
-                this.selectedWebsites.splice(index, 1);
-            } else {
-                this.selectedWebsites.push(websiteId);
-            }
-            this.loadAllData();
-        },
-
-        changeRange(newRange) {
-            this.range = newRange;
-            this.loadAllData();
-        },
-
-        formatNumber(num) {
-            if (num >= 1000000) {
-                return (num / 1000000).toFixed(1) + 'M';
-            }
-            if (num >= 1000) {
-                return (num / 1000).toFixed(1) + 'K';
-            }
-            return num.toString();
-        },
-
-        getReferrerIcon(referrer) {
-            const lower = referrer.toLowerCase();
-            if (lower.includes('google')) return '🔍';
-            if (lower.includes('facebook') || lower.includes('fb.com')) return '📘';
-            if (lower.includes('twitter') || lower.includes('t.co')) return '🐦';
-            if (lower.includes('linkedin')) return '💼';
-            if (lower.includes('github')) return '⚙️';
-            if (referrer === '(Direct)' || referrer === 'Direct') return '➡️';
-            return '🌐';
-        },
-
-        getCountryFlag(countryCode) {
-            if (!countryCode || countryCode.length !== 2) return '🌍';
-            const codePoints = countryCode.toUpperCase().split('').map(char => 127397 + char.charCodeAt(0));
-            return String.fromCodePoint(...codePoints);
-        }
-    };
-}
-</script>
 
 {% endblock %}

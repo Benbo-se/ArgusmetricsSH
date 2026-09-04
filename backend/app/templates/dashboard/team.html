@@ -16,176 +16,18 @@
 
     <!-- Team Members Section -->
     <div class="bg-white rounded-lg shadow p-6 mb-6"
-         x-data="{
-             members: [],
-             loading: true,
-             error: '',
-             userRole: null,
-             showInviteModal: false,
-             inviteEmail: '',
-             inviteRole: 'viewer',
-             inviting: false,
-
-             async loadMembers() {
-                 this.loading = true;
-                 this.error = '';
-                 try {
-                     // Auth via httponly session_token cookie (SameSite=Lax mitigates CSRF)
-                     const response = await fetch('/api/v1/websites/{{ website.id }}/members', {
-                         credentials: 'same-origin'
-                     });
-                     const data = await response.json();
-                     if (response.ok) {
-                         this.members = data.members;
-                         // Find current user's role
-                         const currentMember = this.members.find(m => m.user_email === '{{ user_email }}');
-                         if (currentMember) {
-                             this.userRole = currentMember.role;
-                         }
-                     } else {
-                         this.error = data.message || data.detail || 'Failed to load team members';
-                     }
-                 } catch (error) {
-                     console.error('Error loading members:', error);
-                     this.error = 'Network error. Please try again.';
-                 } finally {
-                     this.loading = false;
-                 }
-             },
-
-             async inviteMember() {
-                 if (!this.inviteEmail) {
-                     alert('Please enter an email address');
-                     return;
-                 }
-
-                 this.inviting = true;
-                 try {
-                     const response = await fetch('/api/v1/websites/{{ website.id }}/members', {
-                        credentials: 'same-origin',
-                         method: 'POST',
-                         headers: {
-                             'Content-Type': 'application/json'
-                         },
-                         body: JSON.stringify({
-                             email: this.inviteEmail,
-                             role: this.inviteRole
-                         })
-                     });
-
-                     const data = await response.json();
-
-                     if (response.ok) {
-                         if (data.email_sent) {
-                             alert('Invitation email sent to ' + this.inviteEmail);
-                         } else if (data.invite_url) {
-                             alert('Invitation created but email could not be sent.\n\nShare this link manually:\n' + data.invite_url);
-                         } else {
-                             alert('Invitation sent to ' + this.inviteEmail);
-                         }
-                         this.showInviteModal = false;
-                         this.inviteEmail = '';
-                         this.inviteRole = 'viewer';
-                         await this.loadMembers();
-                     } else {
-                         alert('Error: ' + (data.message || data.detail || 'Failed to send invitation'));
-                     }
-                 } catch (error) {
-                     console.error('Error inviting member:', error);
-                     alert('Network error. Please try again.');
-                 } finally {
-                     this.inviting = false;
-                 }
-             },
-
-             async removeMember(email) {
-                 if (!confirm('Are you sure you want to remove ' + email + ' from the team?')) {
-                     return;
-                 }
-
-                 try {
-                     const response = await fetch('/api/v1/websites/{{ website.id }}/members/' + encodeURIComponent(email), {
-                         method: 'DELETE',
-                         credentials: 'same-origin'
-                     });
-
-                     if (response.ok) {
-                         alert('Team member removed successfully');
-                         await this.loadMembers();
-                     } else {
-                         const data = await response.json();
-                         alert('Error: ' + (data.message || data.detail || 'Failed to remove member'));
-                     }
-                 } catch (error) {
-                     console.error('Error removing member:', error);
-                     alert('Network error. Please try again.');
-                 }
-             },
-
-             async changeRole(email, newRole) {
-                 try {
-                     const response = await fetch('/api/v1/websites/{{ website.id }}/members/' + encodeURIComponent(email) + '/role', {
-                        credentials: 'same-origin',
-                         method: 'PUT',
-                         headers: {
-                             'Content-Type': 'application/json'
-                         },
-                         body: JSON.stringify({ role: newRole })
-                     });
-
-                     if (response.ok) {
-                         alert('Role changed successfully');
-                         await this.loadMembers();
-                     } else {
-                         const data = await response.json();
-                         alert('Error: ' + (data.message || data.detail || 'Failed to change role'));
-                     }
-                 } catch (error) {
-                     console.error('Error changing role:', error);
-                     alert('Network error. Please try again.');
-                 }
-             },
-
-             getRoleBadgeClass(role) {
-                 if (role === 'owner') return 'bg-purple-100 text-purple-800';
-                 if (role === 'admin') return 'bg-blue-100 text-blue-800';
-                 return 'bg-gray-100 text-gray-800';
-             },
-
-             getStatusBadgeClass(status) {
-                 if (status === 'active') return 'bg-green-100 text-green-800';
-                 if (status === 'pending') return 'bg-yellow-100 text-yellow-800';
-                 return 'bg-red-100 text-red-800';
-             },
-
-             canInvite() {
-                 return this.userRole === 'owner' || this.userRole === 'admin';
-             },
-
-             canRemove(member) {
-                 if (member.role === 'owner') return false;
-                 if (this.userRole === 'owner') return true;
-                 if (this.userRole === 'admin' && member.role === 'viewer') return true;
-                 return false;
-             },
-
-             canChangeRole(member) {
-                 return this.userRole === 'owner' && member.role !== 'owner';
-             },
-
-             init() {
-                 this.loadMembers();
-             }
-         }">
+         x-data="teamPage"
+     data-website-id="{{ website.id }}"
+     data-user-email="{{ user_email }}">
 
         <!-- Loading State -->
-        <div x-show="loading" class="text-center py-8">
+        <div x-show="isLoading" class="text-center py-8">
             <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
             <p class="mt-2 text-gray-600">Loading team members...</p>
         </div>
 
         <!-- Error State -->
-        <div x-show="!loading && error" class="bg-red-50 border border-red-200 rounded-lg p-4 text-red-800">
+        <div x-show="hasError" class="bg-red-50 border border-red-200 rounded-lg p-4 text-red-800">
             <svg class="inline-block w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
             </svg>
@@ -193,17 +35,17 @@
         </div>
 
         <!-- Team Members Table -->
-        <div x-show="!loading && !error">
+        <div x-show="isReady">
             <!-- Header with Invite Button -->
             <div class="flex items-center justify-between mb-6">
                 <div>
                     <h2 class="text-lg font-semibold text-gray-900">
-                        <span x-text="members.length"></span> Team Member<span x-show="members.length !== 1">s</span>
+                        <span x-text="memberCount"></span> Team Member<span x-show="isPlural">s</span>
                     </h2>
                     <p class="text-sm text-gray-600 mt-1">Manage access and permissions for your team</p>
                 </div>
-                <button x-show="canInvite()"
-                        @click="showInviteModal = true"
+                <button x-show="canInvite"
+                        @click="openInvite"
                         class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
@@ -225,17 +67,17 @@
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
-                        <template x-for="member in members" :key="member.id">
-                            <tr>
+                        <template x-for="member in members" :key="member">
+                            <tr x-data="teamMemberRow">
                                 <!-- Email -->
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <div class="flex items-center">
                                         <div class="flex-shrink-0 h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center">
-                                            <span class="text-blue-600 font-medium text-sm" x-text="member.user_email.charAt(0).toUpperCase()"></span>
+                                            <span class="text-blue-600 font-medium text-sm" x-text="initial"></span>
                                         </div>
                                         <div class="ml-4">
-                                            <div class="text-sm font-medium text-gray-900" x-text="member.user_email"></div>
-                                            <div x-show="member.user_email === '{{ user_email }}'" class="text-xs text-gray-500">(You)</div>
+                                            <div class="text-sm font-medium text-gray-900" x-text="email"></div>
+                                            <div x-show="isYou" class="text-xs text-gray-500">(You)</div>
                                         </div>
                                     </div>
                                 </td>
@@ -243,29 +85,29 @@
                                 <!-- Role -->
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize"
-                                          :class="getRoleBadgeClass(member.role)"
-                                          x-text="member.role"></span>
+                                          :class="roleBadgeClass"
+                                          x-text="role"></span>
                                 </td>
 
                                 <!-- Status -->
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize"
-                                          :class="getStatusBadgeClass(member.status)"
-                                          x-text="member.status"></span>
+                                          :class="statusBadgeClass"
+                                          x-text="status"></span>
                                 </td>
 
                                 <!-- Invited Date -->
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    <div x-text="new Date(member.invited_at).toLocaleDateString()"></div>
-                                    <div class="text-xs text-gray-400">by <span x-text="member.invited_by"></span></div>
+                                    <div x-text="invitedAt"></div>
+                                    <div class="text-xs text-gray-400">by <span x-text="invitedBy"></span></div>
                                 </td>
 
                                 <!-- Actions -->
                                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                     <div class="flex items-center justify-end space-x-2">
                                         <!-- Change Role Button (Owner only) -->
-                                        <button x-show="canChangeRole(member)"
-                                                @click="changeRole(member.user_email, member.role === 'admin' ? 'viewer' : 'admin')"
+                                        <button x-show="canChangeRole"
+                                                @click="toggleRole"
                                                 class="text-blue-600 hover:text-blue-900">
                                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
@@ -273,8 +115,8 @@
                                         </button>
 
                                         <!-- Remove Button -->
-                                        <button x-show="canRemove(member)"
-                                                @click="removeMember(member.user_email)"
+                                        <button x-show="canRemove"
+                                                @click="remove"
                                                 class="text-red-600 hover:text-red-900">
                                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
@@ -290,9 +132,9 @@
         </div>
 
         <!-- Invite Modal -->
-        <div x-show="showInviteModal"
+        <div x-show="isInviteOpen"
              x-cloak
-             @click.away="showInviteModal = false"
+             @click.away="closeInvite"
              class="fixed inset-0 z-50 overflow-y-auto">
             <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
                 <!-- Background overlay -->
@@ -302,14 +144,14 @@
                 <div class="inline-block w-full max-w-md p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-lg">
                     <div class="flex items-center justify-between mb-4">
                         <h3 class="text-lg font-medium text-gray-900">Invite Team Member</h3>
-                        <button @click="showInviteModal = false" class="text-gray-400 hover:text-gray-500">
+                        <button @click="closeInvite" class="text-gray-400 hover:text-gray-500">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                             </svg>
                         </button>
                     </div>
 
-                    <form @submit.prevent="inviteMember()" class="space-y-4">
+                    <form @submit.prevent="inviteMember" class="space-y-4">
                         <!-- Email Input -->
                         <div>
                             <label for="invite-email" class="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
@@ -326,7 +168,7 @@
                             <label class="block text-sm font-medium text-gray-700 mb-2">Role</label>
                             <div class="space-y-2">
                                 <label class="flex items-start p-3 border border-gray-200 rounded-md cursor-pointer hover:bg-gray-50"
-                                       :class="{ 'border-blue-500 bg-blue-50': inviteRole === 'admin' }">
+                                       :class="adminChoiceClass">
                                     <input type="radio"
                                            value="admin"
                                            x-model="inviteRole"
@@ -338,7 +180,7 @@
                                 </label>
 
                                 <label class="flex items-start p-3 border border-gray-200 rounded-md cursor-pointer hover:bg-gray-50"
-                                       :class="{ 'border-blue-500 bg-blue-50': inviteRole === 'viewer' }">
+                                       :class="viewerChoiceClass">
                                     <input type="radio"
                                            value="viewer"
                                            x-model="inviteRole"
@@ -354,16 +196,16 @@
                         <!-- Action Buttons -->
                         <div class="flex items-center justify-end space-x-3 pt-4 border-t border-gray-200">
                             <button type="button"
-                                    @click="showInviteModal = false"
+                                    @click="closeInvite"
                                     class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
                                 Cancel
                             </button>
                             <button type="submit"
                                     :disabled="inviting"
-                                    :class="inviting ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'"
+                                    :class="submitClass"
                                     class="px-4 py-2 text-sm font-medium text-white rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                                <span x-show="!inviting">Send Invitation</span>
-                                <span x-show="inviting">Sending...</span>
+                                <span x-show="isNotInviting">Send Invitation</span>
+                                <span x-show="isInviting">Sending...</span>
                             </button>
                         </div>
                     </form>

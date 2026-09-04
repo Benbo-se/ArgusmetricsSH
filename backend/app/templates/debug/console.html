@@ -4,7 +4,7 @@
 
 {% block content %}
 <div class="min-h-screen bg-gray-50 py-8">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" x-data="debugConsole()">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" x-data="debugConsole" data-website-id="{{ website.id }}">
         <!-- Header -->
         <div class="mb-8">
             <div class="flex items-center justify-between">
@@ -17,8 +17,8 @@
                 </div>
                 <div class="flex items-center space-x-4">
                     <div class="flex items-center">
-                        <div class="h-3 w-3 rounded-full mr-2" :class="connected ? 'bg-green-500 animate-pulse' : 'bg-red-500'"></div>
-                        <span class="text-sm font-medium" x-text="connected ? 'Connected' : 'Disconnected'"></span>
+                        <div class="h-3 w-3 rounded-full mr-2" :class="connectionClass"></div>
+                        <span class="text-sm font-medium" x-text="connectionLabel"></span>
                     </div>
                     <a href="/dashboard/website/{{ website.id }}" class="btn btn-secondary">
                         <i class="fas fa-arrow-left mr-2"></i>
@@ -50,14 +50,14 @@
             <!-- Toolbar -->
             <div class="bg-gray-800 text-white px-6 py-3 flex items-center justify-between">
                 <div class="flex items-center space-x-4">
-                    <button @click="clearEvents()" class="text-sm hover:text-gray-300">
+                    <button @click="clearEvents" class="text-sm hover:text-gray-300">
                         <i class="fas fa-trash mr-2"></i>Clear
                     </button>
-                    <button @click="togglePause()" class="text-sm hover:text-gray-300">
-                        <i class="fas" :class="paused ? 'fa-play' : 'fa-pause'" x-text="' ' + (paused ? 'Resume' : 'Pause')"></i>
+                    <button @click="togglePause" class="text-sm hover:text-gray-300">
+                        <i class="fas" :class="pauseIconClass" x-text="pauseLabel"></i>
                     </button>
                     <span class="text-sm text-gray-400">
-                        Events: <span x-text="events.length" class="font-bold text-white"></span>
+                        Events: <span x-text="eventCount" class="font-bold text-white"></span>
                     </span>
                 </div>
                 <div class="text-xs text-gray-400">
@@ -94,7 +94,7 @@
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
-                        <template x-if="events.length === 0">
+                        <template x-if="isEmpty">
                             <tr>
                                 <td colspan="7" class="px-6 py-12 text-center text-gray-500">
                                     <i class="fas fa-hourglass-half text-4xl mb-4 block"></i>
@@ -103,21 +103,21 @@
                                 </td>
                             </tr>
                         </template>
-                        <template x-for="(event, index) in events" :key="index">
-                            <tr class="hover:bg-gray-50">
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" x-text="formatTime(event.timestamp)"></td>
+                        <template x-for="event in events" :key="event">
+                            <tr class="hover:bg-gray-50" x-data="debugEventRow">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" x-text="time"></td>
                                 <td class="px-6 py-4 whitespace-nowrap">
-                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800" x-text="event.event_type"></span>
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800" x-text="eventType"></span>
                                 </td>
-                                <td class="px-6 py-4 text-sm text-gray-900" x-text="event.path"></td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" x-text="event.metadata?.ip || 'N/A'"></td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" x-text="event.metadata?.device || 'N/A'"></td>
+                                <td class="px-6 py-4 text-sm text-gray-900" x-text="path"></td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" x-text="ip"></td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" x-text="device"></td>
                                 <td class="px-6 py-4 whitespace-nowrap">
-                                    <span x-show="event.validation?.is_bot" class="text-red-600 font-bold">YES</span>
-                                    <span x-show="!event.validation?.is_bot" class="text-green-600">No</span>
+                                    <span x-show="isBot" class="text-red-600 font-bold">YES</span>
+                                    <span x-show="isNotBot" class="text-green-600">No</span>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                    <button @click="showDetails(event)" class="text-blue-600 hover:text-blue-900">
+                                    <button @click="showDetails" class="text-blue-600 hover:text-blue-900">
                                         <i class="fas fa-info-circle"></i> View
                                     </button>
                                 </td>
@@ -128,16 +128,16 @@
             </div>
 
             <!-- Event Details Modal -->
-            <div x-show="selectedEvent" @click.away="selectedEvent = null" x-cloak
+            <div x-show="hasSelection" @click.away="closeDetails" x-cloak
                  class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
                 <div class="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
                     <div class="flex justify-between items-center mb-4">
                         <h3 class="text-lg font-medium text-gray-900">Event Details</h3>
-                        <button @click="selectedEvent = null" class="text-gray-400 hover:text-gray-600">
+                        <button @click="closeDetails" class="text-gray-400 hover:text-gray-600">
                             <i class="fas fa-times"></i>
                         </button>
                     </div>
-                    <pre class="bg-gray-100 p-4 rounded overflow-auto text-sm debug-scroll-detail" x-text="JSON.stringify(selectedEvent, null, 2)"></pre>
+                    <pre class="bg-gray-100 p-4 rounded overflow-auto text-sm debug-scroll-detail" x-text="selectedJson"></pre>
                 </div>
             </div>
         </div>
@@ -161,79 +161,6 @@
 </div>
 
 <script nonce="{{ request.state.csp_nonce }}">
-function debugConsole() {
-    return {
-        ws: null,
-        events: [],
-        paused: false,
-        selectedEvent: null,
-        connected: false,
-
-        init() {
-            this.connectWebSocket();
-        },
-
-        connectWebSocket() {
-            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            // No credential in the URL: the backend authenticates this
-            // same-origin connection via the session cookie sent
-            // automatically during the WS handshake (see
-            // debug_websocket_endpoint in routers/websocket.py). The public
-            // tracking_code was never actually read by the backend for
-            // auth and must not be — it's embedded in every customer page.
-            const wsUrl = `${protocol}//${window.location.host}/ws/debug/{{ website.id }}`;
-
-            this.ws = new WebSocket(wsUrl);
-
-            this.ws.onopen = () => {
-                console.log('Debug WebSocket connected');
-                this.connected = true;
-            };
-
-            this.ws.onmessage = (event) => {
-                const message = JSON.parse(event.data);
-                console.log('Debug message:', message);
-
-                if (message.type === 'debug_event' && !this.paused) {
-                    this.events.unshift(message.data);
-                    // Keep only last 100 events
-                    if (this.events.length > 100) {
-                        this.events = this.events.slice(0, 100);
-                    }
-                }
-            };
-
-            this.ws.onclose = () => {
-                console.log('Debug WebSocket disconnected');
-                this.connected = false;
-                // Reconnect after 3 seconds
-                setTimeout(() => this.connectWebSocket(), 3000);
-            };
-
-            this.ws.onerror = (error) => {
-                console.error('WebSocket error:', error);
-            };
-        },
-
-        formatTime(timestamp) {
-            const date = new Date(timestamp);
-            return date.toLocaleTimeString();
-        },
-
-        clearEvents() {
-            this.events = [];
-        },
-
-        togglePause() {
-            this.paused = !this.paused;
-        },
-
-        showDetails(event) {
-            this.selectedEvent = event;
-        }
-    };
-}
-
 async function sendTestEvent() {
     const path = document.getElementById('test-path').value;
 

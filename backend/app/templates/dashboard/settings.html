@@ -16,77 +16,10 @@
 
     <!-- Domain Verification Section -->
     <div class="bg-white rounded-lg shadow border-l-4 {% if website.is_verified %}border-green-500{% else %}border-yellow-500{% endif %} p-6 mb-6"
-         x-data="{
-             verified: {{ 'true' if website.is_verified else 'false' }},
-             verifying: false,
-             instructions: null,
-             showInstructions: {{ 'false' if website.is_verified else 'true' }},
-             copied: false,
-             async fetchInstructions() {
-                 try {
-                     // Auth via httponly session_token cookie (SameSite=Lax mitigates CSRF)
-                     const response = await fetch('/api/v1/websites/{{ website.id }}/verification-instructions', {
-                         credentials: 'same-origin'
-                     });
-                     const data = await response.json();
-                     if (response.ok) {
-                         this.instructions = data;
-                         console.log('Verification instructions loaded:', data);
-                     } else {
-                         console.error('Failed to load instructions:', data);
-                         window.dispatchEvent(new CustomEvent('toast', {
-                            detail: { message: 'Failed to load instructions: ' + (data.message || data.detail || 'Unknown error'), type: 'error' }
-                        }));
-                     }
-                 } catch (error) {
-                     console.error('Error fetching instructions:', error);
-                     window.dispatchEvent(new CustomEvent('toast', {
-                        detail: { message: 'Failed to load verification instructions.', type: 'error' }
-                    }));
-                 }
-             },
-             async verifyDomain() {
-                 this.verifying = true;
-                 try {
-                     // Auth via httponly session_token cookie (SameSite=Lax mitigates CSRF)
-                     const response = await fetch('/api/v1/websites/{{ website.id }}/verify-domain', {
-                         method: 'POST',
-                         credentials: 'same-origin'
-                     });
-                     const data = await response.json();
-                     if (response.ok) {
-                         if (data.verified) {
-                             this.verified = true;
-                             this.showInstructions = false;
-                             window.dispatchEvent(new CustomEvent('toast', {
-                                detail: { message: data.message + ' Tracking is now enabled — reloading…', type: 'success' }
-                            }));
-                             setTimeout(() => window.location.reload(), 1500);
-                         } else {
-                             window.dispatchEvent(new CustomEvent('toast', {
-                                detail: { message: 'Verification failed: ' + data.message, type: 'error' }
-                            }));
-                         }
-                     } else {
-                         window.dispatchEvent(new CustomEvent('toast', {
-                            detail: { message: data.message || data.detail || 'Something went wrong.', type: 'error' }
-                        }));
-                     }
-                 } catch (error) {
-                     console.error('Error verifying domain:', error);
-                     window.dispatchEvent(new CustomEvent('toast', {
-                        detail: { message: 'Failed to verify domain. Please try again.', type: 'error' }
-                    }));
-                 } finally {
-                     this.verifying = false;
-                 }
-             },
-             init() {
-                 if (!this.verified) {
-                     setTimeout(() => this.fetchInstructions(), 100);
-                 }
-             }
-         }">
+         x-data="domainVerification"
+     data-website-id="{{ website.id }}"
+     data-domain="{{ website.domain }}"
+     data-verified="{{ 'true' if website.is_verified else 'false' }}">
         <div class="flex items-start justify-between">
             <div class="flex-1">
                 <div class="flex items-center">
@@ -120,23 +53,23 @@
                     ⚠️ You must verify domain ownership before tracking will work.
                     <span class="font-medium text-yellow-700">Tracking is currently blocked.</span>
                 </p>
-                <button @click="showInstructions = !showInstructions; if (!instructions) await fetchInstructions()"
+                <button @click="toggleInstructions"
                         class="mt-3 text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center">
-                    <svg x-show="!showInstructions" class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg x-show="instructionsHidden" class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                     </svg>
-                    <svg x-show="showInstructions" class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg x-show="instructionsShown" class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/>
                     </svg>
-                    <span x-text="showInstructions ? 'Hide verification instructions' : 'Show verification instructions'"></span>
+                    <span x-text="toggleLabel"></span>
                 </button>
                 {% endif %}
             </div>
         </div>
 
         <!-- Verification Instructions (shown when not verified) -->
-        <div x-show="showInstructions && !verified" class="mt-4 pt-4 border-t border-gray-200">
-            <template x-if="instructions">
+        <div x-show="showInstructionsPanel" class="mt-4 pt-4 border-t border-gray-200">
+            <template x-if="hasInstructions">
                 <div>
                     <h3 class="text-sm font-medium text-gray-900 mb-3">Add this DNS TXT record to verify ownership:</h3>
 
@@ -144,28 +77,28 @@
                         <div class="grid grid-cols-3 gap-4">
                             <div>
                                 <label class="block text-xs font-medium text-gray-500">Record Type</label>
-                                <p class="mt-1 text-sm font-mono text-gray-900" x-text="instructions.record_type"></p>
+                                <p class="mt-1 text-sm font-mono text-gray-900" x-text="recordType"></p>
                             </div>
                             <div>
                                 <label class="block text-xs font-medium text-gray-500">Name</label>
-                                <p class="mt-1 text-sm font-mono text-gray-900" x-text="instructions.dns_record.split('.')[0]"></p>
+                                <p class="mt-1 text-sm font-mono text-gray-900" x-text="recordHost"></p>
                             </div>
                             <div>
                                 <label class="block text-xs font-medium text-gray-500">Host/Name</label>
-                                <p class="mt-1 text-sm font-mono text-gray-900 break-all" x-text="instructions.dns_record"></p>
+                                <p class="mt-1 text-sm font-mono text-gray-900 break-all" x-text="recordName"></p>
                             </div>
                         </div>
 
                         <div>
                             <div class="flex items-center justify-between">
                                 <label class="block text-xs font-medium text-gray-500">Value</label>
-                                <button @click="navigator.clipboard.writeText(instructions.record_value); copied = true; setTimeout(() => copied = false, 2000)"
+                                <button @click="copyRecordValue"
                                         class="text-xs px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">
-                                    <span x-show="!copied">Copy</span>
-                                    <span x-show="copied">Copied!</span>
+                                    <span x-show="isNotCopied">Copy</span>
+                                    <span x-show="isCopied">Copied!</span>
                                 </button>
                             </div>
-                            <p class="mt-1 text-sm font-mono text-gray-900 break-all bg-white p-2 rounded border border-gray-300" x-text="instructions.record_value"></p>
+                            <p class="mt-1 text-sm font-mono text-gray-900 break-all bg-white p-2 rounded border border-gray-300" x-text="recordValue"></p>
                         </div>
                     </div>
 
@@ -173,7 +106,7 @@
                         <h4 class="text-sm font-medium text-blue-900 mb-2">📝 Step-by-step guide:</h4>
                         <ol class="text-sm text-blue-800 space-y-1 list-decimal list-inside">
                             <li>Log in to your DNS provider (e.g., DigitalOcean, Cloudflare, GoDaddy)</li>
-                            <li>Go to DNS management for <span class="font-mono" x-text="'{{ website.domain }}'.replace('https://', '').replace('http://', '')"></span></li>
+                            <li>Go to DNS management for <span class="font-mono" x-text="bareDomain"></span></li>
                             <li>Add a new TXT record with the values shown above</li>
                             <li>Wait 5-10 minutes for DNS propagation</li>
                             <li>Click the "Verify Domain" button below</li>
@@ -184,18 +117,18 @@
                     </div>
 
                     <div class="mt-4">
-                        <button @click="await verifyDomain()"
-                                :disabled="verifying"
-                                :class="verifying ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'"
+                        <button @click="verifyDomain"
+                                :disabled="isVerifying"
+                                :class="verifyClass"
                                 class="w-full px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
-                            <span x-show="!verifying">🔍 Verify Domain Now</span>
-                            <span x-show="verifying">⏳ Checking DNS...</span>
+                            <span x-show="isNotVerifying">🔍 Verify Domain Now</span>
+                            <span x-show="isVerifying">⏳ Checking DNS...</span>
                         </button>
                     </div>
                 </div>
             </template>
 
-            <template x-if="!instructions">
+            <template x-if="hasNoInstructions">
                 <div class="text-center py-4">
                     <p class="text-sm text-gray-500">Loading instructions...</p>
                 </div>
@@ -220,12 +153,12 @@
             Copy this code and paste it in your website's &lt;head&gt; section, right before &lt;/head&gt;.
         </p>
 
-        <div class="relative" x-data="{ copied: false }">
+        <div class="relative" x-data="copyButton">
             <pre class="bg-gray-50 border border-gray-200 rounded-lg p-4 text-sm overflow-x-auto"><code id="tracking-code">&lt;script src="{{ base_url }}/static/tracker.min.js" data-tracking-code="{{ website.tracking_code }}" defer&gt;&lt;/script&gt;</code></pre>
-            <button @click="copyTrackingCode(); copied = true; setTimeout(() => copied = false, 2000)"
+            <button @click="copy" data-copy-from="tracking-code"
                     class="absolute top-2 right-2 px-3 py-1 text-xs font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                <span x-show="!copied">Copy</span>
-                <span x-show="copied">Copied!</span>
+                <span x-show="isNotCopied">Copy</span>
+                <span x-show="isCopied">Copied!</span>
             </button>
         </div>
 
@@ -269,8 +202,8 @@
                     Add this code to your 404 error page template (usually <code class="px-1 py-0.5 bg-gray-100 rounded text-xs font-mono">404.html</code> or <code class="px-1 py-0.5 bg-gray-100 rounded text-xs font-mono">404.php</code>):
                 </p>
 
-                <div class="relative" x-data="{ copied: false }">
-                    <pre class="bg-gray-50 border border-gray-200 rounded-lg p-4 text-xs overflow-x-auto"><code>&lt;script&gt;
+                <div class="relative" x-data="copyButton">
+                    <pre class="bg-gray-50 border border-gray-200 rounded-lg p-4 text-xs overflow-x-auto"><code id="not-found-snippet">&lt;script&gt;
   if (window.argus) {
     argus.trackEvent('404 Error', {
       path: window.location.pathname,
@@ -278,10 +211,10 @@
     });
   }
 &lt;/script&gt;</code></pre>
-                    <button @click="navigator.clipboard.writeText(`<script nonce="{{ request.state.csp_nonce }}">\n  if (window.argus) {\n    argus.trackEvent('404 Error', {\n      path: window.location.pathname,\n      referrer: document.referrer\n    });\n  }\n</script>`); copied = true; setTimeout(() => copied = false, 2000)"
+                    <button @click="copy" data-copy-from="not-found-snippet"
                             class="absolute top-2 right-2 px-3 py-1 text-xs font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                        <span x-show="!copied">Copy</span>
-                        <span x-show="copied">Copied!</span>
+                        <span x-show="isNotCopied">Copy</span>
+                        <span x-show="isCopied">Copied!</span>
                     </button>
                 </div>
             </div>
@@ -377,147 +310,38 @@ export default function Custom404() {
 
     <!-- Public Dashboard Section -->
     <div class="bg-white rounded-lg shadow p-6 mb-6"
-         x-data="{
-             isPublic: {{ 'true' if website.is_public else 'false' }},
-             publicUrl: '{{ base_url }}/public/{{ website.public_share_token if website.public_share_token else '' }}',
-             updating: false,
-             linkCopied: false,
-             passwordEnabled: {{ 'true' if website.public_password_enabled else 'false' }},
-             newPassword: '',
-             savingPassword: false,
-
-             async setPassword() {
-                 this.savingPassword = true;
-                 try {
-                     const response = await fetch('/api/v1/dashboard-password/set', {
-                         method: 'POST',
-                         credentials: 'same-origin',
-                         headers: { 'Content-Type': 'application/json' },
-                         body: JSON.stringify({
-                             website_id: {{ website.id }},
-                             password: this.newPassword
-                         })
-                     });
-                     const data = await response.json();
-                     if (response.ok) {
-                         this.passwordEnabled = true;
-                         this.newPassword = '';
-                         window.dispatchEvent(new CustomEvent('toast', {
-                            detail: { message: 'Password protection enabled', type: 'success' }
-                        }));
-                     } else {
-                         window.dispatchEvent(new CustomEvent('toast', {
-                            detail: { message: data.message || data.detail || 'Could not set the password.', type: 'error' }
-                        }));
-                     }
-                 } catch (error) {
-                     console.error('Error setting dashboard password:', error);
-                     window.dispatchEvent(new CustomEvent('toast', {
-                        detail: { message: 'Failed to set the password. Please try again.', type: 'error' }
-                    }));
-                 } finally {
-                     this.savingPassword = false;
-                 }
-             },
-
-             async removePassword() {
-                 this.savingPassword = true;
-                 try {
-                     const response = await fetch('/api/v1/dashboard-password/remove', {
-                         method: 'POST',
-                         credentials: 'same-origin',
-                         headers: { 'Content-Type': 'application/json' },
-                         body: JSON.stringify({ website_id: {{ website.id }} })
-                     });
-                     const data = await response.json();
-                     if (response.ok) {
-                         this.passwordEnabled = false;
-                         window.dispatchEvent(new CustomEvent('toast', {
-                            detail: { message: 'Password protection removed', type: 'success' }
-                        }));
-                     } else {
-                         window.dispatchEvent(new CustomEvent('toast', {
-                            detail: { message: data.message || data.detail || 'Could not remove the password.', type: 'error' }
-                        }));
-                     }
-                 } catch (error) {
-                     console.error('Error removing dashboard password:', error);
-                     window.dispatchEvent(new CustomEvent('toast', {
-                        detail: { message: 'Failed to remove the password. Please try again.', type: 'error' }
-                    }));
-                 } finally {
-                     this.savingPassword = false;
-                 }
-             },
-
-             async togglePublicAccess() {
-                 this.updating = true;
-                 try {
-                     // Auth via httponly session_token cookie (SameSite=Lax mitigates CSRF)
-                     const response = await fetch('/api/v1/websites/{{ website.id }}/public-access', {
-                         method: 'PUT',
-                         credentials: 'same-origin',
-                         headers: {
-                             'Content-Type': 'application/json'
-                         },
-                         body: JSON.stringify({ is_public: !this.isPublic })
-                     });
-                     const data = await response.json();
-                     if (response.ok) {
-                         this.isPublic = data.is_public;
-                         if (data.public_url) {
-                             this.publicUrl = data.public_url;
-                         }
-                         window.dispatchEvent(new CustomEvent('toast', {
-                            detail: { message: this.isPublic ? 'Public dashboard enabled' : 'Public dashboard disabled', type: 'success' }
-                        }));
-                     } else {
-                         window.dispatchEvent(new CustomEvent('toast', {
-                            detail: { message: data.detail || 'Something went wrong.', type: 'error' }
-                        }));
-                     }
-                 } catch (error) {
-                     console.error('Error toggling public access:', error);
-                     window.dispatchEvent(new CustomEvent('toast', {
-                        detail: { message: 'Failed to update public access. Please try again.', type: 'error' }
-                    }));
-                 } finally {
-                     this.updating = false;
-                 }
-             },
-             copyPublicLink() {
-                 navigator.clipboard.writeText(this.publicUrl);
-                 this.linkCopied = true;
-                 setTimeout(() => this.linkCopied = false, 2000);
-             }
-         }">
+         x-data="publicSharing"
+     data-website-id="{{ website.id }}"
+     data-is-public="{{ 'true' if website.is_public else 'false' }}"
+     data-public-url="{{ base_url }}/public/{{ website.public_share_token or '' }}"
+     data-password-enabled="{{ 'true' if website.public_password_enabled else 'false' }}">
         <div class="flex items-start justify-between mb-4">
             <div>
                 <h2 class="text-lg font-semibold text-gray-900">Public Dashboard</h2>
                 <p class="mt-1 text-sm text-gray-600">Share your analytics with clients and stakeholders</p>
             </div>
-            <button @click="await togglePublicAccess()"
-                    :disabled="updating"
-                    :class="isPublic ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-200 hover:bg-gray-300'"
+            <button @click="togglePublicAccess"
+                    :disabled="isUpdating"
+                    :class="toggleClass"
                     class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed">
                 <span class="sr-only">Enable public access</span>
-                <span :class="isPublic ? 'translate-x-5' : 'translate-x-0'"
+                <span :class="knobClass"
                       class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"></span>
             </button>
         </div>
 
-        <div x-show="isPublic" class="space-y-4">
+        <div x-show="isShared" class="space-y-4">
             <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <p class="text-sm text-blue-900 font-medium mb-2">Your public dashboard is active</p>
                 <div class="relative">
                     <input type="text"
-                           :value="publicUrl"
+                           :value="shareUrl"
                            readonly
                            class="block w-full px-3 py-2 pr-20 border border-blue-300 rounded-md bg-white text-sm font-mono text-gray-900">
-                    <button @click="copyPublicLink()"
+                    <button @click="copyPublicLink"
                             class="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1 text-xs font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700">
-                        <span x-show="!linkCopied">Copy Link</span>
-                        <span x-show="linkCopied">Copied!</span>
+                        <span x-show="isLinkNotCopied">Copy Link</span>
+                        <span x-show="isLinkCopied">Copied!</span>
                     </button>
                 </div>
                 <a :href="publicUrl"
@@ -529,7 +353,7 @@ export default function Custom404() {
                     </svg>
                 </a>
             </div>
-            <div x-show="!passwordEnabled" class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <div x-show="hasNoPassword" class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                 <div class="flex">
                     <svg class="w-5 h-5 text-yellow-600 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                         <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
@@ -548,7 +372,7 @@ export default function Custom404() {
                             stops being enough.
                         </p>
                     </div>
-                    <span x-show="passwordEnabled"
+                    <span x-show="hasPassword"
                           class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
                         Protected
                     </span>
@@ -558,17 +382,17 @@ export default function Custom404() {
                     <input type="password"
                            x-model="newPassword"
                            autocomplete="new-password"
-                           :placeholder="passwordEnabled ? 'Enter a new password to replace it' : 'At least 10 characters, with a digit'"
+                           :placeholder="passwordPlaceholder"
                            class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                    <button @click="await setPassword()"
-                            :disabled="savingPassword || newPassword.length === 0"
+                    <button @click="setPassword"
+                            :disabled="cannotSavePassword"
                             class="px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed whitespace-nowrap">
-                        <span x-show="!savingPassword" x-text="passwordEnabled ? 'Change' : 'Set password'"></span>
-                        <span x-show="savingPassword">Saving...</span>
+                        <span x-show="isNotSavingPassword" x-text="passwordButtonLabel"></span>
+                        <span x-show="isSavingPassword">Saving...</span>
                     </button>
-                    <button x-show="passwordEnabled"
-                            @click="await removePassword()"
-                            :disabled="savingPassword"
+                    <button x-show="hasPassword"
+                            @click="removePassword"
+                            :disabled="isSavingPassword"
                             class="px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 whitespace-nowrap">
                         Remove
                     </button>
@@ -580,7 +404,7 @@ export default function Custom404() {
             </div>
         </div>
 
-        <div x-show="!isPublic" class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+        <div x-show="isNotShared" class="bg-gray-50 border border-gray-200 rounded-lg p-4">
             <div class="flex items-start">
                 <svg class="w-5 h-5 text-gray-400 mr-2 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
@@ -595,71 +419,13 @@ export default function Custom404() {
 
     <!-- Email Reports Section -->
     <div class="bg-white rounded-lg shadow p-6 mb-6"
-         x-data="{
-             enabled: {{ 'true' if website.email_reports_enabled else 'false' }},
-             frequency: '{{ website.email_reports_frequency or 'weekly' }}',
-             recipient: '{{ website.email_reports_recipient or '' }}',
-             day: {{ website.email_reports_day or 1 }},
-             saving: false,
-             showSuccess: false,
-             errorMessage: '',
-
-             get dayOptions() {
-                 if (this.frequency === 'weekly') {
-                     return [
-                         { value: 1, label: 'Monday' },
-                         { value: 2, label: 'Tuesday' },
-                         { value: 3, label: 'Wednesday' },
-                         { value: 4, label: 'Thursday' },
-                         { value: 5, label: 'Friday' },
-                         { value: 6, label: 'Saturday' },
-                         { value: 7, label: 'Sunday' }
-                     ];
-                 } else {
-                     return Array.from({ length: 31 }, (_, i) => ({
-                         value: i + 1,
-                         label: `Day ${i + 1}`
-                     }));
-                 }
-             },
-
-             async saveEmailReports() {
-                 this.saving = true;
-                 this.errorMessage = '';
-                 this.showSuccess = false;
-
-                 try {
-                     // Auth via httponly session_token cookie (SameSite=Lax mitigates CSRF)
-                     const response = await fetch('/api/v1/websites/{{ website.id }}/email-reports', {
-                         method: 'PUT',
-                         credentials: 'same-origin',
-                         headers: {
-                             'Content-Type': 'application/json'
-                         },
-                         body: JSON.stringify({
-                             enabled: this.enabled,
-                             frequency: this.frequency,
-                             recipient: this.recipient || '{{ user_email }}',
-                             day: parseInt(this.day)
-                         })
-                     });
-
-                     const data = await response.json();
-
-                     if (response.ok) {
-                         this.showSuccess = true;
-                         setTimeout(() => this.showSuccess = false, 3000);
-                     } else {
-                         this.errorMessage = data.detail || 'Failed to save settings';
-                     }
-                 } catch (error) {
-                     console.error('Error saving email reports:', error);
-                     this.errorMessage = 'Network error. Please try again.';
-                 } finally {
-                     this.saving = false;
-                 }
-             }
-         }">
+         x-data="emailReports"
+     data-website-id="{{ website.id }}"
+     data-enabled="{{ 'true' if website.email_reports_enabled else 'false' }}"
+     data-frequency="{{ website.email_reports_frequency or 'weekly' }}"
+     data-recipient="{{ website.email_reports_recipient or '' }}"
+     data-fallback-recipient="{{ user_email }}"
+     data-day="{{ website.email_reports_day or 1 }}">
         <div class="flex items-center justify-between mb-4">
             <div>
                 <h2 class="text-lg font-semibold text-gray-900">Email Reports</h2>
@@ -682,7 +448,7 @@ export default function Custom404() {
             </div>
 
             <!-- Configuration (shown when enabled) -->
-            <div x-show="enabled" class="pt-4 border-t border-gray-200 space-y-4">
+            <div x-show="isEnabled" class="pt-4 border-t border-gray-200 space-y-4">
                 <!-- Frequency Selection -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Report Frequency</label>
@@ -692,7 +458,7 @@ export default function Custom404() {
                                    name="frequency"
                                    value="weekly"
                                    x-model="frequency"
-                                   @change="day = 1"
+                                   @change="resetDay"
                                    class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300">
                             <span class="ml-2 text-sm text-gray-700">Weekly</span>
                         </label>
@@ -701,7 +467,7 @@ export default function Custom404() {
                                    name="frequency"
                                    value="monthly"
                                    x-model="frequency"
-                                   @change="day = 1"
+                                   @change="resetDay"
                                    class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300">
                             <span class="ml-2 text-sm text-gray-700">Monthly</span>
                         </label>
@@ -711,13 +477,13 @@ export default function Custom404() {
                 <!-- Day Selection -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">
-                        <span x-show="frequency === 'weekly'">Send every</span>
-                        <span x-show="frequency === 'monthly'">Send on</span>
+                        <span x-show="isWeekly">Send every</span>
+                        <span x-show="isMonthly">Send on</span>
                     </label>
                     <select x-model="day"
                             class="block w-full max-w-xs px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                        <template x-for="option in dayOptions" :key="option.value">
-                            <option :value="option.value" x-text="option.label"></option>
+                        <template x-for="option in dayOptions" :key="option">
+                            <option x-data="dayOption" :value="value" x-text="label"></option>
                         </template>
                     </select>
                 </div>
@@ -734,7 +500,7 @@ export default function Custom404() {
             </div>
 
             <!-- Success Message -->
-            <div x-show="showSuccess"
+            <div x-show="saved"
                  x-transition
                  class="rounded-md bg-green-50 p-4">
                 <div class="flex">
@@ -748,7 +514,7 @@ export default function Custom404() {
             </div>
 
             <!-- Error Message -->
-            <div x-show="errorMessage"
+            <div x-show="hasError"
                  x-transition
                  class="rounded-md bg-red-50 p-4">
                 <div class="flex">
@@ -761,12 +527,12 @@ export default function Custom404() {
 
             <!-- Save Button -->
             <div class="pt-4">
-                <button @click="await saveEmailReports()"
-                        :disabled="saving"
-                        :class="saving ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'"
+                <button @click="saveEmailReports"
+                        :disabled="isSaving"
+                        :class="saveClass"
                         class="px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                    <span x-show="!saving">Save Settings</span>
-                    <span x-show="saving">Saving...</span>
+                    <span x-show="isNotSaving">Save Settings</span>
+                    <span x-show="isSaving">Saving...</span>
                 </button>
             </div>
         </div>
@@ -774,50 +540,10 @@ export default function Custom404() {
 
     <!-- Traffic Alerts -->
     <div class="bg-white rounded-lg shadow p-6 mb-6"
-         x-data="{
-             enabled: {{ 'true' if alert_settings and alert_settings.email_enabled else 'false' }},
-             threshold: {{ alert_settings.spike_threshold if alert_settings else 2.0 }},
-             saving: false,
-             showSuccess: false,
-             errorMessage: '',
-
-             get percentLabel() {
-                 return Math.round(this.threshold * 100) + '%';
-             },
-
-             async saveAlerts() {
-                 this.saving = true;
-                 this.errorMessage = '';
-                 this.showSuccess = false;
-
-                 try {
-                     // Auth via httponly session_token cookie (SameSite=Lax mitigates CSRF)
-                     const response = await fetch('/api/v1/analytics/alerts/{{ website.id }}', {
-                         method: 'PUT',
-                         credentials: 'same-origin',
-                         headers: { 'Content-Type': 'application/json' },
-                         body: JSON.stringify({
-                             spike_threshold: parseFloat(this.threshold),
-                             email_enabled: this.enabled
-                         })
-                     });
-
-                     const data = await response.json();
-
-                     if (response.ok) {
-                         this.showSuccess = true;
-                         setTimeout(() => this.showSuccess = false, 3000);
-                     } else {
-                         this.errorMessage = data.message || data.detail || 'Failed to save alert settings';
-                     }
-                 } catch (error) {
-                     console.error('Error saving traffic alerts:', error);
-                     this.errorMessage = 'Network error. Please try again.';
-                 } finally {
-                     this.saving = false;
-                 }
-             }
-         }">
+         x-data="trafficAlerts"
+     data-website-id="{{ website.id }}"
+     data-enabled="{{ 'true' if alert_settings and alert_settings.email_enabled else 'false' }}"
+     data-threshold="{{ alert_settings.spike_threshold if alert_settings else 2.0 }}">
         <div class="flex items-center justify-between mb-4">
             <div>
                 <h2 class="text-lg font-semibold text-gray-900">Traffic Alerts</h2>
@@ -839,7 +565,7 @@ export default function Custom404() {
                 </label>
             </div>
 
-            <div x-show="enabled" class="pt-4 border-t border-gray-200 space-y-4">
+            <div x-show="isEnabled" class="pt-4 border-t border-gray-200 space-y-4">
                 <div>
                     <label for="spike-threshold" class="block text-sm font-medium text-gray-700 mb-2">
                         Alert when an hour reaches
@@ -867,13 +593,13 @@ export default function Custom404() {
                 </div>
             </div>
 
-            <div x-show="showSuccess"
+            <div x-show="saved"
                  x-transition
                  class="rounded-md bg-green-50 p-4">
                 <p class="text-sm font-medium text-green-800">Alert settings saved.</p>
             </div>
 
-            <div x-show="errorMessage"
+            <div x-show="hasError"
                  x-transition
                  class="rounded-md bg-red-50 p-4">
                 <div class="flex">
@@ -885,12 +611,12 @@ export default function Custom404() {
             </div>
 
             <div class="pt-4">
-                <button @click="await saveAlerts()"
-                        :disabled="saving"
-                        :class="saving ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'"
+                <button @click="saveAlerts"
+                        :disabled="isSaving"
+                        :class="saveClass"
                         class="px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                    <span x-show="!saving">Save Settings</span>
-                    <span x-show="saving">Saving...</span>
+                    <span x-show="isNotSaving">Save Settings</span>
+                    <span x-show="isSaving">Saving...</span>
                 </button>
             </div>
         </div>
@@ -928,44 +654,13 @@ export default function Custom404() {
          website name must never be interpolated into a double-quoted attribute. -->
     <script type="application/json" id="delete-confirm-data">{{ {"name": website.name} | tojson }}</script>
     <div class="bg-white rounded-lg shadow border-2 border-red-200 p-6"
-         x-data="{
-             showDeleteModal: false,
-             confirmName: '',
-             deleting: false,
-             error: null,
-             expectedName: JSON.parse(document.getElementById('delete-confirm-data').textContent).name,
-
-             get canDelete() {
-                 return this.confirmName === this.expectedName;
-             },
-
-             async deleteWebsite() {
-                 if (!this.canDelete) return;
-                 this.deleting = true;
-                 this.error = null;
-                 try {
-                     const res = await fetch('/api/v1/websites/{{ website.id }}', {
-                         method: 'DELETE',
-                         credentials: 'same-origin'
-                     });
-                     if (res.ok) {
-                         window.location.href = '/dashboard';
-                         return;
-                     }
-                     const data = await res.json().catch(() => ({}));
-                     this.error = data.detail || data.message || 'Failed to delete website.';
-                 } catch (e) {
-                     this.error = 'Failed to delete website. Please try again.';
-                 } finally {
-                     this.deleting = false;
-                 }
-             }
-         }">
+         x-data="deleteWebsite"
+     data-website-id="{{ website.id }}">
         <h2 class="text-lg font-semibold text-red-900 mb-4">Danger Zone</h2>
         <p class="text-sm text-gray-600 mb-4">
             Deleting this website will permanently remove all analytics data. This action cannot be undone.
         </p>
-        <button @click="showDeleteModal = true; confirmName = ''; error = null"
+        <button @click="openModal"
                 type="button"
                 class="px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
             Delete Website
@@ -973,9 +668,9 @@ export default function Custom404() {
 
         <!-- Confirmation modal (same pattern as the goals/funnels delete flows;
              deliberately not a native confirm(), which blocks the renderer) -->
-        <div x-show="showDeleteModal"
+        <div x-show="isOpen"
              x-cloak
-             @click.away="showDeleteModal = false"
+             @click.away="closeModal"
              class="fixed inset-0 z-50 overflow-y-auto">
             <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
                 <div class="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"></div>
@@ -992,23 +687,23 @@ export default function Custom404() {
                         </label>
                         <input type="text"
                                x-model="confirmName"
-                               @keydown.enter="canDelete && deleteWebsite()"
+                               @keydown.enter="deleteWebsite"
                                class="block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-red-500 focus:border-red-500"
                                placeholder="{{ website.name }}">
-                        <p x-show="error" x-text="error" class="mt-3 text-sm text-red-600"></p>
+                        <p x-show="hasError" x-text="error" class="mt-3 text-sm text-red-600"></p>
                     </div>
                     <div class="bg-gray-50 px-6 py-4 flex justify-end gap-3">
-                        <button @click="showDeleteModal = false"
+                        <button @click="closeModal"
                                 type="button"
                                 class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
                             Cancel
                         </button>
-                        <button @click="deleteWebsite()"
+                        <button @click="deleteWebsite"
                                 type="button"
-                                :disabled="!canDelete || deleting"
-                                :class="(canDelete && !deleting) ? 'bg-red-600 hover:bg-red-700' : 'bg-red-300 cursor-not-allowed'"
+                                :disabled="cannotDelete"
+                                :class="deleteClass"
                                 class="px-4 py-2 text-sm font-medium text-white rounded-md">
-                            <span x-text="deleting ? 'Deleting…' : 'Delete website'"></span>
+                            <span x-text="deleteLabel"></span>
                         </button>
                     </div>
                 </div>

@@ -144,17 +144,25 @@ if settings.is_production:
 # Security headers (defense-in-depth: clickjacking, MIME sniffing, and a CSP
 # that limits script/style sources).
 #
-# script-src keeps BOTH 'unsafe-inline' and 'unsafe-eval' because the
-# dashboard runs stock Alpine.js, which evaluates its x-* attributes as
-# strings — without 'unsafe-eval' every dropdown, filter, tab and modal in
-# the app silently stops working (Alpine logs a CSP error per expression and
-# renders every x-show element as visible).
+# script-src now carries no unsafe-* source at all. Scripts run only from this
+# origin or with the request's nonce, so an injected <script> does not
+# execute, and neither does an injected string reaching eval.
 #
-# So CSP provides no script-injection protection here; the actual XSS defense
-# is output escaping — template autoescape plus JSON <script> islands for
-# visitor-controlled analytics data (never |tojson inside an attribute).
-# TODO (UX phase): move to Alpine's CSP build (@alpinejs/csp, expressions as
-# Alpine.data() components) or plain JS, then drop both unsafe-* sources.
+# Getting there took removing both. 'unsafe-inline' went when every inline
+# handler became a data attribute read by one delegated listener and every
+# inline <script> gained a nonce. 'unsafe-eval' went when the dashboard moved
+# to Alpine's CSP build: stock Alpine compiles each x-* attribute with
+# new AsyncFunction, which is eval by another name, and that one directive
+# re-permitted the whole class of attack the policy exists to stop.
+#
+# The CSP build evaluates an expression as a single scope lookup, so all 246
+# expressions that were doing more than naming a property moved into
+# alpine-components.js as getters and methods. Anything reintroducing an
+# operator, a literal or a call with arguments into an x-* attribute will
+# stop working rather than fail quietly; test_csp.py checks for it.
+#
+# Output escaping remains the primary defence, tested directly in
+# test_output_escaping.py. CSP is the second layer, and now it is a real one.
 #
 # style-src, unlike script-src, HAS been locked to 'self' with no unsafe-*:
 # every literal style="" attribute and <style> block was moved to
@@ -192,7 +200,7 @@ async def security_headers(request: Request, call_next):
     response.headers.setdefault(
         "Content-Security-Policy",
         "default-src 'self'; "
-        f"script-src 'self' 'nonce-{nonce}' 'unsafe-eval'; "
+        f"script-src 'self' 'nonce-{nonce}'; "
         "style-src 'self'; "
         "img-src 'self' data: https:; "
         "font-src 'self' data:; "

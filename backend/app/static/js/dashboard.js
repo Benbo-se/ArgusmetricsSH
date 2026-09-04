@@ -356,14 +356,28 @@ window.getCountryFlag = getCountryFlag;
 
 /**
  * Make table sortable
- * Usage: Add x-data="sortableTable()" to table wrapper div
+ * Usage: x-data="sortableTable" on the wrapper, and on each <th>:
+ *   @click="sortTable" data-column="3" data-numeric="true"
+ *   <span x-text="sortIcon"></span>
  */
 function sortableTable() {
     return {
         sortColumn: null,
         sortDirection: 'asc',
         
-        sortTable(columnIndex, isNumeric = false) {
+        /**
+         * Sorts by the column named in the clicked header's data attributes.
+         *
+         * The column index and numeric flag used to be arguments in the
+         * template (`sortTable(3, true)`). A CSP-build expression cannot carry
+         * arguments, so the header carries them instead: data-column and
+         * data-numeric.
+         */
+        sortTable(event) {
+            const header = event ? event.currentTarget : null;
+            const columnIndex = header ? Number(header.dataset.column) : 0;
+            const isNumeric = header ? header.dataset.numeric === 'true' : false;
+
             const table = this.$el.querySelector('table');
             if (!table) return;
             
@@ -408,7 +422,15 @@ function sortableTable() {
             rows.forEach(row => tbody.appendChild(row));
         },
         
-        getSortIcon(columnIndex) {
+        /**
+         * The arrow for whichever header is asking.
+         *
+         * A getter rather than a method, and it reads the column from $el,
+         * which Alpine injects per element. One definition, a different answer
+         * on each header.
+         */
+        get sortIcon() {
+            const columnIndex = Number(this.$el.dataset.column);
             if (this.sortColumn !== columnIndex) {
                 return '↕️'; // Both arrows when not sorted
             }
@@ -417,5 +439,9 @@ function sortableTable() {
     };
 }
 
-// Export for global use
+// Registered as an Alpine component: x-data="sortableTable()" is a call
+// expression, which the CSP build cannot evaluate.
 window.sortableTable = sortableTable;
+document.addEventListener('alpine:init', () => {
+    Alpine.data('sortableTable', sortableTable);
+});

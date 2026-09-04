@@ -12,6 +12,7 @@ Coverage is deliberately breadth-first over the mutating routes rather than
 depth on any one of them: the failure being hunted is a feature that does
 nothing, not an edge case in a feature that works.
 """
+import pathlib
 import uuid
 
 from sqlalchemy import text
@@ -257,8 +258,22 @@ class TestPublicSharing:
 
         assert page.status_code == 200
         assert "Password protection" in page.text, "no way to protect a shared link"
-        assert "dashboard-password/set" in page.text
-        assert "dashboard-password/remove" in page.text, (
+
+        # The controls are on the page, and the component behind them calls
+        # both endpoints. The calls moved out of the template when the
+        # dashboard went to Alpine's CSP build, so looking for the URLs in the
+        # HTML would now pass or fail on where the code lives rather than on
+        # whether the feature is wired.
+        assert 'x-data="publicSharing"' in page.text, (
+            "the password controls are rendered but no component drives them"
+        )
+
+        component = (
+            pathlib.Path(__file__).resolve().parents[1]
+            / "app" / "static" / "js" / "alpine-components.js"
+        ).read_text()
+        assert "dashboard-password/set" in component
+        assert "dashboard-password/remove" in component, (
             "a password can be set and never taken off"
         )
 

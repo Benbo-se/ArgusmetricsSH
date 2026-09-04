@@ -40,6 +40,14 @@ export default defineConfig({
       dependencies: ['auth'],
     },
     {
+      // Reads the browser console. Alpine's CSP build does not throw on an
+      // expression it cannot evaluate, it warns and renders nothing, so this
+      // is the only project that can catch a silently dead control.
+      name: 'csp',
+      testMatch: /csp\.spec\.ts/,
+      dependencies: ['auth'],
+    },
+    {
       name: 'landing',
       testMatch: /landing\.spec\.ts/,
       use: { baseURL: SITE_URL },
