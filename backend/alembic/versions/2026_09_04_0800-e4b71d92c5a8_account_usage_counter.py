@@ -25,6 +25,8 @@ Create Date: 2026-09-04 08:00:00.000000
 from alembic import op
 import sqlalchemy as sa
 
+from app.migration_grants import grant
+
 
 revision = 'e4b71d92c5a8'
 down_revision = 'd3f81c62a49b'
@@ -103,7 +105,7 @@ def upgrade() -> None:
     # dashboard reads it to show usage. No policies: it holds a count and an
     # address that the account already knows, and the tracking context has no
     # user to scope by.
-    op.execute("GRANT SELECT, INSERT, UPDATE ON account_usage TO argus_app")
+    grant("SELECT, INSERT, UPDATE", "account_usage")
 
 
 def downgrade() -> None:

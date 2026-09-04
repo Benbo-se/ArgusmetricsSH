@@ -17,6 +17,8 @@ Create Date: 2026-09-04 06:00:00.000000
 
 """
 from alembic import op
+
+from app.migration_grants import grant
 import sqlalchemy as sa
 
 
@@ -53,7 +55,7 @@ def upgrade() -> None:
     # The jobs write this from the scheduler, which runs as the job context.
     # No row-level security: there is nothing tenant-specific in it, and
     # /health has to read it without a context at all.
-    op.execute("GRANT SELECT, INSERT, UPDATE ON job_runs TO argus_app")
+    grant("SELECT, INSERT, UPDATE", "job_runs")
 
 
 def downgrade() -> None:

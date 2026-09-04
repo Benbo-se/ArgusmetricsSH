@@ -81,3 +81,40 @@ def test_the_columns_that_are_looked_up_are_indexed(engine, table, column):
         ).scalar()
 
     assert covered, f"{table}.{column} has no index and is looked up by value"
+
+
+def test_no_migration_grants_to_the_app_role_unguarded():
+    """A bare GRANT to argus_app breaks every database that has no such role.
+
+    Production connects as argus_app, an unprivileged role that owns nothing,
+    which is what makes the row-level security policies apply to it. Neither
+    development nor CI has that role: they connect as the owner.
+
+    So `op.execute("GRANT ... TO argus_app")` succeeds in production and fails
+    everywhere else with `role "argus_app" does not exist`. That is not
+    hypothetical. It turned CI red for eleven commits while every local check
+    passed, because this development database happened to have the role left
+    over from an earlier experiment: the environment the migration was verified
+    in was not the environment that runs it.
+
+    app.migration_grants.grant() makes the role's absence a no-op.
+    """
+    import pathlib
+    import re
+
+    versions = pathlib.Path(__file__).resolve().parents[1] / "alembic" / "versions"
+    assert versions.is_dir(), f"no migrations found at {versions}"
+
+    offenders = []
+    for path in sorted(versions.glob("*.py")):
+        for number, line in enumerate(path.read_text().splitlines(), 1):
+            # Only executable lines: these migrations discuss argus_app at
+            # length in their docstrings, and rightly so.
+            if re.search(r'^\s*op\.execute\(.*\bGRANT\b.*\bargus_app\b', line):
+                offenders.append(f"{path.name}:{number}")
+
+    assert not offenders, (
+        "these migrations GRANT to argus_app directly, which fails on any "
+        f"database without that role: {offenders}. Use "
+        "app.migration_grants.grant() instead."
+    )

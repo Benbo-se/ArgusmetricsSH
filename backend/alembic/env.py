@@ -43,6 +43,52 @@ target_metadata = Base.metadata
 # ... etc.
 
 
+# TimescaleDB creates and owns objects that the models know nothing about, and
+# autogenerate would otherwise propose dropping them on every run.
+#
+# The clearest case: create_hypertable() adds a descending index on the
+# partitioning column, named <table>_timestamp_idx. It belongs to the
+# extension, dropping it would hurt exactly the queries the hypertable exists
+# to speed up, and declaring it in the models would be describing something we
+# do not manage. Chunks live in the extension's own schemas for the same
+# reason.
+#
+# Without this, `alembic check` fails on a database that has been migrated
+# correctly, which is a check that cries wolf and therefore stops being read.
+TIMESCALE_SCHEMAS = (
+    "_timescaledb_internal",
+    "_timescaledb_catalog",
+    "_timescaledb_config",
+    "_timescaledb_cache",
+    "timescaledb_information",
+    "timescaledb_experimental",
+)
+
+#: The four tables turned into hypertables, and the index each conversion adds.
+HYPERTABLE_INDEXES = {
+    "pageviews_timestamp_idx",
+    "custom_events_timestamp_idx",
+    "goal_conversions_timestamp_idx",
+    "funnel_events_timestamp_idx",
+}
+
+
+def include_object(object_, name, type_, reflected, compare_to):
+    """Whether autogenerate should consider a database object.
+
+    Only ever excludes things the extension owns. Anything this project
+    created still shows up, so a genuinely forgotten migration still fails.
+    """
+    schema = getattr(object_, "schema", None)
+    if schema in TIMESCALE_SCHEMAS:
+        return False
+
+    if type_ == "index" and name in HYPERTABLE_INDEXES:
+        return False
+
+    return True
+
+
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode.
 
@@ -63,6 +109,7 @@ def run_migrations_offline() -> None:
         dialect_opts={"paramstyle": "named"},
         compare_type=True,
         compare_server_default=True,
+        include_object=include_object,
     )
 
     with context.begin_transaction():
@@ -88,6 +135,7 @@ def run_migrations_online() -> None:
             target_metadata=target_metadata,
             compare_type=True,
             compare_server_default=True,
+            include_object=include_object,
         )
 
         with context.begin_transaction():
