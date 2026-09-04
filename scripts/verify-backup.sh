@@ -103,10 +103,30 @@ MANIFEST="${ARCHIVE%.sql.gz}.manifest"
 if [ -f "$MANIFEST" ]; then
     echo
     echo "==> Comparing against the manifest taken with the dump"
-    while IFS='=' read -r table expected; do
+
+    # A manifest that exists but holds nothing passes -f and then compares
+    # nothing, which reads as success. That is how a broken backup.sh stayed
+    # invisible: it errored out on the row-count query and left a zero-byte
+    # file, and this block dutifully found no problems in it. An empty
+    # manifest means the dump did not finish, so treat it as a failure.
+    if [ ! -s "$MANIFEST" ]; then
+        echo "FAILED: $MANIFEST is empty, so there is nothing to check the" >&2
+        echo "        restore against. The dump that produced it did not run" >&2
+        echo "        to completion; take a fresh backup before trusting this." >&2
+        exit 1
+    fi
+
+    # The manifest is read on fd 3, not stdin. `docker compose exec -T` still
+    # reads stdin even with the TTY off, so with the loop fed on stdin the
+    # first psql call swallowed the rest of the file and the loop ran exactly
+    # once. Every table after the first went unchecked, silently.
+    COMPARED=0
+    while IFS='=' read -r table expected <&3; do
         case "$table" in ''|archive|bytes|sha256|taken_at) continue ;; esac
         ACTUAL=$($COMPOSE exec -T postgres sh -c \
-            "psql -U \"\$POSTGRES_USER\" -d $SCRATCH_DB -tAc \"SELECT count(*) FROM $table\"" 2>/dev/null || echo "missing")
+            "psql -U \"\$POSTGRES_USER\" -d $SCRATCH_DB -tAc \"SELECT count(*) FROM $table\"" \
+            </dev/null 2>/dev/null || echo "missing")
+        COMPARED=$((COMPARED + 1))
         # n_live_tup is an estimate, so this reports rather than fails. A
         # table that was populated and restored empty is the signal worth
         # seeing.
@@ -114,8 +134,17 @@ if [ -f "$MANIFEST" ]; then
             echo "    FAILED: $table had roughly $expected rows and restored empty" >&2
             exit 1
         fi
-    done < "$MANIFEST"
-    echo "    no table that had rows came back empty"
+    done 3< "$MANIFEST"
+
+    # Non-empty but holding only the trailing metadata keys is the same
+    # failure wearing a different hat.
+    if [ "$COMPARED" -eq 0 ]; then
+        echo "FAILED: $MANIFEST lists no tables, only metadata. The row-count" >&2
+        echo "        query in backup.sh did not produce output." >&2
+        exit 1
+    fi
+
+    echo "    no table that had rows came back empty ($COMPARED tables compared)"
 fi
 
 echo
