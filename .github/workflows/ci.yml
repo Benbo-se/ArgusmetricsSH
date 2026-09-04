@@ -178,7 +178,12 @@ jobs:
           # that closed in production is the point, so this runs somewhere
           # else rather than opening it.
           ENVIRONMENT: development
-          DEBUG: "false"
+          # DEBUG on, matching the development container the suite passes
+          # against locally. It is what auto-verifies a new website's domain
+          # (dev_auto_verified in website_service), and without it every
+          # tracking test is refused with "Domain not verified". There is no
+          # DNS to verify against in CI.
+          DEBUG: "true"
           E2E_TEST_SECRET: ci-e2e-secret-not-a-production-value
           AUTH_RATE_LIMIT_ATTEMPTS: 5000
           BASE_URL: http://127.0.0.1:8021
