@@ -19,13 +19,13 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from sqlalchemy.orm import Session
 
 from app.config import settings
+from app.logging_setup import configure_logging, set_request_id
 from app.database import check_db_connection, close_db_connection, get_db
 
-# Configure logging
-logging.basicConfig(
-    level=getattr(logging, settings.LOG_LEVEL),
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-)
+# Logging, with a request id on every line. See app/logging_setup.py: the id
+# rides on a context variable so the five hundred existing logger calls did
+# not have to change.
+configure_logging(level=settings.LOG_LEVEL, fmt=settings.LOG_FORMAT)
 logger = logging.getLogger(__name__)
 
 
@@ -159,7 +159,16 @@ async def security_headers(request: Request, call_next):
     nonce = secrets.token_urlsafe(16)
     request.state.csp_nonce = nonce
 
+    # Adopted from the incoming header when a proxy already set one, so a
+    # trace stays continuous across hops, otherwise minted here.
+    request_id = set_request_id(request.headers.get("X-Request-Id"))
+    request.state.request_id = request_id
+
     response = await call_next(request)
+
+    # Returned so a customer can quote it from the page they were looking at,
+    # which turns "it broke around two" into one line in the log.
+    response.headers["X-Request-Id"] = request_id
     response.headers.setdefault("X-Content-Type-Options", "nosniff")
     response.headers.setdefault("X-Frame-Options", "DENY")
     response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")

@@ -109,6 +109,10 @@ class Settings(BaseSettings):
         default=None,
         description="production | development | test. Decides is_production.",
     )
+    # "text" for a person reading along while developing, "json" for a
+    # deployment where the log is read by a machine first. See
+    # app/logging_setup.py.
+    LOG_FORMAT: str = Field(default="text", description="Log format: text | json")
     RATE_LIMIT_BACKEND: str = Field(
         default="memory", description="Rate limiter backend: 'memory' today"
     )
