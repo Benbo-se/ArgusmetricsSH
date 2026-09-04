@@ -125,6 +125,68 @@ class TestRetention:
         assert "/fresh" in remaining, "retention deleted data inside the window"
         assert "/ancient" not in remaining, "data past the window is still there"
 
+    def test_it_deletes_in_batches(self, db, website, monkeypatch):
+        """The first run after retention is switched on is the dangerous one.
+
+        Unbatched, it is a single transaction over every row the product has
+        ever recorded, holding locks while the tracking endpoints try to
+        insert into the same table. Each batch is its own transaction, so a
+        run that falls behind leaves the rest for tomorrow instead of blocking
+        ingestion.
+        """
+        from app.config import settings
+        from app.services.cleanup_service import CleanupService
+
+        monkeypatch.setattr(settings, "DATA_RETENTION_DAYS", 30)
+        monkeypatch.setattr(settings, "RETENTION_BATCH_SIZE", 3)
+        set_rls_context(db, context="job")
+
+        old = datetime.now(timezone.utc) - timedelta(days=5000)
+        for i in range(10):
+            db.execute(
+                text(
+                    "INSERT INTO pageviews (website_id, path, visitor_hash, timestamp) "
+                    "VALUES (:w, :p, :h, :t)"
+                ),
+                {"w": website["id"], "p": f"/old-{i}", "h": uuid.uuid4().hex[:16], "t": old},
+            )
+        db.commit()
+
+        deleted = CleanupService(db)._purge_in_batches(
+            "pageviews", "timestamp", datetime.now(timezone.utc) - timedelta(days=30)
+        )
+
+        assert deleted >= 10, f"batching stopped early, deleted only {deleted}"
+        assert self._paths(db, website["id"]) == set(), "old rows survived"
+
+    def test_a_per_run_ceiling_leaves_the_rest_for_tomorrow(self, db, website, monkeypatch):
+        """So the first run on a large table can be bounded deliberately."""
+        from app.config import settings
+        from app.services.cleanup_service import CleanupService
+
+        monkeypatch.setattr(settings, "DATA_RETENTION_DAYS", 30)
+        monkeypatch.setattr(settings, "RETENTION_BATCH_SIZE", 2)
+        monkeypatch.setattr(settings, "RETENTION_MAX_ROWS_PER_RUN", 4)
+        set_rls_context(db, context="job")
+
+        old = datetime.now(timezone.utc) - timedelta(days=5000)
+        for i in range(10):
+            db.execute(
+                text(
+                    "INSERT INTO pageviews (website_id, path, visitor_hash, timestamp) "
+                    "VALUES (:w, :p, :h, :t)"
+                ),
+                {"w": website["id"], "p": f"/old-{i}", "h": uuid.uuid4().hex[:16], "t": old},
+            )
+        db.commit()
+
+        deleted = CleanupService(db)._purge_in_batches(
+            "pageviews", "timestamp", datetime.now(timezone.utc) - timedelta(days=30)
+        )
+
+        assert deleted == 4, f"the ceiling was ignored: deleted {deleted}"
+        assert len(self._paths(db, website["id"])) == 6, "wrong number left behind"
+
     def test_expired_sessions_are_deleted(self, db, website):
         from app.services.cleanup_service import CleanupService
 

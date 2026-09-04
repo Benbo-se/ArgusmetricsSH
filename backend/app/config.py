@@ -40,6 +40,16 @@ class Settings(BaseSettings):
         default=0,
         description="Delete analytics events older than this many days (0 = keep forever). Applied nightly."
     )
+    # The nightly purge deletes in batches rather than one statement. The
+    # first run after retention is enabled would otherwise be a single
+    # transaction over every row the product has ever recorded.
+    RETENTION_BATCH_SIZE: int = Field(
+        default=10_000, description="Rows deleted per transaction by the retention purge"
+    )
+    RETENTION_MAX_ROWS_PER_RUN: int = Field(
+        default=0,
+        description="Cap per table per run (0 = no cap). Useful for the first run.",
+    )
     EMAIL_LOG_RETENTION_DAYS: int = Field(
         default=90,
         description="Delete email_logs rows (they contain recipient addresses) older than this many days."

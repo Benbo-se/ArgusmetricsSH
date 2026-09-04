@@ -165,6 +165,61 @@ class CleanupService:
             self.db.rollback()
             return 0
 
+    def _purge_in_batches(self, table: str, ts_col: str, cutoff) -> int:
+        """Delete everything older than the cutoff, a batch at a time.
+
+        A single `DELETE FROM pageviews WHERE timestamp < cutoff` is fine on a
+        table that is already trimmed and dangerous on one that is not. The
+        first run after retention is switched on is exactly the second case:
+        one long transaction over every row the product has ever recorded,
+        holding locks and generating write-ahead log the whole time, while the
+        tracking endpoints are trying to insert into the same table.
+
+        Batching keeps each transaction short. A run that does not finish
+        leaves the rest for tomorrow, which is the right trade for a nightly
+        job: falling behind is recoverable, blocking ingestion is not.
+
+        ctid rather than a subquery on the timestamp, so each batch is a
+        cheap, bounded delete rather than a repeated index scan over a range
+        that keeps shrinking.
+        """
+        from sqlalchemy import text
+
+        from app.config import settings
+
+        batch = max(1, settings.RETENTION_BATCH_SIZE)
+        ceiling = settings.RETENTION_MAX_ROWS_PER_RUN
+        deleted = 0
+
+        while True:
+            if ceiling and deleted >= ceiling:
+                logger.warning(
+                    f"Retention: stopped at {deleted} rows from {table}, the "
+                    f"per-run ceiling. The rest goes tomorrow."
+                )
+                break
+
+            size = batch if not ceiling else min(batch, ceiling - deleted)
+            result = self.db.execute(
+                text(  # nosec: table and column come from a fixed allowlist
+                    f"DELETE FROM {table} WHERE ctid IN ("
+                    f"  SELECT ctid FROM {table} WHERE {ts_col} < :cutoff LIMIT :size)"
+                ),
+                {"cutoff": cutoff, "size": size},
+            )
+            self.db.commit()
+
+            if not result.rowcount:
+                break
+            deleted += result.rowcount
+
+        if deleted:
+            logger.info(
+                f"Retention: deleted {deleted} rows from {table} "
+                f"(older than {settings.DATA_RETENTION_DAYS}d)"
+            )
+        return deleted
+
     def purge_old_event_data(self) -> int:
         """
         Data retention: delete analytics events older than DATA_RETENTION_DAYS.
@@ -190,14 +245,7 @@ class CleanupService:
                     ("goal_conversions", "timestamp"),
                     ("funnel_events", "timestamp"),
                 ]:
-                    result = self.db.execute(
-                        text(f"DELETE FROM {table} WHERE {ts_col} < :cutoff"),  # nosec: table names are a fixed allowlist above
-                        {"cutoff": cutoff},
-                    )
-                    if result.rowcount:
-                        logger.info(f"Retention: deleted {result.rowcount} rows from {table} (older than {settings.DATA_RETENTION_DAYS}d)")
-                        total += result.rowcount
-                self.db.commit()
+                    total += self._purge_in_batches(table, ts_col, cutoff)
 
             # Email logs always age out (they hold recipient addresses)
             email_cutoff = now - timedelta(days=settings.EMAIL_LOG_RETENTION_DAYS)
