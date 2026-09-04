@@ -5,7 +5,7 @@ Get Argusmetrics running on your website in 5 minutes using Google Tag Manager.
 ## Prerequisites
 
 - ✅ Google Tag Manager container installed on your website
-- ✅ Argusmetrics account ([sign up here](https://argusmetrics.io))
+- ✅ Argusmetrics account ([sign up here](https://github.com/Benbo-se/ArgusmetricsSH))
 - ✅ Your 8-character tracking code
 
 ## 5-Minute Setup
@@ -21,8 +21,8 @@ Get Argusmetrics running on your website in 5 minutes using Google Tag Manager.
 ```html
 <script defer
   data-tracking-code="YOUR_CODE"
-  data-api-endpoint="https://app.argusmetrics.io/api/v1/analytics/track"
-  src="https://argusmetrics.io/static/tracker.min.js">
+  data-api-endpoint="https://analytics.your-domain.com/api/v1/analytics/track"
+  src="https://analytics.your-domain.com/static/tracker.min.js">
 </script>
 ```
 
@@ -36,7 +36,7 @@ Get Argusmetrics running on your website in 5 minutes using Google Tag Manager.
 1. Click **Preview** in GTM
 2. Visit your website
 3. Check that "Argusmetrics - Analytics" appears in "Tags Fired"
-4. Visit your [Argus dashboard](https://argusmetrics.io/dashboard) and verify pageviews appear
+4. Visit your [Argus dashboard](https://github.com/Benbo-se/ArgusmetricsSH/dashboard) and verify pageviews appear
 
 ### Step 3: Publish (1 minute)
 
@@ -52,7 +52,7 @@ Get Argusmetrics running on your website in 5 minutes using Google Tag Manager.
 
 ### Method 1: Real-Time Dashboard
 
-1. Go to [argusmetrics.io/dashboard](https://argusmetrics.io/dashboard)
+1. Go to your instance dashboard
 2. Check "Current Visitors" count
 3. Visit your website in another tab
 4. Count should increase
@@ -71,7 +71,7 @@ Get Argusmetrics running on your website in 5 minutes using Google Tag Manager.
 2. Go to **Network** tab
 3. Reload your page
 4. Filter by "track"
-5. Should see request to `argusmetrics.io/api/v1/analytics/track`
+5. Should see a request to `your-domain.com/api/v1/analytics/track`
 
 ---
 
@@ -82,9 +82,9 @@ Get Argusmetrics running on your website in 5 minutes using Google Tag Manager.
 ```html
 <script defer
   data-tracking-code="YOUR_CODE"
-  data-api-endpoint="https://app.argusmetrics.io/api/v1/analytics/track"
+  data-api-endpoint="https://analytics.your-domain.com/api/v1/analytics/track"
   data-exclude-outbound="paypal.com, stripe.com, example.com"
-  src="https://argusmetrics.io/static/tracker.min.js">
+  src="https://analytics.your-domain.com/static/tracker.min.js">
 </script>
 ```
 
@@ -186,7 +186,7 @@ Track important events as goals:
 - Form submissions
 - Button clicks
 
-[Learn about goals →](https://argusmetrics.io/docs/goals)
+[Learn about goals →](https://github.com/Benbo-se/ArgusmetricsSH/goals)
 
 ### 2. Enable Email Reports
 
@@ -212,7 +212,7 @@ Track user behavior with custom events:
 - Outbound clicks
 - And more...
 
-[Custom events guide →](https://argusmetrics.io/docs/custom-events)
+[Custom events guide →](https://github.com/Benbo-se/ArgusmetricsSH/custom-events)
 
 ---
 
@@ -220,9 +220,9 @@ Track user behavior with custom events:
 
 **Need help?**
 
-- 📚 [Full Documentation](https://argusmetrics.io/docs)
-- 💬 [Support Chat](https://argusmetrics.io/support)
-- 📧 Email: support@argusmetrics.io
+- 📚 [Full Documentation](https://github.com/Benbo-se/ArgusmetricsSH)
+- 💬 [Support Chat](https://github.com/Benbo-se/ArgusmetricsSH/support)
+- Issues: https://github.com/Benbo-se/ArgusmetricsSH/issues
 - 🐛 [Report Issues](https://github.com/argusmetrics/argus-metrics/issues)
 
 ---
@@ -280,9 +280,9 @@ Track user behavior with custom events:
 
 - [GTM Template File](./template.tpl)
 - [Full Documentation](./README.md)
-- [Argusmetrics Docs](https://argusmetrics.io/docs)
-- [GTM Best Practices](https://argusmetrics.io/docs/gtm-best-practices)
+- [Argusmetrics Docs](https://github.com/Benbo-se/ArgusmetricsSH)
+- [GTM Best Practices](https://github.com/Benbo-se/ArgusmetricsSH/gtm-best-practices)
 
 ---
 
-**Ready to get started?** [Create your Argus account](https://argusmetrics.io) and start tracking in 5 minutes!
+**Ready to get started?** [Create your Argus account](https://github.com/Benbo-se/ArgusmetricsSH) and start tracking in 5 minutes!

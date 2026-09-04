@@ -1,11 +1,11 @@
 <?php
 /**
  * Plugin Name: Argusmetrics
- * Plugin URI: https://argusmetrics.io
+ * Plugin URI: https://github.com/Benbo-se/ArgusmetricsSH
  * Description: Privacy-first analytics for your WordPress site. Simple, lightweight, and GDPR-compliant.
  * Version: 1.1.0
  * Author: Argusmetrics
- * Author URI: https://argusmetrics.io
+ * Author URI: https://github.com/Benbo-se/ArgusmetricsSH
  * License: GPL v2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: argus-metrics
@@ -88,10 +88,15 @@ class Argus_Metrics {
             'default' => ''
         ));
 
-        register_setting('argus_metrics_options', 'argus_metrics_api_endpoint', array(
+        // No default. There is no hosted service, so a default endpoint would
+        // point at a domain nobody runs: the plugin would look configured and
+        // send nothing, or send a site's visitor data to whoever registers
+        // that domain next. Empty means the operator has to say where their
+        // own instance is, and render_tracking_script refuses without it.
+        register_setting('argus_metrics_options', 'argus_metrics_instance_url', array(
             'type' => 'string',
             'sanitize_callback' => 'esc_url_raw',
-            'default' => 'https://app.argusmetrics.io/api/v1/analytics/track'
+            'default' => ''
         ));
 
         register_setting('argus_metrics_options', 'argus_metrics_exclude_outbound', array(
@@ -147,7 +152,7 @@ class Argus_Metrics {
         }
 
         $tracking_code = get_option('argus_metrics_tracking_code', '');
-        $api_endpoint = get_option('argus_metrics_api_endpoint', 'https://app.argusmetrics.io/api/v1/analytics/track');
+        $instance_url = get_option('argus_metrics_instance_url', '');
         $exclude_outbound = get_option('argus_metrics_exclude_outbound', '');
         $exclude_admins = get_option('argus_metrics_exclude_admins', true);
 
@@ -171,11 +176,17 @@ class Argus_Metrics {
             return;
         }
 
-        $api_endpoint = get_option('argus_metrics_api_endpoint', 'https://app.argusmetrics.io/api/v1/analytics/track');
-        $exclude_outbound = get_option('argus_metrics_exclude_outbound', '');
+        // Both the script and the endpoint come from the operator's own
+        // instance, so one setting gives both.
+        $instance_url = rtrim(get_option('argus_metrics_instance_url', ''), '/');
+        if (empty($instance_url)) {
+            echo "<!-- Argusmetrics: no instance URL configured, nothing tracked -->\n";
+            return;
+        }
 
-        // Build script URL
-        $script_url = 'https://argusmetrics.io/static/tracker.min.js';
+        $exclude_outbound = get_option('argus_metrics_exclude_outbound', '');
+        $api_endpoint = $instance_url . '/api/v1/analytics/track';
+        $script_url   = $instance_url . '/static/tracker.min.js';
 
         ?>
 <!-- Argusmetrics Analytics -->

@@ -1,5 +1,10 @@
 # Produktion på egen server (CI/CD)
 
+> **Ingen server är uppsatt än.** Allt nedan är förberett och testat så långt
+> det går utan hårdvara: images byggs på grön main, deploy-workflowen finns,
+> och återställningsövningen körs i CI vid varje push. Det som återstår är
+> engångssetupen i nästa avsnitt. Inget av detta har körts skarpt.
+
 Dev sker på arbetsdatorn, prod på servern. Flödet är braleads/hushroom-mönstret,
 SSH-varianten (repot är publikt → ingen self-hosted runner på servern):
 
@@ -41,7 +46,7 @@ till backend-containern. En deploy släpper alltså sajt + app atomiskt ihop.
 4. **Värd-nginx**: vhost för `argusmetrics.io` som terminerar TLS (certbot) och
    proxyar till `http://127.0.0.1:8021` med `X-Forwarded-Proto https` och
    websocket-upgrade för `/ws/`.
-5. **DNS-cutover**: peka `argusmetrics.io` från GitHub Pages till serverns IP,
+5. **DNS-cutover** (ej gjord): peka `argusmetrics.io` från GitHub Pages till serverns IP,
    och stäng av Pages under repo-settings (annars ligger gamla siten kvar).
 
    Idag (Loopia): apex A → 185.199.108-111.153 (Pages), `www` CNAME →
@@ -70,6 +75,46 @@ Varje deploy taggas `PROD-YYYY-MM-DD[-N]` och images taggas med git-SHA.
 Manuell rollback: Actions → Deploy → Run workflow → ange förra SHA:n som tag.
 Deployen gör dessutom auto-rollback själv om health-checken failar, och en
 pre-deploy-dump ligger i `~/backups/argusmetrics/pre-deploy/` på servern.
+
+## Backup och återställning
+
+Det här avsnittet är det viktigaste i filen, för det var trasigt.
+
+En vanlig `pg_dump` av en TimescaleDB-databas återställs **tom**. Schemat kommer
+tillbaka, sedan avbryts dataladdningen på en konflikt i TimescaleDB:s egen
+katalog, och varje tabell har noll rader. Det ser ut som att det gick bra om man
+inte räknar. Dumparna togs före varje deploy och ingen hade någonsin återställt
+en.
+
+Rätt procedur, som `scripts/verify-backup.sh` gör:
+
+```bash
+# Dump
+pg_dump --clean --if-exists -U "$POSTGRES_USER" "$POSTGRES_DB" | gzip > backup.sql.gz
+
+# Återställning: klamrarna är inte valfria
+psql -U "$POSTGRES_USER" -d "$TARGET" -c \
+  'CREATE EXTENSION IF NOT EXISTS timescaledb; SELECT timescaledb_pre_restore();'
+gunzip -c backup.sql.gz | psql -U "$POSTGRES_USER" -d "$TARGET" -v ON_ERROR_STOP=1
+psql -U "$POSTGRES_USER" -d "$TARGET" -c 'SELECT timescaledb_post_restore();'
+```
+
+**Räkna alltid efteråt**, och räkna en hypertabell, inte bara `users`. Felet
+som ska fångas är att katalogen avbryter dataladdningen, och det är precis det
+som lämnar hypertabellerna tomma medan `users` kommer tillbaka fint:
+
+```sql
+SELECT count(*) FROM pageviews;
+SELECT count(*) FROM timescaledb_information.chunks;
+SELECT count(*) FROM pg_policies;   -- en återställning utan RLS-policyer är oisolerad
+```
+
+CI kör hela den här övningen vid varje push, med riktig trafik sådd över två
+chunkar, och jämför alla tre siffrorna mot källan.
+
+Kvar att göra när servern finns: schemalägg dumparna, lägg kopior utanför
+maskinen, sätt en GPG-mottagare för kryptering, och kör en riktig återställning
+en gång för hand. Se issue #2.
 
 ## Schemaändringar
 

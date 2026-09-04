@@ -1,6 +1,8 @@
 # Argusmetrics - WordPress Plugin
 
-Privacy-first, GDPR-compliant analytics for WordPress. Simple, lightweight, and cookie-free.
+Privacy-first, GDPR-compliant analytics for WordPress. Sends pageviews to an
+Argusmetrics instance that you run: there is no hosted service, so the plugin
+tracks nothing until you tell it where your instance is.
 
 ![WordPress Plugin Version](https://img.shields.io/badge/version-1.1.0-blue)
 ![WordPress Compatibility](https://img.shields.io/badge/wordpress-5.0%2B-green)
@@ -10,7 +12,7 @@ Privacy-first, GDPR-compliant analytics for WordPress. Simple, lightweight, and 
 
 - ✅ **Privacy-First** - No cookies, no fingerprinting, no personal data collection
 - ✅ **GDPR Compliant** - Built with European privacy laws in mind
-- ✅ **Lightweight** - Tracking script is less than 5KB
+- ✅ **Lightweight** - The tracking script is 2.5KB gzipped
 - ✅ **Real-Time Analytics** - See visitor activity as it happens
 - ✅ **No Cookie Banner Needed** - Since we don't use cookies
 - ✅ **One-Click Setup** - Install, enter tracking code, done!
@@ -39,7 +41,7 @@ Privacy-first, GDPR-compliant analytics for WordPress. Simple, lightweight, and 
 3. Choose the ZIP file and click **Install Now**
 4. Click **Activate Plugin**
 5. Go to **Settings → Argusmetrics**
-6. Enter your tracking code from [argusmetrics.io](https://argusmetrics.io)
+6. Enter the tracking code and the address of your own Argusmetrics instance
 7. Save settings
 
 ### Manual Installation
@@ -52,7 +54,7 @@ Privacy-first, GDPR-compliant analytics for WordPress. Simple, lightweight, and 
 
 ## Getting Your Tracking Code
 
-1. Sign up at [argusmetrics.io](https://argusmetrics.io)
+1. Run an Argusmetrics instance of your own (https://github.com/Benbo-se/ArgusmetricsSH)
 2. Add your website
 3. Copy the 8-character tracking code
 4. Paste it in **Settings → Argusmetrics** in WordPress
@@ -124,7 +126,7 @@ Argusmetrics is designed with privacy as the top priority:
 
 - **WordPress:** 5.0 or higher
 - **PHP:** 7.4 or higher
-- **Argusmetrics Account:** Free account at [argusmetrics.io](https://argusmetrics.io)
+- **An Argusmetrics instance you run.** There is no hosted service; see https://github.com/Benbo-se/ArgusmetricsSH
 
 ## Compatibility
 
@@ -135,9 +137,8 @@ Argusmetrics is designed with privacy as the top priority:
 
 ## Support
 
-- **Documentation:** [argusmetrics.io/docs](https://argusmetrics.io/docs)
-- **Support:** [argusmetrics.io/support](https://argusmetrics.io/support)
-- **Website:** [argusmetrics.io](https://argusmetrics.io)
+- **Documentation:** https://github.com/Benbo-se/ArgusmetricsSH
+- **Issues:** https://github.com/Benbo-se/ArgusmetricsSH/issues
 
 ## Frequently Asked Questions
 
@@ -166,7 +167,7 @@ Argusmetrics is:
 
 ### 1.1.0 - 2026-02-22
 
-- Updated all URLs from argusmetrics.se to argusmetrics.io
+- Updated all URLs from argusmetrics.se to argusmetrics.io (both since retired; the plugin now points at whatever instance you run)
 - Fixed API endpoint to include /track suffix (required by tracking script)
 - Updated manual installation snippet with data-api-endpoint attribute
 - Updated privacy descriptions to reflect daily-salt hash approach (no fingerprinting)
@@ -203,4 +204,4 @@ the Free Software Foundation; either version 2 of the License, or
 
 ## Credits
 
-Developed by [Argusmetrics](https://argusmetrics.io) - Privacy-first analytics for everyone.
+Part of Argusmetrics, self-hosted privacy-first analytics: https://github.com/Benbo-se/ArgusmetricsSH

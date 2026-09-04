@@ -44,7 +44,7 @@ Argusmetrics is a privacy-first analytics platform that provides powerful insigh
 ### Simple Setup
 
 1. Install and activate the plugin
-2. Sign up at [argusmetrics.io](https://argusmetrics.io)
+2. Run an Argusmetrics instance of your own: https://github.com/Benbo-se/ArgusmetricsSH
 3. Get your tracking code from your dashboard
 4. Enter it in Settings → Argusmetrics
 5. Save and start tracking!
@@ -78,7 +78,7 @@ No complex configuration needed. Analytics tracking begins immediately.
 3. Search for "Argusmetrics"
 4. Click "Install Now" and then "Activate"
 5. Go to Settings → Argusmetrics
-6. Enter your tracking code from [argusmetrics.io](https://argusmetrics.io)
+6. Enter your tracking code and your instance URL
 7. Save settings
 
 ### Manual Installation
@@ -89,12 +89,12 @@ No complex configuration needed. Analytics tracking begins immediately.
 4. Choose the ZIP file and click "Install Now"
 5. Activate the plugin
 6. Go to Settings → Argusmetrics
-7. Enter your tracking code from [argusmetrics.io](https://argusmetrics.io)
+7. Enter your tracking code and your instance URL
 8. Save settings
 
 ### Getting Your Tracking Code
 
-1. Sign up at [argusmetrics.io](https://argusmetrics.io)
+1. Run an Argusmetrics instance of your own: https://github.com/Benbo-se/ArgusmetricsSH
 2. Add your website
 3. Copy the 8-character tracking code
 4. Paste it in Settings → Argusmetrics in WordPress
@@ -131,11 +131,11 @@ Yes! The plugin has an option to exclude logged-in administrators from tracking.
 
 = Is there a free plan? =
 
-Yes! Argusmetrics offers a free trial. Check [argusmetrics.io](https://argusmetrics.io) for current pricing and plans.
+Argusmetrics is self-hosted and open source (AGPL-3.0). There is nothing to pay and no hosted plan: you run it yourself. See https://github.com/Benbo-se/ArgusmetricsSH
 
 = How do I view my analytics? =
 
-Log in to your Argusmetrics dashboard at [argusmetrics.io/dashboard](https://argusmetrics.io/dashboard) to view all your analytics data.
+Log in to the dashboard on your own Argusmetrics instance.
 
 = Can I track custom events? =
 
@@ -201,8 +201,8 @@ Argusmetrics is designed with privacy as the top priority. The plugin:
 * Does not track visitors across sites
 * Complies with GDPR, CNIL, and other European privacy laws
 
-For more information, read our [Privacy Policy](https://argusmetrics.io/privacy).
+For more information, read our [Privacy Policy](https://github.com/Benbo-se/ArgusmetricsSH/privacy).
 
 == Support ==
 
-Need help? Visit our [documentation](https://argusmetrics.io/docs) or [contact support](https://argusmetrics.io/support).
+Need help? Visit our [documentation](https://github.com/Benbo-se/ArgusmetricsSH/docs) or [contact support](https://github.com/Benbo-se/ArgusmetricsSH/support).

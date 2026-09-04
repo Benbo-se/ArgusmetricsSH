@@ -32,7 +32,7 @@ The custom template provides the easiest and most maintainable way to add Argusm
 2. Click on **Tag Configuration**
 3. Scroll down and select **Argusmetrics** (under Custom)
 4. Configure the tag:
-   - **Tracking Code**: Your 8-character code from [argusmetrics.io](https://argusmetrics.io)
+   - **Tracking Code**: Your 8-character code from the dashboard
    - **API Endpoint** (optional): Leave default unless self-hosting
    - **Exclude Outbound Domains** (optional): e.g., `paypal.com, stripe.com`
    - **Advanced Settings**:
@@ -75,7 +75,7 @@ If you prefer not to use custom templates, you can use a Custom HTML tag.
     // Configuration
     var config = {
       trackingCode: 'YOUR_CODE',  // Replace with your 8-character code
-      apiEndpoint: 'https://app.argusmetrics.io/api/v1/analytics/track',
+      apiEndpoint: 'https://analytics.your-domain.com/api/v1/analytics/track',
       excludeOutbound: '',  // Optional: 'example.com, another.com'
     };
 
@@ -89,7 +89,7 @@ If you prefer not to use custom templates, you can use a Custom HTML tag.
       script.setAttribute('data-exclude-outbound', config.excludeOutbound);
     }
 
-    script.src = 'https://argusmetrics.io/static/tracker.min.js';
+    script.src = 'https://analytics.your-domain.com/static/tracker.min.js';
 
     // Inject script
     var firstScript = document.getElementsByTagName('script')[0];
@@ -123,7 +123,7 @@ For more advanced use cases or dynamic tracking codes.
 function() {
   return {
     trackingCode: 'YOUR_CODE',
-    apiEndpoint: 'https://app.argusmetrics.io/api/v1/analytics/track'
+    apiEndpoint: 'https://analytics.your-domain.com/api/v1/analytics/track'
   };
 }
 ```
@@ -145,7 +145,7 @@ function() {
     script.defer = true;
     script.setAttribute('data-tracking-code', config.trackingCode);
     script.setAttribute('data-api-endpoint', config.apiEndpoint);
-    script.src = 'https://argusmetrics.io/static/tracker.min.js';
+    script.src = 'https://analytics.your-domain.com/static/tracker.min.js';
 
     document.head.appendChild(script);
   })();
@@ -459,9 +459,8 @@ A: Use custom event tracking with meaningful event names like `purchase_complete
 
 Need help?
 
-- **Documentation**: [argusmetrics.io/docs/gtm](https://argusmetrics.io/docs/gtm)
-- **Support**: [argusmetrics.io/support](https://argusmetrics.io/support)
-- **Community**: [argusmetrics.io/community](https://argusmetrics.io/community)
+- **Documentation**: this file, plus https://github.com/Benbo-se/ArgusmetricsSH
+- **Issues**: https://github.com/Benbo-se/ArgusmetricsSH/issues
 
 ---
 
@@ -471,4 +470,4 @@ This integration is provided as-is under the MIT License.
 
 ## Contributing
 
-Have improvements? Submit a pull request or contact us at support@argusmetrics.io
+Have improvements? Open a pull request or an issue at https://github.com/Benbo-se/ArgusmetricsSH.

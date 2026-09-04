@@ -12,6 +12,8 @@ if (!defined('WP_UNINSTALL_PLUGIN')) {
 
 // Delete plugin options
 delete_option('argus_metrics_tracking_code');
+delete_option('argus_metrics_instance_url');
+// Removed in a later version; deleted here so an upgrade leaves nothing behind.
 delete_option('argus_metrics_api_endpoint');
 delete_option('argus_metrics_exclude_outbound');
 delete_option('argus_metrics_exclude_admins');
@@ -25,7 +27,9 @@ if (is_multisite()) {
         switch_to_blog($blog_id);
 
         delete_option('argus_metrics_tracking_code');
-        delete_option('argus_metrics_api_endpoint');
+        delete_option('argus_metrics_instance_url');
+// Removed in a later version; deleted here so an upgrade leaves nothing behind.
+delete_option('argus_metrics_api_endpoint');
         delete_option('argus_metrics_exclude_outbound');
         delete_option('argus_metrics_exclude_admins');
 

@@ -5,7 +5,7 @@ Privacy-first JavaScript tracking script for Argusmetrics analytics platform.
 ## Features
 
 - **Privacy-First**: No cookies, no localStorage, no PII stored
-- **Ultra-Lightweight**: 2.9KB minified (1.4KB gzipped) - 78% smaller than original!
+- **Small**: 7.7KB minified, 2.5KB gzipped
 - **Reliable**: Uses `fetch` with `keepalive` for tracking (works even when page closes)
 - **Respects DNT**: Automatically respects Do Not Track browser setting
 - **SPA Support**: Automatically tracks route changes in Single Page Applications
@@ -18,25 +18,26 @@ Privacy-first JavaScript tracking script for Argusmetrics analytics platform.
 
 ### Basic Usage
 
-Add this script tag to your website's `<head>` or before `</body>`:
+Point the script at your own instance. There is no hosted service, so the
+domain below is always yours:
 
 ```html
 <script
-  src="https://argusmetrics.io/static/tracker.prod.min.js"
+  src="https://analytics.your-domain.com/static/tracker.min.js"
   data-tracking-code="YOUR_TRACKING_CODE"
   defer
 ></script>
 ```
 
-Replace `YOUR_TRACKING_CODE` with your unique tracking code from the Argusmetrics dashboard.
+`YOUR_TRACKING_CODE` comes from the dashboard after you add a website. The
+script posts back to the domain it was loaded from, so `data-api-endpoint` is
+only needed when the two differ:
 
-### Development/Self-Hosted
-
-If you're running Argusmetrics on your own server or in development:
+### A separate API endpoint
 
 ```html
 <script
-  src="https://your-analytics-domain.com/tracker.prod.min.js"
+  src="https://your-analytics-domain.com/tracker.min.js"
   data-tracking-code="YOUR_TRACKING_CODE"
   data-api-endpoint="https://your-analytics-domain.com/api/v1/analytics/track"
   defer
@@ -49,7 +50,7 @@ For testing locally:
 
 ```html
 <script
-  src="http://localhost:8020/static/tracker.prod.min.js"
+  src="http://localhost:8020/static/tracker.min.js"
   data-tracking-code="YOUR_TRACKING_CODE"
   data-api-endpoint="http://localhost:8020/api/v1/analytics/track"
   defer
@@ -199,7 +200,7 @@ Argusmetrics is designed to be GDPR/CNIL-compliant:
 <head>
   <title>My Website</title>
   <script 
-    src="https://argusmetrics.io/static/tracker.min.js"
+    src="https://analytics.your-domain.com/static/tracker.min.js"
     data-tracking-code="a1b2c3d4"
     defer
   ></script>
@@ -216,7 +217,7 @@ Argusmetrics is designed to be GDPR/CNIL-compliant:
 // In your index.html or App.js
 useEffect(() => {
   const script = document.createElement('script');
-  script.src = 'https://argusmetrics.io/static/tracker.min.js';
+  script.src = 'https://analytics.your-domain.com/static/tracker.min.js';
   script.setAttribute('data-tracking-code', 'a1b2c3d4');
   script.defer = true;
   document.head.appendChild(script);
@@ -228,7 +229,7 @@ useEffect(() => {
 ```vue
 <!-- In your index.html or main component -->
 <script
-  src="https://argusmetrics.io/static/tracker.min.js"
+  src="https://analytics.your-domain.com/static/tracker.min.js"
   data-tracking-code="a1b2c3d4"
   defer
 ></script>
@@ -288,9 +289,8 @@ The build uses Terser with aggressive optimization settings:
 
 ## Support
 
-- Documentation: https://argusmetrics.io/docs
-- Issues: https://github.com/Benbo-se/argusmetrics.io/issues
-- Email: support@argusmetrics.io
+- Documentation: https://github.com/Benbo-se/ArgusmetricsSH
+- Issues: https://github.com/Benbo-se/ArgusmetricsSH/issues
 
 ## License
 

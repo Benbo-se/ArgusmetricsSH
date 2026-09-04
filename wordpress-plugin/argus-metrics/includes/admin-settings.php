@@ -47,10 +47,7 @@ if (!defined('ABSPATH')) {
                                     <?php _e('Enter your 8-character tracking code from Argusmetrics.', 'argus-metrics'); ?>
                                     <br>
                                     <?php
-                                    printf(
-                                        __('Get your tracking code from your <a href="%s" target="_blank">Argusmetrics dashboard</a>.', 'argus-metrics'),
-                                        'https://app.argusmetrics.io/dashboard'
-                                    );
+                                    _e('Get it from your own Argusmetrics instance, after adding this website there.', 'argus-metrics');
                                     ?>
                                 </p>
                                 <?php if (!empty($tracking_code)) : ?>
@@ -65,23 +62,25 @@ if (!defined('ABSPATH')) {
                             </td>
                         </tr>
 
-                        <!-- API Endpoint -->
+                        <!-- Instance URL -->
                         <tr>
                             <th scope="row">
-                                <label for="argus_metrics_api_endpoint">
-                                    <?php _e('API Endpoint', 'argus-metrics'); ?>
+                                <label for="argus_metrics_instance_url">
+                                    <?php _e('Instance URL', 'argus-metrics'); ?>
                                 </label>
                             </th>
                             <td>
                                 <input
                                     type="url"
-                                    id="argus_metrics_api_endpoint"
-                                    name="argus_metrics_api_endpoint"
-                                    value="<?php echo esc_attr($api_endpoint); ?>"
+                                    id="argus_metrics_instance_url"
+                                    name="argus_metrics_instance_url"
+                                    value="<?php echo esc_attr($instance_url); ?>"
                                     class="regular-text code"
+                                    placeholder="https://analytics.your-domain.com"
+                                    required
                                 />
                                 <p class="description">
-                                    <?php _e('Default: https://app.argusmetrics.io/api/v1/analytics/track (only change if using self-hosted instance)', 'argus-metrics'); ?>
+                                    <?php _e('The address of the Argusmetrics you run. Argusmetrics is self-hosted only, so there is no default and nothing is tracked until this is set. The tracking script and the API are both taken from here.', 'argus-metrics'); ?>
                                 </p>
                             </td>
                         </tr>
@@ -142,7 +141,7 @@ if (!defined('ABSPATH')) {
             <div class="argus-card">
                 <h2><?php _e('Quick Start', 'argus-metrics'); ?></h2>
                 <ol>
-                    <li><?php _e('Sign up at', 'argus-metrics'); ?> <a href="https://argusmetrics.io" target="_blank">argusmetrics.io</a></li>
+                    <li><?php _e('Run an Argusmetrics instance of your own. See', 'argus-metrics'); ?> <a href="https://github.com/Benbo-se/ArgusmetricsSH" target="_blank">the repository</a>.</li>
                     <li><?php _e('Add your website and get your tracking code', 'argus-metrics'); ?></li>
                     <li><?php _e('Enter the tracking code above', 'argus-metrics'); ?></li>
                     <li><?php _e('Save settings and start tracking!', 'argus-metrics'); ?></li>
@@ -169,12 +168,12 @@ if (!defined('ABSPATH')) {
             <div class="argus-card">
                 <h2><?php _e('Need Help?', 'argus-metrics'); ?></h2>
                 <p>
-                    <a href="https://argusmetrics.io/docs" target="_blank">
+                    <a href="https://github.com/Benbo-se/ArgusmetricsSH" target="_blank">
                         <?php _e('Documentation', 'argus-metrics'); ?>
                     </a>
                 </p>
                 <p>
-                    <a href="https://argusmetrics.io/contact" target="_blank">
+                    <a href="https://github.com/Benbo-se/ArgusmetricsSH/issues" target="_blank">
                         <?php _e('Support', 'argus-metrics'); ?>
                     </a>
                 </p>
@@ -190,8 +189,7 @@ if (!defined('ABSPATH')) {
                 <textarea readonly class="argus-code" rows="6" onclick="this.select()">
 <script defer
   data-tracking-code="<?php echo esc_attr($tracking_code); ?>"
-  data-api-endpoint="https://app.argusmetrics.io/api/v1/analytics/track"
-  src="https://argusmetrics.io/static/tracker.min.js">
+  src="https://analytics.your-domain.com/static/tracker.min.js">
 </script></textarea>
                 <button type="button" class="button" onclick="navigator.clipboard.writeText(this.previousElementSibling.value)">
                     <?php _e('Copy Code', 'argus-metrics'); ?>

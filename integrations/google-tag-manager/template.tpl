@@ -50,8 +50,8 @@ ___TEMPLATE_PARAMETERS___
     "name": "apiEndpoint",
     "displayName": "API Endpoint (Optional)",
     "simpleValueType": true,
-    "help": "Custom API endpoint. Leave empty to use default (https://app.argusmetrics.io/api/v1/analytics/track)",
-    "defaultValue": "https://app.argusmetrics.io/api/v1/analytics/track",
+    "help": "The tracking endpoint of your own instance, e.g. https://analytics.your-domain.com/api/v1/analytics/track. There is no hosted service, so this is required.",
+    "defaultValue": "",
     "valueValidators": []
   },
   {
@@ -105,11 +105,14 @@ const createArgumentsQueue = require('createArgumentsQueue');
 const log = require('logToConsole');
 
 // Script URL
-const scriptUrl = 'https://argusmetrics.io/static/tracker.min.js';
+// No default host: the script and the API live on the operator's own
+// instance, and a default pointing at a domain nobody owns would send
+// visitor data into the void, or to whoever registers it next.
+const scriptUrl = data.scriptUrl;
 
 // Get template parameters
 const trackingCode = data.trackingCode;
-const apiEndpoint = data.apiEndpoint || 'https://app.argusmetrics.io/api/v1/analytics/track';
+const apiEndpoint = data.apiEndpoint;
 const excludeOutbound = data.excludeOutbound || '';
 const trackPageview = data.trackPageview !== false;
 const enableOutbound = data.enableOutboundTracking !== false;
@@ -151,7 +154,7 @@ ___WEB_PERMISSIONS___
             "listItem": [
               {
                 "type": 1,
-                "string": "https://argusmetrics.io/static/tracker.min.js"
+                "string": ""
               }
             ]
           }

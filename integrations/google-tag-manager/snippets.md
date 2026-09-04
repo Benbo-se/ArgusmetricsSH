@@ -26,8 +26,8 @@ Ready-to-use code snippets for common tracking scenarios.
 ```html
 <script defer
   data-tracking-code="YOUR_CODE"
-  data-api-endpoint="https://app.argusmetrics.io/api/v1/analytics/track"
-  src="https://argusmetrics.io/static/tracker.min.js">
+  data-api-endpoint="https://analytics.your-domain.com/api/v1/analytics/track"
+  src="https://analytics.your-domain.com/static/tracker.min.js">
 </script>
 ```
 
@@ -36,9 +36,9 @@ Ready-to-use code snippets for common tracking scenarios.
 ```html
 <script defer
   data-tracking-code="YOUR_CODE"
-  data-api-endpoint="https://app.argusmetrics.io/api/v1/analytics/track"
+  data-api-endpoint="https://analytics.your-domain.com/api/v1/analytics/track"
   data-exclude-outbound="paypal.com, stripe.com, google.com"
-  src="https://argusmetrics.io/static/tracker.min.js">
+  src="https://analytics.your-domain.com/static/tracker.min.js">
 </script>
 ```
 
@@ -512,7 +512,7 @@ For better tracking, create these GTM variables:
 
 **Type:** Constant
 **Name:** Argus API Endpoint
-**Value:** https://app.argusmetrics.io/api/v1/analytics/track
+**Value:** https://analytics.your-domain.com/api/v1/analytics/track
 
 ### 3. Exclude Domains Variable
 
@@ -527,7 +527,7 @@ For better tracking, create these GTM variables:
   data-tracking-code="{{Argus Tracking Code}}"
   data-api-endpoint="{{Argus API Endpoint}}"
   data-exclude-outbound="{{Argus Exclude Domains}}"
-  src="https://argusmetrics.io/static/tracker.min.js">
+  src="https://analytics.your-domain.com/static/tracker.min.js">
 </script>
 ```
 
@@ -556,5 +556,5 @@ For better tracking, create these GTM variables:
 Check out:
 - [Full GTM Documentation](./README.md)
 - [Quick Start Guide](./QUICK_START.md)
-- [Argus Docs](https://argusmetrics.io/docs)
-- [Custom Events Guide](https://argusmetrics.io/docs/custom-events)
+- [Argus Docs](https://github.com/Benbo-se/ArgusmetricsSH)
+- [Custom Events Guide](https://github.com/Benbo-se/ArgusmetricsSH/custom-events)
