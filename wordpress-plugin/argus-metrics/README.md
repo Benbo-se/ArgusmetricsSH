@@ -4,7 +4,7 @@ Privacy-first, GDPR-compliant analytics for WordPress. Sends pageviews to an
 Argusmetrics instance that you run: there is no hosted service, so the plugin
 tracks nothing until you tell it where your instance is.
 
-![WordPress Plugin Version](https://img.shields.io/badge/version-1.1.0-blue)
+![WordPress Plugin Version](https://img.shields.io/badge/version-1.2.0-blue)
 ![WordPress Compatibility](https://img.shields.io/badge/wordpress-5.0%2B-green)
 ![License](https://img.shields.io/badge/license-GPLv2-orange)
 

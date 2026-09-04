@@ -20,7 +20,13 @@ pg_policies still has four rows would have passed in every one of those cases.
 import pytest
 from sqlalchemy import text
 
-HYPERTABLES = ["pageviews", "custom_events", "goal_conversions", "funnel_events"]
+HYPERTABLES = [
+    "pageviews",
+    "custom_events",
+    "goal_conversions",
+    "funnel_events",
+    "ecommerce_events",
+]
 
 
 def _is_hypertable(db, table):
@@ -43,14 +49,16 @@ class TestTheConversionHappened:
             "unused for the whole life of this project; do not let it go back."
         )
 
-    def test_ecommerce_events_is_deliberately_not(self, db):
-        """Not an omission. See the migration.
+    def test_ecommerce_events_was_converted_too(self, db):
+        """It was the exception, and then it was not.
 
-        Its unique index enforces one purchase per transaction_id, and a
-        hypertable would require the timestamp in that index, which would let
-        the same transaction be counted twice.
+        Its unique index enforced one purchase per transaction_id, which a
+        hypertable cannot carry without the partitioning column in it, and
+        adding the timestamp would have let the same transaction count twice.
+        The guarantee moved to ecommerce_transactions instead, and the table
+        followed the other four. test_ecommerce_dedup covers the guarantee.
         """
-        assert not _is_hypertable(db, "ecommerce_events")
+        assert _is_hypertable(db, "ecommerce_events")
 
     def test_compression_is_off_everywhere(self, db):
         """TimescaleDB refuses compression on a table with row security.

@@ -105,15 +105,13 @@ class EcommerceEvent(Base):
     __table_args__ = (
         Index('idx_ecommerce_website_timestamp', 'website_id', 'timestamp'),
         Index('idx_ecommerce_revenue_queries', 'website_id', 'event_type', 'timestamp'),
-        # Idempotency: a (website, event_type, transaction_id) purchase OR
-        # refund can only be recorded once, so forged/duplicate money events
-        # can't inflate revenue or double-count refunds. Both event types
-        # require a transaction_id at the schema level.
-        Index(
-            'uq_ecommerce_purchase_txn', 'website_id', 'event_type', 'transaction_id',
-            unique=True,
-            postgresql_where=text("event_type IN ('purchase', 'refund') AND transaction_id IS NOT NULL"),
-        ),
+        # The idempotency index used to live here: one purchase or refund per
+        # (website, event_type, transaction_id), so a duplicate or forged money
+        # event could not inflate revenue. It moved to ecommerce_transactions
+        # when this table became a hypertable, which cannot carry a unique
+        # index that leaves out the partitioning column. Putting the timestamp
+        # in it would have let the same transaction count again a second later,
+        # which is the opposite of what it was for.
         CheckConstraint('revenue IS NULL OR revenue >= 0', name='ecommerce_revenue_positive'),
         CheckConstraint("currency ~ '^[A-Z]{3}$'", name='ecommerce_currency_valid'),
         CheckConstraint(

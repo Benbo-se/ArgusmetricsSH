@@ -341,6 +341,11 @@ class CleanupService:
                     ("pageviews", "timestamp"),
                     ("custom_events", "timestamp"),
                     ("ecommerce_events", "timestamp"),
+                    # The transaction claims age out with the events they
+                    # protect. Left alone they would be the one table that
+                    # grows forever, and a claim outliving its purchase
+                    # protects nothing.
+                    ("ecommerce_transactions", "first_seen"),
                     ("goal_conversions", "timestamp"),
                     ("funnel_events", "timestamp"),
                 ]:

@@ -160,6 +160,15 @@ Yes! You can export your analytics data in CSV or JSON format from your Argusmet
 
 == Changelog ==
 
+= 1.2.0 =
+* **You must re-enter your instance URL after upgrading.** The old "API
+  Endpoint" setting is gone, replaced by a single "Instance URL" that the
+  plugin derives both the tracking script and the endpoint from.
+* Removed the default endpoint. It pointed at a hosted service that no longer
+  exists, so a plugin left on its defaults reported success and sent nothing.
+  Argusmetrics is self-hosted only: the plugin now tracks nothing until you
+  say where your own instance is, which is better than tracking to nowhere.
+
 = 1.1.0 - 2026-02-22 =
 * Updated all URLs from argusmetrics.se to argusmetrics.io
 * Fixed API endpoint to include /track suffix (required by tracking script)
@@ -182,6 +191,10 @@ Yes! You can export your analytics data in CSV or JSON format from your Argusmet
 * Exclude outbound domains option
 
 == Upgrade Notice ==
+
+= 1.2.0 =
+Re-enter your instance URL in the settings after upgrading. The plugin no
+longer has a default endpoint, so it tracks nothing until you do.
 
 = 1.1.0 =
 Critical update: fixes domain references and API endpoint. All users should upgrade.

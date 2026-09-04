@@ -3,7 +3,7 @@
  * Plugin Name: Argusmetrics
  * Plugin URI: https://github.com/Benbo-se/ArgusmetricsSH
  * Description: Privacy-first analytics for your WordPress site. Simple, lightweight, and GDPR-compliant.
- * Version: 1.1.0
+ * Version: 1.2.0
  * Author: Argusmetrics
  * Author URI: https://github.com/Benbo-se/ArgusmetricsSH
  * License: GPL v2 or later

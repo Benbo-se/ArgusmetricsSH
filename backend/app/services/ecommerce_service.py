@@ -13,7 +13,7 @@ from typing import Optional, Dict, List, Tuple
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from sqlalchemy.orm import Session
-from sqlalchemy import func, and_, distinct, case
+from sqlalchemy import func, and_, distinct, case, text
 from sqlalchemy.exc import IntegrityError
 from user_agents import parse
 
@@ -275,15 +275,52 @@ class EcommerceService:
                 utm_term=utm_term
             )
 
+            # Claim the transaction first, in the same transaction as the
+            # event. The claim lives in ecommerce_transactions rather than in
+            # a unique index on this table, because a hypertable cannot carry
+            # a unique index that leaves out the partitioning column, and
+            # putting the timestamp in it would let the same purchase count
+            # twice at different times.
+            #
+            # One transaction, one commit, deliberately: claiming and
+            # committing separately would mean a later failure leaves the
+            # transaction id claimed with no event behind it, and the shop
+            # could never retry that order.
+            if event_type in ("purchase", "refund") and transaction_id:
+                try:
+                    self.db.execute(
+                        text(
+                            "INSERT INTO ecommerce_transactions "
+                            "  (website_id, event_type, transaction_id) "
+                            "VALUES (:w, :t, :tx)"
+                        ),
+                        {"w": website.id, "t": event_type, "tx": transaction_id},
+                    )
+                except IntegrityError as e:
+                    # Caught here rather than around the commit below: this
+                    # statement raises where it runs, not at commit, so the
+                    # handler further down never saw it and a retried purchase
+                    # was answered with an error instead of being ignored.
+                    self.db.rollback()
+                    pgcode = getattr(getattr(e, "orig", None), "pgcode", None)
+                    if pgcode == "23505":  # unique_violation
+                        logger.info(
+                            f"Duplicate purchase ignored: website_id={website.id}, "
+                            f"transaction_id={transaction_id}"
+                        )
+                        return True, "Duplicate transaction ignored", None
+                    logger.error(f"Could not claim transaction: {e}")
+                    return False, "Invalid event data", None
+
             self.db.add(ecommerce_event)
             try:
                 self.db.commit()
             except IntegrityError as e:
                 self.db.rollback()
-                # ONLY a unique-violation on the idempotency index is a
-                # legitimate duplicate; every other IntegrityError (check
-                # constraints, FKs) is a real failure that must not be
-                # reported as success — that silently drops revenue.
+                # ONLY a unique-violation on the claim is a legitimate
+                # duplicate; every other IntegrityError (check constraints,
+                # FKs) is a real failure that must not be reported as success,
+                # because that silently drops revenue.
                 pgcode = getattr(getattr(e, "orig", None), "pgcode", None)
                 if pgcode == "23505":  # unique_violation
                     logger.info(
