@@ -248,3 +248,15 @@ class ErrorResponse(BaseModel):
                 "status_code": 400
             }
         }
+
+
+class AcceptInviteRequest(BaseModel):
+    """Creating an account by accepting a team invitation.
+
+    Deliberately carries no email. The address comes from the invitation the
+    token names, so a caller cannot use somebody else's token to create an
+    account for an address of their choosing.
+    """
+
+    token: str = Field(..., description="The invitation token from the email")
+    password: str = Field(..., description="A password for the new account")

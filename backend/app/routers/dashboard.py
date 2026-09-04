@@ -364,12 +364,23 @@ async def accept_invite_page(
                 "token": token,
             })
     else:
-        # Not logged in — show invite details + login prompt
+        # Not logged in. Someone with an account signs in; someone without one
+        # sets a password here and the account is created from the invitation.
+        # There is no third path: on an instance with registration closed, and
+        # that is the normal configuration, /signup would refuse them.
+        from app.models.user import User
+
+        has_account = (
+            db.query(User).filter(User.email == invitee_email).first() is not None
+        )
+
         # Set pending_invite cookie so /verify redirects back here
         response = templates.TemplateResponse("auth/accept_invite.html", {
             "request": request,
             "current_user": None,
             "needs_login": True,
+            "has_account": has_account,
+            "token": token,
             "website_name": details["website_name"],
             "website_domain": details["website_domain"],
             "role": details["role"],

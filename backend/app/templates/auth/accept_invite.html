@@ -58,11 +58,19 @@
                     <p class="mt-2 text-sm text-gray-500">Invited by {{ invited_by }}</p>
                 </div>
 
+                {% if has_account %}
                 <p class="text-gray-700 mb-4">Sign in with <strong>{{ invitee_email }}</strong> to accept this invitation.</p>
+                {% else %}
+                <p class="text-gray-700 mb-4">
+                    Choose a password for <strong>{{ invitee_email }}</strong> and your account
+                    is ready. There is nothing else to confirm: this link came to that address.
+                </p>
+                {% endif %}
 
                 <!-- Login Form -->
                 <div id="login-section">
                     <div id="invite-error" class="hidden mb-4 p-3 bg-red-50 border-l-4 border-red-400 text-red-700 text-sm"></div>
+                    {% if has_account %}
                     <form id="invite-login-form" class="space-y-4" data-on-submit="handleInviteLogin">
                         <div>
                             <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email address</label>
@@ -79,12 +87,29 @@
                             Sign in &amp; accept
                         </button>
                     </form>
+                    {% else %}
+                    <form id="invite-create-form" class="space-y-4" data-on-submit="handleInviteCreate">
+                        <div>
+                            <label for="new-password" class="block text-sm font-medium text-gray-700 mb-1">Choose a password</label>
+                            <input id="new-password" name="password" type="password" required
+                                   autocomplete="new-password" minlength="10"
+                                   class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                            <p class="mt-1 text-xs text-gray-500">At least 10 characters, with a digit.</p>
+                        </div>
+                        <button type="submit" id="create-btn"
+                                class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
+                            Create account &amp; accept
+                        </button>
+                    </form>
+                    {% endif %}
                 </div>
 
+                {% if has_account %}
                 <p class="mt-4 text-xs text-gray-500 text-center">
-                    New here? <a href="/signup" class="text-blue-600 hover:text-blue-800 underline">Create an account</a>
-                    with this email — after verifying you'll be brought back here automatically.
+                    Forgotten it? <a href="/reset-request" class="text-blue-600 hover:text-blue-800 underline">Reset your password</a>,
+                    then come back to this link.
                 </p>
+                {% endif %}
             </div>
         </div>
 
@@ -140,8 +165,11 @@ async function handleInviteLogin(event) {
         });
 
         if (response.ok) {
-            // Reload: now authenticated, the page auto-accepts the invitation
-            window.location.href = '/accept-invite?token={{ token }}';
+            // Back to this page, now authenticated, where the invitation is
+            // accepted automatically. The token comes from the response rather
+            // than the template, which used to render it empty here.
+            const data = await response.json();
+            window.location.href = data.redirect || '/accept-invite?token={{ token }}';
         } else {
             err.textContent = 'Wrong email or password.';
             err.classList.remove('hidden');
@@ -155,6 +183,42 @@ async function handleInviteLogin(event) {
         submitBtn.disabled = false;
         submitBtn.textContent = 'Sign in & accept';
     }
+}
+
+async function handleInviteCreate(event) {
+    event.preventDefault();
+    const btn = document.getElementById('create-btn');
+    const err = document.getElementById('invite-error');
+    err.classList.add('hidden');
+    btn.disabled = true;
+    btn.textContent = 'Creating account...';
+
+    try {
+        const response = await fetch('/api/v1/auth/accept-invite', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                token: {{ token | tojson }},
+                password: document.getElementById('new-password').value
+            })
+        });
+        const data = await response.json();
+
+        if (response.ok) {
+            window.location.href = data.redirect || '/dashboard';
+            return;
+        }
+
+        err.textContent = data.detail || data.message || 'Could not create the account.';
+        err.classList.remove('hidden');
+    } catch (error) {
+        console.error('Accept invite error:', error);
+        err.textContent = 'Network error. Please try again.';
+        err.classList.remove('hidden');
+    }
+
+    btn.disabled = false;
+    btn.textContent = 'Create account & accept';
 }
 </script>
 {% endif %}

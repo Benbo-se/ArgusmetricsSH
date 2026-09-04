@@ -533,6 +533,88 @@ class AuthService:
 
         return self.create_session(user)
 
+
+    def create_account_from_invitation(self, invite_token: str, password: str) -> SessionModel:
+        """Create an account for an invited address, and log it in.
+
+        This is how somebody joins an instance whose registration is closed,
+        which is the normal configuration: the owner names an address, the
+        invitation reaches it by email, and accepting it is what creates the
+        account. The invitation is the approval, so no separate queue of
+        pending sign-ups is needed and none exists.
+
+        The address is taken from the invitation, never from the caller. A
+        stolen token therefore lets somebody join as the invited address, which
+        is the same power the token already had, and not lets them create an
+        account for an address of their choosing.
+
+        The account is verified on creation without a second email round trip,
+        because the token arrived at that address and proves control of it.
+        Sending a verification email here would ask the same question twice.
+
+        Raises ValueError for every failure, with a message safe to show.
+        """
+        from app.services.website_lookup import resolve_invite_token
+        from app.services.team_service import TeamService
+
+        invite = resolve_invite_token(self.db, invite_token)
+        if invite is None:
+            raise ValueError("This invitation is no longer valid.")
+
+        email = invite.invitee_email.lower().strip()
+
+        if not password:
+            raise ValueError("Password is required")
+        if not password_ok(password, email):
+            raise ValueError(
+                "Password does not meet the requirements: "
+                + ", ".join(failed_rules(password, email))
+            )
+
+        existing = self.db.query(User).filter(User.email == email).first()
+        if existing:
+            # Not an error worth hiding: whoever holds this token was told the
+            # address, so saying it already exists reveals nothing new.
+            raise ValueError(
+                "An account already exists for this address. Sign in instead, "
+                "and the invitation will be accepted."
+            )
+
+        user = User(
+            email=email,
+            is_verified=True,
+            password_hash=_hash_password(password),
+        )
+        self.db.add(user)
+        self.db.commit()
+        self.db.refresh(user)
+        logger.info(f"Account created from invitation: {_mask_email(email)}")
+
+        # Declare the context before accepting. website_members carries
+        # row-level security policies, and accept_invitation reads and updates
+        # the pending row; with no context declared it matches no policy, so
+        # as the unprivileged production role the row is simply not there and
+        # the invitation fails to accept while the account is created fine.
+        #
+        # Development would never show this: it connects as the table owner,
+        # and policies do not apply to the owner. test_invitation_isolation
+        # runs this path as an unprivileged role for that reason.
+        #
+        # The user context is the right one and grants nothing extra: its read
+        # and update policies match rows whose user_email is this address,
+        # which is exactly the invitation being accepted.
+        from app.database import set_rls_context
+
+        set_rls_context(self.db, context="user", user_email=email)
+
+        # Accepting can still fail (the invitation may have been revoked
+        # between the two statements), and the account stays either way. That
+        # is the right way round: an account with no membership is harmless on
+        # an instance where nobody can create websites without one.
+        TeamService(self.db).accept_invitation(invite_token, email)
+
+        return self.create_session(user)
+
     def create_session(self, user: User) -> SessionModel:
         """
         Create a new authentication session for a user.

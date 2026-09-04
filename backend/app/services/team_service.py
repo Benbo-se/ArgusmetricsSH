@@ -510,15 +510,27 @@ class TeamService:
             member.accepted_at = datetime.now(timezone.utc)
             member.invite_token = None  # Clear token after acceptance
 
-            self.db.commit()
-            self.db.refresh(member)
+            # Read what the caller needs before committing, and do not refresh
+            # afterwards. The row-level security context is set with
+            # set_config(..., is_local=true), so Postgres clears it on commit:
+            # a SELECT after that matches no policy, finds no row, and the
+            # refresh fails with "Could not refresh instance".
+            #
+            # Invisible in development, which connects as the table owner, and
+            # therefore invisible to every test that does the same. As the
+            # production role this made accepting an invitation fail outright.
+            # test_invitation_isolation runs it as an unprivileged role.
+            website_id = member.website_id
+            role = member.role.value
 
-            logger.info(f"Invitation accepted: {accepter_email} joined website {member.website_id} as {member.role.value}")
+            self.db.commit()
+
+            logger.info(f"Invitation accepted: {accepter_email} joined website {website_id} as {role}")
 
             return {
                 "message": "Invitation accepted successfully",
-                "website_id": member.website_id,
-                "role": member.role.value
+                "website_id": website_id,
+                "role": role
             }
 
         except Exception as e:

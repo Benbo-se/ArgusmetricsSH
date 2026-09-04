@@ -61,6 +61,15 @@ EXEMPT = {
     # A token in the URL is the credential, and its holder is not logged in.
     # Each of these resolves through a SECURITY DEFINER function instead.
     "GET /accept-invite": "invitation page, resolves via argus_resolve_invite_token",
+    # Declares one, but from inside the service rather than as a dependency,
+    # because the context it declares is the account this call is creating:
+    # there is no identity to declare on the way in. It resolves the token
+    # through argus_resolve_invite_token, creates the user, and only then sets
+    # a user context for that address before touching website_members.
+    "POST /api/v1/auth/accept-invite": (
+        "resolves via argus_resolve_invite_token, then declares a user context "
+        "for the address it just created"
+    ),
     "GET /api/v1/websites/invites/{token}": "same, as JSON",
     "GET /api/v1/dashboard-password/check/{share_token}": (
         "public share link, resolves via argus_resolve_share_token"

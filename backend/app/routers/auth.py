@@ -31,6 +31,7 @@ async def _auth_rate_limit(request: Request):
         )
 from app.services.auth_service import AuthService
 from app.schemas.auth import (
+    AcceptInviteRequest,
     SignupRequest,
     SignupResponse,
     VerifyResponse,
@@ -578,6 +579,47 @@ async def login(
     _set_session_cookie(response, session)
     if pending_invite:
         response.delete_cookie("pending_invite")
+    return response
+
+
+
+@router.post("/accept-invite", status_code=status.HTTP_201_CREATED)
+async def accept_invite_and_create_account(
+    body: AcceptInviteRequest,
+    request: Request,
+    auth_service: AuthService = Depends(get_auth_service),
+):
+    """Create an account for an invited address and sign it in.
+
+    Not gated on ENABLE_REGISTRATION, deliberately. That setting decides
+    whether a stranger may create an account; this path requires a token the
+    owner sent to a specific address, which is the approval. Without this, an
+    instance with registration closed can invite people and none of them can
+    get in, which is what happened: the invitation page offered "Create an
+    account" and the link answered 403.
+
+    Rate limited on the token rather than an email, since the caller does not
+    supply one.
+    """
+    from fastapi.responses import JSONResponse
+
+    _dual_rate_limit(
+        request, body.token, "accept-invite", per_email=10, per_ip=20, window_seconds=900
+    )
+
+    try:
+        session = auth_service.create_account_from_invitation(
+            invite_token=body.token, password=body.password
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+    response = JSONResponse(
+        {"message": "Account created", "redirect": "/dashboard"},
+        status_code=status.HTTP_201_CREATED,
+    )
+    _set_session_cookie(response, session)
+    response.delete_cookie("pending_invite")
     return response
 
 
