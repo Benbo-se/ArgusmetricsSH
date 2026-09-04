@@ -12,7 +12,7 @@ class EmailLog(Base):
     """Model for tracking sent emails."""
     __tablename__ = "email_logs"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True)
     to_email = Column(String(255), nullable=False, index=True)
     email_type = Column(String(50), nullable=False, index=True)
     subject = Column(String(500), nullable=True)

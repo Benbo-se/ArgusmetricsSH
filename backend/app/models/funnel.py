@@ -24,7 +24,7 @@ class Funnel(Base):
 
     __tablename__ = "funnels"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True)
     website_id = Column(Integer, ForeignKey("websites.id", ondelete="CASCADE"), nullable=False, index=True)
     name = Column(String(255), nullable=False)
 
@@ -59,7 +59,7 @@ class FunnelEvent(Base):
 
     __tablename__ = "funnel_events"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True)
     funnel_id = Column(Integer, ForeignKey("funnels.id", ondelete="CASCADE"), nullable=False, index=True)
 
     # Denormalised from websites.user_email so row-level security policies can

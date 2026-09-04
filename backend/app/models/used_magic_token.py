@@ -15,7 +15,7 @@ class UsedMagicToken(Base):
 
     __tablename__ = "used_magic_tokens"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True)
     jti = Column(String(64), unique=True, index=True, nullable=False)
     used_at = Column(DateTime(timezone=True), server_default=func.now())
 

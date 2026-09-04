@@ -48,7 +48,7 @@ class EcommerceEvent(Base):
 
     __tablename__ = "ecommerce_events"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True)
     website_id = Column(Integer, ForeignKey("websites.id", ondelete="CASCADE"), nullable=False, index=True)
 
     # Denormalised from websites.user_email so row-level security policies can

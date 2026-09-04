@@ -23,7 +23,7 @@ class Goal(Base):
 
     __tablename__ = "goals"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True)
     website_id = Column(Integer, ForeignKey("websites.id", ondelete="CASCADE"), nullable=False, index=True)
     name = Column(String(255), nullable=False)
     event_name = Column(String(255), nullable=False)
@@ -55,7 +55,7 @@ class GoalConversion(Base):
 
     __tablename__ = "goal_conversions"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True)
     goal_id = Column(Integer, ForeignKey("goals.id", ondelete="CASCADE"), nullable=False, index=True)
     website_id = Column(Integer, ForeignKey("websites.id", ondelete="CASCADE"), nullable=False, index=True)
 

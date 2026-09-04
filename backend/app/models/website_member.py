@@ -51,7 +51,7 @@ class WebsiteMember(Base):
 
     __tablename__ = "website_members"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True)
     website_id = Column(Integer, ForeignKey("websites.id", ondelete="CASCADE"), nullable=False, index=True)
     user_email = Column(String(255), nullable=False, index=True)
     role = Column(SQLEnum(MemberRole, values_callable=lambda x: [e.value for e in x], create_type=False), nullable=False, default=MemberRole.VIEWER)

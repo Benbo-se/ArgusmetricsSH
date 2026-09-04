@@ -24,7 +24,7 @@ class ApiToken(Base):
 
     __tablename__ = "api_tokens"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True)
     website_id = Column(Integer, ForeignKey("websites.id", ondelete="CASCADE"), nullable=False, index=True)
     name = Column(String(255), nullable=False)
     token = Column(String(128), nullable=False, unique=True, index=True)
@@ -33,7 +33,10 @@ class ApiToken(Base):
 
     # Index for fast token lookups
     __table_args__ = (
-        Index('idx_api_tokens_token', 'token'),
+        # No index on token here: unique=True on the column already creates
+        # ix_api_tokens_token, which enforces uniqueness and serves the lookup
+        # by hash. A second, non-unique index on the same column only cost
+        # write time.
     )
 
     def __repr__(self) -> str:

@@ -45,7 +45,7 @@ class Pageview(Base):
     # that are prefix-covered by the composites below (website_id, visitor_hash,
     # timestamp) or too low-cardinality to ever win (country, device, browser)
     # are deliberately absent.
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True)
     website_id = Column(Integer, ForeignKey("websites.id", ondelete="CASCADE"), nullable=False)
 
     # Denormalised from websites.user_email so row-level security policies can
