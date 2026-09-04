@@ -60,8 +60,14 @@ if [ "$SIZE" -lt 10000 ]; then
 fi
 
 echo "==> Recording row counts, so a restore can be checked against them"
-$COMPOSE exec -T postgres sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tA -c "
-SELECT relname || \"=\" || n_live_tup
+# -F sets the field separator, so the SQL never has to quote a separator at all.
+# The previous version built the line by concatenating a double-quoted equals
+# sign in SQL, where double quotes mean an identifier rather than a string:
+# psql looked for a column by that name, errored out, and left a zero-byte
+# manifest behind. Since the manifest is the only thing verify-backup.sh has to
+# compare a restore against, that quietly disarmed the row-count check.
+$COMPOSE exec -T postgres sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tA -F= -c "
+SELECT relname, n_live_tup
   FROM pg_stat_user_tables
  ORDER BY relname"' > "$MANIFEST"
 {
