@@ -10,6 +10,8 @@ import logging
 from typing import Optional
 from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException, status, Request, Header, Cookie
+
+from app.services.usage_service import LIMIT_MESSAGE
 from sqlalchemy.orm import Session
 
 from app.database import get_db, set_rls_context
@@ -46,6 +48,20 @@ from app.utils.security import mask_email
 logger = logging.getLogger(__name__)
 
 # Create router
+
+def _failure_status(message: str) -> int:
+    """The status code a refused recording deserves.
+
+    An account over its monthly limit sent a perfectly valid request, so 400
+    would be a lie and would read to whoever is debugging as a bug in their
+    tracking snippet. 429 says what actually happened, and it is the code a
+    client should already know not to retry against.
+    """
+    if message == LIMIT_MESSAGE:
+        return status.HTTP_429_TOO_MANY_REQUESTS
+    return status.HTTP_400_BAD_REQUEST
+
+
 router = APIRouter()
 
 # Known bot user agents to filter out from analytics
@@ -346,7 +362,7 @@ async def track_pageview(
     )
 
     if not success:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=message)
+        raise HTTPException(status_code=_failure_status(message), detail=message)
 
     return PageviewTrackResponse(success=True, message=message)
 
@@ -497,7 +513,7 @@ async def track_event(
         # An explicit request to record a custom event, so a failure here is
         # the caller's answer even if the goal below converts.
         if not success:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=message)
+            raise HTTPException(status_code=_failure_status(message), detail=message)
 
         recorded.append("custom event")
 
@@ -514,7 +530,7 @@ async def track_event(
     # Most events have no goal behind them, so "Goal not found" is only worth
     # reporting when it means nothing at all was recorded.
     if not recorded:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=goal_message)
+        raise HTTPException(status_code=_failure_status(goal_message), detail=goal_message)
 
     return GoalConversionResponse(success=True, message=f"Recorded {' and '.join(recorded)}")
 
@@ -570,7 +586,7 @@ async def track_ecommerce(
     )
 
     if not success:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=message)
+        raise HTTPException(status_code=_failure_status(message), detail=message)
 
     return EcommerceEventResponse(success=True, message=message, event_id=event_id)
 

@@ -117,6 +117,25 @@ class WebsiteService:
         logger.info(f"Creating website for user: {user_email}, domain: {domain}")
 
         try:
+            # A ceiling on websites per account. Not a commercial limit: it is
+            # there so one account cannot enumerate the domain namespace or
+            # fill the table, and it is set high enough that an ordinary
+            # agency running client sites never meets it.
+            cap = settings.MAX_WEBSITES_PER_ACCOUNT
+            if cap > 0:
+                owned = self.db.query(Website).filter(
+                    Website.user_email == user_email
+                ).count()
+                if owned >= cap:
+                    logger.warning(
+                        f"Website cap reached for {user_email}: {owned}/{cap}"
+                    )
+                    raise ValueError(
+                        f"This account already has {owned} websites, which is "
+                        f"the maximum of {cap}. Delete one you no longer use, "
+                        f"or contact the instance administrator."
+                    )
+
             # Check if domain already exists
             existing_website = self.db.query(Website).filter(
                 Website.domain == domain
@@ -537,30 +556,6 @@ class WebsiteService:
             self.db.rollback()
             logger.error(f"Error updating email reports config for website {website_id}: {e}", exc_info=True)
             raise
-
-    def get_monthly_pageviews(self, website_ids: List[int]) -> int:
-        """Get total pageview count for the current month across given websites."""
-        if not website_ids:
-            return 0
-
-        try:
-            now = datetime.now(timezone.utc)
-            month_start = datetime(now.year, now.month, 1, tzinfo=timezone.utc)
-
-            result = self.db.execute(text("""
-                SELECT COUNT(*)
-                FROM pageviews
-                WHERE website_id = ANY(:website_ids)
-                AND timestamp >= :month_start
-            """), {
-                "website_ids": website_ids,
-                "month_start": month_start
-            })
-            return result.scalar() or 0
-
-        except Exception as e:
-            logger.error(f"Error getting monthly pageviews: {e}", exc_info=True)
-            return 0
 
     def get_public_website(self, share_token: str):
         """Get a publicly shared website by its share token.

@@ -22,6 +22,7 @@ from app.models.ecommerce_event import EcommerceEvent
 from app.models.website import Website
 from app.utils.security import generate_visitor_hash
 from app.services.website_lookup import resolve_tracking_code
+from app.services.usage_service import LIMIT_MESSAGE, may_record
 
 logger = logging.getLogger(__name__)
 
@@ -220,6 +221,13 @@ class EcommerceService:
                 return False, "Invalid tracking code", None
 
             # Security check: Verify domain ownership
+
+            # Per-account monthly limit. Checked after resolving so an invalid
+            # code and a full account are reported differently, and before
+            # writing so a refused event costs nothing.
+            if not may_record(self.db, website.owner_email):
+                return False, LIMIT_MESSAGE, None
+
             if not website.is_verified:
                 logger.warning(
                     f"🚫 Domain not verified for website {website.id} ({website.domain}). "

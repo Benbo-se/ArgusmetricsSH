@@ -20,10 +20,12 @@ from app.models.ecommerce_event import EcommerceEvent
 from app.models.used_magic_token import UsedMagicToken
 from app.models.email_log import EmailLog
 from app.models.job_run import JobRun
+from app.models.account_usage import AccountUsage
 
 __all__ = [
     "User",
     "JobRun",
+    "AccountUsage",
     "Session",
     "Website",
     "Pageview",

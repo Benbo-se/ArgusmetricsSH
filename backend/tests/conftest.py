@@ -176,6 +176,43 @@ def website(db):
 
 
 @pytest.fixture
+def second_website(db, website):
+    """A second website belonging to the same account as `website`.
+
+    Exists so the per-account counter can be tested for what makes it a
+    per-account counter: two domains, one bill.
+    """
+    suffix = uuid.uuid4().hex[:8]
+    tracking_code = uuid.uuid4().hex[:8]
+
+    website_id = db.execute(
+        text(
+            "INSERT INTO websites (name, domain, user_email, tracking_code,"
+            "                      verification_token, is_verified, is_active,"
+            "                      email_reports_enabled, is_public,"
+            "                      public_password_enabled, created_at) "
+            "VALUES (:n, :d, :e, :tc, :vt, true, true, false, false, false, now()) "
+            "RETURNING id"
+        ),
+        {
+            "n": f"Second site {suffix}",
+            "d": f"https://second-{suffix}.example.com",
+            "e": website["email"],
+            "tc": tracking_code,
+            "vt": f"tok-{suffix}",
+        },
+    ).scalar()
+    db.commit()
+
+    return {
+        "id": website_id,
+        "email": website["email"],
+        "tracking_code": tracking_code,
+        "domain": f"https://second-{suffix}.example.com",
+    }
+
+
+@pytest.fixture
 def owner_client(client, db, website):
     """A client authenticated as the fixture website's owner.
 

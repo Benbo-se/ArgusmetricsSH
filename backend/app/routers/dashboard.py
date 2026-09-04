@@ -22,6 +22,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db, set_rls_context
 from app.services.analytics_service import AnalyticsService
 from app.services.website_service import WebsiteService
+from app.services.usage_service import get_usage
 from app.models.user import User
 from app.routers.auth import get_current_user
 from app.utils.date_helpers import parse_date_range
@@ -392,15 +393,17 @@ async def dashboard_index(
     # Get all websites for the user
     websites = website_service.get_user_websites(current_user.email)
 
-    # Calculate actual monthly pageviews
-    website_ids = [w.id for w in websites] if websites else []
-    monthly_pageviews = website_service.get_monthly_pageviews(website_ids)
+    # This month's usage, from the counter the limit is enforced against, so
+    # the number shown here and the number that refuses an event are the same
+    # number. A primary-key lookup rather than a count over pageviews.
+    usage = get_usage(db, current_user.email)
 
     return templates.TemplateResponse("dashboard/index.html", {
         "request": request,
         "current_user": current_user,
         "websites": websites,
-        "monthly_pageviews": monthly_pageviews
+        "usage": usage,
+        "website_cap": settings.MAX_WEBSITES_PER_ACCOUNT,
     })
 
 

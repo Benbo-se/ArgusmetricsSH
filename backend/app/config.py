@@ -112,6 +112,19 @@ class Settings(BaseSettings):
     # "text" for a person reading along while developing, "json" for a
     # deployment where the log is read by a machine first. See
     # app/logging_setup.py.
+    # Per account, not per website: a pageview costs the same whichever
+    # domain it came from, and splitting a blog, a shop and a landing page
+    # across three domains is normal rather than three customers' worth of
+    # usage. 0 disables the limit, which is what an instance serving only its
+    # owner wants.
+    MONTHLY_EVENT_LIMIT: int = Field(
+        default=0, description="Events per account per month. 0 = no limit"
+    )
+    # Not a packaging lever, an abuse stop. High enough that nobody running
+    # real sites meets it, low enough that a script hits it in seconds.
+    MAX_WEBSITES_PER_ACCOUNT: int = Field(
+        default=100, description="Websites one account may create"
+    )
     LOG_FORMAT: str = Field(default="text", description="Log format: text | json")
     RATE_LIMIT_BACKEND: str = Field(
         default="memory", description="Rate limiter backend: 'memory' today"

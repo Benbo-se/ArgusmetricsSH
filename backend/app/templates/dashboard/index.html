@@ -29,6 +29,44 @@
         </div>
     </div>
 
+    {% if usage.limited %}
+    {# Shown before the cap is reached, not after. Telling someone they have
+       stopped collecting data is a notification; telling them they are about
+       to is something they can still act on. #}
+    <div class="mb-6 rounded-lg border p-4
+                {% if usage.exceeded %}border-red-300 bg-red-50
+                {% elif usage.nearly_exceeded %}border-amber-300 bg-amber-50
+                {% else %}border-gray-200 bg-white{% endif %}">
+        <div class="flex items-baseline justify-between">
+            <p class="text-sm font-medium
+                      {% if usage.exceeded %}text-red-800
+                      {% elif usage.nearly_exceeded %}text-amber-800
+                      {% else %}text-gray-700{% endif %}">
+                {% if usage.exceeded %}
+                    Monthly limit reached. New events are not being recorded.
+                {% elif usage.nearly_exceeded %}
+                    {{ "{:,}".format(usage.remaining) }} events left this month.
+                {% else %}
+                    Events this month
+                {% endif %}
+            </p>
+            <p class="text-sm tabular-nums text-gray-600">
+                {{ "{:,}".format(usage.events) }} / {{ "{:,}".format(usage.limit) }}
+            </p>
+        </div>
+        <div class="mt-2 h-2 w-full overflow-hidden rounded-full bg-gray-200">
+            <div class="h-2 rounded-full
+                        {% if usage.exceeded %}bg-red-500
+                        {% elif usage.nearly_exceeded %}bg-amber-500
+                        {% else %}bg-blue-500{% endif %}"
+                 style="width: {{ [(usage.fraction * 100) | round(1), 100] | min }}%"></div>
+        </div>
+        <p class="mt-2 text-xs text-gray-500">
+            Counted across every website on this account. Resets on the first of the month.
+        </p>
+    </div>
+    {% endif %}
+
     {% if websites and websites|length > 0 %}
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {% for website in websites %}

@@ -29,6 +29,8 @@ class TrackedWebsite:
     domain: str
     is_verified: bool
     is_active: bool
+    #: Whose account this is, for the monthly limit. Not shown to anyone.
+    owner_email: str
 
 
 def _scope_tracking_context(db: Session, website_id: int) -> None:
@@ -66,7 +68,7 @@ def resolve_tracking_code(db: Session, tracking_code: str) -> Optional[TrackedWe
     """
     row = db.execute(
         text(
-            "SELECT id, domain, is_verified, is_active "
+            "SELECT id, domain, is_verified, is_active, owner_email "
             "FROM argus_resolve_tracking_code(:code)"
         ),
         {"code": tracking_code},
@@ -82,6 +84,7 @@ def resolve_tracking_code(db: Session, tracking_code: str) -> Optional[TrackedWe
         domain=row.domain,
         is_verified=row.is_verified,
         is_active=row.is_active,
+        owner_email=row.owner_email,
     )
 
 
