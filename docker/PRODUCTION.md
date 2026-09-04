@@ -76,6 +76,28 @@ Manuell rollback: Actions → Deploy → Run workflow → ange förra SHA:n som 
 Deployen gör dessutom auto-rollback själv om health-checken failar, och en
 pre-deploy-dump ligger i `~/backups/argusmetrics/pre-deploy/` på servern.
 
+## Första kontot
+
+Registreringen är stängd i prod-composen, vilket betyder att en färsk databas
+inte har någon väg in: det enda som skapar konton är en inbjudan, och det finns
+ingen som kan skicka en. Kör en gång, efter första start:
+
+```bash
+docker compose -f docker/docker-compose.prod.yml exec backend \
+    python -m app.bootstrap
+```
+
+Den frågar efter adress och lösenord. Lösenordet tas aldrig som argument:
+argument hamnar i shell-historiken och syns i `ps` för alla på maskinen.
+
+Kontot skapas verifierat, eftersom det inte finns någon inkorg att kontrollera
+mot och ingen inbjudan som bevisar adressen. Den som kan köra ett kommando
+inuti containern har redan databasen.
+
+Kommandot **vägrar så fort det finns ett konto**. Efter det första bjuder man in
+folk från Team-fliken på den webbplats de ska se, vilket är godkännandet och
+lämnar ett spår av vem som släppte in vem.
+
 ## Backup och återställning
 
 Det här avsnittet är det viktigaste i filen, för det var trasigt.

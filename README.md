@@ -50,6 +50,18 @@ None of it needs an external service.
 For countries, download `GeoLite2-Country.mmdb` (free MaxMind account) into
 `backend/app/data/` and set `GEOIP_DB_PATH=/app/data/GeoLite2-Country.mmdb`.
 
+## The first account
+
+Registration is closed on a production instance, so a fresh database has no way
+in. Create the first account once, after the first start:
+
+```bash
+docker compose -f docker/docker-compose.prod.yml exec backend python -m app.bootstrap
+```
+
+It prompts for an address and a password, and refuses as soon as any account
+exists. After that, people join by invitation from a website's Team page.
+
 ## Configuration
 
 Everything is environment variables, documented in `docker/.env.example`. Only
