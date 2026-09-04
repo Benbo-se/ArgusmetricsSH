@@ -592,6 +592,111 @@
         </div>
     </section>
 
+    <!-- How it is built -->
+    <!-- The technical substance is the product here, and every claim below is
+         checkable in the repository. Nothing goes in this section that cannot
+         be pointed at in code or in a test. -->
+    <section class="py-24 px-4 sm:px-6 lg:px-8 bg-gray-900">
+        <div class="max-w-6xl mx-auto">
+            <div class="text-center mb-16">
+                <span class="eyebrow text-blue-400">Open source, so you can check</span>
+                <h2 class="text-4xl sm:text-5xl font-bold text-white mb-5 mt-3">How it is actually built</h2>
+                <p class="text-lg text-gray-400 max-w-2xl mx-auto">
+                    Every analytics product says it respects privacy. Here is what that means
+                    here, specifically enough that you can go and verify it.
+                </p>
+            </div>
+
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+                <div class="p-6 bg-gray-800 rounded-xl border border-gray-700">
+                    <i class="fas fa-database text-blue-400 text-2xl mb-4 block"></i>
+                    <h3 class="text-lg font-semibold text-white mb-2">The database enforces the separation</h3>
+                    <p class="text-gray-400 text-sm">
+                        Every table holding your data has row-level security policies, and the
+                        application connects as a role those policies apply to. A bug in our
+                        code cannot show your data to someone else, because the database
+                        refuses independently.
+                    </p>
+                </div>
+
+                <div class="p-6 bg-gray-800 rounded-xl border border-gray-700">
+                    <i class="fas fa-fingerprint text-green-400 text-2xl mb-4 block"></i>
+                    <h3 class="text-lg font-semibold text-white mb-2">The visitor hash changes daily</h3>
+                    <p class="text-gray-400 text-sm">
+                        We truncate the address first, IPv4 to a /24 and IPv6 to a /48, then
+                        hash it with the browser, your domain and a salt that changes every
+                        day. The same visitor tomorrow is a different hash, and everyone on
+                        the same network is the same one.
+                    </p>
+                </div>
+
+                <div class="p-6 bg-gray-800 rounded-xl border border-gray-700">
+                    <i class="fas fa-ban text-purple-400 text-2xl mb-4 block"></i>
+                    <h3 class="text-lg font-semibold text-white mb-2">No IP address is ever stored</h3>
+                    <p class="text-gray-400 text-sm">
+                        Not truncated, not encrypted, not anywhere. There is no column for it,
+                        and none for the user agent either. Country comes from a database on
+                        our own server, so your visitors' addresses are never sent to a
+                        third party.
+                    </p>
+                </div>
+
+                <div class="p-6 bg-gray-800 rounded-xl border border-gray-700">
+                    <i class="fas fa-cookie-bite text-cyan-400 text-2xl mb-4 block"></i>
+                    <h3 class="text-lg font-semibold text-white mb-2">Nothing is written to the visitor's browser</h3>
+                    <p class="text-gray-400 text-sm">
+                        No cookie, no localStorage, no fingerprint. The script sends an event
+                        and forgets. That is why no consent banner is needed, rather than a
+                        banner being technically avoidable.
+                    </p>
+                </div>
+
+                <div class="p-6 bg-gray-800 rounded-xl border border-gray-700">
+                    <i class="fas fa-key text-amber-400 text-2xl mb-4 block"></i>
+                    <h3 class="text-lg font-semibold text-white mb-2">Credentials are never stored usably</h3>
+                    <p class="text-gray-400 text-sm">
+                        Passwords, session tokens and API tokens are all hashed. A copy of our
+                        database grants access to nothing. Sessions are Secure, HttpOnly and
+                        SameSite, and the dashboard loads no third-party scripts at all.
+                    </p>
+                </div>
+
+                <div class="p-6 bg-gray-800 rounded-xl border border-gray-700">
+                    <i class="fas fa-server text-rose-400 text-2xl mb-4 block"></i>
+                    <h3 class="text-lg font-semibold text-white mb-2">One server, in Sweden</h3>
+                    <p class="text-gray-400 text-sm">
+                        Hosted with Bahnhof. Your data stays there, is not replicated to other
+                        regions, and is deleted automatically after 24 months. Our only other
+                        supplier is the one that sends the emails, in the Netherlands.
+                    </p>
+                </div>
+            </div>
+
+            <div class="bg-gray-800 rounded-xl border border-gray-700 p-8">
+                <div class="grid sm:grid-cols-3 gap-8 text-center">
+                    <div>
+                        <div class="text-3xl font-bold text-white mb-1">2.5<span class="text-lg text-gray-400">KB</span></div>
+                        <p class="text-sm text-gray-400">the tracking script, gzipped</p>
+                    </div>
+                    <div>
+                        <div class="text-3xl font-bold text-white mb-1">311</div>
+                        <p class="text-sm text-gray-400">automated tests, run on every change</p>
+                    </div>
+                    <div>
+                        <div class="text-3xl font-bold text-white mb-1">0</div>
+                        <p class="text-sm text-gray-400">third-party scripts, on your site or ours</p>
+                    </div>
+                </div>
+                <p class="text-center text-sm text-gray-500 mt-8">
+                    None of this has to be taken on trust.
+                    <a href="https://github.com/Benbo-se/ArgusmetricsSH" target="_blank" rel="noopener noreferrer"
+                       class="text-blue-400 hover:text-blue-300 underline">The code is public</a>,
+                    including the tests that check the claims on this page.
+                </p>
+            </div>
+        </div>
+    </section>
+
     <!-- Self-host Section -->
     <!-- Photo band intro: the image is literally the subject here, a server you run
          yourself. Dense content stays on the light background below it. -->
