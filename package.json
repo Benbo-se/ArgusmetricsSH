@@ -7,6 +7,6 @@
     "check:css": "npm run build:css --silent && git diff --exit-code -- backend/app/static/css/tailwind.min.css site/static/css/tailwind.min.css"
   },
   "devDependencies": {
-    "tailwindcss": "3.4.17"
+    "tailwindcss": "4.3.3"
   }
 }
