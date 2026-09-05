@@ -680,12 +680,6 @@
   /**
    * Scroll depth tracking
    */
-  let scrollDepthTracked = {
-    25: false,
-    50: false,
-    75: false,
-    100: false
-  };
   let scrollThrottleTimeout = null;
   let maxScrollDepth = 0;
 
@@ -703,9 +697,13 @@
     );
     const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
 
-    // Avoid division by zero
+    // A page that fits in the window was never scrolled, so there is no
+    // depth to report. This used to return 100, which meant every short page
+    // claimed the visitor read all the way down, and it dragged the average
+    // upward for every site that has any. null is a missing value, which the
+    // column and the dashboard already handle: they show a dash.
     if (documentHeight <= windowHeight) {
-      return 100;
+      return null;
     }
 
     const scrollableHeight = documentHeight - windowHeight;
@@ -715,23 +713,41 @@
   }
 
   /**
-   * Check and fire scroll depth milestone events
+   * Remember how far down the visitor has been.
+   *
+   * Nothing is sent here. This used to fire an event at each of 25, 50, 75
+   * and 100 per cent, which cost four requests and four events against the
+   * monthly limit for one pageview, and on a page shorter than the window all
+   * four fired at once because the depth was reported as 100 immediately.
+   *
+   * The maximum is reported once when the visitor leaves, which is both
+   * cheaper and truer: it describes the whole visit rather than its first
+   * second.
    */
-  function checkScrollMilestones() {
+  function recordScrollDepth() {
     const currentDepth = getScrollDepth();
+    if (currentDepth === null) return;
 
-    // Update max scroll depth
     if (currentDepth > maxScrollDepth) {
       maxScrollDepth = currentDepth;
     }
+  }
 
-    // Check each milestone
-    [25, 50, 75, 100].forEach(milestone => {
-      if (!scrollDepthTracked[milestone] && maxScrollDepth >= milestone) {
-        scrollDepthTracked[milestone] = true;
-        trackEvent(`scroll_${milestone}`);
-      }
-    });
+  /**
+   * Send the deepest point reached, once, as the visitor leaves.
+   *
+   * Guarded so it cannot send twice: pagehide and visibilitychange both fire
+   * in some navigations, and a browser that discards the page after
+   * visibilitychange never reaches pagehide, so both are needed.
+   */
+  let scrollDepthReported = false;
+
+  function reportScrollDepth() {
+    if (scrollDepthReported) return;
+    if (maxScrollDepth <= 0) return;
+
+    scrollDepthReported = true;
+    trackEvent('scroll_depth', { depth: maxScrollDepth });
   }
 
   /**
@@ -741,7 +757,7 @@
     if (scrollThrottleTimeout) return;
 
     scrollThrottleTimeout = setTimeout(function() {
-      checkScrollMilestones();
+      recordScrollDepth();
       scrollThrottleTimeout = null;
     }, 200);
   }
@@ -750,14 +766,10 @@
    * Setup scroll depth tracking
    */
   function setupScrollTracking() {
-    // Reset tracking state for new page
-    scrollDepthTracked = {
-      25: false,
-      50: false,
-      75: false,
-      100: false
-    };
+    // Reset for the new page. Single-page apps reuse the same document, so
+    // without this the second page would inherit the first one's depth.
     maxScrollDepth = 0;
+    scrollDepthReported = false;
 
     // Add scroll listener
     window.addEventListener('scroll', handleScroll, { passive: true });
@@ -808,6 +820,7 @@
       // Re-setup download tracking for SPA page changes
       setupDownloadTracking();
       // Re-setup scroll tracking for new page
+      reportScrollDepth();
       cleanupScrollTracking();
       setupScrollTracking();
     };
@@ -820,6 +833,7 @@
       // Re-setup download tracking for SPA page changes
       setupDownloadTracking();
       // Re-setup scroll tracking for new page
+      reportScrollDepth();
       cleanupScrollTracking();
       setupScrollTracking();
     };
@@ -832,12 +846,23 @@
       // Re-setup download tracking for SPA page changes
       setupDownloadTracking();
       // Re-setup scroll tracking for new page
+      reportScrollDepth();
       cleanupScrollTracking();
       setupScrollTracking();
     });
 
-    // Cleanup on page unload
+    // Report on the way out. visibilitychange covers the case a browser
+    // discards the page without ever firing pagehide, which is most mobile
+    // navigations, and beforeunload is unreliable on mobile entirely.
+    document.addEventListener('visibilitychange', function() {
+      if (document.visibilityState === 'hidden') {
+        reportScrollDepth();
+      }
+    });
+    window.addEventListener('pagehide', reportScrollDepth);
+
     window.addEventListener('beforeunload', function() {
+      reportScrollDepth();
       cleanupScrollTracking();
     });
   }

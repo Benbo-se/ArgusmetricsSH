@@ -36,11 +36,35 @@
  *
  * So every x-model target is a getter returning modelFor(this, 'field').
  */
+const modelAccessors = new WeakMap()
+
 function modelFor(component, key) {
-    return {
-        get: () => component[key],
-        set: (value) => { component[key] = value },
+    // Cached, so the same accessor object comes back every time.
+    //
+    // Returning a fresh object on each read made Alpine see the binding as
+    // changed on every evaluation, so its x-model effect wrote the model's
+    // value back into the input again and again. Type fast enough, into a
+    // field whose model has not caught up yet, and the write lands on top of
+    // the characters: the field empties itself and the form submits blank.
+    //
+    // Keyed on the component through a WeakMap rather than a property on it,
+    // because a property would go through Alpine's reactive proxy and become
+    // a dependency of everything that reads it.
+    let byKey = modelAccessors.get(component)
+    if (!byKey) {
+        byKey = new Map()
+        modelAccessors.set(component, byKey)
     }
+
+    let accessor = byKey.get(key)
+    if (!accessor) {
+        accessor = {
+            get: () => component[key],
+            set: (value) => { component[key] = value },
+        }
+        byKey.set(key, accessor)
+    }
+    return accessor
 }
 
 document.addEventListener('alpine:init', () => {
@@ -258,8 +282,19 @@ document.addEventListener('alpine:init', () => {
             this.error = null
         },
 
+        /**
+         * Opens the dialog without clearing it.
+         *
+         * Clearing on open looks equivalent and is not: if the click handler
+         * runs late, which it does while Alpine is still starting on a slow
+         * load, the reset lands after the first characters have been typed
+         * and wipes them. The form then submits empty, the browser's own
+         * validation blocks it, and nothing reaches the server. That is what
+         * "the modal re-renders with empty fields" was.
+         *
+         * Clearing on close does the same job with no such window.
+         */
         openCreate() {
-            this.resetForm()
             this.createOpen = true
         },
 
@@ -1454,8 +1489,19 @@ document.addEventListener('alpine:init', () => {
             this.error = null
         },
 
+        /**
+         * Opens the dialog without clearing it.
+         *
+         * Clearing on open looks equivalent and is not: if the click handler
+         * runs late, which it does while Alpine is still starting on a slow
+         * load, the reset lands after the first characters have been typed
+         * and wipes them. The form then submits empty, the browser's own
+         * validation blocks it, and nothing reaches the server. That is what
+         * "the modal re-renders with empty fields" was.
+         *
+         * Clearing on close does the same job with no such window.
+         */
         openCreate() {
-            this.resetForm()
             this.createOpen = true
         },
         closeCreate() {

@@ -63,6 +63,12 @@ test.describe('Local development is not counted', () => {
     await page.waitForTimeout(1500);
     console.log('SKICKAT_MED_OVERRIDE=' + sent.length);
     sent.forEach((u,i)=>console.log('URL'+i+'='+u.split('/api/v1/')[1]));
+
+    // Leaving the page reports the depth, once. A page this short was never
+    // scrolled, so there is nothing to report and nothing should be sent.
+    await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+    await page.waitForTimeout(400);
+    console.log('EFTER_UTGANG=' + sent.length);
     expect(sent.length, 'the override did not re-enable tracking').toBeGreaterThan(0);
   });
 });
