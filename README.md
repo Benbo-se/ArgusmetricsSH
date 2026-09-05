@@ -187,6 +187,13 @@ tracebacks point at the wrong line.
 Issues and pull requests are welcome. If you change behaviour, the test that
 would have caught the old behaviour is the part worth writing first.
 
+Pull requests need a one-time signature on the [contributor agreement](CLA.md).
+You keep your copyright; it exists so the project can be licensed more than one
+way, which is what makes a commercial licence possible for organisations that
+cannot accept the AGPL. A bot will explain it on your first pull request.
+
+Security problems go through [SECURITY.md](SECURITY.md), not a public issue.
+
 ## License
 
 Copyright (c) 2026 Reda Ekengren.

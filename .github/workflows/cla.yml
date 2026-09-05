@@ -1,0 +1,49 @@
+# The contributor agreement, checked on every pull request.
+#
+# Why a bot and not the honour system: the point of the agreement is that the
+# project can be licensed more than one way later, which only holds if every
+# contribution is covered. A signature that was never recorded is the same as
+# no signature the day somebody asks to see them.
+#
+# Signatures are stored in this repository, on a branch of their own, so there
+# is nothing to lose if a third-party service disappears.
+name: CLA
+
+on:
+  issue_comment:
+    types: [created]
+  pull_request_target:
+    types: [opened, synchronize, reopened, closed]
+
+permissions:
+  actions: write
+  contents: write
+  pull-requests: write
+  statuses: write
+
+jobs:
+  cla:
+    runs-on: ubuntu-latest
+    # Nothing to sign on a pull request from this repository itself.
+    if: github.event.pull_request.head.repo.full_name != github.repository || github.event_name == 'issue_comment'
+    steps:
+      - name: Check or record the signature
+        uses: contributor-assistant/github-action@v2.6.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          path-to-document: https://github.com/Benbo-se/ArgusmetricsSH/blob/main/CLA.md
+          path-to-signatures: signatures/cla.json
+          branch: cla-signatures
+          # Dependabot edits lock files as this repository's own bot. There is
+          # no person to agree to anything and no copyright to license.
+          allowlist: dependabot[bot],renovate[bot],*[bot]
+          custom-notsigned-prcomment: >
+            Thanks for the pull request. Before it can be merged, please read
+            [CLA.md](https://github.com/Benbo-se/ArgusmetricsSH/blob/main/CLA.md)
+            and reply below with exactly the sentence in the next comment.
+            You keep your copyright; this only lets the project be licensed
+            more than one way, which is what makes a commercial licence
+            possible. You do this once, not for every pull request.
+          custom-pr-sign-comment: 'I have read the CLA document and I hereby sign the CLA'
+          custom-allsigned-prcomment: 'All contributors have signed the CLA.'
