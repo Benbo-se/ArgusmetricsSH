@@ -58,13 +58,13 @@
                         <template x-for="(goal, index) in goals" :key="index">
                             <tr x-data="goalRow">
                                 <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm font-medium text-gray-900" x-text="name"></div>
+                                    <div class="text-sm font-medium text-gray-900" x-text="rowName"></div>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm text-gray-700 font-mono" x-text="eventName"></div>
+                                    <div class="text-sm text-gray-700 font-mono" x-text="rowEventName"></div>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    <span x-text="createdAt"></span>
+                                    <span x-text="rowCreatedAt"></span>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                     <button @click="edit"
@@ -141,6 +141,7 @@
                                 </label>
                                 <input type="text"
                                        x-model="formEventName"
+                                       @focus="selectSuggestion"
                                        @input="eventNameTyped"
                                        required
                                        placeholder="e.g., newsletter_signup"

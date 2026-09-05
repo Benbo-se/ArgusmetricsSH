@@ -347,6 +347,25 @@ document.addEventListener('alpine:init', () => {
             this.eventNameEdited = true
         },
 
+        /**
+         * Selects the suggestion when the field is focused, so typing replaces
+         * it rather than adding to it.
+         *
+         * The field is required and carries a placeholder, so the natural
+         * thing is to click it and type what you mean. With the derived slug
+         * already sitting there, that produced
+         * "quote_requestedquote_requested": a goal that saves without
+         * complaint and never matches anything the site sends.
+         *
+         * Only while the value is still the derived one. Once it is the
+         * customer's own, coming back to fix a typo should put the cursor
+         * where they clicked.
+         */
+        selectSuggestion(event) {
+            if (this.eventNameEdited) return
+            event.target.select()
+        },
+
         slugify(value) {
             return (value || '')
                 .toLowerCase()
@@ -445,9 +464,17 @@ document.addEventListener('alpine:init', () => {
      * argument and cannot appear in an attribute.
      */
     Alpine.data('goalRow', () => ({
-        get name() { return this.goal.name },
-        get eventName() { return this.goal.event_name },
-        get createdAt() {
+        // Prefixed, and that prefix is the whole point.
+        //
+        // These used to be called name and eventName, which are also the data
+        // fields on goalsPage. Alpine merges the scopes, so openEdit, called
+        // from a row, assigned to the row's getter instead of the page's
+        // field. A getter with no setter swallows an assignment without a
+        // sound, so Edit opened an empty dialog and Update would have written
+        // blanks over the goal.
+        get rowName() { return this.goal.name },
+        get rowEventName() { return this.goal.event_name },
+        get rowCreatedAt() {
             return new Date(this.goal.created_at).toLocaleDateString()
         },
         edit() { this.openEdit(this.goal) },
@@ -728,11 +755,16 @@ document.addEventListener('alpine:init', () => {
 
     /** One row of the team table, flattened for the CSP build. */
     Alpine.data('teamMemberRow', () => ({
-        get email() { return this.member.user_email },
+        // Prefixed for the reason goalRow is: email and role are also data
+        // fields on teamPage, and a getter here would swallow any assignment
+        // the page makes while a row is in scope. Nothing does that today,
+        // which is exactly how the goals version survived until somebody
+        // clicked Edit.
+        get rowEmail() { return this.member.user_email },
         get initial() { return this.member.user_email.charAt(0).toUpperCase() },
         get isYou() { return this.member.user_email === this.currentUser },
-        get role() { return this.member.role },
-        get status() { return this.member.status },
+        get rowRole() { return this.member.role },
+        get rowStatus() { return this.member.status },
         get invitedAt() {
             return new Date(this.member.invited_at).toLocaleDateString()
         },

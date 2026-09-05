@@ -40,6 +40,11 @@ export default defineConfig({
       dependencies: ['auth'],
     },
     {
+      name: 'goaledit',
+      testMatch: /goaledit\.spec\.ts/,
+      dependencies: ['auth'],
+    },
+    {
       name: 'goalcreate',
       testMatch: /goalcreate\.spec\.ts/,
       dependencies: ['auth'],

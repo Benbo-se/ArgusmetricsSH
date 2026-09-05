@@ -76,7 +76,7 @@
                                             <span class="text-blue-600 font-medium text-sm" x-text="initial"></span>
                                         </div>
                                         <div class="ml-4">
-                                            <div class="text-sm font-medium text-gray-900" x-text="email"></div>
+                                            <div class="text-sm font-medium text-gray-900" x-text="rowEmail"></div>
                                             <div x-show="isYou" class="text-xs text-gray-500">(You)</div>
                                         </div>
                                     </div>
@@ -86,14 +86,14 @@
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize"
                                           :class="roleBadgeClass"
-                                          x-text="role"></span>
+                                          x-text="rowRole"></span>
                                 </td>
 
                                 <!-- Status -->
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize"
                                           :class="statusBadgeClass"
-                                          x-text="status"></span>
+                                          x-text="rowStatus"></span>
                                 </td>
 
                                 <!-- Invited Date -->

@@ -157,3 +157,123 @@ class TestComponentsAreRegistered:
                     missing.append(f"{path.relative_to(TEMPLATES)}: x-data=\"{name}\" is not registered")
 
         assert not missing, "\n  ".join([""] + missing)
+
+
+def _nested_component_pairs():
+    """Which components actually end up inside which, from the templates.
+
+    Only a nested pair shares a scope. Comparing every component against every
+    other reports eight collisions in this codebase and seven of them are
+    between components that never meet, which is the kind of noise that gets a
+    test ignored.
+
+    A real parser rather than a regex, because nesting is exactly the thing a
+    regex cannot see.
+    """
+    from html.parser import HTMLParser
+
+    VOID = {"area", "base", "br", "col", "embed", "hr", "img", "input",
+            "link", "meta", "param", "source", "track", "wbr"}
+
+    class Nesting(HTMLParser):
+        def __init__(self):
+            super().__init__(convert_charrefs=True)
+            self.stack = []          # open elements, each None or a component
+            self.pairs = set()
+
+        def handle_starttag(self, tag, attrs):
+            component = dict(attrs).get("x-data")
+            if component and BARE_NAME.match(component.strip()):
+                component = component.strip()
+                for outer in self.stack:
+                    if outer and outer != component:
+                        self.pairs.add((outer, component))
+            else:
+                component = None
+            if tag not in VOID:
+                self.stack.append(component)
+
+        def handle_startendtag(self, tag, attrs):
+            self.handle_starttag(tag, attrs)
+
+        def handle_endtag(self, tag):
+            if self.stack:
+                self.stack.pop()
+
+    pairs = set()
+    for path in sorted(TEMPLATES.rglob("*.html")):
+        parser = Nesting()
+        try:
+            parser.feed(path.read_text())
+        except Exception:  # noqa: BLE001
+            continue
+        pairs |= parser.pairs
+    return pairs
+
+
+class TestNoComponentShadowsAnother:
+    """A nested component must not shadow a field of the one around it.
+
+    Alpine merges the scopes, so a method belonging to the page can run with a
+    row in scope. If the row defines a getter with the same name as a field the
+    page assigns to, the assignment lands on the getter, and a getter with no
+    setter swallows it without a sound.
+
+    Not hypothetical. goalRow had `get name()` while goalsPage had a `name`
+    field, so openEdit wrote the goal into the row's getter: Edit opened an
+    empty dialog and Update would have written blanks over it. The team page
+    had the same collision on `email` and `role`, unbitten only because nothing
+    happened to assign them while a row was in scope.
+    """
+
+    COMPONENTS = re.compile(
+        r"Alpine\.data\(\s*'([^']+)'\s*,\s*\(\)\s*=>\s*\(\{(.*?)\n    \}\)\)", re.S
+    )
+    GETTER = re.compile(r"^\s{8}get\s+([A-Za-z_$][\w$]*)\s*\(", re.M)
+    FIELD = re.compile(r"^\s{8}([A-Za-z_$][\w$]*)\s*:\s*(?!function)", re.M)
+
+    @classmethod
+    def _components(cls):
+        static = TEMPLATES.parent / "static" / "js"
+        found = {}
+        for path in sorted(static.glob("*.js")):
+            for name, body in cls.COMPONENTS.findall(path.read_text()):
+                found[name] = {
+                    "getters": set(cls.GETTER.findall(body)),
+                    "fields": set(cls.FIELD.findall(body)),
+                }
+        return found
+
+    def test_the_scan_finds_components_and_nesting(self):
+        """Guards against either half quietly matching nothing."""
+        components = self._components()
+        assert len(components) > 15, (
+            f"only {len(components)} components parsed; the scan is probably "
+            "broken rather than the file being empty"
+        )
+        assert "goalsPage" in components
+
+        pairs = _nested_component_pairs()
+        assert ("goalsPage", "goalRow") in pairs, (
+            "the nesting parser no longer sees goalRow inside goalsPage, so "
+            "this test would pass without checking the case it was written for"
+        )
+
+    def test_no_inner_getter_shadows_an_outer_field(self):
+        components = self._components()
+
+        collisions = []
+        for outer, inner in sorted(_nested_component_pairs()):
+            if outer not in components or inner not in components:
+                continue
+            shared = components[inner]["getters"] & components[outer]["fields"]
+            for key in sorted(shared):
+                collisions.append(f"{inner}.get {key}() shadows {outer}.{key}")
+
+        assert not collisions, (
+            "these getters swallow any assignment the surrounding component "
+            "makes to that field while they are in scope:\n  "
+            + "\n  ".join(collisions)
+            + "\n\nGive the inner one a distinct name. A row's version of a "
+            "page's field is conventionally prefixed: rowName, rowEmail."
+        )
