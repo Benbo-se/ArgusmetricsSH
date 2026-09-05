@@ -10,7 +10,10 @@
             <span class="text-2xl">{{ (visitor.country | country_flag) if visitor.country else "🌍" }}</span>
             <div>
                 <p class="text-sm font-medium text-gray-900">{{ visitor.path }}</p>
-                <p class="text-xs text-gray-500">{{ visitor.country }} • {{ visitor.time_ago }}</p>
+                {# An unresolved country is None, and Jinja renders that as the
+                   word "None". The flag on the line above already had a
+                   fallback; this one did not, so every visitor read "None". #}
+                <p class="text-xs text-gray-500">{{ visitor.country or "Unknown" }} • {{ visitor.time_ago }}</p>
             </div>
         </div>
     </div>

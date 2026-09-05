@@ -259,7 +259,15 @@
                     </div>
                 </template>
                 <template x-if="noCountries">
+                    {% if geoip_available() %}
                     <p class="text-gray-500 text-center py-8">No country data available</p>
+                    {% else %}
+                    <p class="text-gray-500 text-center py-8">
+                        Country data is switched off on this instance. Point
+                        <code class="bg-gray-100 px-1 rounded">GEOIP_DB_PATH</code>
+                        at a GeoLite2-Country.mmdb to switch it on.
+                    </p>
+                    {% endif %}
                 </template>
             </div>
         </div>

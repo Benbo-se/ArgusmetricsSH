@@ -1046,7 +1046,20 @@ argus.trackEvent('button_click', {
                 {% endfor %}
             </div>
             {% else %}
+            {% if geoip_available() %}
             <p class="text-gray-500 text-center py-8">No country data yet</p>
+            {% else %}
+            <div class="text-center py-8 px-4">
+                <p class="text-gray-500">Country data is switched off on this instance.</p>
+                <p class="text-sm text-gray-400 mt-2">
+                    Countries are resolved from a MaxMind database file on this
+                    server, so no visitor address is ever sent anywhere. Without
+                    the file there is nothing to resolve against.
+                    Point <code class="bg-gray-100 px-1 rounded">GEOIP_DB_PATH</code>
+                    at a GeoLite2-Country.mmdb to switch it on.
+                </p>
+            </div>
+            {% endif %}
             {% endif %}
         </div>
 

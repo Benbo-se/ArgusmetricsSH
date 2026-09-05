@@ -40,6 +40,10 @@ templates_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "templa
 templates = Jinja2Templates(directory=templates_dir)
 # base.html builds canonical/og URLs from the instance's own BASE_URL
 templates.env.globals["base_url"] = settings.BASE_URL.rstrip("/")
+# Whether country lookup can work at all. A callable rather than a value so it
+# is read per request: the operator can drop the database file in without a
+# restart, and the empty state stops lying the moment they do.
+templates.env.globals["geoip_available"] = lambda: settings.geoip_available
 
 # Add custom Jinja2 filters
 def format_number(value):

@@ -191,6 +191,23 @@ class Settings(BaseSettings):
         return self.DATABASE_URL
 
     @property
+    def geoip_available(self) -> bool:
+        """Whether country lookup can work at all.
+
+        Country resolution uses a MaxMind database file on this machine and
+        nothing else: no third-party service ever sees a visitor's address.
+        The cost of that choice is that without the file there is no country,
+        ever, and the dashboard used to say "No country data yet" as though
+        it were waiting for traffic.
+
+        Checked at request time rather than cached, so dropping the file in
+        and restarting nothing still works.
+        """
+        import os
+
+        return bool(self.GEOIP_DB_PATH) and os.path.exists(self.GEOIP_DB_PATH)
+
+    @property
     def is_production(self) -> bool:
         """Whether this process is serving real users.
 
