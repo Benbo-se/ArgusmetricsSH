@@ -62,8 +62,27 @@ def country_flag(country_code):
     code_points = [127397 + ord(char) for char in country_code.upper()]
     return ''.join(chr(cp) for cp in code_points)
 
+def format_duration(seconds):
+    """Seconds as a duration someone can read at a glance.
+
+    Under a minute stays in seconds, because "0m 43s" is harder to read than
+    "43s". Above an hour drops the seconds, because nobody comparing two
+    session lengths of over an hour cares about the last one.
+    """
+    try:
+        total = int(seconds or 0)
+    except (ValueError, TypeError):
+        return "0s"
+
+    if total < 60:
+        return f"{total}s"
+    if total < 3600:
+        return f"{total // 60}m {total % 60}s"
+    return f"{total // 3600}h {(total % 3600) // 60}m"
+
 templates.env.filters['format_number'] = format_number
 templates.env.filters['country_flag'] = country_flag
+templates.env.filters['format_duration'] = format_duration
 
 
 def _format_time_ago(timestamp: str) -> str:
@@ -647,7 +666,7 @@ async def website_stats_basic_partial(
     analytics_service: AnalyticsService = Depends(get_analytics_service),
     website_service: WebsiteService = Depends(get_website_service)
 ):
-    """Get basic stats (first 3 cards) for auto-refresh."""
+    """The headline numbers, for the ten-second refresh."""
     from datetime import timezone
     import json
 

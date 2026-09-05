@@ -1,42 +1,45 @@
-<div class="stat-tile bg-white rounded-lg shadow p-6">
-    <p class="stat-label mb-2">Total Pageviews</p>
-    <div class="flex items-baseline gap-3">
-        <p class="stat-value text-3xl text-gray-900">{{ stats.total_pageviews | default(0) | format_number }}</p>
-        {% if stats.comparison and stats.comparison.pageviews_change is not none %}
-            <span class="text-sm font-medium {% if stats.comparison.pageviews_change >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
-                {% if stats.comparison.pageviews_change >= 0 %}▲{% else %}▼{% endif %}
-                {{ "%.1f"|format(stats.comparison.pageviews_change|abs) }}%
-            </span>
-        {% endif %}
-    </div>
-</div>
-<div class="stat-tile bg-white rounded-lg shadow p-6">
-    <p class="stat-label mb-2">Unique Visitors</p>
-    <div class="flex items-baseline gap-3">
-        <p class="stat-value text-3xl text-gray-900">{{ stats.unique_visitors | default(0) | format_number }}</p>
-        {% if stats.comparison and stats.comparison.visitors_change is not none %}
-            <span class="text-sm font-medium {% if stats.comparison.visitors_change >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
-                {% if stats.comparison.visitors_change >= 0 %}▲{% else %}▼{% endif %}
-                {{ "%.1f"|format(stats.comparison.visitors_change|abs) }}%
-            </span>
-        {% endif %}
-    </div>
-</div>
-<div class="stat-tile bg-white rounded-lg shadow p-6">
-    <p class="stat-label mb-2">Views / Visitor</p>
-    <div class="flex items-baseline gap-3">
-        <p class="stat-value text-3xl text-gray-900">
-            {% if stats.unique_visitors and stats.unique_visitors > 0 %}
-                {{ "%.1f"|format(stats.total_pageviews / stats.unique_visitors) }}
-            {% else %}
-                0
-            {% endif %}
-        </p>
-        {% if stats.comparison and stats.comparison.avg_views_change is not none %}
-            <span class="text-sm font-medium {% if stats.comparison.avg_views_change >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
-                {% if stats.comparison.avg_views_change >= 0 %}▲{% else %}▼{% endif %}
-                {{ "%.1f"|format(stats.comparison.avg_views_change|abs) }}%
-            </span>
-        {% endif %}
-    </div>
-</div>
+{# The headline numbers, swapped in place by HTMX every ten seconds.
+
+   Included by website.html for the first render too, so there is one copy of
+   these tiles rather than two that drift apart.
+
+   The order runs volume first, then quality: how many people came, then what
+   they did once they were here. Online Now is not here because it refreshes on
+   its own five-second cycle beside these. #}
+{% from "dashboard/_stat_tile.html" import stat_tile %}
+{% set c = stats.comparison %}
+
+{{ stat_tile("Unique Visitors",
+             stats.unique_visitors | default(0) | format_number,
+             c.visitors_change if c else none,
+             hint="Distinct visitors, counted from a hash that is rebuilt daily and never stored") }}
+
+{{ stat_tile("Visits",
+             stats.total_visits | default(0) | format_number,
+             c.visits_change if c else none,
+             hint="A visit ends after 30 minutes of inactivity, so one person can make several") }}
+
+{{ stat_tile("Total Pageviews",
+             stats.total_pageviews | default(0) | format_number,
+             c.pageviews_change if c else none) }}
+
+{{ stat_tile("Views / Visit",
+             "%.1f"|format(stats.views_per_visit | default(0)),
+             c.views_per_visit_change if c else none,
+             hint="Pages seen in an average visit") }}
+
+{{ stat_tile("Bounce Rate",
+             "%.0f%%"|format(stats.bounce_rate | default(0)),
+             c.bounce_rate_change if c else none,
+             higher_is_better=False,
+             hint="Visits that ended on the page they started on") }}
+
+{{ stat_tile("Visit Duration",
+             stats.avg_visit_seconds | default(0) | format_duration,
+             c.visit_duration_change if c else none,
+             hint="First to last pageview of a visit, averaged over all visits including bounces") }}
+
+{{ stat_tile("Avg. Scroll Depth",
+             ("%d%%"|format(stats.avg_scroll_depth)) if stats.avg_scroll_depth is not none else "–",
+             none,
+             hint="How far down the page visitors got, averaged over the views that reported it") }}

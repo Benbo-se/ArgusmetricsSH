@@ -1,0 +1,26 @@
+{# One headline number, with its change against the previous period.
+
+   A macro rather than eight near-identical blocks. The blocks were already
+   duplicated once, inline in website.html and again in _stats_basic.html, so
+   every change to a tile had to be made twice and the second copy was one
+   metric behind for a while.
+
+   `higher_is_better` exists for the bounce rate. Every other number here is
+   good when it goes up, and an arrow that turns green because more people
+   left immediately would be worse than showing no arrow at all. #}
+{% macro stat_tile(label, value, change=None, higher_is_better=True, hint=None) %}
+<div class="stat-tile bg-white rounded-lg shadow p-6">
+    <p class="stat-label mb-2"{% if hint %} title="{{ hint }}"{% endif %}>{{ label }}</p>
+    <div class="flex items-baseline gap-3">
+        <p class="stat-value text-3xl text-gray-900">{{ value }}</p>
+        {% if change is not none and change != 0 %}
+            {% set improving = (change > 0) if higher_is_better else (change < 0) %}
+            <span class="text-sm font-medium {% if improving %}text-green-600{% else %}text-red-600{% endif %}"
+                  title="Compared with the previous period of the same length">
+                {% if change > 0 %}▲{% else %}▼{% endif %}
+                {{ "%.1f"|format(change|abs) }}%
+            </span>
+        {% endif %}
+    </div>
+</div>
+{% endmacro %}

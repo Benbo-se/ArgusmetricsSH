@@ -273,48 +273,9 @@
              hx-trigger="every 10s"
              hx-swap="innerHTML"
              class="contents">
-            <div class="stat-tile bg-white rounded-lg shadow p-6">
-                <p class="stat-label mb-2">Total Pageviews</p>
-                <div class="flex items-baseline gap-3">
-                    <p class="stat-value text-3xl text-gray-900">{{ stats.total_pageviews | default(0) | format_number }}</p>
-                    {% if stats.comparison and stats.comparison.pageviews_change is not none %}
-                        <span class="text-sm font-medium {% if stats.comparison.pageviews_change >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
-                            {% if stats.comparison.pageviews_change >= 0 %}▲{% else %}▼{% endif %}
-                            {{ "%.1f"|format(stats.comparison.pageviews_change|abs) }}%
-                        </span>
-                    {% endif %}
-                </div>
-            </div>
-            <div class="stat-tile bg-white rounded-lg shadow p-6">
-                <p class="stat-label mb-2">Unique Visitors</p>
-                <div class="flex items-baseline gap-3">
-                    <p class="stat-value text-3xl text-gray-900">{{ stats.unique_visitors | default(0) | format_number }}</p>
-                    {% if stats.comparison and stats.comparison.visitors_change is not none %}
-                        <span class="text-sm font-medium {% if stats.comparison.visitors_change >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
-                            {% if stats.comparison.visitors_change >= 0 %}▲{% else %}▼{% endif %}
-                            {{ "%.1f"|format(stats.comparison.visitors_change|abs) }}%
-                        </span>
-                    {% endif %}
-                </div>
-            </div>
-            <div class="stat-tile bg-white rounded-lg shadow p-6">
-                <p class="stat-label mb-2">Views / Visitor</p>
-                <div class="flex items-baseline gap-3">
-                    <p class="stat-value text-3xl text-gray-900">
-                        {% if stats.unique_visitors and stats.unique_visitors > 0 %}
-                            {{ "%.1f"|format(stats.total_pageviews / stats.unique_visitors) }}
-                        {% else %}
-                            0
-                        {% endif %}
-                    </p>
-                    {% if stats.comparison and stats.comparison.avg_views_change is not none %}
-                        <span class="text-sm font-medium {% if stats.comparison.avg_views_change >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
-                            {% if stats.comparison.avg_views_change >= 0 %}▲{% else %}▼{% endif %}
-                            {{ "%.1f"|format(stats.comparison.avg_views_change|abs) }}%
-                        </span>
-                    {% endif %}
-                </div>
-            </div>
+            {# Included rather than repeated: this markup used to exist here
+               and again in the partial, and the two copies drifted. #}
+            {% include "dashboard/_stats_basic.html" %}
         </div>
 
         <!-- Live visitors - separate auto-refresh -->

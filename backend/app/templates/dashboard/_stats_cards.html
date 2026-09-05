@@ -1,21 +1,7 @@
-<div class="stat-tile bg-white rounded-lg shadow p-6">
-    <p class="stat-label mb-2">Total Pageviews</p>
-    <p class="stat-value text-3xl text-gray-900">{{ stats.total_pageviews | default(0) | format_number }}</p>
-</div>
-<div class="stat-tile bg-white rounded-lg shadow p-6">
-    <p class="stat-label mb-2">Unique Visitors</p>
-    <p class="stat-value text-3xl text-gray-900">{{ stats.unique_visitors | default(0) | format_number }}</p>
-</div>
-<div class="stat-tile bg-white rounded-lg shadow p-6">
-    <p class="stat-label mb-2">Views / Visitor</p>
-    <p class="stat-value text-3xl text-gray-900">
-        {% if stats.unique_visitors and stats.unique_visitors > 0 %}
-            {{ "%.1f"|format(stats.total_pageviews / stats.unique_visitors) }}
-        {% else %}
-            0
-        {% endif %}
-    </p>
-</div>
+{# The whole headline row including Online Now, for the refresh endpoint that
+   swaps all of it at once. The metric tiles come from the shared partial so
+   this file cannot drift from the two pages that render the same numbers. #}
+{% include "dashboard/_stats_basic.html" %}
 <div class="stat-tile is-live bg-white rounded-lg shadow p-6">
     <div class="flex items-center justify-between mb-2">
         <p class="stat-label">Online Now</p>

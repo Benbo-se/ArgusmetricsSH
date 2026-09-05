@@ -8,11 +8,17 @@ import logging
 from typing import Optional, Dict, List
 from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session
-from sqlalchemy import func, and_, distinct
+from sqlalchemy import func, and_, case, distinct, select
 
 from app.models.pageview import Pageview
 
 logger = logging.getLogger(__name__)
+
+# How long a visitor may be idle before their next pageview counts as a new
+# visit. Thirty minutes is the industry convention, so the numbers below are
+# comparable to what anyone reading them has seen elsewhere, and it matches the
+# window the scroll-depth completion already uses.
+VISIT_TIMEOUT_SECONDS = 1800
 
 
 class AnalyticsQueryService:
@@ -23,6 +29,164 @@ class AnalyticsQueryService:
         self._goals = goals_service
         self._events = events_service
         self._recording = recording_service
+
+    def _base_conditions(
+        self,
+        website_id: int,
+        start_date: datetime,
+        end_date: datetime,
+        filter_country: Optional[str] = None,
+        filter_device: Optional[str] = None,
+        filter_browser: Optional[str] = None,
+        filter_page: Optional[str] = None,
+        filter_referrer: Optional[str] = None,
+        filter_properties: Optional[Dict[str, str]] = None
+    ) -> List:
+        """Which pageviews a set of numbers is allowed to see.
+
+        One place, because the previous period used to build its own shorter
+        version: no filters and no system-URL exclusion. So with a filter on,
+        the arrow compared a filtered week against an unfiltered one and
+        pointed the wrong way, confidently.
+        """
+        conditions = [
+            Pageview.website_id == website_id,
+            Pageview.timestamp >= start_date,
+            Pageview.timestamp <= end_date
+        ]
+
+        if filter_country:
+            conditions.append(Pageview.country == filter_country)
+        if filter_device:
+            conditions.append(Pageview.device_type == filter_device)
+        if filter_browser:
+            conditions.append(Pageview.browser == filter_browser)
+        if filter_page:
+            conditions.append(Pageview.path == filter_page)
+        if filter_referrer:
+            conditions.append(Pageview.referrer == filter_referrer)
+        if filter_properties:
+            conditions.append(Pageview.properties.contains(filter_properties))
+
+        # Exclude system URLs
+        conditions.append(
+            and_(
+                ~Pageview.path.like('/api/%'),
+                ~Pageview.path.like('/static/%'),
+                ~Pageview.path.like('/admin/%'),
+                ~Pageview.path.like('/dashboard/%'),
+                ~Pageview.path.like(r'/\_%', escape='\\')
+            )
+        )
+        return conditions
+
+    def _get_visit_stats(self, conditions: List) -> Dict:
+        """Group pageviews into visits, and measure them.
+
+        A visitor hash is not a visit. Someone who reads three pages this
+        morning and two tonight is one visitor and two visits, and the
+        difference is the whole of bounce rate and visit duration: the numbers
+        every other analytics tool leads with and this dashboard did not have,
+        because it only ever counted pageviews and distinct visitors.
+
+        Visits are derived at query time rather than stored. Nothing about a
+        session is written down, no identifier follows anyone between visits,
+        and the daily-rotating visitor hash still makes the whole thing forget
+        itself every midnight. A stored session id would have been cheaper to
+        query and would have been the one piece of state we have spent this
+        whole project not keeping.
+
+        The work is three window functions: look back at each visitor's
+        previous pageview, mark the ones that follow a long enough gap as
+        starting a visit, and running-sum those marks to number the visits.
+
+        Duration is the span from a visit's first pageview to its last, so a
+        single-pageview visit is zero seconds. That is what makes it a bounce,
+        and it is averaged in rather than excluded, which is what Plausible and
+        GA both do; excluding them would make the number look better without
+        meaning more.
+        """
+        try:
+            ordered = select(
+                Pageview.visitor_hash.label("visitor_hash"),
+                Pageview.timestamp.label("ts"),
+                func.lag(Pageview.timestamp).over(
+                    partition_by=Pageview.visitor_hash,
+                    order_by=Pageview.timestamp,
+                ).label("previous_ts"),
+            ).where(and_(*conditions)).subquery()
+
+            started = select(
+                ordered.c.visitor_hash,
+                ordered.c.ts,
+                case(
+                    # The visitor's first pageview in the range always starts
+                    # one. A visit running across the boundary is counted from
+                    # where the range begins, which is the same convention the
+                    # pageview count already uses.
+                    (ordered.c.previous_ts.is_(None), 1),
+                    (
+                        func.extract("epoch", ordered.c.ts - ordered.c.previous_ts)
+                        > VISIT_TIMEOUT_SECONDS,
+                        1,
+                    ),
+                    else_=0,
+                ).label("starts_a_visit"),
+            ).subquery()
+
+            numbered = select(
+                started.c.visitor_hash,
+                started.c.ts,
+                func.sum(started.c.starts_a_visit).over(
+                    partition_by=started.c.visitor_hash,
+                    order_by=started.c.ts,
+                    rows=(None, 0),
+                ).label("visit_number"),
+            ).subquery()
+
+            visits = select(
+                func.count().label("views"),
+                func.extract(
+                    "epoch", func.max(numbered.c.ts) - func.min(numbered.c.ts)
+                ).label("seconds"),
+            ).group_by(
+                numbered.c.visitor_hash, numbered.c.visit_number
+            ).subquery()
+
+            row = self.db.execute(
+                select(
+                    func.count().label("total_visits"),
+                    func.avg(visits.c.views).label("views_per_visit"),
+                    func.avg(
+                        case((visits.c.views == 1, 1.0), else_=0.0)
+                    ).label("bounce_share"),
+                    func.avg(visits.c.seconds).label("seconds"),
+                ).select_from(visits)
+            ).one()
+
+            return {
+                "total_visits": int(row.total_visits or 0),
+                "views_per_visit": (
+                    round(float(row.views_per_visit), 2)
+                    if row.views_per_visit is not None else 0.0
+                ),
+                "bounce_rate": (
+                    round(float(row.bounce_share) * 100, 1)
+                    if row.bounce_share is not None else 0.0
+                ),
+                "avg_visit_seconds": (
+                    int(row.seconds) if row.seconds is not None else 0
+                ),
+            }
+
+        except Exception as e:  # noqa: BLE001
+            logger.error(f"Error calculating visit stats: {e}", exc_info=True)
+            return {
+                "total_visits": 0,
+                "views_per_visit": 0.0,
+                "bounce_rate": 0.0,
+                "avg_visit_seconds": 0,
+            }
 
     def get_dashboard_stats(
         self,
@@ -47,35 +211,10 @@ class AnalyticsQueryService:
         )
 
         try:
-            # Build base filter conditions
-            base_conditions = [
-                Pageview.website_id == website_id,
-                Pageview.timestamp >= start_date,
-                Pageview.timestamp <= end_date
-            ]
-
-            if filter_country:
-                base_conditions.append(Pageview.country == filter_country)
-            if filter_device:
-                base_conditions.append(Pageview.device_type == filter_device)
-            if filter_browser:
-                base_conditions.append(Pageview.browser == filter_browser)
-            if filter_page:
-                base_conditions.append(Pageview.path == filter_page)
-            if filter_referrer:
-                base_conditions.append(Pageview.referrer == filter_referrer)
-            if filter_properties:
-                base_conditions.append(Pageview.properties.contains(filter_properties))
-
-            # Exclude system URLs
-            base_conditions.append(
-                and_(
-                    ~Pageview.path.like('/api/%'),
-                    ~Pageview.path.like('/static/%'),
-                    ~Pageview.path.like('/admin/%'),
-                    ~Pageview.path.like('/dashboard/%'),
-                    ~Pageview.path.like(r'/\_%', escape='\\')
-                )
+            base_conditions = self._base_conditions(
+                website_id, start_date, end_date,
+                filter_country, filter_device, filter_browser, filter_page,
+                filter_referrer, filter_properties
             )
 
             # Total pageviews
@@ -247,9 +386,25 @@ class AnalyticsQueryService:
                 filter_properties
             )
 
+            visit_stats = self._get_visit_stats(base_conditions)
+
+            # Site-wide engagement, from a column the tracker has always
+            # written. Averaged over the pageviews that reported a depth: a
+            # visitor who leaves before the script measures anything records
+            # NULL, and counting that as nought would drag the number down
+            # with readers who never existed.
+            avg_scroll_depth = self.db.query(
+                func.avg(Pageview.scroll_depth)
+            ).filter(and_(*base_conditions)).scalar()
+
             stats = {
                 "total_pageviews": total_pageviews or 0,
                 "unique_visitors": unique_visitors or 0,
+                **visit_stats,
+                "avg_scroll_depth": (
+                    round(float(avg_scroll_depth))
+                    if avg_scroll_depth is not None else None
+                ),
                 "top_pages": [
                     {
                         "path": p.path,
@@ -312,7 +467,10 @@ class AnalyticsQueryService:
 
                 comparison_data = self._get_comparison_data(
                     website_id, start_date, end_date,
-                    total_pageviews or 0, unique_visitors or 0
+                    total_pageviews or 0, unique_visitors or 0,
+                    visit_stats,
+                    filter_country, filter_device, filter_browser,
+                    filter_page, filter_referrer, filter_properties
                 )
                 stats.update(comparison_data)
 
@@ -327,6 +485,11 @@ class AnalyticsQueryService:
             return {
                 "total_pageviews": 0,
                 "unique_visitors": 0,
+                "total_visits": 0,
+                "views_per_visit": 0.0,
+                "bounce_rate": 0.0,
+                "avg_visit_seconds": 0,
+                "avg_scroll_depth": None,
                 "top_pages": [],
                 "entry_pages": [],
                 "exit_pages": [],
@@ -413,10 +576,24 @@ class AnalyticsQueryService:
         start_date: datetime,
         end_date: datetime,
         current_pageviews: int,
-        current_visitors: int
+        current_visitors: int,
+        current_visits: Optional[Dict] = None,
+        filter_country: Optional[str] = None,
+        filter_device: Optional[str] = None,
+        filter_browser: Optional[str] = None,
+        filter_page: Optional[str] = None,
+        filter_referrer: Optional[str] = None,
+        filter_properties: Optional[Dict[str, str]] = None
     ) -> Dict:
-        """Get comparison data for previous period."""
+        """Get comparison data for previous period.
+
+        The filters come along. Without them the previous period counted
+        everything, including the /api/ and /dashboard/ paths the current
+        period excludes, so the arrow beside a filtered number was measuring a
+        different thing from the number it sat next to.
+        """
         try:
+            current_visits = current_visits or {}
             period_length = end_date - start_date
             prev_end_date = start_date - timedelta(seconds=1)
             prev_start_date = prev_end_date - period_length
@@ -426,25 +603,23 @@ class AnalyticsQueryService:
                 f"previous={prev_start_date} to {prev_end_date}"
             )
 
+            prev_conditions = self._base_conditions(
+                website_id, prev_start_date, prev_end_date,
+                filter_country, filter_device, filter_browser, filter_page,
+                filter_referrer, filter_properties
+            )
+
             prev_pageviews = self.db.query(func.count(Pageview.id)).filter(
-                and_(
-                    Pageview.website_id == website_id,
-                    Pageview.timestamp >= prev_start_date,
-                    Pageview.timestamp <= prev_end_date
-                )
+                and_(*prev_conditions)
             ).scalar() or 0
 
             prev_visitors = self.db.query(
                 func.count(distinct(Pageview.visitor_hash))
-            ).filter(
-                and_(
-                    Pageview.website_id == website_id,
-                    Pageview.timestamp >= prev_start_date,
-                    Pageview.timestamp <= prev_end_date
-                )
-            ).scalar() or 0
+            ).filter(and_(*prev_conditions)).scalar() or 0
 
-            def calculate_change(current: int, previous: int) -> Optional[float]:
+            prev_visits = self._get_visit_stats(prev_conditions)
+
+            def calculate_change(current: float, previous: float) -> Optional[float]:
                 if previous == 0:
                     if current == 0:
                         return 0.0
@@ -461,11 +636,24 @@ class AnalyticsQueryService:
                 int(prev_avg * 100)
             )
 
+            def change_in(key: str) -> Optional[float]:
+                value = calculate_change(
+                    current_visits.get(key, 0) or 0, prev_visits.get(key, 0) or 0
+                )
+                return round(value, 1) if value is not None else None
+
             comparison = {
                 "comparison": {
                     "pageviews_change": round(pageviews_change, 1) if pageviews_change is not None else None,
                     "visitors_change": round(visitors_change, 1) if visitors_change is not None else None,
                     "avg_views_change": round(avg_views_change, 1) if avg_views_change is not None else None,
+                    "visits_change": change_in("total_visits"),
+                    "views_per_visit_change": change_in("views_per_visit"),
+                    # Rising is worse here, which the template has to know: an
+                    # arrow that turns green when more people leave immediately
+                    # is worse than no arrow.
+                    "bounce_rate_change": change_in("bounce_rate"),
+                    "visit_duration_change": change_in("avg_visit_seconds"),
                     "prev_pageviews": prev_pageviews,
                     "prev_visitors": prev_visitors
                 }
@@ -485,6 +673,10 @@ class AnalyticsQueryService:
                     "pageviews_change": None,
                     "visitors_change": None,
                     "avg_views_change": None,
+                    "visits_change": None,
+                    "views_per_visit_change": None,
+                    "bounce_rate_change": None,
+                    "visit_duration_change": None,
                     "prev_pageviews": 0,
                     "prev_visitors": 0
                 }

@@ -65,6 +65,26 @@ totals, with no error anywhere.
 `test_hypertables.py::TestNoContinuousAggregateBypassesThePolicies` fails if
 one ever exists.
 
+## The query to watch
+
+Visits, bounce rate and visit duration are derived at query time rather than
+stored. `AnalyticsQueryService._get_visit_stats` reads every pageview in the
+range for one site and runs three window functions over it, partitioned by
+visitor and ordered by timestamp.
+
+That is deliberate. A stored session id would make the query trivial and would
+be the one durable identifier this product does not keep; deriving it means a
+visit exists only for as long as it takes to answer the question. The cost is
+that this is the heaviest query on the dashboard, and it is the one that will
+show first.
+
+It is a sort, not a scan of everything: chunk exclusion narrows it to the
+range, and `ix_pageviews_complete_lookup` leads with `(website_id,
+visitor_hash, ...)` which is the partition order the window wants. On the
+production instance it is not measurable. If it becomes so, it is also the
+first thing a rollup table would precompute, since the per-day visit counts
+sum cleanly and only the boundary visits need care.
+
 ## If the dashboard does need rollups
 
 It does not yet. The instance in production has enough traffic to be
