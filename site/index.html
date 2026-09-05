@@ -547,7 +547,7 @@
                 <p class="text-xl text-gray-600">Simple, ethical analytics without the complexity</p>
             </div>
 
-            <div class="bg-white rounded-2xl shadow-xl overflow-hidden">
+            <div class="bg-white rounded-2xl shadow-xl overflow-x-auto">
                 <table class="w-full">
                     <thead class="bg-gray-50">
                         <tr>
@@ -729,9 +729,14 @@
     <section id="self-host" class="py-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-white via-gray-50 to-white">
         <div class="max-w-6xl mx-auto">
 
+            <!-- min-w-0 on the columns: a grid item will not shrink below its
+                 content's minimum width unless told to, so the terminal block's
+                 long clone URL made the track 502px wide and pushed the whole
+                 page sideways on a phone. The pre already scrolls; the track
+                 above it did not know that was allowed. -->
             <div class="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
                 <!-- Left: what you get -->
-                <div>
+                <div class="min-w-0">
                     <h3 class="text-2xl font-bold text-gray-900 mb-6">Everything included. Nothing locked away.</h3>
                     <ul class="space-y-4">
                         <li class="flex items-start gap-3">
@@ -771,7 +776,7 @@
                 </div>
 
                 <!-- Right: terminal + steps -->
-                <div x-data="{ copied: false, cmd: 'git clone https://github.com/Benbo-se/ArgusmetricsSH\ncd ArgusmetricsSH/docker\ndocker compose up -d' }">
+                <div class="min-w-0"><div x-data="{ copied: false, cmd: 'git clone https://github.com/Benbo-se/ArgusmetricsSH\ncd ArgusmetricsSH/docker\ndocker compose up -d' }">
                     <div class="bg-gray-900 rounded-2xl shadow-2xl overflow-hidden ring-1 ring-gray-800">
                         <div class="px-5 py-3 flex items-center gap-2 border-b border-gray-700/70">
                             <div class="flex gap-2">
@@ -797,6 +802,7 @@
                             <code class="text-blue-700 bg-blue-100 px-1.5 py-0.5 rounded text-xs">localhost:8020</code>, add the tracking snippet to any site and you're done.
                         </p>
                     </div>
+                </div>
                 </div>
             </div>
         </div>

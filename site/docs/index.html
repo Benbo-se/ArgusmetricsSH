@@ -264,13 +264,18 @@
                             <pre><code>&lt;script
   defer
   data-tracking-code="YOUR_CODE"
-  data-api-endpoint="https://your-argusmetrics-instance.com/api/v1/analytics/track"
   src="https://your-argusmetrics-instance.com/static/tracker.min.js"
 &gt;&lt;/script&gt;</code></pre>
                         </div>
                         <p class="mt-4 text-sm text-blue-100">
                             Replace <code class="bg-blue-700 px-2 py-1 rounded">YOUR_CODE</code> with your tracking code from your dashboard, and
-                            <code class="bg-blue-700 px-2 py-1 rounded">your-argusmetrics-instance.com</code> with the address of your own Argusmetrics server. That's it!
+                            <code class="bg-blue-700 px-2 py-1 rounded">your-argusmetrics-instance.com</code> with the address of your own Argusmetrics server.
+                            This is the same snippet the dashboard gives you, so you can copy it from there instead.
+                        </p>
+                        <p class="mt-3 text-sm text-blue-100">
+                            The script posts back to the domain it was loaded from, so nothing else is needed in the
+                            normal case. <code class="bg-blue-700 px-2 py-1 rounded">data-api-endpoint</code> is only for
+                            the case below, where the script and the API are on different hosts.
                         </p>
                     </div>
 
@@ -285,11 +290,18 @@
                         <ol class="list-decimal list-inside space-y-2 text-gray-700 ml-4">
                             <li><a href="/signup" class="text-blue-600 hover:underline">Create an account</a> and verify your email address</li>
                             <li>Add your website in the dashboard to get a tracking code</li>
+                            <li><strong>Verify that you own the domain</strong> by adding the TXT record the settings page gives you. Tracking is blocked until you do, and nothing is recorded in the meantime.</li>
                             <li>Paste the tracking script into your site's <code class="bg-gray-100 px-1 rounded">&lt;head&gt;</code></li>
                             <li>Start seeing data in real-time</li>
                         </ol>
                         <div class="bg-blue-50 border-l-4 border-blue-600 p-4 mt-4">
                             <p class="text-sm text-blue-900">
+                                <strong>Domain verification is not optional.</strong> A website that has not been
+                                verified records nothing at all, and the tracking script gives no error: the page
+                                loads, the request goes out, and the dashboard stays empty. If you have pasted the
+                                script and see no data, check the settings page for that website first.
+                            </p>
+                            <p class="text-sm text-gray-700 mt-3">
                                 <strong>Self-hosted:</strong> Throughout these docs, replace <code class="bg-blue-100 px-1 rounded">https://your-argusmetrics-instance.com</code>
                                 with the URL where you host Argusmetrics. The tracking script and API both live on your own instance.
                             </p>
@@ -326,7 +338,9 @@
 
                         <div class="bg-yellow-50 border-l-4 border-yellow-600 p-4 mb-6">
                             <p class="text-sm text-yellow-900">
-                                <strong>Important:</strong> The <code class="bg-yellow-100 px-1 rounded">data-api-endpoint</code> attribute is required when your site is hosted on a different domain than the API (e.g., GitHub Pages, Netlify, Vercel, Cloudflare Pages). Without it, tracking requests will be sent to your hosting provider instead of the Argusmetrics API and silently fail.
+                                <strong>When you need <code class="bg-yellow-100 px-1 rounded">data-api-endpoint</code>:</strong> only when the tracking script is served from somewhere other than your Argusmetrics instance. That happens if you copy the script file onto your own CDN or bundle it with your site, which is the case on some static hosts. If you load it straight from your instance, as the snippet above does, the script already knows where to post and the attribute does nothing.
+                                <br><br>
+                                Get it wrong in that situation and the requests go to your hosting provider instead, which answers with a page rather than an error, so it fails silently and the dashboard simply stays empty.
                             </p>
                         </div>
 

@@ -63,6 +63,41 @@
   }
 
   /**
+   * Whether this page is running on a developer's own machine.
+   *
+   * Local development used to be counted as real traffic, and it showed up
+   * as referrals: `http://localhost:8202/` sitting in Top Referrers next to
+   * Bing. On a site with thirteen pageviews, four of them the developer's,
+   * a third of the statistics was noise. It hurts the newest sites hardest,
+   * which are exactly the ones where every visit moves the percentages.
+   *
+   * Deliberately checked in the browser rather than on the server: the server
+   * only sees the referrer, and a visit to a local page with no referrer at
+   * all would still be counted.
+   *
+   * Set `data-track-localhost="true"` on the script tag to override, which is
+   * what you want while testing the tracker itself.
+   */
+  function isLocalDevelopment() {
+    var script = document.currentScript || document.querySelector('script[data-tracking-code]');
+    if (script && script.getAttribute('data-track-localhost') === 'true') {
+      return false;
+    }
+
+    var host = window.location.hostname.toLowerCase();
+
+    return host === 'localhost' ||
+           host === '127.0.0.1' ||
+           host === '[::1]' ||
+           host === '::1' ||
+           host === '' ||                       // file:// has no hostname
+           host.endsWith('.localhost') ||
+           host.endsWith('.local') ||           // Bonjour and many dev setups
+           host.endsWith('.test') ||            // reserved for testing, RFC 6761
+           host.endsWith('.internal');
+  }
+
+  /**
    * Sensitive query parameters that should never be tracked
    */
   var SENSITIVE_PARAMS = ['token', 'key', 'secret', 'password', 'pwd', 'passwd',
@@ -146,6 +181,10 @@
       return;
     }
 
+    if (isLocalDevelopment()) {
+      return;
+    }
+
     const trackingCode = getTrackingCode();
     if (!trackingCode) {
       return;
@@ -182,6 +221,10 @@
     // Check if DNT is enabled
     if (isDNTEnabled()) {
       console.log('[Argusmetrics] Do Not Track enabled, skipping event tracking');
+      return;
+    }
+
+    if (isLocalDevelopment()) {
       return;
     }
 
@@ -265,6 +308,10 @@
   function trackEcommerce(eventType, data = {}) {
     if (isDNTEnabled()) {
       console.log('[Argusmetrics] Do Not Track enabled, skipping ecommerce tracking');
+      return;
+    }
+
+    if (isLocalDevelopment()) {
       return;
     }
 

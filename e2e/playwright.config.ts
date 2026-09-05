@@ -40,6 +40,11 @@ export default defineConfig({
       dependencies: ['auth'],
     },
     {
+      name: 'localhost',
+      testMatch: /localhost\.spec\.ts/,
+      dependencies: ['auth'],
+    },
+    {
       name: 'mobilepadding',
       testMatch: /mobilepadding\.spec\.ts/,
       use: { baseURL: SITE_URL },
