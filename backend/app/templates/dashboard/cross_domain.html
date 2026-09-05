@@ -8,7 +8,14 @@
    and become code. #}
 <script type="application/json" id="cross-domain-ids">{{ website_ids | tojson }}</script>
 <script type="application/json" id="cross-domain-websites">{{ websites | tojson }}</script>
-<script src="/static/js/cross-domain.js" defer></script>
+{# No defer, deliberately. Deferred scripts run in document order after
+   parsing, and alpine-csp.min.js is deferred and comes first, so Alpine
+   fires alpine:init before a deferred script here has run at all. The
+   component would then register too late and every x-* on this page would
+   report an uninterpretable expression. That is exactly what happened: the
+   page rendered its shell and nothing else. alpine-components.js avoids it
+   by loading without defer, and so does this. #}
+<script src="/static/js/cross-domain.js"></script>
 {% endblock %}
 
 {% block content %}

@@ -212,6 +212,9 @@ document.addEventListener('alpine:init', () => {
         deletingGoal: null,
         name: '',
         eventName: '',
+        //: True once the event name has been typed in directly, after which
+        //: it stops following the label.
+        eventNameEdited: false,
 
         // x-model targets. See modelFor.
         get formName() { return modelFor(this, 'name') },
@@ -250,6 +253,7 @@ document.addEventListener('alpine:init', () => {
         resetForm() {
             this.name = ''
             this.eventName = ''
+            this.eventNameEdited = false
             this.editingGoal = null
             this.error = null
         },
@@ -263,6 +267,10 @@ document.addEventListener('alpine:init', () => {
             this.editingGoal = goal
             this.name = goal.name
             this.eventName = goal.event_name
+            // Editing an existing goal: its event name is already the
+            // customer's, and renaming the goal must not silently change the
+            // name their site is sending.
+            this.eventNameEdited = true
             this.error = null
             this.createOpen = true
         },
@@ -282,14 +290,33 @@ document.addEventListener('alpine:init', () => {
             this.deletingGoal = null
         },
 
-        /** Suggests an event name from the label, unless one was typed. */
+        /**
+         * Keeps the event name mirroring the label until somebody edits it.
+         *
+         * The old version only filled it in while it was still empty, and it
+         * ran on every keystroke. So typing "Finding proven" set the event
+         * name to "f" on the first character and then never touched it again,
+         * because it was no longer empty. The goal saved with event_name "f"
+         * and matched nothing the site ever sent.
+         *
+         * Now it re-derives on every keystroke, and stops the moment the
+         * event name field is typed in directly.
+         */
         generateEventName() {
-            if (this.name && !this.eventName) {
-                this.eventName = this.name
-                    .toLowerCase()
-                    .replace(/[^a-z0-9]+/g, '_')
-                    .replace(/^_+|_+$/g, '')
-            }
+            if (this.eventNameEdited) return
+            this.eventName = this.slugify(this.name)
+        },
+
+        /** Marks the event name as the customer's, so it stops following. */
+        eventNameTyped() {
+            this.eventNameEdited = true
+        },
+
+        slugify(value) {
+            return (value || '')
+                .toLowerCase()
+                .replace(/[^a-z0-9]+/g, '_')
+                .replace(/^_+|_+$/g, '')
         },
 
         async saveGoal() {
@@ -1609,7 +1636,11 @@ document.addEventListener('alpine:init', () => {
 
     /** One step row in the stats modal. */
     Alpine.data('funnelStatsStep', () => ({
-        get barStyle() { return `width: ${this.entry.rate}%` },
+        // An object, not a string. Alpine sets a string style with
+        // setAttribute, which style-src 'self' blocks outright, so the bar
+        // rendered with no width at all. The object form goes through
+        // CSSOM .style.setProperty, which CSP does not gate.
+        get barStyle() { return { width: `${this.entry.rate}%` } },
         get number() { return this.entry.number },
         get name() { return this.entry.name },
         get visitors() { return this.entry.visitors },

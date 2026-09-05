@@ -141,6 +141,7 @@
                                 </label>
                                 <input type="text"
                                        x-model="formEventName"
+                                       @input="eventNameTyped"
                                        required
                                        placeholder="e.g., newsletter_signup"
                                        pattern="[a-z0-9_]+"

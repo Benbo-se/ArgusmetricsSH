@@ -24,6 +24,12 @@ const PAGES = [
   { name: 'team', path: (id: number) => `/dashboard/website/${id}/team` },
   { name: 'revenue', path: (id: number) => `/dashboard/website/${id}/revenue` },
   { name: 'debug console', path: (id: number) => `/dashboard/website/${id}/debug` },
+  // Absent from this list until it was found dead in production. The page
+  // loaded its own component script with defer, so Alpine had already fired
+  // alpine:init by the time it registered, and every binding on the page
+  // reported an uninterpretable expression. 27 console errors that nothing
+  // was reading.
+  { name: 'cross-domain', path: '/dashboard/cross-domain' },
 ];
 
 test.describe('Content-Security-Policy', () => {

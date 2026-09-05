@@ -423,7 +423,11 @@ document.addEventListener('alpine:init', () => {
         get share() { return this.row.share },
         get selected() { return this.row.selected },
         get siteHref() { return `/dashboard/website/${this.row.id}` },
-        get barStyle() { return `width: ${this.row.width}%` },
+        // An object, not a string. Alpine sets a string style with
+        // setAttribute, which style-src 'self' blocks outright, so the bar
+        // rendered with no width at all. The object form goes through
+        // CSSOM .style.setProperty, which CSP does not gate.
+        get barStyle() { return { width: `${this.row.width}%` } },
         get chipClass() {
             return this.row.selected
                 ? 'bg-blue-600 text-white'
