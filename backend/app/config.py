@@ -138,6 +138,14 @@ class Settings(BaseSettings):
     )
 
     # Analytics & Monitoring
+    # /metrics answers how much work the instance is doing, which is a
+    # business number: pageviews per hour, how many websites, how many
+    # accounts. Without a token the endpoint refuses, rather than defaulting
+    # to open and relying on whoever set up the reverse proxy.
+    METRICS_TOKEN: Optional[str] = Field(
+        default=None,
+        description="Bearer token for /metrics. Unset means the endpoint is off.",
+    )
     SENTRY_DSN: Optional[str] = Field(default=None, description="Sentry DSN for error tracking")
     LOG_LEVEL: str = Field(default="INFO", description="Logging level")
 
@@ -242,7 +250,7 @@ OPERATOR_SETTINGS = frozenset({
     "SMTP_HOST", "SMTP_PORT", "SMTP_USER", "SMTP_PASSWORD",
     "SMTP_FROM_EMAIL", "SMTP_FROM_NAME", "SMTP_USE_TLS",
     # Operations
-    "LOG_LEVEL", "LOG_FORMAT", "SENTRY_DSN",
+    "LOG_LEVEL", "LOG_FORMAT", "SENTRY_DSN", "METRICS_TOKEN",
     "DB_POOL_SIZE", "DB_MAX_OVERFLOW",
 })
 

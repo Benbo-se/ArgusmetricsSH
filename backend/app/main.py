@@ -8,7 +8,7 @@ import secrets
 from contextlib import asynccontextmanager
 from typing import Dict, Any
 
-from fastapi import Depends, FastAPI, Request, status
+from fastapi import Depends, FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
@@ -356,6 +356,45 @@ def _job_health(db) -> Dict[str, Any]:
             "last_duration_ms": row.last_duration_ms if row else None,
         }
     return out
+
+
+@app.get("/metrics", include_in_schema=False)
+async def metrics(request: Request, db: Session = Depends(get_db)):
+    """Numbers for a monitoring system, in Prometheus exposition format.
+
+    Refuses unless METRICS_TOKEN is set, rather than defaulting to open and
+    relying on whoever configured the reverse proxy. What is here is a
+    business number: pageviews per hour, how many websites, how many
+    accounts. Leaving that readable to anyone who finds the path would be a
+    quiet way to publish a customer's traffic volume.
+
+    /health stays open and says only alive, degraded or down, which is what an
+    uptime check needs and all it should learn.
+    """
+    from fastapi.responses import PlainTextResponse
+
+    from app.metrics import render
+
+    expected = settings.METRICS_TOKEN
+    if not expected:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Not Found",
+        )
+
+    presented = request.headers.get("Authorization", "")
+    prefix = "Bearer "
+    presented = presented[len(prefix):] if presented.startswith(prefix) else ""
+
+    # compare_digest so the comparison does not leak the token's length or
+    # prefix through timing.
+    if not secrets.compare_digest(presented, expected):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Not Found",
+        )
+
+    return PlainTextResponse(render(db, _STARTED_AT), media_type="text/plain")
 
 
 @app.get("/health", tags=["Health"])

@@ -61,6 +61,10 @@ EXEMPT = {
     # A token in the URL is the credential, and its holder is not logged in.
     # Each of these resolves through a SECURITY DEFINER function instead.
     "GET /accept-invite": "invitation page, resolves via argus_resolve_invite_token",
+    # Counts rows and reads job_runs, none of it tenant-specific, and it has
+    # no user to declare a context for. Gated on a token instead, and answers
+    # 404 without one.
+    "GET /metrics": "aggregate counts only, no tenant data, token-gated",
     # Declares one, but from inside the service rather than as a dependency,
     # because the context it declares is the account this call is creating:
     # there is no identity to declare on the way in. It resolves the token

@@ -116,6 +116,15 @@ Kommandot **vägrar så fort det finns ett konto**. Efter det första bjuder man
 folk från Team-fliken på den webbplats de ska se, vilket är godkännandet och
 lämnar ett spår av vem som släppte in vem.
 
+## När något går fel
+
+`docs/RUNBOOK.md` beskriver de sex vanligaste felen och vad man gör åt dem:
+ingen data spelas in, ett schemalagt jobb har stannat, disken fylls,
+återställning från backup, ingen kan logga in, och rollback.
+
+Den är skriven för att vara användbar klockan tre på natten av någon som inte
+byggt systemet.
+
 ## Backup och återställning
 
 Det här avsnittet är det viktigaste i filen, för det var trasigt.
