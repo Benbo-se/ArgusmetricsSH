@@ -26,7 +26,12 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: timescale/timescaledb:latest-pg16
+        # Pinnad till exakt samma digest som docker-compose.prod.yml, så CI
+        # testar mot den databas produktionen faktiskt kör. Med latest-pg16
+        # kunde samma commit ge olika resultat olika dagar, och skillnaden
+        # mellan test- och driftmiljö är där den här kodbasens dyraste buggar
+        # har suttit.
+        image: timescale/timescaledb@sha256:68faf0bca42125ff98228a8f5a379bcf0ac588d8156f716be8aaf9befd65857f
         env:
           POSTGRES_USER: argus
           POSTGRES_PASSWORD: argus

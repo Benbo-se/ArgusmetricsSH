@@ -189,5 +189,11 @@ would have caught the old behaviour is the part worth writing first.
 
 ## License
 
-[AGPL-3.0](LICENSE). If you run a modified version as a network service, you
-must offer your source under the same license.
+Copyright (c) 2026 Reda Ekengren.
+
+Licensed under the GNU Affero General Public License v3.0. The complete
+license text is in [LICENSE](LICENSE).
+
+The clause that matters most for a product like this one: if you run a
+modified version as a network service, you must offer its complete
+corresponding source to the users of that service.
