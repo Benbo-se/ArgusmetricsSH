@@ -1,7 +1,7 @@
 {
   "name": "Argusmetrics - Privacy-First Web Analytics",
   "short_name": "Argusmetrics",
-  "description": "Simple, privacy-focused web analytics. GDPR compliant by default. No cookies, no tracking.",
+  "description": "Simple, privacy-focused web analytics. No cookies, no device identifiers, no IP address stored.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

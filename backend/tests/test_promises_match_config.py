@@ -73,3 +73,71 @@ def test_the_email_log_period_matches_too():
     assert default == 90, (
         f"the policy says 90 days and the default is {default}"
     )
+
+
+# ── What the site is allowed to claim ────────────────────────────────────
+#
+# The marketing pages once said "100% GDPR compliant", that the product
+# "collects no personal data as defined by GDPR Article 4", that no consent
+# mechanism was required, and that the reader "can rely on Legitimate Interest
+# as your lawful basis". The last one is advice about someone else's legal
+# obligations, given by a page that cannot know their configuration.
+#
+# It also contradicted this project's own data processing agreement, which
+# takes the cautious position that the visitor hash may still be in scope and
+# says so with a note asking for a lawyer's opinion. Both cannot be right, and
+# the careful one is the one to keep.
+#
+# Meanwhile the documentation teaches custom properties with `userId: '12345'`
+# as an example. A customer who follows that is sending an identifier through
+# a product whose marketing told them they had nothing to erase.
+#
+# So: the site may describe what the software does, in as much detail as it
+# likes. It may not decide the reader's legal position for them.
+
+SITE = REPO / "site"
+
+FORBIDDEN = {
+    "100% gdpr": "an absolute compliance claim nobody can make for someone else's deployment",
+    "gdpr compliant": "a verdict rather than a description of behaviour",
+    "no personal data as defined": "a legal conclusion about Article 4",
+    "falls outside the scope of consent": "a legal conclusion about the reader's obligations",
+    "no consent mechanism required": "depends on the rest of the reader's site",
+    "you can rely on legitimate interest": "advice about the reader's lawful basis",
+    "nothing to erase": "untrue as soon as custom properties carry an identifier",
+}
+
+
+@pytest.mark.skipif(not SITE.is_dir(), reason=f"needs the full checkout: {SITE} is absent")
+def test_the_site_describes_behaviour_and_does_not_give_legal_advice():
+    offenders = []
+    for path in sorted(SITE.rglob("*.html")):
+        lowered = path.read_text().lower()
+        for phrase, why in FORBIDDEN.items():
+            if phrase in lowered:
+                offenders.append(f"{path.relative_to(SITE)}: '{phrase}' is {why}")
+
+    assert not offenders, (
+        "the site is making claims it cannot support:\n  "
+        + "\n  ".join(offenders)
+        + "\n\nSay what the software does instead. 'The IP address is never "
+        "stored' is checkable and stronger than 'GDPR compliant', which is a "
+        "question about the reader's deployment and not about this software."
+    )
+
+
+@pytest.mark.skipif(not SITE.is_dir(), reason=f"needs the full checkout: {SITE} is absent")
+def test_the_site_still_warns_about_custom_properties():
+    """The one field where the customer can send personal data.
+
+    Removing the overclaims is only half of it. The page has to say that
+    custom properties are the exception, because the documentation shows a
+    user id going into one.
+    """
+    data_page = (SITE / "data.html").read_text().lower()
+
+    assert "custom propert" in data_page, "the caveat is gone from data.html"
+    assert "under your control" in data_page or "yours to" in data_page, (
+        "data.html no longer says that what goes into custom properties is the "
+        "customer's own choice and responsibility"
+    )

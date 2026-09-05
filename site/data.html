@@ -6,18 +6,18 @@
     <title>Privacy by Design - Argusmetrics</title>
     <meta name="theme-color" content="#2563eb">
     <link rel="canonical" href="https://argusmetrics.io/data">
-    <meta name="description" content="How Argusmetrics handles visitor data, no cookies, no fingerprints, GDPR compliant by design. Full transparency on what we collect and what we never touch.">
+    <meta name="description" content="How Argusmetrics handles visitor data: no cookies, no device identifiers, and no IP address stored. Full transparency on what is collected and what is never touched.">
     <meta property="og:site_name" content="Argusmetrics">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://argusmetrics.io/data">
     <meta property="og:title" content="Privacy by Design - Argusmetrics">
-    <meta property="og:description" content="How Argusmetrics handles visitor data, no cookies, no fingerprints, GDPR compliant by design. Full transparency on what we collect and what we never touch.">
+    <meta property="og:description" content="How Argusmetrics handles visitor data: no cookies, no device identifiers, and no IP address stored. Full transparency on what is collected and what is never touched.">
     <meta property="og:image" content="https://argusmetrics.io/static/img/og-image.png">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="Privacy by Design - Argusmetrics">
-    <meta name="twitter:description" content="How Argusmetrics handles visitor data, no cookies, no fingerprints, GDPR compliant by design.">
+    <meta name="twitter:description" content="How Argusmetrics handles visitor data: no cookies, no device identifiers, no IP address stored.">
     <meta name="twitter:image" content="https://argusmetrics.io/static/img/og-image.png">
     <link rel="icon" type="image/x-icon" href="static/favicon.ico">
     <link rel="icon" type="image/png" sizes="32x32" href="static/img/favicon-32.png">
@@ -189,7 +189,7 @@
             <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
                 <div class="inline-flex items-center gap-2 bg-green-50 text-green-700 text-sm font-medium px-4 py-1.5 rounded-full mb-6 border border-green-100">
                     <i class="fas fa-shield-alt text-xs"></i>
-                    GDPR Compliant by Default
+                    No cookies. No device identifiers.
                 </div>
                 <h1 class="text-4xl sm:text-5xl font-extrabold text-gray-900 mb-6 leading-tight">
                     Privacy by Design,<br>Not as an Afterthought
@@ -301,8 +301,8 @@
                     <div class="flex items-start gap-3 p-4 rounded-xl bg-green-50 border border-green-100">
                         <i class="fas fa-check-circle text-green-500 mt-0.5 flex-shrink-0"></i>
                         <div>
-                            <div class="font-semibold text-gray-900 text-sm">No personal data</div>
-                            <div class="text-gray-500 text-xs mt-0.5">No names, email addresses, usernames, or any identifier that could be tied to a real person.</div>
+                            <div class="font-semibold text-gray-900 text-sm">No identifiers</div>
+                            <div class="text-gray-500 text-xs mt-0.5">No names, email addresses or usernames are collected. The exception is what you choose to put in custom properties yourself.</div>
                         </div>
                     </div>
                     <div class="flex items-start gap-3 p-4 rounded-xl bg-green-50 border border-green-100">
@@ -396,8 +396,9 @@
                             No cookie banner required
                         </div>
                         <h2 class="text-3xl font-bold text-gray-900 mb-4">Skip the consent banner</h2>
-                        <p class="text-gray-500 mb-4">Cookie consent banners are required under GDPR and ePrivacy Directive when you use cookies or similar tracking technologies. Argusmetrics uses neither.</p>
-                        <p class="text-gray-500 mb-4">Because we collect no personal data as defined by GDPR Article 4, and because our daily-salted hash cannot be used to identify or track any natural person, Argusmetrics analytics falls outside the scope of consent requirements.</p>
+                        <p class="text-gray-500 mb-4">Consent banners exist because of what a tool stores on, or reads from, a visitor's device. Argusmetrics stores nothing there: no cookies, no localStorage, no identifier of any kind.</p>
+                        <p class="text-gray-500 mb-4">The visitor's IP address is never stored. It is truncated, then hashed together with a salt that changes daily, and only the hash is kept. A visitor cannot be followed from one day to the next, cannot be singled out within their network, and produces a completely different hash on every site.</p>
+                        <p class="text-gray-500 mb-4">Whether that means your deployment needs no banner depends on how you configure it, what you choose to send, and your own legal advice. We can tell you exactly what the software does, and this page does. We cannot tell you what your obligations are.</p>
                         <p class="text-gray-500">Your visitors get a cleaner experience. You get data you can actually trust (no consent bias). Everyone wins.</p>
                     </div>
                     <div class="bg-gray-50 rounded-2xl border border-gray-100 p-8">
@@ -413,15 +414,15 @@
                             </div>
                             <div class="flex items-center gap-3 text-sm">
                                 <i class="fas fa-check-circle text-green-500 flex-shrink-0"></i>
-                                <span class="text-gray-700">No personal data collected</span>
+                                <span class="text-gray-700">No IP address stored, in any form</span>
                             </div>
                             <div class="flex items-center gap-3 text-sm">
                                 <i class="fas fa-check-circle text-green-500 flex-shrink-0"></i>
-                                <span class="text-gray-700">No consent mechanism required</span>
+                                <span class="text-gray-700">Nothing written to the visitor's device</span>
                             </div>
                             <div class="flex items-center gap-3 text-sm">
                                 <i class="fas fa-check-circle text-green-500 flex-shrink-0"></i>
-                                <span class="text-gray-700">Compliant with GDPR, ePrivacy Directive, CCPA</span>
+                                <span class="text-gray-700">All data stays on your own server</span>
                             </div>
                         </div>
                     </div>
@@ -478,21 +479,21 @@
                             <i class="fas fa-file-contract text-blue-500 text-sm"></i>
                             Data Processing Agreement
                         </div>
-                        <p class="text-gray-500 text-sm">We process your visitors' data on your behalf, which makes you the controller and us your processor. Contact us if you need a data processing agreement in place.</p>
+                        <p class="text-gray-500 text-sm">Argusmetrics is self-hosted, so nobody else processes your visitors' data: it never leaves your server. If you run an instance for someone else, such as a client, you are their processor and will need an agreement with them. There is a draft in the repository to start from.</p>
                     </div>
                     <div class="border border-gray-100 rounded-xl p-6">
                         <div class="font-semibold text-gray-900 mb-2 flex items-center gap-2">
                             <i class="fas fa-trash-alt text-blue-500 text-sm"></i>
                             Right to Erasure
                         </div>
-                        <p class="text-gray-500 text-sm">Because we store no personal data, there is nothing to erase for individual visitors. Site owners can delete their entire analytics dataset from the dashboard at any time, with immediate effect.</p>
+                        <p class="text-gray-500 text-sm">There is usually nothing to retrieve or delete for one visitor: the hash changes daily and is not linked to a person, so a single visitor's rows cannot be singled out even deliberately. If you send identifying data in custom properties, that is different, and it is yours to find and remove. Deleting a website deletes its data, and closing an account deletes everything, both immediately.</p>
                     </div>
                     <div class="border border-gray-100 rounded-xl p-6">
                         <div class="font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                            <i class="fas fa-balance-scale text-blue-500 text-sm"></i>
-                            Legitimate Interest Basis
+                            <i class="fas fa-exclamation-triangle text-amber-500 text-sm"></i>
+                            Custom properties are the exception
                         </div>
-                        <p class="text-gray-500 text-sm">Because Argusmetrics collects no personal data, you can rely on Legitimate Interest as your lawful basis, removing the need for consent-based data collection entirely.</p>
+                        <p class="text-gray-500 text-sm">Everything else on this page is designed so it cannot identify a person. Custom event properties are different: they are whatever your site sends. Put a name, an email address or a user id in one and that is personal data you chose to send, stored as given. That field is under your control, not the product's.</p>
                     </div>
                 </div>
             </div>
