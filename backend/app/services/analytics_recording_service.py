@@ -8,6 +8,7 @@ import logging
 from typing import Optional, Dict, Tuple
 from datetime import datetime, timezone
 from urllib.parse import urlparse, parse_qs, urlencode
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 from user_agents import parse
 
@@ -50,6 +51,66 @@ class AnalyticsRecordingService:
 
     def __init__(self, db: Session):
         self.db = db
+
+
+    def complete_scroll_depth(
+        self,
+        tracking_code: str,
+        path: str,
+        depth: int,
+        ip_address: str,
+        user_agent: str,
+    ) -> Tuple[bool, str]:
+        """Fill in how far down the visitor read, on a pageview already written.
+
+        The depth is only known when the visitor leaves, and the row has
+        existed since the page loaded. This completes it rather than recording
+        anything new, so it costs nothing against the monthly limit: the visit
+        was already counted.
+
+        The row is found by recomputing the visitor hash from this request,
+        exactly as record_pageview computes it. That keeps the browser from
+        having to hold a row id and from learning anything it did not already
+        know: the hash is derived on the server from the address and the user
+        agent it is already sending.
+
+        Only ever increases the value. A page left and returned to would
+        otherwise report the second, shallower visit.
+        """
+        website = resolve_tracking_code(self.db, tracking_code)
+        if website is None or not website.is_active or not website.is_verified:
+            return False, "Invalid tracking code"
+
+        if depth is None or depth < 1 or depth > 100:
+            return False, "Scroll depth must be between 1 and 100"
+
+        visitor_hash = self._generate_visitor_hash(ip_address, user_agent, website.domain)
+
+        # Through a SECURITY DEFINER function, the same way this schema
+        # resolves a tracking code, a share token or an invitation. An UPDATE
+        # policy for the tracking context looks like the direct route and is
+        # not: Postgres fetches the rows to evaluate the WHERE clause, that
+        # fetch is governed by SELECT policies, and the tracking context has
+        # none on purpose. The update would match nothing while every security
+        # test still passed.
+        #
+        # The function decides what may change rather than the caller: one
+        # row, this website, this visitor, this path, within thirty minutes,
+        # and only upward.
+        updated = self.db.execute(
+            text(
+                "SELECT argus_complete_scroll_depth(:w, :h, :p, :depth)"
+            ),
+            {"depth": depth, "w": website.id, "h": visitor_hash, "p": path},
+        ).scalar()
+        self.db.commit()
+
+        # Nothing matched is not a failure. The visit may have aged out, or a
+        # deeper value may already be recorded, and neither is worth an error
+        # in a browser that is in the middle of navigating away.
+        if updated:
+            logger.debug(f"Scroll depth {depth} recorded for website {website.id}")
+        return True, "Recorded"
 
     def _generate_visitor_hash(self, ip_address: str, user_agent: str, website_domain: str) -> str:
         return generate_visitor_hash(ip_address, user_agent, website_domain)

@@ -918,3 +918,15 @@ class CustomEventDetail(BaseModel):
     unique_users: int
     events: List[CustomEventResponse] = Field(default_factory=list)
     property_breakdown: List[PropertyBreakdownItem] = Field(default_factory=list)
+
+
+class ScrollDepthRequest(BaseModel):
+    """Completing a pageview with how far down the visitor read.
+
+    Carries no visitor identifier. The row is found by recomputing the hash
+    from the request itself, so the browser holds nothing and learns nothing.
+    """
+
+    tracking_code: str = Field(..., description="The website's tracking code")
+    path: str = Field(..., description="The path the depth belongs to")
+    depth: int = Field(..., ge=1, le=100, description="Deepest point reached, 1-100")

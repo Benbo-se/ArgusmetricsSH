@@ -46,6 +46,9 @@ class AnalyticsService:
     def record_custom_event(self, *args, **kwargs) -> Tuple[bool, str]:
         return self._recording.record_custom_event(*args, **kwargs)
 
+    def complete_scroll_depth(self, *args, **kwargs) -> Tuple[bool, str]:
+        return self._recording.complete_scroll_depth(*args, **kwargs)
+
     # --- Dashboard queries ---
 
     def get_dashboard_stats(self, *args, **kwargs) -> Dict:

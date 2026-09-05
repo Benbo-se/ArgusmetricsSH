@@ -747,7 +747,54 @@
     if (maxScrollDepth <= 0) return;
 
     scrollDepthReported = true;
-    trackEvent('scroll_depth', { depth: maxScrollDepth });
+    sendScrollDepth(maxScrollDepth);
+  }
+
+  /**
+   * Completes the pageview that was already recorded, rather than adding an
+   * event of its own.
+   *
+   * It goes to its own endpoint for two reasons. It fills the scroll_depth
+   * column the dashboard reads, which a custom event does not, and it is not
+   * counted against the monthly limit: the visit was counted when the page
+   * loaded, and a visitor who reads to the bottom should not cost more than
+   * one who leaves at once.
+   *
+   * sendBeacon, because this fires as the page is going away and a normal
+   * fetch is cancelled with it. keepalive fetch is the fallback for browsers
+   * without it.
+   */
+  function sendScrollDepth(depth) {
+    var trackingCode = getTrackingCode();
+    if (!trackingCode) return;
+
+    var endpoint = getApiEndpoint().replace(/\/track$/, '/track-scroll');
+    var payload = JSON.stringify({
+      tracking_code: trackingCode,
+      path: getPath(),
+      depth: depth
+    });
+
+    try {
+      if (navigator.sendBeacon) {
+        navigator.sendBeacon(endpoint, new Blob([payload], { type: 'application/json' }));
+        return;
+      }
+    } catch (e) {
+      // Fall through to fetch below.
+    }
+
+    try {
+      fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: payload,
+        keepalive: true
+      });
+    } catch (e) {
+      // A depth that never arrives is a missing value, not an error worth
+      // showing to a visitor who has already left.
+    }
   }
 
   /**

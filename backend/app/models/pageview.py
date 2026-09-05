@@ -5,7 +5,7 @@ Scaling note: When pageview volume exceeds ~50M rows/year, consider
 PostgreSQL native table partitioning (PARTITION BY RANGE on timestamp),
 or TimescaleDB hypertables (the bundled image ships the extension).
 """
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Index, Text
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Index, Text, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.sql import func
 from app.database import Base
@@ -86,6 +86,14 @@ class Pageview(Base):
         # "Top pages over a date range" is the most common dashboard query
         Index('idx_pageviews_website_path_time', 'website_id', 'path', 'timestamp'),
         Index('idx_pageviews_properties', 'properties', postgresql_using='gin'),
+        # Finding the pageview a scroll depth belongs to, newest first. The
+        # visitor leaves every page, so this lookup runs about as often as a
+        # pageview is recorded, and without it that is a scan of the website's
+        # chunks to find one row.
+        Index(
+            'ix_pageviews_complete_lookup',
+            'website_id', 'visitor_hash', 'path', text('"timestamp" DESC'),
+        ),
         # Row-level security makes the tracking context write-only, and
         # INSERT ... RETURNING needs the new row to be readable to return it.
         # SQLAlchemy uses RETURNING by default to fetch the primary key, so

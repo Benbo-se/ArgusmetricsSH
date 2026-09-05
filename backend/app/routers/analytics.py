@@ -20,6 +20,7 @@ from app.services.website_service import WebsiteService
 from app.services.token_service import TokenService
 from app.services.alert_service import AlertService
 from app.schemas.analytics import (
+    ScrollDepthRequest,
     PageviewTrackRequest,
     PageviewTrackResponse,
     DashboardStatsResponse,
@@ -440,6 +441,39 @@ async def get_realtime_stats(
 # ============================================
 # GOAL TRACKING ENDPOINTS
 # ============================================
+
+
+@router.post("/track-scroll", status_code=status.HTTP_200_OK,
+             dependencies=[Depends(check_track_rate_limit), Depends(use_tracking_context)])
+async def track_scroll(
+    request: Request,
+    body: ScrollDepthRequest,
+    analytics_service: AnalyticsService = Depends(get_analytics_service),
+):
+    """Record how far down a visitor read, on a pageview already recorded.
+
+    Not counted against the monthly limit: this completes a visit that was
+    counted when the page loaded. Charging for it twice would make a scrolling
+    visitor cost more than a bouncing one.
+
+    Answers 200 even when no row matched. The visit may have aged out or
+    already hold a deeper value, and neither is worth an error to a browser
+    that is in the middle of navigating away, which is the only moment this is
+    ever called.
+    """
+    success, message = analytics_service.complete_scroll_depth(
+        tracking_code=body.tracking_code,
+        path=body.path,
+        depth=body.depth,
+        ip_address=get_client_ip(request),
+        user_agent=get_user_agent(request),
+    )
+
+    if not success:
+        raise HTTPException(status_code=_failure_status(message), detail=message)
+
+    return {"success": True, "message": message}
+
 
 @router.post("/goals", response_model=GoalResponse, status_code=status.HTTP_201_CREATED)
 async def create_goal(
