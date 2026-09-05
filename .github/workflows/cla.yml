@@ -24,8 +24,23 @@ permissions:
 jobs:
   cla:
     runs-on: ubuntu-latest
-    # Nothing to sign on a pull request from this repository itself.
-    if: github.event.pull_request.head.repo.full_name != github.repository || github.event_name == 'issue_comment'
+    # Two ways in, and both have to be narrowed.
+    #
+    # issue_comment fires on every comment in the repository, including plain
+    # issues, and the action then tries to look up a pull request by that
+    # number and fails with "Could not resolve to a PullRequest". Every comment
+    # on an issue turned the workflow red. So: only comments on a pull request,
+    # and only ones that are actually the signature.
+    #
+    # pull_request_target: nothing to sign on a pull request from this
+    # repository itself.
+    if: |
+      (github.event_name == 'issue_comment'
+        && github.event.issue.pull_request
+        && contains(github.event.comment.body, 'I have read the CLA document'))
+      ||
+      (github.event_name == 'pull_request_target'
+        && github.event.pull_request.head.repo.full_name != github.repository)
     steps:
       - name: Check or record the signature
         uses: contributor-assistant/github-action@v2.6.1
