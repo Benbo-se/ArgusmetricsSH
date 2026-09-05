@@ -210,3 +210,44 @@ class TestRetentionDeletesOnlyWhatIsOld:
             text("SELECT count(*) FROM pageviews WHERE path = '/retention-ancient'")
         ).scalar()
         assert still_there == 1, "retention is off; nothing should have been purged"
+
+
+class TestNoContinuousAggregateBypassesThePolicies:
+    """A continuous aggregate over a policied table is a hole in the isolation.
+
+    TimescaleDB refuses to create one on a hypertable that has row security:
+
+        ERROR: cannot create continuous aggregate on hypertable with row security
+
+    That refusal guards the order and nothing else. An aggregate created before
+    the policies were enabled keeps working afterwards, and it is a separate
+    relation with policies of its own, which is to say none. Measured on this
+    database, as the unprivileged role:
+
+        the source table gives:  0 rows
+        the aggregate gives:     2 rows
+
+    So the way this breaks is not somebody adding an aggregate, which fails
+    loudly. It is somebody disabling row security to add one, or adding one to
+    a table before the policies land, and then everything works and every
+    customer can read every other customer's totals.
+
+    Aggregates are how a time-series database is supposed to stay fast at
+    volume, so the pull toward adding one will be real. This is the check that
+    makes that a decision rather than an accident.
+    """
+
+    def test_there_are_none(self, db):
+        existing = db.execute(
+            text(
+                "SELECT view_name FROM timescaledb_information.continuous_aggregates"
+            )
+        ).scalars().all()
+
+        assert not existing, (
+            f"continuous aggregates exist: {existing}. Each one is readable "
+            "without the policies that protect the table it summarises. If "
+            "the dashboard needs precomputed rollups, they belong in an "
+            "ordinary table with its own policies, filled by the scheduled "
+            "job that already exists. See issue #59."
+        )

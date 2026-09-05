@@ -124,11 +124,15 @@ plus a per-request nonce. No `unsafe-inline`, no `unsafe-eval`.
 Python 3.11, FastAPI, SQLAlchemy 2.0, Alembic, Jinja2 with HTMX and Alpine
 (the CSP build), TimescaleDB on PostgreSQL 16, and a vanilla-JS tracker.
 
-The four traffic tables are TimescaleDB hypertables partitioned by time, so a
+The five traffic tables are TimescaleDB hypertables partitioned by time, so a
 query over the last week reads a week of chunks rather than the whole table and
-retention drops a chunk instead of deleting rows. Compression is deliberately
-not enabled: TimescaleDB refuses it on a table with row-level security, and the
-isolation guarantee is worth more than the disk.
+retention drops a chunk instead of deleting rows.
+
+Neither compression nor continuous aggregates are used, and that is a decision
+rather than an omission: TimescaleDB refuses both on a table with row-level
+security. The second one is worth reading about before anyone reaches for it,
+because the refusal guards only the order in which things are created.
+[docs/SCALING.md](docs/SCALING.md) has the measurements.
 
 ## Tests
 
