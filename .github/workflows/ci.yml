@@ -50,7 +50,7 @@ jobs:
       # från inkommande Host och jämför mot BASE_URL:ens host.
       BASE_URL: http://127.0.0.1
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'   # samma som docker/Dockerfile
@@ -340,7 +340,7 @@ jobs:
       SECRET_KEY: x
       BASE_URL: x
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: docker compose -f docker/docker-compose.prod.yml config -q
       - name: Validera nginx-confen (utan backend-upstream-uppslag)
         run: |
@@ -366,7 +366,7 @@ jobs:
     env:
       PUSH: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: docker/setup-buildx-action@v3
       - name: Logga in på GHCR
         if: env.PUSH == 'true'
