@@ -58,8 +58,8 @@ argus - run this Argusmetrics instance
   restart [service]         restart, re-reading docker/.env
 
   admin list                who may open /dashboard/admin
-  admin add <email>         let an address in, and restart so it takes effect
-  admin remove <email>      take an address out
+  admin add                 let an account in (asks which)
+  admin remove              take one out (asks which)
 
   waitlist ...              the hosted-signup waiting list
                             (count, list, export, remove, mark-notified)
@@ -105,12 +105,95 @@ env_set() {
 # restart does not re-read the file. ARGUS_NO_RESTART exists so a setup script
 # can make several changes and restart once at the end, and so the tests for
 # the editing above do not need a running stack.
+# Which image tag is actually running, read off the container rather than
+# guessed.
+#
+# This exists because guessing took production down. The compose file says
+# ${ARGUS_TAG:-latest} and the deploy passes ARGUS_TAG=<commit sha> for its own
+# command only; it never writes it to docker/.env. So a plain `compose up -d
+# backend` from here fell back to `latest`, recreated the backend on a
+# different image than the one deployed, and the site answered 502 until
+# somebody passed the right tag by hand.
+running_tag() {
+    docker inspect -f '{{.Config.Image}}' "$BACKEND_CONTAINER" 2>/dev/null \
+        | sed -n 's/.*://p'
+}
+
 restart_backend() {
     if [ -n "${ARGUS_NO_RESTART:-}" ]; then
         echo "  (not restarting: ARGUS_NO_RESTART is set)"
         return 0
     fi
-    compose up -d backend
+
+    local tag
+    tag="$(running_tag)"
+    if [ -z "$tag" ]; then
+        echo >&2
+        echo "argus: cannot tell which image is running, so this will not" >&2
+        echo "       recreate the container and risk starting the wrong one." >&2
+        echo "       The setting is saved. Apply it with:" >&2
+        echo >&2
+        echo "         ARGUS_TAG=\$(git rev-parse HEAD) \\" >&2
+        echo "           docker compose -f $COMPOSE_FILE up -d backend" >&2
+        return 1
+    fi
+
+    echo "  (on the image already running: $tag)"
+    ARGUS_TAG="$tag" compose up -d backend
+}
+
+# The accounts that exist, so an administrator can be chosen from them rather
+# than typed. An address that is not an account can never sign in, and on an
+# instance with registration closed it can never become one either.
+accounts() {
+    running || return 1
+    docker exec -i -w /app "$BACKEND_CONTAINER" python - <<'PY' 2>/dev/null
+from sqlalchemy import text
+from app.database import SessionLocal, set_rls_context
+
+db = SessionLocal()
+set_rls_context(db, context="job")
+for (email,) in db.execute(
+    text("SELECT email FROM users ORDER BY created_at")
+).all():
+    print(email)
+PY
+}
+
+# Ask, rather than take it as an argument. An address on the command line is
+# an address that can be pasted from an example: "din-adress@argusmetrics.io"
+# went into a live instance's ADMIN_EMAILS verbatim, and the script cheerfully
+# said to sign in as it. app.bootstrap already prompts for what matters
+# instead of accepting it as an argument; this is the same reasoning.
+choose_account() {
+    local list chosen count
+    list="$(accounts || true)"
+
+    if [ -z "$list" ]; then
+        echo "No accounts on this instance yet." >&2
+        echo "Create one first: ./argus bootstrap" >&2
+        return 1
+    fi
+
+    count="$(echo "$list" | wc -l)"
+    echo "Accounts on this instance:" >&2
+    echo "$list" | nl -w4 -s'  ' >&2
+    echo >&2
+    printf 'Which one should be able to open /dashboard/admin? [1-%s]: ' \
+        "$count" >&2
+    read -r chosen </dev/tty || return 1
+
+    case "$chosen" in
+        ''|*[!0-9]*)
+            echo "argus: give the number of an account." >&2
+            return 1
+            ;;
+    esac
+    if [ "$chosen" -lt 1 ] || [ "$chosen" -gt "$count" ]; then
+        echo "argus: there is no account $chosen." >&2
+        return 1
+    fi
+    echo "$list" | sed -n "${chosen}p"
 }
 
 admin() {
@@ -122,16 +205,20 @@ admin() {
         list)
             if [ -z "$current" ]; then
                 echo "Nobody. /dashboard/admin answers 404 to everyone."
-                echo "Add one with: ./argus admin add you@example.com"
+                echo "Add one with: ./argus admin add"
             else
                 echo "$current" | tr ',' '\n' | sed 's/^ *//; s/ *$//; /^$/d' \
                     | sed 's/^/  /'
             fi
             ;;
         add)
-            local email="${1:-}"
-            [ -n "$email" ] || die "which address? ./argus admin add you@example.com"
-            case "$email" in *@*.*) ;; *) die "that does not look like an address: $email";; esac
+            # No address argument, on purpose. One can be pasted from an
+            # example, and "din-adress@argusmetrics.io" went into a live
+            # instance's ADMIN_EMAILS verbatim while the script said to sign
+            # in as it. You are asked, and you pick from the accounts that
+            # exist, so there is nothing to type wrong.
+            local email
+            email="$(choose_account)" || exit 1
             if echo ",$current," | grep -qi ",$email,"; then
                 echo "$email is already an administrator."
                 return 0
@@ -147,8 +234,20 @@ admin() {
             echo "Done. Open /dashboard/admin signed in as $email."
             ;;
         remove)
-            local email="${1:-}"
-            [ -n "$email" ] || die "which address?"
+            local email chosen count
+            [ -n "$current" ] || die "nobody is an administrator; nothing to remove"
+            echo "Administrators:" >&2
+            echo "$current" | tr ',' '\n' | sed 's/^ *//; s/ *$//; /^$/d' \
+                | nl -w4 -s'  ' >&2
+            count="$(echo "$current" | tr ',' '\n' | sed '/^$/d' | wc -l)"
+            printf 'Which one should stop being an administrator? [1-%s]: ' \
+                "$count" >&2
+            read -r chosen </dev/tty || exit 1
+            case "$chosen" in ''|*[!0-9]*) die "give the number of one of them";; esac
+            [ "$chosen" -ge 1 ] && [ "$chosen" -le "$count" ] \
+                || die "there is no administrator $chosen"
+            email="$(echo "$current" | tr ',' '\n' | sed 's/^ *//; s/ *$//' \
+                     | sed -n "${chosen}p")"
             local kept
             # `|| true` because grep exits 1 when it keeps nothing, which is
             # what removing the last address looks like, and pipefail then

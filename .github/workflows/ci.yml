@@ -423,6 +423,186 @@ jobs:
           cmp /tmp/tracker.check.js ../../site/static/tracker.min.js || { echo "site/static/tracker.min.js ur synk med src — kör 'npm run build'"; exit 1; }
 
   # ── 3. Bygg båda images; push till GHCR bara på grön main ────────────────
+  # ── 3. Startar det vi faktiskt levererar ──────────────────────────────────
+  # Fram till nu byggdes imagerna och pushades utan att någonsin köras, och
+  # allt annat testade appen från källkod mot en naken Postgres. Alltså testade
+  # hela sviten produkten i dev:s form.
+  #
+  # Två jobb, för det är två olika sorters fel:
+  #
+  #   stack   startar den byggda imagen och kräver att /health svarar. Fångar
+  #           en artefakt som inte går att starta. Det är mönstret daemonscan
+  #           och trackone redan använder.
+  #
+  #   prod    reser docker-compose.prod.yml med en riktig tagg och kräver att
+  #           hela kedjan svarar genom nginx. Fångar fel i compose-filen
+  #           själv, och det var där produktionen gick ner: ARGUS_TAG sätts
+  #           bara av deployen, så ett compose-kommando körts för hand föll
+  #           tillbaka på :latest och startade om backend på fel image.
+  stack:
+    needs: [smoke, hygiene]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Bygg backend-imagen lokalt
+        uses: docker/build-push-action@v6
+        with:
+          context: backend
+          file: docker/Dockerfile
+          push: false
+          load: true
+          tags: argusmetrics-backend:citest
+          cache-from: type=gha,scope=backend
+
+      - name: Starta den och kräv att /health svarar
+        run: |
+          set -euo pipefail
+          docker network create ci >/dev/null
+
+          docker run -d --name db --network ci \
+            -e POSTGRES_USER=argus -e POSTGRES_PASSWORD=argus \
+            -e POSTGRES_DB=argus \
+            timescale/timescaledb:latest-pg16
+          for i in $(seq 1 30); do
+            docker exec db pg_isready -U argus -d argus >/dev/null 2>&1 && break
+            sleep 2
+          done
+
+          # Entrypointen kör alembic upgrade head innan appen startar, så det
+          # här är också fresh-install-testet mot den byggda imagen.
+          docker run -d --name api --network ci -p 8020:8020 \
+            -e DATABASE_URL="postgresql://argus:argus@db:5432/argus" \
+            -e SECRET_KEY="ci-dummy-secret-key-0123456789abcdefghij" \
+            -e BASE_URL="http://127.0.0.1:8020" \
+            argusmetrics-backend:citest
+
+          OK=0
+          for i in $(seq 1 45); do
+            if curl -fsS http://127.0.0.1:8020/health >/dev/null 2>&1; then OK=1; break; fi
+            sleep 2
+          done
+          if [ "$OK" != "1" ]; then
+            echo "::error::Den byggda imagen svarar inte på /health"
+            docker logs api | tail -60
+            exit 1
+          fi
+          curl -fsS http://127.0.0.1:8020/health
+
+  prod:
+    needs: [smoke, hygiene]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+
+      # Byggda lokalt och laddade in i dockerd under de namn compose väntar
+      # sig, så compose-filen testas exakt som den är, inklusive
+      # ${ARGUS_TAG}-interpolationen, utan att något behöver finnas i GHCR.
+      - name: Bygg backend-imagen som compose-filen namnger den
+        uses: docker/build-push-action@v6
+        with:
+          context: backend
+          file: docker/Dockerfile
+          push: false
+          load: true
+          tags: ghcr.io/benbo-se/argusmetrics-backend:citest
+          cache-from: type=gha,scope=backend
+      - name: Bygg web-imagen likaså
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile.web
+          push: false
+          load: true
+          tags: ghcr.io/benbo-se/argusmetrics-web:citest
+          cache-from: type=gha,scope=web
+
+      - name: Res prod-stacken och kräv att den svarar genom nginx
+        run: |
+          set -euo pipefail
+          # De sex variabler compose-filen kräver, plus de som styr vad vi
+          # sedan kontrollerar. Ingen hemlighet: det här är en engångsstack.
+          cat > docker/.env <<'ENVFILE'
+          POSTGRES_USER=argus
+          POSTGRES_PASSWORD=ci-postgres-password
+          POSTGRES_DB=argus
+          APP_DB_PASSWORD=ci-app-password
+          SECRET_KEY=ci-dummy-secret-key-0123456789abcdefghij
+          # Portlös, som i produktion. allowed_hosts blir BASE_URL utan
+          # schema, och nginx vidarebefordrar Host utan port, så en
+          # BASE_URL med port ger 400 på varje anrop.
+          BASE_URL=http://argusmetrics.test
+          WEB_PORT=8021
+          ENVFILE
+
+          C="docker compose -f docker/docker-compose.prod.yml"
+          ARGUS_TAG=citest $C up -d
+
+          OK=0
+          for i in $(seq 1 45); do
+            if curl -fsS -H 'Host: argusmetrics.test' \
+                 http://127.0.0.1:8021/health >/dev/null 2>&1; then OK=1; break; fi
+            sleep 2
+          done
+          if [ "$OK" != "1" ]; then
+            echo "::error::Prod-stacken svarar inte på /health genom nginx"
+            $C ps
+            $C logs --tail=80
+            exit 1
+          fi
+
+          echo "Hälsa genom nginx:"
+          curl -fsS -H 'Host: argusmetrics.test' http://127.0.0.1:8021/health
+
+          # Marknadssiten serveras av web-containern, inte av backend, så den
+          # kontrolleras separat: en stack där bara den ena halvan lever ser
+          # frisk ut för en hälsokontroll som bara frågar backend.
+          curl -fsS -H 'Host: argusmetrics.test' http://127.0.0.1:8021/ | grep -q "Argusmetrics" \
+            || { echo "::error::Marknadssiten serveras inte"; exit 1; }
+          curl -fsS -o /dev/null -H 'Host: argusmetrics.test' \
+            http://127.0.0.1:8021/static/tracker.min.js \
+            || { echo "::error::Tracking-skriptet serveras inte"; exit 1; }
+
+      - name: Ett compose-kommando utan ARGUS_TAG får inte byta image
+        run: |
+          set -euo pipefail
+          # Det här är felet som tog ner produktionen. Deployen sätter
+          # ARGUS_TAG bara för sitt eget kommando, så ett `compose up -d
+          # backend` körts för hand efteråt föll tillbaka på :latest och
+          # startade om backend på en annan image än den utrullade.
+          #
+          # Här finns ingen :latest alls, så samma kommando misslyckas, vilket
+          # är precis vad som ska hända: ett verktyg som inte vet vilken
+          # version som körs ska inte röra containern.
+          C="docker compose -f docker/docker-compose.prod.yml"
+
+          # Kommandots utgång spelar ingen roll. Invarianten är vilken image
+          # som faktiskt kör efteråt: den ska vara den vi rullade ut, oavsett
+          # om compose vägrade eller tyst försökte byta.
+          $C up -d backend >/dev/null 2>&1 || true
+
+          RUNNING="$(docker inspect -f '{{.Config.Image}}' argusmetrics-backend 2>/dev/null || echo none)"
+          case "$RUNNING" in
+            *:citest)
+              echo "OK: containern kör fortfarande $RUNNING"
+              ;;
+            none)
+              echo "::error::backend finns inte längre efter ett compose-anrop utan tagg"
+              exit 1
+              ;;
+            *)
+              echo "::error::compose bytte image till $RUNNING utan ARGUS_TAG."
+              echo "         Det är felet som tog ner produktionen 2026-09-06."
+              exit 1
+              ;;
+          esac
+
+          # Och att stacken fortfarande svarar, för en container som lever men
+          # kör fel kod ser frisk ut i docker ps.
+          curl -fsS -H 'Host: argusmetrics.test' http://127.0.0.1:8021/health >/dev/null \
+            || { echo "::error::stacken svarar inte längre"; exit 1; }
+
   build:
     needs: [smoke, hygiene]
     runs-on: ubuntu-latest
