@@ -1016,8 +1016,11 @@ argus.trackEvent('button_click', {
                     Countries are resolved from a MaxMind database file on this
                     server, so no visitor address is ever sent anywhere. Without
                     the file there is nothing to resolve against.
-                    Point <code class="bg-gray-100 px-1 rounded">GEOIP_DB_PATH</code>
-                    at a GeoLite2-Country.mmdb to switch it on.
+                    Run <code class="bg-gray-100 px-1 rounded">python -m app.ip_country refresh</code>
+                    to build the table from the internet registries' own
+                    published data, or point
+                    <code class="bg-gray-100 px-1 rounded">GEOIP_DB_PATH</code>
+                    at a MaxMind-format database instead.
                 </p>
             </div>
             {% endif %}

@@ -195,6 +195,46 @@ def traffic_alerts_task():
         db.close()
 
 
+def ip_country_refresh_task():
+    """Rebuild the IP-to-country table from the registries, weekly.
+
+    Only when nothing else is providing countries. An operator who configured
+    an mmdb chose that file deliberately, and fetching fifty megabytes a week
+    to fill a table nothing reads would be rude.
+
+    Weekly rather than daily because allocations move slowly and the files are
+    large. A week of drift affects ranges that changed hands in that week.
+    """
+    from app.config import settings
+
+    if settings.geoip_available:
+        logger.info("[SCHEDULED] Country database is configured; skipping RIR refresh")
+        return
+
+    logger.info(f"[SCHEDULED] Refreshing IP-to-country table at {datetime.now(timezone.utc)}")
+    try:
+        with _single_runner(918_271_004, "ip_country_refresh") as acquired:
+            if acquired:
+                from app.database import SessionLocal, set_rls_context
+                from app.services import ip_country_service
+
+                db = SessionLocal()
+                try:
+                    set_rls_context(db, context="job")
+                    result = ip_country_service.refresh(db)
+                    logger.info(
+                        f"[SCHEDULED] Loaded {result['ranges']} ranges across "
+                        f"{result['countries']} countries"
+                    )
+                finally:
+                    db.close()
+    except Exception as e:
+        # Raised through _single_runner so the failure is recorded in job_runs
+        # and shows up in metrics as consecutive_failures, which is the only
+        # way anyone would notice country data quietly going stale.
+        logger.error(f"[SCHEDULED] Error refreshing IP-to-country table: {e}", exc_info=True)
+
+
 def start_scheduler():
     """Initialize and start the background scheduler."""
     scheduler = BackgroundScheduler(timezone="UTC")
@@ -227,10 +267,21 @@ def start_scheduler():
         replace_existing=True
     )
 
+    # Sunday 03:30 UTC: after the nightly cleanup, before anyone is awake, and
+    # nowhere near the top of an hour when every other server on the internet
+    # is asking the registries for the same files.
+    scheduler.add_job(
+        ip_country_refresh_task,
+        trigger=CronTrigger(day_of_week="sun", hour=3, minute=30),
+        id="ip_country_refresh",
+        name="Rebuild the IP-to-country table from the registries",
+        replace_existing=True
+    )
+
     scheduler.start()
     logger.info(
         "Background scheduler started - cleanup 02:00 UTC, email reports 07:00 UTC, "
-        "traffic-spike alerts hourly at :05"
+        "traffic-spike alerts hourly at :05, IP-to-country refresh Sundays 03:30 UTC"
     )
 
     return scheduler

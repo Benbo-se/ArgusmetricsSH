@@ -77,6 +77,34 @@ If a job fails repeatedly, `last_error` holds the reason. Retention falling
 behind is not urgent; the alert and report jobs not running means customers
 are not being told things they expect to be told.
 
+## Every country reads Unknown
+
+Two reasons, and the dashboard now says which. Either nothing is loaded, or
+what is loaded has nothing covering your visitors' addresses.
+
+```bash
+$C exec backend python -m app.ip_country status
+$C exec backend python -m app.ip_country lookup 81.224.1.1
+```
+
+`status` empty means the table was never built. Load it:
+
+```bash
+$C exec backend python -m app.ip_country refresh
+```
+
+The scheduler redoes this every Sunday at 03:30 UTC as `ip_country_refresh`,
+so a table that has gone stale shows up in `job_runs` like any other job, and
+in metrics as `argus_ip_country_ranges` falling to zero.
+
+The refresh refuses to install an implausibly small result rather than
+replacing a good table with a bad one, so "Refusing to install N ranges" in
+the log means the old data is still there and still being used. Usually a
+registry was unreachable; running it again later is the whole fix.
+
+If `GEOIP_DB_PATH` is set, that file wins and the table is not consulted or
+refreshed at all. Check the file exists and is readable by the backend.
+
 ## The disk is filling
 
 The database and the backups share a disk, which is issue #18 and not yet

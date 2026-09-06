@@ -44,35 +44,42 @@ None of it needs an external service.
 
 | Feature | Needs | Without it |
 |---|---|---|
-| Country statistics | `GEOIP_DB_PATH` pointing at any MaxMind-format `.mmdb` | Country reads "Unknown". No third-party IP lookup happens either way |
+| Country statistics | One `python -m app.ip_country refresh`, or `GEOIP_DB_PATH` | Country reads "Unknown". No third-party IP lookup happens either way |
 | Email (verification, password reset, invitations, reports) | `SMTP_*`, or a Lettermint API key | Verification links are printed to the backend log. Password login works regardless |
 
 ### Country data
 
-Countries are resolved from a database file on your own machine. No address is
-ever sent anywhere, which is the whole reason it works this way, and the cost
-is that without the file there is no country data at all.
+Countries are resolved on this machine and nowhere else. No visitor address
+is ever sent to anyone, which is the whole reason it works this way, and the
+cost is that something has to tell the server which ranges belong where.
 
-Two databases fit, both free, and the reader takes either because they are the
-same format:
-
-**DB-IP Lite** needs no account. One download, no key, no signup:
+**The built-in way needs no account and no vendor.** The five Regional
+Internet Registries publish their allocations openly, and that is the data
+every commercial geolocation database is built from:
 
 ```bash
-curl -sL "https://download.db-ip.com/free/dbip-country-lite-$(date +%Y-%m).mmdb.gz" \
-  | gunzip > backend/app/data/country.mmdb
+docker compose exec backend python -m app.ip_country refresh
 ```
 
-Then set `GEOIP_DB_PATH=/app/data/country.mmdb`. It is published monthly under
-CC BY 4.0, so if you run a public instance, credit DB-IP somewhere visible.
+That loads roughly 330,000 ranges covering 239 countries, and the scheduler
+keeps it current every Sunday. `python -m app.ip_country status` shows what is
+loaded; `lookup <address>` answers for one address. On a machine with no
+outbound access, download the five `delegated-<registry>-extended-latest`
+files elsewhere and pass `--from-dir`.
 
-**MaxMind GeoLite2** is the better-known one and slightly more accurate on
-mobile networks. It is free but needs an account and a licence key, and
-MaxMind's `geoipupdate` keeps it current. Same variable, same file format.
+What it cannot do, stated here because the dashboard will not say it: registry
+data records the country a range was *allocated to*, not where it is used. A
+consumer ISP's range and its customers are in the same place. A range
+allocated to a US company and announced from a Stockholm data centre reads US.
+Ordinary visitor traffic is fine; cloud, VPN and CDN traffic is not.
 
-Either way the file goes stale: allocations move, and a database from last
-year quietly attributes traffic to the wrong place. Whichever you pick, put
-the refresh on a schedule.
+**If that accuracy matters**, point `GEOIP_DB_PATH` at a MaxMind-format
+`.mmdb` and it takes precedence. Commercial databases add BGP data, which
+closes exactly that gap. [DB-IP
+Lite](https://db-ip.com/db/download/ip-to-country-lite) needs no account
+(monthly, CC BY 4.0, credit them if your instance is public); MaxMind GeoLite2
+is free but wants an account and a licence key. Either file goes stale, so put
+its refresh on a schedule too.
 
 ## The first account
 

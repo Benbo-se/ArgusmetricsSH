@@ -140,6 +140,17 @@ def render(db: Session, started_at: float) -> str:
     if size is not None:
         out += _line("argus_database_bytes", size, "Size of the database on disk")
 
+    # Country data. Zero here means every country on every dashboard reads
+    # Unknown, which is otherwise a silent condition: nothing is down, the
+    # panel just says there is nothing to show.
+    ranges = _scalar(db, "SELECT count(*) FROM ip_country_ranges")
+    if ranges is not None:
+        out += _line(
+            "argus_ip_country_ranges",
+            ranges,
+            "Address ranges loaded for country lookup, zero if none",
+        )
+
     chunks = _scalar(db, "SELECT count(*) FROM timescaledb_information.chunks")
     if chunks is not None:
         out += _line("argus_hypertable_chunks", chunks, "Chunks across all hypertables")

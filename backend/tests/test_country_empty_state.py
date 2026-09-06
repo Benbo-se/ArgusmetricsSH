@@ -89,14 +89,24 @@ class TestGeoipAvailable:
         An operator adds the file and reloads the page. If the template global
         had captured a value at import, the dashboard would keep telling them
         country data is off until someone restarted the process.
+
+        Only the file is asserted here. The global answers for two sources now,
+        an mmdb or the table built from the registries, and the table's half is
+        covered in test_ip_country.py against a database it controls; asserting
+        False here would fail on any machine that has actually loaded it.
         """
         monkeypatch.setattr(settings, "GEOIP_DB_PATH", None)
-        assert env.globals["geoip_available"]() is False
+        before = env.globals["geoip_available"]()
 
         db = tmp_path / "GeoLite2-Country.mmdb"
         db.write_bytes(b"x")
         monkeypatch.setattr(settings, "GEOIP_DB_PATH", str(db))
+
         assert env.globals["geoip_available"]() is True
+        assert settings.geoip_available is True, (
+            "the file half of the answer no longer responds to the setting"
+        )
+        assert isinstance(before, bool)
 
 
 class TestTheCountriesPanelTellsTheTruth:

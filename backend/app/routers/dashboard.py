@@ -40,10 +40,28 @@ templates_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "templa
 templates = Jinja2Templates(directory=templates_dir)
 # base.html builds canonical/og URLs from the instance's own BASE_URL
 templates.env.globals["base_url"] = settings.BASE_URL.rstrip("/")
-# Whether country lookup can work at all. A callable rather than a value so it
-# is read per request: the operator can drop the database file in without a
-# restart, and the empty state stops lying the moment they do.
-templates.env.globals["geoip_available"] = lambda: settings.geoip_available
+def _country_lookup_available() -> bool:
+    """Whether country lookup can work at all, from either source.
+
+    An mmdb file if the operator configured one, otherwise the table built
+    from the registries. A callable rather than a value so it is read per
+    request: adding the file or running the refresh takes effect immediately,
+    and the empty state stops lying the moment it does.
+    """
+    if settings.geoip_available:
+        return True
+
+    from app.database import SessionLocal
+    from app.services import ip_country_service
+
+    session = SessionLocal()
+    try:
+        return ip_country_service.is_populated(session)
+    finally:
+        session.close()
+
+
+templates.env.globals["geoip_available"] = _country_lookup_available
 
 # Add custom Jinja2 filters
 def format_number(value):

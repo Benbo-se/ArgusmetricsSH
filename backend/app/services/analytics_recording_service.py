@@ -46,6 +46,66 @@ def sanitize_path(path: str) -> str:
     return base + '?' + urlencode(cleaned, doseq=True)
 
 
+def _is_routable(ip_address: str) -> bool:
+    """Whether an address is worth looking up at all.
+
+    This used to be a string prefix check, and '172.16.' matched exactly one
+    sixteenth of the private 172.16.0.0/12 block. Docker's default bridge is
+    172.17.0.0/16, so an address from our own container network fell straight
+    through it. The stdlib knows the whole list, including loopback, link-local
+    and carrier-grade NAT.
+    """
+    import ipaddress
+
+    try:
+        address = ipaddress.ip_address(ip_address)
+    except ValueError:
+        return False
+    return not (
+        address.is_private
+        or address.is_loopback
+        or address.is_link_local
+        or address.is_reserved
+        or address.is_multicast
+        or address.is_unspecified
+    )
+
+
+#: One open reader for the process, keyed by path so a changed setting takes
+#: effect. The file was reopened and memory-mapped on every single pageview,
+#: which is a syscall and a parse on the hottest path in the application to
+#: read one integer.
+_MMDB_CACHE: Dict[str, object] = {}
+
+
+def _mmdb_reader():
+    """The configured MaxMind-format reader, or None if there is not one."""
+    import os
+
+    path = settings.GEOIP_DB_PATH
+    if not path:
+        return None
+
+    cached = _MMDB_CACHE.get(path)
+    if cached is not None:
+        return cached
+
+    if not os.path.exists(path):
+        logger.debug(f"Country database not found at {path}")
+        return None
+
+    try:
+        import geoip2.database
+
+        reader = geoip2.database.Reader(path)
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"Could not open country database at {path}: {e}")
+        return None
+
+    _MMDB_CACHE[path] = reader
+    return reader
+
+
 class AnalyticsRecordingService:
     """Service for recording pageviews and custom events."""
 
@@ -203,34 +263,38 @@ class AnalyticsRecordingService:
     def _get_country_from_ip(self, ip_address: str) -> Optional[str]:
         """Get country code from IP address.
 
-        Resolves country using ONLY a local MaxMind GeoLite2 database
-        (settings.GEOIP_DB_PATH). No third-party network lookups are
-        performed, so visitor IPs never leave this server. Returns None
-        (country Unknown) when the DB is unconfigured or missing.
+        Two sources, both on this machine. No lookup ever crosses the network,
+        so a visitor's address never leaves the server, which is the reason
+        country data works this way and not the easy way.
+
+        An mmdb file wins when the operator has configured one: choosing it is
+        a deliberate act, and a commercial database knows things the registry
+        data cannot, notably that a US-allocated block is being announced from
+        Stockholm.
+
+        Otherwise the table built from the registries' own published
+        allocations answers, which needs no account and no vendor.
+
+        None means Unknown, and both a missing file and an empty table say it.
         """
-        if ip_address.startswith(('127.', '10.', '192.168.', '172.16.', '::1', 'localhost')):
-            logger.debug(f"Skipping GeoIP lookup for local IP: {ip_address}")
+        if not _is_routable(ip_address):
+            logger.debug(f"Skipping country lookup for non-public IP: {ip_address}")
             return None
 
-        db_path = settings.GEOIP_DB_PATH
-        if not db_path:
-            return None
-
-        try:
-            import os
-            import geoip2.database
-
-            if not os.path.exists(db_path):
-                logger.debug(f"GeoIP DB not found at {db_path}; skipping lookup")
+        reader = _mmdb_reader()
+        if reader is not None:
+            try:
+                country_code = reader.country(ip_address).country.iso_code
+                logger.debug(f"mmdb lookup: {ip_address} -> {country_code}")
+                return country_code
+            except Exception:
+                # An address the file has no record of is the normal case for
+                # unallocated space, not an error worth a log line each time.
                 return None
 
-            with geoip2.database.Reader(db_path) as reader:
-                response = reader.country(ip_address)
-                country_code = response.country.iso_code
-                logger.debug(f"GeoIP lookup: {ip_address} -> {country_code}")
-                return country_code
-        except Exception:
-            return None
+        from app.services import ip_country_service
+
+        return ip_country_service.lookup(self.db, ip_address)
 
     def record_pageview(
         self,
