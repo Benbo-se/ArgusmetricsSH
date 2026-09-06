@@ -305,3 +305,31 @@ def count(db, table, **where):
     return db.execute(
         text(f"SELECT count(*) FROM {table} WHERE {clause}"), where
     ).scalar()
+
+
+@pytest.fixture
+def production_mode(monkeypatch):
+    """Make settings.is_production true for the duration of one test.
+
+    Some behaviour only exists in production: the session cookie is Secure,
+    and the password-reset endpoint withholds the dev-mode link. The tests for
+    those used to assert `settings.is_production` and fail outright when it was
+    not, so every local run was two tests red and only CI ever exercised them.
+
+    A test that is always red in development teaches you to ignore red, and a
+    skip in its place would have been worse: it passes silently in CI too, and
+    then nothing is checking the thing at all.
+
+    ENVIRONMENT rather than DEBUG, because is_production reads it first and it
+    is the variable a real deployment sets. Middleware installed at startup is
+    unaffected; this only reaches code that asks settings at request time,
+    which is what the callers being tested do.
+    """
+    from app.config import settings
+
+    monkeypatch.setattr(settings, "ENVIRONMENT", "production")
+    assert settings.is_production, (
+        "forcing production mode no longer works, so the tests that depend on "
+        "this fixture are checking development behaviour"
+    )
+    return settings

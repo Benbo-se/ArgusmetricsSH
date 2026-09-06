@@ -159,20 +159,17 @@ class TestLogin:
         header = response.headers.get("set-cookie", "")
         assert "httponly" in header.lower(), f"session cookie is not httponly: {header}"
 
-    def test_the_session_cookie_is_secure_in_production(self, client, db):
+    def test_the_session_cookie_is_secure_in_production(self, client, db, production_mode):
         """Secure means the browser refuses to send it over plain http.
 
-        Set from is_production, so development stays usable over http. This
-        suite runs in production mode, which is the configuration that has to
-        hold: without it the session token crosses the network in the clear on
-        any http request to the site.
+        Set from is_production, so development stays usable over http. Without
+        it the session token crosses the network in the clear on any http
+        request to the site.
+
+        The fixture forces production mode rather than the test asserting it,
+        so this runs in development too. It used to fail there, every time,
+        which is how a suite teaches you to stop reading failures.
         """
-        from app.config import settings
-
-        assert settings.is_production, (
-            "this test only means something in production mode"
-        )
-
         email, _ = _signup(client)
         _verify_directly(db, email)
 
@@ -267,8 +264,16 @@ class TestRateLimiting:
 
 
 class TestPasswordReset:
-    def test_an_unknown_address_answers_the_same_as_a_known_one(self, client, db):
-        """A reset form is the easiest place to enumerate accounts."""
+    def test_an_unknown_address_answers_the_same_as_a_known_one(
+        self, client, db, production_mode
+    ):
+        """A reset form is the easiest place to enumerate accounts.
+
+        In development the endpoint hands the reset link straight back so
+        nobody needs a mailbox, and it can only do that for an address that
+        exists, which makes the two answers differ. Production withholds it,
+        and production is the configuration that has to hold.
+        """
         email, _ = _signup(client)
         _verify_directly(db, email)
 
