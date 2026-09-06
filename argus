@@ -68,7 +68,8 @@ argus - run this Argusmetrics instance
   bootstrap                 create the first account on a closed instance
 
   backup                    take a dump now
-  backup verify <file>      restore a dump into a scratch database and count
+  backup verify             restore a dump into a scratch database and
+                            count what came back (asks which dump)
   psql [sql]                a shell on the database, or one statement
 
 Anything after a passthrough command goes straight to it, so
@@ -298,8 +299,37 @@ case "$command" in
     backup)
         if [ "${1:-}" = "verify" ]; then
             shift
-            [ -n "${1:-}" ] || die "which dump? ./argus backup verify <file>"
-            "$ROOT/scripts/verify-backup.sh" "$@"
+            if [ -n "${1:-}" ]; then
+                "$ROOT/scripts/verify-backup.sh" "$@"
+            else
+                # Lists what is there and asks, newest first, rather than
+                # asking for a path. A path typed from memory is a path that
+                # verifies yesterday's dump while you believe it verified
+                # today's.
+                dir="${BACKUP_DIR:-$HOME/backups/argusmetrics/daily}"
+                mapfile -t dumps < <(
+                    find "$dir" -name 'argusmetrics-*.sql.gz' -printf '%T@ %p\n' \
+                        2>/dev/null | sort -rn | cut -d' ' -f2-
+                )
+                [ "${#dumps[@]}" -gt 0 ] \
+                    || die "no dumps in $dir. Take one with: ./argus backup"
+
+                echo "Dumps in $dir, newest first:" >&2
+                for i in "${!dumps[@]}"; do
+                    printf '%4d  %s  %6s  %s\n' "$((i + 1))" \
+                        "$(date -r "${dumps[$i]}" '+%Y-%m-%d %H:%M')" \
+                        "$(du -h "${dumps[$i]}" | cut -f1)" \
+                        "$(basename "${dumps[$i]}")" >&2
+                done
+                echo >&2
+                printf 'Which one should be restored and counted? [1]: ' >&2
+                read -r pick || exit 1
+                pick="${pick:-1}"
+                case "$pick" in ''|*[!0-9]*) die "give a number";; esac
+                [ "$pick" -ge 1 ] && [ "$pick" -le "${#dumps[@]}" ] \
+                    || die "there is no dump $pick"
+                "$ROOT/scripts/verify-backup.sh" "${dumps[$((pick - 1))]}"
+            fi
         else
             "$ROOT/scripts/backup.sh" "$@"
         fi

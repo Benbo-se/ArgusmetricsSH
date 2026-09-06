@@ -101,7 +101,7 @@ so nothing here needs a path or a container name typed at it.
 ./argus waitlist list       # the hosted-signup waiting list
 ./argus country refresh     # rebuild the IP-to-country table
 ./argus backup              # take a dump now
-./argus backup verify <file>
+./argus backup verify     # asks which dump
 ```
 
 `./argus` on its own lists the rest. Anything after a passthrough goes

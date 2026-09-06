@@ -138,7 +138,7 @@ brings back the schema, aborts the data load on a catalog conflict, and leaves
 every table empty while looking like it worked.
 
 ```bash
-scripts/verify-backup.sh ~/backups/argusmetrics/daily/<archive>.sql.gz
+./argus backup verify        # lists the dumps and asks which one
 ```
 
 That restores into a scratch database and compares row counts, chunk count and

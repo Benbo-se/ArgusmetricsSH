@@ -10,7 +10,9 @@ commitment made to a visitor, and it has the most tests here.
 """
 import io
 import uuid
+import sys
 from contextlib import redirect_stdout
+from unittest.mock import patch
 
 import pytest
 from sqlalchemy import text
@@ -48,10 +50,19 @@ def same_session(db, monkeypatch):
     return db
 
 
-def _run(*argv) -> tuple:
-    """Run a command, returning (exit code, stdout)."""
+def _run(*argv, answer=None) -> tuple:
+    """Run a command, returning (exit code, stdout).
+
+    `answer` is fed to the prompt. `remove` asks which entry rather than
+    taking an address, because an address on the command line is one that can
+    be pasted from an example, and one was: a placeholder went into a live
+    instance's configuration verbatim because it looked real.
+    """
     out = io.StringIO()
-    with redirect_stdout(out):
+    stdin = io.StringIO(answer if answer is not None else "")
+    # sys.stdin directly: contextlib has redirect_stdout and redirect_stderr
+    # and no redirect_stdin, and input() reads sys.stdin.
+    with redirect_stdout(out), patch.object(sys, "stdin", stdin):
         code = cli.main(list(argv))
     return code, out.getvalue()
 
@@ -63,33 +74,60 @@ def _exists(db, email) -> bool:
 
 
 class TestRemove:
-    """The deletion promise on the signup page."""
+    """The deletion promise on the signup page, and the shape that keeps it
+    from deleting the wrong person."""
 
-    def test_it_deletes_the_address(self, db, joined):
-        code, _ = _run("remove", joined[0])
+    def test_it_takes_no_address_argument(self):
+        """The whole point. An argument can be pasted from an example."""
+        import inspect
 
-        assert code == 0
+        source = inspect.getsource(cli.main)
+        remove_block = source.split('"remove"')[1].split('"mark-notified"')[0]
+        assert "add_argument" not in remove_block, (
+            "remove takes an argument again, so an address from an example "
+            "can be handed to it"
+        )
+
+    def test_it_deletes_the_one_chosen(self, db, joined):
+        code, output = _run("remove", answer="1\n")
+
+        assert code == 0, output
         assert not _exists(db, joined[0])
+        assert _exists(db, joined[1]), "it removed more than the one chosen"
 
-    def test_it_leaves_everyone_else(self, db, joined):
-        _run("remove", joined[0])
-        assert _exists(db, joined[1])
+    def test_it_lists_them_so_there_is_nothing_to_type(self, db, joined):
+        _, output = _run("remove", answer="2\n")
 
-    def test_it_does_not_care_about_case(self, db, joined):
-        """Addresses are stored lower-cased. Somebody writing to ask for
-        deletion will not necessarily match how they typed it."""
-        code, _ = _run("remove", joined[0].upper())
+        assert joined[0] in output and joined[1] in output
 
-        assert code == 0
-        assert not _exists(db, joined[0])
-
-    def test_an_unknown_address_says_so_and_fails(self, db):
-        """"Done" for an address that was never there is the wrong answer to
-        give somebody who wants to know their data is gone."""
-        code, output = _run("remove", "never-joined@example.com")
+    def test_a_number_nobody_offered_is_refused(self, db, joined):
+        code, output = _run("remove", answer="99\n")
 
         assert code != 0
-        assert "not on the list" in output
+        assert _exists(db, joined[0]) and _exists(db, joined[1])
+        assert "Give the number" in output
+
+    def test_something_that_is_not_a_number_is_refused(self, db, joined):
+        code, _ = _run("remove", answer="anna\n")
+
+        assert code != 0
+        assert _exists(db, joined[0])
+
+    def test_walking_away_removes_nobody(self, db, joined):
+        """No answer at all, which is what closing the terminal looks like."""
+        code, _ = _run("remove", answer="")
+
+        assert code != 0
+        assert _exists(db, joined[0]) and _exists(db, joined[1])
+
+    def test_an_empty_list_says_so(self, db):
+        db.execute(text("DELETE FROM waitlist"))
+        db.commit()
+
+        code, output = _run("remove", answer="1\n")
+
+        assert code != 0
+        assert "empty" in output
 
 
 class TestListing:

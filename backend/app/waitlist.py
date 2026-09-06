@@ -3,7 +3,7 @@
     python -m app.waitlist count
     python -m app.waitlist list
     python -m app.waitlist export > waitlist.csv
-    python -m app.waitlist remove someone@example.com
+    python -m app.waitlist remove
     python -m app.waitlist mark-notified --all
 
 The signup page collects addresses. Without this there was no way to see one,
@@ -109,28 +109,48 @@ def _export(args) -> int:
 def _remove(args) -> int:
     """Delete one address, because somebody asked.
 
-    Says plainly whether it found anything. "Done" for an address that was
-    never there would be the wrong answer to give someone who wants to know
-    their data is gone.
+    Asks which one rather than taking it as an argument. An address on the
+    command line is an address that can be pasted from an example, and one
+    was: a placeholder went into a live instance's configuration verbatim
+    because it looked like a real address. Here the choices are read from the
+    list itself, so there is nothing to type wrong and no way to delete
+    somebody who is not there.
     """
     from sqlalchemy import text
 
-    email = args.email.strip().lower()
     session = _session()
     try:
-        removed = session.execute(
-            text("DELETE FROM waitlist WHERE email = :e RETURNING email"),
-            {"e": email},
-        ).rowcount
+        rows = _rows(session)
+        if not rows:
+            say("The list is empty; nothing to remove")
+            return 1
+
+        say("On the waiting list:")
+        for number, (email, source, created, notified) in enumerate(rows, 1):
+            state = "notified" if notified else "waiting"
+            say(f"{number:4}  {created:%Y-%m-%d %H:%M}  {state:<8}  {email}")
+        say("")
+
+        try:
+            chosen = input(f"Which one should be removed? [1-{len(rows)}]: ").strip()
+        except (EOFError, KeyboardInterrupt):
+            say("")
+            return 1
+
+        if not chosen.isdigit() or not 1 <= int(chosen) <= len(rows):
+            say(f"Give the number of one of them, 1 to {len(rows)}.")
+            return 1
+
+        email = rows[int(chosen) - 1][0]
+        session.execute(
+            text("DELETE FROM waitlist WHERE email = :e"), {"e": email}
+        )
         session.commit()
     finally:
         session.close()
 
-    if removed:
-        say(f"Removed {email}")
-        return 0
-    say(f"{email} is not on the list; nothing to remove")
-    return 1
+    say(f"Removed {email}")
+    return 0
 
 
 def _mark_notified(args) -> int:
@@ -178,8 +198,7 @@ def main(argv=None) -> int:
     export.set_defaults(func=_export)
 
     remove = sub.add_parser(
-        "remove", help="delete one address (a deletion request)")
-    remove.add_argument("email")
+        "remove", help="delete one address (asks which; a deletion request)")
     remove.set_defaults(func=_remove)
 
     notified = sub.add_parser(
