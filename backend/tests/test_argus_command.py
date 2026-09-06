@@ -24,6 +24,21 @@ pytestmark = pytest.mark.skipif(
            "only backend/). Expected to run in CI.",
 )
 
+
+def test_ci_actually_has_the_script():
+    """Fails in CI if the file the tests below need is not where they look.
+
+    These skipped locally and failed in CI on their first push, because the
+    script changed and the tests did not, and a skip reads as green. A skip is
+    correct where the file genuinely is not checked out; it is a lie in CI.
+    """
+    import os
+
+    if not os.environ.get("CI"):
+        pytest.skip("only meaningful where the whole repository is checked out")
+
+    assert ARGUS.exists(), f"{ARGUS} is missing in CI, so these tests skip"
+
 EXISTING = """SECRET_KEY=a-secret-worth-not-losing
 BASE_URL=https://argusmetrics.io
 # ADMIN_EMAILS=example@example.com
@@ -44,62 +59,72 @@ def instance(tmp_path):
     return tmp_path
 
 
-def run(instance, *args):
-    """Run the script, never restarting anything."""
-    env = {**os.environ, "ARGUS_NO_RESTART": "1"}
+def run(instance, *args, answer=None):
+    """Run the script, never restarting anything.
+
+    `answer` is fed to the prompt, since `admin add` and `admin remove` ask
+    rather than taking an address as an argument. They ask because an address
+    on the command line is an address that can be pasted from an example, and
+    one was: "din-adress@argusmetrics.io" went into a live instance verbatim.
+    """
+    env = {**os.environ, "ARGUS_NO_RESTART": "1", "ARGUS_CONTAINER": "no-such-container"}
     result = subprocess.run(
         [str(instance / "argus"), *args],
         capture_output=True, text=True, env=env, cwd=str(instance),
+        input=answer if answer is not None else "",
     )
     return result.returncode, result.stdout + result.stderr
+
+
+def with_admins(instance, value):
+    """Put addresses in ADMIN_EMAILS directly, so the tests that are about the
+    file do not need a running instance to get one in."""
+    path = instance / "docker" / ".env"
+    path.write_text(path.read_text() + f"\nADMIN_EMAILS={value}\n")
 
 
 def env_text(instance):
     return (instance / "docker" / ".env").read_text()
 
 
-class TestAdding:
-    def test_it_writes_the_address(self, instance):
-        code, _ = run(instance, "admin", "add", "anna@example.com")
+class TestAddingAsksRatherThanTakingAnAddress:
+    """The failure this shape exists to prevent.
 
-        assert code == 0
-        assert "ADMIN_EMAILS=anna@example.com" in env_text(instance)
+    `admin add you@example.com` accepted anything that looked like an address,
+    said "Done, sign in as it", and the address in the example ended up in a
+    live instance's configuration. It asks now, and the choices come from the
+    accounts that exist, so there is nothing to type wrong.
+    """
 
-    def test_a_second_address_is_appended(self, instance):
-        run(instance, "admin", "add", "anna@example.com")
-        run(instance, "admin", "add", "bo@bolag.se")
+    def test_it_takes_no_address_argument(self):
+        source = ARGUS.read_text()
+        add_block = source.split("        add)")[1].split("        remove)")[0]
 
-        assert "ADMIN_EMAILS=anna@example.com,bo@bolag.se" in env_text(instance)
+        assert "choose_account" in add_block, (
+            "admin add no longer asks; if it takes an address again, an "
+            "example can be pasted into a live instance"
+        )
+        assert '"${1:-}"' not in add_block, "admin add reads an argument again"
 
-    def test_the_same_address_twice_is_not_two_entries(self, instance):
-        run(instance, "admin", "add", "anna@example.com")
-        code, output = run(instance, "admin", "add", "ANNA@example.com")
-
-        assert code == 0
-        assert "already an administrator" in output
-        assert env_text(instance).count("anna@example.com") == 1
-
-    def test_something_that_is_not_an_address_is_refused(self, instance):
-        code, output = run(instance, "admin", "add", "just-a-word")
+    def test_it_says_so_when_there_are_no_accounts_to_choose_from(self, instance):
+        """No container here, so the list is empty. Refusing is the answer:
+        an address with no account can never sign in to use the page."""
+        code, output = run(instance, "admin", "add", answer="1\n")
 
         assert code != 0
-        assert "does not look like an address" in output
+        assert "No accounts" in output
+        assert "bootstrap" in output
         assert "ADMIN_EMAILS=" not in env_text(instance).replace(
             "# ADMIN_EMAILS=", ""
         )
-
-    def test_it_asks_which_address(self, instance):
-        code, output = run(instance, "admin", "add")
-
-        assert code != 0
-        assert "which address" in output
 
 
 class TestTheFileSurvives:
     """It holds the instance's secrets. Rewriting it badly is the risk."""
 
     def test_every_other_line_is_untouched(self, instance):
-        run(instance, "admin", "add", "anna@example.com")
+        with_admins(instance, "anna@example.com,bo@bolag.se")
+        run(instance, "admin", "remove", answer="1\n")
         after = env_text(instance)
 
         for line in EXISTING.splitlines():
@@ -108,25 +133,23 @@ class TestTheFileSurvives:
             assert line in after, f"lost: {line}"
 
     def test_the_secret_key_is_not_touched(self, instance):
-        run(instance, "admin", "add", "anna@example.com")
-        run(instance, "admin", "add", "bo@bolag.se")
-        run(instance, "admin", "remove", "anna@example.com")
+        with_admins(instance, "anna@example.com,bo@bolag.se")
+        run(instance, "admin", "remove", answer="1\n")
 
         assert "SECRET_KEY=a-secret-worth-not-losing" in env_text(instance)
 
     def test_a_commented_example_is_left_commented(self, instance):
-        """Uncommenting it would set the address in the example as an
+        """Uncommenting it would make the address in the example an
         administrator, which is somebody else's."""
-        run(instance, "admin", "add", "anna@example.com")
+        with_admins(instance, "anna@example.com,bo@bolag.se")
+        run(instance, "admin", "remove", answer="1\n")
 
         assert "# ADMIN_EMAILS=example@example.com" in env_text(instance)
-        assert "example@example.com" not in env_text(instance).replace(
-            "# ADMIN_EMAILS=example@example.com", ""
-        )
 
     def test_editing_repeatedly_does_not_duplicate_the_key(self, instance):
-        for address in ("a@example.com", "b@example.com", "c@example.com"):
-            run(instance, "admin", "add", address)
+        with_admins(instance, "a@example.com,b@example.com,c@example.com")
+        for _ in range(2):
+            run(instance, "admin", "remove", answer="1\n")
 
         active = [
             line for line in env_text(instance).splitlines()
@@ -136,22 +159,55 @@ class TestTheFileSurvives:
 
 
 class TestRemoving:
-    def test_it_takes_one_out_and_leaves_the_rest(self, instance):
-        run(instance, "admin", "add", "anna@example.com")
-        run(instance, "admin", "add", "bo@bolag.se")
+    def test_it_takes_the_chosen_one_out_and_leaves_the_rest(self, instance):
+        with_admins(instance, "anna@example.com,bo@bolag.se")
 
-        code, _ = run(instance, "admin", "remove", "anna@example.com")
+        code, output = run(instance, "admin", "remove", answer="1\n")
 
-        assert code == 0
+        assert code == 0, output
         text = env_text(instance)
         assert "anna@example.com" not in text
         assert "bo@bolag.se" in text
 
-    def test_case_does_not_matter(self, instance):
-        run(instance, "admin", "add", "anna@example.com")
-        run(instance, "admin", "remove", "ANNA@EXAMPLE.COM")
+    def test_it_lists_them_so_there_is_nothing_to_type(self, instance):
+        with_admins(instance, "anna@example.com,bo@bolag.se")
 
+        _, output = run(instance, "admin", "remove", answer="2\n")
+
+        assert "anna@example.com" in output and "bo@bolag.se" in output
+
+    def test_a_number_nobody_offered_is_refused(self, instance):
+        with_admins(instance, "anna@example.com")
+
+        code, _ = run(instance, "admin", "remove", answer="7\n")
+
+        assert code != 0
+        assert "anna@example.com" in env_text(instance)
+
+    def test_something_that_is_not_a_number_is_refused(self, instance):
+        with_admins(instance, "anna@example.com")
+
+        code, _ = run(instance, "admin", "remove", answer="anna\n")
+
+        assert code != 0
+        assert "anna@example.com" in env_text(instance)
+
+    def test_removing_the_last_one_works(self, instance):
+        """It did not. With pipefail, grep exits 1 when it keeps nothing,
+        which is exactly what removing the last administrator looks like, and
+        set -e abandoned the function before the file was written."""
+        with_admins(instance, "anna@example.com")
+
+        code, _ = run(instance, "admin", "remove", answer="1\n")
+
+        assert code == 0
         assert "anna@example.com" not in env_text(instance)
+
+    def test_it_says_so_when_there_is_nobody_to_remove(self, instance):
+        code, output = run(instance, "admin", "remove", answer="1\n")
+
+        assert code != 0
+        assert "nothing to remove" in output
 
 
 class TestListing:
@@ -162,8 +218,7 @@ class TestListing:
         assert "Nobody" in output and "404" in output
 
     def test_it_lists_what_is_configured(self, instance):
-        run(instance, "admin", "add", "anna@example.com")
-        run(instance, "admin", "add", "bo@bolag.se")
+        with_admins(instance, "anna@example.com,bo@bolag.se")
 
         _, output = run(instance, "admin", "list")
 

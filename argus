@@ -181,7 +181,7 @@ choose_account() {
     echo >&2
     printf 'Which one should be able to open /dashboard/admin? [1-%s]: ' \
         "$count" >&2
-    read -r chosen </dev/tty || return 1
+    read -r chosen || return 1
 
     case "$chosen" in
         ''|*[!0-9]*)
@@ -242,7 +242,7 @@ admin() {
             count="$(echo "$current" | tr ',' '\n' | sed '/^$/d' | wc -l)"
             printf 'Which one should stop being an administrator? [1-%s]: ' \
                 "$count" >&2
-            read -r chosen </dev/tty || exit 1
+            read -r chosen || exit 1
             case "$chosen" in ''|*[!0-9]*) die "give the number of one of them";; esac
             [ "$chosen" -ge 1 ] && [ "$chosen" -le "$count" ] \
                 || die "there is no administrator $chosen"
