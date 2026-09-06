@@ -80,6 +80,13 @@ jobs:
             exit 1
           fi
           echo "CSS-bygget är aktuellt."
+      - name: Marknadssiten är renderad från sina mallar
+        run: |
+          # site/ genereras ur site-src/ av scripts/build_site.py. Genererade
+          # filer i repot är bara säkra så länge något kontrollerar att de
+          # stämmer med källan, annars är vi tillbaka i tolv handredigerade
+          # sidor som driver isär.
+          python scripts/build_site.py --check
       - name: Migrera (alembic upgrade head mot tom databas = fresh-install-testet)
         working-directory: backend
         run: alembic upgrade head

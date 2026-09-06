@@ -1,37 +1,53 @@
+{# The one page. Everything under site/ is rendered from this.
 
+   It exists because the twelve pages it replaces had drifted: seven different
+   navigations, six of them missing the footer entirely, one meta description
+   contradicting the table three screens below it, and a test count that had
+   been wrong by a hundred and thirty for weeks. None of that was carelessness.
+   It is what happens to a hundred and forty-eight lines of navigation written
+   out eleven times.
+
+   Rendered to static HTML at build time rather than served through the app.
+   The marketing site is the only thing a stranger sees before deciding whether
+   to trust any of this, and it should not go down when the backend does, or
+   put a Python process in front of a page that never changes.
+
+   Asset URLs get a content fingerprint from the generator, so nginx can cache
+   them for a year. static() does that; write static('css/site.css'), not the
+   path. #}
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Argusmetrics vs Plausible - Argusmetrics</title>
+    <title>{{ page_title }}</title>
     <meta name="theme-color" content="#2563eb">
-    <link rel="canonical" href="https://argusmetrics.io/compare/plausible">
-    <meta name="description" content="Compare Argusmetrics and Plausible Analytics, both privacy-first and open source, see the key differences in pricing, hosting, and features.">
+    {% if page_canon %}<link rel="canonical" href="{{ page_canon }}">{% endif %}
+    <meta name="description" content="{{ page_desc }}">
     <meta property="og:site_name" content="Argusmetrics">
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://argusmetrics.io/compare/plausible">
-    <meta property="og:title" content="Argusmetrics vs Plausible - Argusmetrics">
-    <meta property="og:description" content="Compare Argusmetrics and Plausible Analytics, both privacy-first and open source, see the key differences in pricing, hosting, and features.">
-    <meta property="og:image" content="https://argusmetrics.io/static/img/og-image.png">
+    {% if page_og_url %}<meta property="og:url" content="{{ page_og_url }}">{% endif %}
+    <meta property="og:title" content="{{ page_og_title or page_title }}">
+    <meta property="og:description" content="{{ page_og_desc or page_desc }}">
+    <meta property="og:image" content="{{ page_og_img or 'https://argusmetrics.io/static/img/og-image.png' }}">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="Argusmetrics vs Plausible - Argusmetrics">
-    <meta name="twitter:description" content="Compare Argusmetrics and Plausible Analytics, both privacy-first, see the key differences.">
-    <meta name="twitter:image" content="https://argusmetrics.io/static/img/og-image.png">
+    <meta name="twitter:title" content="{{ page_tw_title or page_title }}">
+    <meta name="twitter:description" content="{{ page_tw_desc or page_desc }}">
+    <meta name="twitter:image" content="{{ page_og_img or 'https://argusmetrics.io/static/img/og-image.png' }}">
     <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
     <link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png">
     <link rel="apple-touch-icon" sizes="180x180" href="/static/img/icon-180.png">
     <link rel="manifest" href="/static/manifest.json">
-    <link rel="stylesheet" href="/static/css/tailwind.min.css?v=cc9314dd">
-    <link rel="stylesheet" href="/static/css/site.css?v=38a0f0ff">
+    <link rel="stylesheet" href="{{ static('css/tailwind.min.css') }}">
+    <link rel="stylesheet" href="{{ static('css/site.css') }}">
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.5/dist/cdn.min.js"></script>
     <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
-
+{% block head_extra %}{% endblock %}
 </head>
 <body class="bg-gray-50 text-gray-900 antialiased">
 
@@ -183,174 +199,7 @@
         </div>
     </nav>
 
-
-    <main class="pt-16">
-
-        <!-- Hero -->
-        <section class="bg-white border-b border-gray-100">
-            <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
-                <div class="flex items-center justify-center gap-4 mb-8">
-                    <img src="/static/img/logo-96.png" alt="Argusmetrics" width="56" height="56" class="h-14 w-14">
-                    <span class="text-3xl text-gray-300 font-light">vs</span>
-                    <div class="h-14 w-14 bg-purple-50 rounded-xl flex items-center justify-center">
-                        <i class="fas fa-chart-bar text-2xl text-purple-500"></i>
-                    </div>
-                </div>
-                <h1 class="text-4xl sm:text-5xl font-extrabold text-gray-900 mb-5 leading-tight">
-                    Both privacy-first.<br>Both open source.
-                </h1>
-                <p class="text-xl text-gray-500 max-w-2xl mx-auto">
-                    Plausible is a solid tool and we have huge respect for what they've built. Like Plausible, Argusmetrics is free, open source and self-hostable. This page is an honest look at where the two differ.
-                </p>
-                <div class="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
-                    <a href="https://github.com/Benbo-se/ArgusmetricsSH" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-lg transition-colors">
-                        <i class="fab fa-github"></i> Self-host Argusmetrics <i class="fas fa-arrow-right text-sm"></i>
-                    </a>
-                    <a href="/data" class="inline-flex items-center gap-2 border border-gray-200 text-gray-700 hover:bg-gray-50 font-medium px-6 py-3 rounded-lg transition-colors">
-                        <i class="fas fa-shield-alt text-green-500 text-sm"></i> How privacy works
-                    </a>
-                </div>
-            </div>
-        </section>
-
-        <!-- Honest intro -->
-        <section class="py-10 bg-purple-50 border-b border-purple-100">
-            <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-                <p class="text-purple-900 text-base">
-                    <strong>Fair disclosure:</strong> Both Argusmetrics and Plausible are cookieless, store nothing on the visitor's device, and never keep a raw IP address. If you're happy with Plausible, it's a good product. The differences below are real, but many teams will be well served by either.
-                </p>
-            </div>
-        </section>
-
-        <!-- Comparison table -->
-        <section class="py-16 bg-gray-50">
-            <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-                <h2 class="text-3xl font-bold text-gray-900 mb-3 text-center">Feature comparison</h2>
-                <p class="text-gray-500 text-center mb-10">Where the two products diverge on what matters most.</p>
-
-                <div class="bg-white rounded-2xl border border-gray-100 overflow-x-auto shadow-sm">
-                    <table class="w-full">
-                        <thead>
-                            <tr class="border-b border-gray-100">
-                                <th class="text-left px-6 py-4 text-sm font-semibold text-gray-500 w-1/2">Feature</th>
-                                <th class="px-6 py-4 text-center w-1/4">
-                                    <div class="flex items-center justify-center gap-2">
-                                        <img src="/static/img/logo-96.png" alt="Argusmetrics" width="20" height="20" class="h-5 w-5">
-                                        <span class="text-sm font-bold text-blue-600">Argusmetrics</span>
-                                    </div>
-                                </th>
-                                <th class="px-6 py-4 text-center w-1/4">
-                                    <div class="flex items-center justify-center gap-2">
-                                        <i class="fas fa-chart-bar text-purple-500 text-sm"></i>
-                                        <span class="text-sm font-semibold text-gray-600">Plausible</span>
-                                    </div>
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-50">
-                            <tr class="hover:bg-gray-50 transition-colors">
-                                <td class="px-6 py-4 text-sm text-gray-700">No cookies, no consent banner</td>
-                                <td class="px-6 py-4 text-center"><span class="text-green-500 text-lg font-bold">&#10003;</span></td>
-                                <td class="px-6 py-4 text-center"><span class="text-green-500 text-lg font-bold">&#10003;</span></td>
-                            </tr>
-                            <tr class="hover:bg-gray-50 transition-colors">
-                                <td class="px-6 py-4 text-sm text-gray-700">Visitor IP never stored</td>
-                                <td class="px-6 py-4 text-center"><span class="text-green-500 text-lg font-bold">&#10003;</span></td>
-                                <td class="px-6 py-4 text-center"><span class="text-green-500 text-lg font-bold">&#10003;</span></td>
-                            </tr>
-                            <tr class="hover:bg-gray-50 transition-colors">
-                                <td class="px-6 py-4 text-sm text-gray-700">Data location under your control</td>
-                                <td class="px-6 py-4 text-center"><span class="text-green-500 text-lg font-bold">&#10003;</span><span class="text-xs text-gray-400 block">Your server</span></td>
-                                <td class="px-6 py-4 text-center"><span class="text-green-500 text-lg font-bold">&#10003;</span><span class="text-xs text-gray-400 block">Self-hosted only</span></td>
-                            </tr>
-                            <tr class="hover:bg-gray-50 transition-colors">
-                                <td class="px-6 py-4 text-sm text-gray-700">Free to self-host (no plan limits)</td>
-                                <td class="px-6 py-4 text-center"><span class="text-green-500 text-lg font-bold">&#10003;</span></td>
-                                <td class="px-6 py-4 text-center"><span class="text-green-500 text-lg font-bold">&#10003;</span></td>
-                            </tr>
-                            <tr class="hover:bg-gray-50 transition-colors">
-                                <td class="px-6 py-4 text-sm text-gray-700">E-commerce revenue tracking</td>
-                                <td class="px-6 py-4 text-center"><span class="text-green-500 text-lg font-bold">&#10003;</span></td>
-                                <td class="px-6 py-4 text-center"><span class="text-orange-400 text-base">~</span><span class="text-xs text-gray-400 block">Custom props only</span></td>
-                            </tr>
-                            <tr class="hover:bg-gray-50 transition-colors">
-                                <td class="px-6 py-4 text-sm text-gray-700">Daily-salted visitor hash (IP truncated)</td>
-                                <td class="px-6 py-4 text-center"><span class="text-green-500 text-lg font-bold">&#10003;</span></td>
-                                <td class="px-6 py-4 text-center"><span class="text-green-500 text-lg font-bold">&#10003;</span></td>
-                            </tr>
-                            <tr class="hover:bg-gray-50 transition-colors">
-                                <td class="px-6 py-4 text-sm text-gray-700">Open source</td>
-                                <td class="px-6 py-4 text-center"><span class="text-green-500 text-lg font-bold">&#10003;</span><span class="text-xs text-gray-400 block">AGPL-3.0</span></td>
-                                <td class="px-6 py-4 text-center"><span class="text-green-500 text-lg font-bold">&#10003;</span><span class="text-xs text-gray-400 block">AGPL-3.0</span></td>
-                            </tr>
-                            <tr class="hover:bg-gray-50 transition-colors">
-                                <td class="px-6 py-4 text-sm text-gray-700">Self-hosting option</td>
-                                <td class="px-6 py-4 text-center"><span class="text-green-500 text-lg font-bold">&#10003;</span></td>
-                                <td class="px-6 py-4 text-center"><span class="text-green-500 text-lg font-bold">&#10003;</span></td>
-                            </tr>
-                            <tr class="hover:bg-gray-50 transition-colors">
-                                <td class="px-6 py-4 text-sm text-gray-700">Lightweight tracking script</td>
-                                <td class="px-6 py-4 text-center"><span class="text-green-500 text-lg font-bold">&#10003;</span><span class="text-xs text-gray-400 block">&lt;3KB gzip</span></td>
-                                <td class="px-6 py-4 text-center"><span class="text-green-500 text-lg font-bold">&#10003;</span><span class="text-xs text-gray-400 block">~1KB gzip</span></td>
-                            </tr>
-                            <tr class="hover:bg-gray-50 transition-colors">
-                                <td class="px-6 py-4 text-sm text-gray-700">Custom events &amp; goals</td>
-                                <td class="px-6 py-4 text-center"><span class="text-green-500 text-lg font-bold">&#10003;</span></td>
-                                <td class="px-6 py-4 text-center"><span class="text-green-500 text-lg font-bold">&#10003;</span></td>
-                            </tr>
-                            <tr class="hover:bg-gray-50 transition-colors">
-                                <td class="px-6 py-4 text-sm text-gray-700">REST API</td>
-                                <td class="px-6 py-4 text-center"><span class="text-green-500 text-lg font-bold">&#10003;</span></td>
-                                <td class="px-6 py-4 text-center"><span class="text-green-500 text-lg font-bold">&#10003;</span></td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </section>
-
-        <!-- Where Argusmetrics differs -->
-        <section class="py-16 bg-white border-t border-gray-100">
-            <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-                <h2 class="text-3xl font-bold text-gray-900 mb-3 text-center">Where Argusmetrics offers more</h2>
-                <p class="text-gray-500 text-center mb-12">Two areas where we go further than Plausible today.</p>
-
-                <div class="grid md:grid-cols-2 gap-6 max-w-2xl mx-auto">
-                    <div class="bg-green-50 border border-green-100 rounded-2xl p-6">
-                        <div class="w-11 h-11 rounded-xl bg-green-600 flex items-center justify-center mb-4">
-                            <i class="fas fa-shopping-cart text-white"></i>
-                        </div>
-                        <h3 class="font-bold text-gray-900 mb-2">Built-in e-commerce tracking</h3>
-                        <p class="text-gray-600 text-sm">Revenue, order count, and average order value tracked as first-class metrics in your dashboard. Plausible supports revenue via custom properties but without the dedicated e-commerce UI.</p>
-                    </div>
-                    <div class="bg-purple-50 border border-purple-100 rounded-2xl p-6">
-                        <div class="w-11 h-11 rounded-xl bg-purple-600 flex items-center justify-center mb-4">
-                            <i class="fas fa-server text-white"></i>
-                        </div>
-                        <h3 class="font-bold text-gray-900 mb-2">Free to self-host, no fees</h3>
-                        <p class="text-gray-600 text-sm">Plausible's managed hosting is paid (its free offering is a 30-day trial). Argusmetrics is AGPL-3.0, run it on your own server with Docker for free, with unlimited sites and pageviews. Great for personal projects and startups.</p>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- CTA -->
-        <section class="py-20 bg-blue-600">
-            <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-                <h2 class="text-3xl font-bold text-white mb-4">Give Argusmetrics a try</h2>
-                <p class="text-blue-100 text-lg mb-3">Free and open source. Spin it up with Docker and you're running in minutes on your own server.</p>
-                <p class="text-blue-200 text-sm mb-8">Already on Plausible? Migration is a single script swap.</p>
-                <a href="https://github.com/Benbo-se/ArgusmetricsSH" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 bg-white text-blue-600 hover:bg-blue-50 font-semibold px-8 py-3 rounded-lg transition-colors text-lg">
-                    <i class="fab fa-github"></i> View on GitHub <i class="fas fa-arrow-right text-sm"></i>
-                </a>
-            </div>
-        </section>
-
-    </main>
-
-    <!-- Footer -->
-    
-
+{% block content %}{% endblock %}
 
     <footer class="bg-gray-900 text-gray-300 py-12 px-4 sm:px-6 lg:px-8">
         <div class="max-w-7xl mx-auto">
@@ -411,6 +260,6 @@
             </div>
         </div>
     </footer>
-
+{% block scripts %}{% endblock %}
 </body>
 </html>

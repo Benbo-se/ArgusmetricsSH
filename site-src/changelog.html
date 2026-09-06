@@ -1,0 +1,168 @@
+{% extends "_layout.html" %}
+{% set page_title = 'Changelog - Argusmetrics' %}
+{% set page_desc = "Product updates and new features in Argusmetrics, the privacy-first web analytics platform. See what's new, improved, and fixed." %}
+{% set page_canon = 'https://argusmetrics.io/changelog' %}
+{% set page_og_url = 'https://argusmetrics.io/changelog' %}
+{% set page_og_title = 'Changelog - Argusmetrics' %}
+{% set page_og_desc = 'Product updates and new features in Argusmetrics, the privacy-first web analytics platform.' %}
+{% set page_tw_title = 'Changelog - Argusmetrics' %}
+{% set page_tw_desc = 'Product updates and new features in Argusmetrics, the privacy-first web analytics platform.' %}
+{% set page_og_img = 'https://argusmetrics.io/static/img/og-image.png' %}
+{% block content %}
+    <main class="pt-16">
+
+        <!-- Hero -->
+        <section class="bg-white border-b border-gray-100">
+            <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
+                <div class="inline-flex items-center gap-2 bg-blue-50 text-blue-700 text-sm font-medium px-4 py-1.5 rounded-full mb-6 border border-blue-100">
+                    <i class="fas fa-list-ul text-xs"></i>
+                    What's new
+                </div>
+                <h1 class="text-4xl sm:text-5xl font-extrabold text-gray-900 mb-5">Changelog</h1>
+                <p class="text-xl text-gray-500">What&rsquo;s shipped so far. Argusmetrics is pre-1.0 and hasn&rsquo;t had a tagged release yet, the full commit history lives on GitHub.</p>
+            </div>
+        </section>
+
+        <!-- Timeline -->
+        <section class="py-16">
+            <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="relative">
+                    <!-- Vertical line -->
+                    <div class="absolute left-6 top-0 bottom-0 w-px bg-gray-200 hidden sm:block"></div>
+
+                    <div class="space-y-12">
+
+                        <!-- September 2026 -->
+                        <div class="sm:pl-16 relative">
+                            <div class="hidden sm:flex absolute left-0 top-1 w-12 h-12 rounded-full bg-blue-600 items-center justify-center shadow-sm">
+                                <i class="fas fa-shield-alt text-white text-sm"></i>
+                            </div>
+                            <div class="flex flex-wrap items-center gap-3 mb-4">
+                                <span class="text-xl font-bold text-gray-900">Pre-launch hardening</span>
+                                <span class="text-sm text-gray-400 font-medium">September 2026</span>
+                                <span class="inline-flex items-center gap-1 bg-blue-50 text-blue-700 text-xs font-semibold px-2.5 py-1 rounded-full border border-blue-100">
+                                    <i class="fas fa-star text-xs"></i> New
+                                </span>
+                                <span class="inline-flex items-center gap-1 bg-green-50 text-green-700 text-xs font-semibold px-2.5 py-1 rounded-full border border-green-100">
+                                    <i class="fas fa-arrow-up text-xs"></i> Improved
+                                </span>
+                            </div>
+                            <div class="bg-white rounded-xl border border-gray-100 p-6 space-y-4">
+                                <div>
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <span class="inline-flex items-center gap-1 bg-red-50 text-red-700 text-xs font-semibold px-2 py-0.5 rounded border border-red-100">Removed</span>
+                                        <span class="font-semibold text-gray-900 text-sm">Billing and the AI chat assistant</span>
+                                    </div>
+                                    <p class="text-gray-500 text-sm">Stripe billing, plan quotas, and the AI chat assistant were cut entirely. A self-hosted tool shouldn't meter you, and an analytics product that sends your data to a third-party LLM contradicts the privacy promise.</p>
+                                </div>
+                                <div>
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <span class="inline-flex items-center gap-1 bg-blue-50 text-blue-700 text-xs font-semibold px-2 py-0.5 rounded border border-blue-100">New</span>
+                                        <span class="font-semibold text-gray-900 text-sm">Password login with email verification</span>
+                                    </div>
+                                    <p class="text-gray-500 text-sm">Rebuilt authentication: bcrypt password login, verification by magic link or 6-digit code, and password reset. Works with any SMTP provider, and prints links to the logs when SMTP isn't configured so a fresh install is usable immediately.</p>
+                                </div>
+                                <div>
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <span class="inline-flex items-center gap-1 bg-blue-50 text-blue-700 text-xs font-semibold px-2 py-0.5 rounded border border-blue-100">New</span>
+                                        <span class="font-semibold text-gray-900 text-sm">Redesigned dashboard with dark mode</span>
+                                    </div>
+                                    <p class="text-gray-500 text-sm">A persistent left sidebar replaces the old tab row, so navigation no longer shifts between sections. Added a design system with full light and dark themes, and a self-hosted Inter font with tabular figures so numbers line up.</p>
+                                </div>
+                                <div>
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <span class="inline-flex items-center gap-1 bg-green-50 text-green-700 text-xs font-semibold px-2 py-0.5 rounded border border-green-100">Improved</span>
+                                        <span class="font-semibold text-gray-900 text-sm">No third-party requests from the dashboard</span>
+                                    </div>
+                                    <p class="text-gray-500 text-sm">Alpine.js, Chart.js, Font Awesome and the webfont are all served from your own instance instead of public CDNs, and the Content-Security-Policy was tightened to match. Your dashboard no longer phones home to anyone.</p>
+                                </div>
+                                <div>
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <span class="inline-flex items-center gap-1 bg-green-50 text-green-700 text-xs font-semibold px-2 py-0.5 rounded border border-green-100">Improved</span>
+                                        <span class="font-semibold text-gray-900 text-sm">Database hardening and data retention</span>
+                                    </div>
+                                    <p class="text-gray-500 text-sm">The app now connects as a least-privilege role instead of the database owner, with migrations run separately on startup. Added a configurable retention policy that purges old raw events, plus index tuning for the common dashboard queries.</p>
+                                </div>
+                                <div>
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <span class="inline-flex items-center gap-1 bg-yellow-50 text-yellow-700 text-xs font-semibold px-2 py-0.5 rounded border border-yellow-100">Fixed</span>
+                                        <span class="font-semibold text-gray-900 text-sm">Security, correctness and data-integrity audit fixes</span>
+                                    </div>
+                                    <p class="text-gray-500 text-sm">Three rounds of fixes from a full audit of the codebase, including access-control and output-escaping issues, foreign-key delete rules that previously made sites undeletable, refund idempotency, and scheduler locking so background jobs are safe with multiple workers.</p>
+                                </div>
+                                <div>
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <span class="inline-flex items-center gap-1 bg-blue-50 text-blue-700 text-xs font-semibold px-2 py-0.5 rounded border border-blue-100">New</span>
+                                        <span class="font-semibold text-gray-900 text-sm">Container images and one-command deploys</span>
+                                    </div>
+                                    <p class="text-gray-500 text-sm">Backend and web images are built and published on every green build, with a gated deploy that takes a database dump first and rolls back automatically if the health check fails.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- June 2026 -->
+                        <div class="sm:pl-16 relative">
+                            <div class="hidden sm:flex absolute left-0 top-1 w-12 h-12 rounded-full bg-gray-400 items-center justify-center shadow-sm">
+                                <i class="fas fa-code-branch text-white text-sm"></i>
+                            </div>
+                            <div class="flex flex-wrap items-center gap-3 mb-4">
+                                <span class="text-xl font-bold text-gray-900">Self-host edition</span>
+                                <span class="text-sm text-gray-400 font-medium">June 2026</span>
+                                <span class="inline-flex items-center gap-1 bg-gray-100 text-gray-600 text-xs font-semibold px-2.5 py-1 rounded-full border border-gray-200">
+                                    First commit
+                                </span>
+                            </div>
+                            <div class="bg-white rounded-xl border border-gray-100 p-6 space-y-4">
+                                <p class="text-gray-500 text-sm italic">Argusmetrics was released as self-hostable software under the AGPL-3.0, on a fresh repository.</p>
+                                <div>
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <span class="inline-flex items-center gap-1 bg-blue-50 text-blue-700 text-xs font-semibold px-2 py-0.5 rounded border border-blue-100">New</span>
+                                        <span class="font-semibold text-gray-900 text-sm">Core analytics, self-hosted</span>
+                                    </div>
+                                    <p class="text-gray-500 text-sm">Pageviews, unique visitors, views per visitor and live visitor counts. Traffic sources, top pages, entry and exit pages, countries, browsers and devices, all without cookies.</p>
+                                </div>
+                                <div>
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <span class="inline-flex items-center gap-1 bg-blue-50 text-blue-700 text-xs font-semibold px-2 py-0.5 rounded border border-blue-100">New</span>
+                                        <span class="font-semibold text-gray-900 text-sm">Goals, funnels and revenue tracking</span>
+                                    </div>
+                                    <p class="text-gray-500 text-sm">Track custom events as conversion goals, build multi-step funnels to find where visitors drop off, and record purchases and refunds with per-product revenue reporting.</p>
+                                </div>
+                                <div>
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <span class="inline-flex items-center gap-1 bg-blue-50 text-blue-700 text-xs font-semibold px-2 py-0.5 rounded border border-blue-100">New</span>
+                                        <span class="font-semibold text-gray-900 text-sm">Teams, public dashboards and email reports</span>
+                                    </div>
+                                    <p class="text-gray-500 text-sm">Invite team members as owners, admins or viewers. Share a dashboard publicly with a secret link, optionally password-protected. Opt in to weekly or monthly email summaries.</p>
+                                </div>
+                                <div>
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <span class="inline-flex items-center gap-1 bg-blue-50 text-blue-700 text-xs font-semibold px-2 py-0.5 rounded border border-blue-100">New</span>
+                                        <span class="font-semibold text-gray-900 text-sm">Cookieless visitor counting</span>
+                                    </div>
+                                    <p class="text-gray-500 text-sm">Visitors are counted with a rotating daily hash built from a truncated IP, the site domain and your instance's own secret, never a cookie, and never a stable cross-day identifier. See <a href="/data.html" class="text-blue-600 hover:text-blue-700 underline">how it works</a>.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- CTA -->
+        <section class="py-20 bg-blue-600 mt-8">
+            <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                <h2 class="text-3xl font-bold text-white mb-4">Free, open-source, self-hosted analytics</h2>
+                <p class="text-blue-100 text-lg mb-8">Clone the repo and run it on your own infrastructure, no cookies, no consent banner, no drama.</p>
+                <a href="https://github.com/Benbo-se/ArgusmetricsSH" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 bg-white text-blue-600 hover:bg-blue-50 font-semibold px-8 py-3 rounded-lg transition-colors text-lg">
+                    View on GitHub <i class="fas fa-arrow-right text-sm"></i>
+                </a>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    
+{% endblock %}

@@ -73,7 +73,8 @@ def test_the_stated_test_count_is_close_to_the_real_one():
 
     assert abs(claimed - actual) <= actual * TOLERANCE, (
         f"the home page says {claimed} automated tests and there are {actual}. "
-        f"Update the number in site/index.html. It is on the page that tells "
+        f"Update it in site-src/index.html and rebuild: the page under site/ is "
+        f"generated. It is on the section that tells "
         f"people they do not have to take the claims on trust."
     )
 

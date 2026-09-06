@@ -1,0 +1,204 @@
+{% extends "_layout.html" %}
+{% set page_title = 'Argusmetrics vs Google Analytics - Argusmetrics' %}
+{% set page_desc = 'Why teams switch from Google Analytics to Argusmetrics, privacy-first, no cookies, no IP addresses stored, simple dashboard. All the insights, none of the surveillance.' %}
+{% set page_canon = 'https://argusmetrics.io/compare/google-analytics' %}
+{% set page_og_url = 'https://argusmetrics.io/compare/google-analytics' %}
+{% set page_og_title = 'Argusmetrics vs Google Analytics - Argusmetrics' %}
+{% set page_og_desc = 'Why teams switch from Google Analytics to Argusmetrics, privacy-first, no cookies, no IP addresses stored, simple dashboard.' %}
+{% set page_tw_title = 'Argusmetrics vs Google Analytics - Argusmetrics' %}
+{% set page_tw_desc = 'Why teams switch from Google Analytics to Argusmetrics, privacy-first, no cookies, no IP addresses storedault.' %}
+{% set page_og_img = 'https://argusmetrics.io/static/img/og-image.png' %}
+{% block content %}
+    <main class="pt-16">
+
+        <!-- Hero -->
+        <section class="bg-white border-b border-gray-100">
+            <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
+                <div class="flex items-center justify-center gap-4 mb-8">
+                    <img src="/static/img/logo-96.png" alt="Argusmetrics" width="56" height="56" class="h-14 w-14">
+                    <span class="text-3xl text-gray-300 font-light">vs</span>
+                    <div class="h-14 w-14 bg-gray-100 rounded-xl flex items-center justify-center">
+                        <i class="fab fa-google text-2xl text-red-500"></i>
+                    </div>
+                </div>
+                <h1 class="text-4xl sm:text-5xl font-extrabold text-gray-900 mb-5 leading-tight">
+                    The Privacy-First<br>Google Analytics Alternative
+                </h1>
+                <p class="text-xl text-gray-500 max-w-2xl mx-auto">
+                    All the insights you need. None of the surveillance. Free, open-source and self-hosted, no cookies, no consent banner, no data sent to Mountain View.
+                </p>
+                <div class="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
+                    <a href="https://github.com/Benbo-se/ArgusmetricsSH" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-lg transition-colors">
+                        <i class="fab fa-github"></i> Self-host Argusmetrics <i class="fas fa-arrow-right text-sm"></i>
+                    </a>
+                    <a href="/data" class="inline-flex items-center gap-2 border border-gray-200 text-gray-700 hover:bg-gray-50 font-medium px-6 py-3 rounded-lg transition-colors">
+                        <i class="fas fa-shield-alt text-green-500 text-sm"></i> How privacy works
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Comparison table -->
+        <section class="py-16 bg-gray-50">
+            <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+                <h2 class="text-3xl font-bold text-gray-900 mb-3 text-center">Side-by-side comparison</h2>
+                <p class="text-gray-500 text-center mb-10">Every feature that matters for a privacy-respecting analytics setup.</p>
+
+                <div class="bg-white rounded-2xl border border-gray-100 overflow-x-auto shadow-sm">
+                    <table class="w-full">
+                        <thead>
+                            <tr class="border-b border-gray-100">
+                                <th class="text-left px-6 py-4 text-sm font-semibold text-gray-500 w-1/2">Feature</th>
+                                <th class="px-6 py-4 text-center w-1/4">
+                                    <div class="flex items-center justify-center gap-2">
+                                        <img src="/static/img/logo-96.png" alt="Argusmetrics" width="20" height="20" class="h-5 w-5">
+                                        <span class="text-sm font-bold text-blue-600">Argusmetrics</span>
+                                    </div>
+                                </th>
+                                <th class="px-6 py-4 text-center w-1/4">
+                                    <div class="flex items-center justify-center gap-2">
+                                        <i class="fab fa-google text-red-500 text-sm"></i>
+                                        <span class="text-sm font-semibold text-gray-600">Google Analytics</span>
+                                    </div>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-50">
+                            <tr class="hover:bg-gray-50 transition-colors">
+                                <td class="px-6 py-4 text-sm text-gray-700">No cookies</td>
+                                <td class="px-6 py-4 text-center"><span class="text-green-500 text-lg font-bold">&#10003;</span></td>
+                                <td class="px-6 py-4 text-center"><span class="text-red-400 text-lg font-bold">&#10007;</span></td>
+                            </tr>
+                            <tr class="hover:bg-gray-50 transition-colors">
+                                <td class="px-6 py-4 text-sm text-gray-700">Visitor IP never stored</td>
+                                <td class="px-6 py-4 text-center"><span class="text-green-500 text-lg font-bold">&#10003;</span></td>
+                                <td class="px-6 py-4 text-center"><span class="text-red-400 text-lg font-bold">&#10007;</span></td>
+                            </tr>
+                            <tr class="hover:bg-gray-50 transition-colors">
+                                <td class="px-6 py-4 text-sm text-gray-700">No consent banner required</td>
+                                <td class="px-6 py-4 text-center"><span class="text-green-500 text-lg font-bold">&#10003;</span></td>
+                                <td class="px-6 py-4 text-center"><span class="text-red-400 text-lg font-bold">&#10007;</span></td>
+                            </tr>
+                            <tr class="hover:bg-gray-50 transition-colors">
+                                <td class="px-6 py-4 text-sm text-gray-700">Lightweight script (&lt;3KB gzip)</td>
+                                <td class="px-6 py-4 text-center"><span class="text-green-500 text-lg font-bold">&#10003;</span></td>
+                                <td class="px-6 py-4 text-center"><span class="text-red-400 text-lg font-bold">&#10007;</span><span class="text-xs text-gray-400 block">~45KB+</span></td>
+                            </tr>
+                            <tr class="hover:bg-gray-50 transition-colors">
+                                <td class="px-6 py-4 text-sm text-gray-700">Simple, intuitive dashboard</td>
+                                <td class="px-6 py-4 text-center"><span class="text-green-500 text-lg font-bold">&#10003;</span></td>
+                                <td class="px-6 py-4 text-center"><span class="text-orange-400 text-base">~</span><span class="text-xs text-gray-400 block">Steep learning curve</span></td>
+                            </tr>
+                            <tr class="hover:bg-gray-50 transition-colors">
+                                <td class="px-6 py-4 text-sm text-gray-700">Free &amp; open source</td>
+                                <td class="px-6 py-4 text-center"><span class="text-green-500 text-lg font-bold">&#10003;</span><span class="text-xs text-gray-400 block">AGPL-3.0</span></td>
+                                <td class="px-6 py-4 text-center"><span class="text-red-400 text-lg font-bold">&#10007;</span><span class="text-xs text-gray-400 block">Proprietary</span></td>
+                            </tr>
+                            <tr class="hover:bg-gray-50 transition-colors">
+                                <td class="px-6 py-4 text-sm text-gray-700">Self-hosted, your data stays yours</td>
+                                <td class="px-6 py-4 text-center"><span class="text-green-500 text-lg font-bold">&#10003;</span></td>
+                                <td class="px-6 py-4 text-center"><span class="text-red-400 text-lg font-bold">&#10007;</span><span class="text-xs text-gray-400 block">Google's servers</span></td>
+                            </tr>
+                            <tr class="hover:bg-gray-50 transition-colors">
+                                <td class="px-6 py-4 text-sm text-gray-700">Data not sold or used for advertising</td>
+                                <td class="px-6 py-4 text-center"><span class="text-green-500 text-lg font-bold">&#10003;</span></td>
+                                <td class="px-6 py-4 text-center"><span class="text-red-400 text-lg font-bold">&#10007;</span></td>
+                            </tr>
+                            <tr class="hover:bg-gray-50 transition-colors">
+                                <td class="px-6 py-4 text-sm text-gray-700">No data sampling</td>
+                                <td class="px-6 py-4 text-center"><span class="text-green-500 text-lg font-bold">&#10003;</span></td>
+                                <td class="px-6 py-4 text-center"><span class="text-red-400 text-lg font-bold">&#10007;</span><span class="text-xs text-gray-400 block">GA4 samples large sites</span></td>
+                            </tr>
+                            <tr class="hover:bg-gray-50 transition-colors">
+                                <td class="px-6 py-4 text-sm text-gray-700">Real-time data</td>
+                                <td class="px-6 py-4 text-center"><span class="text-green-500 text-lg font-bold">&#10003;</span></td>
+                                <td class="px-6 py-4 text-center"><span class="text-green-500 text-lg font-bold">&#10003;</span></td>
+                            </tr>
+                            <tr class="hover:bg-gray-50 transition-colors">
+                                <td class="px-6 py-4 text-sm text-gray-700">Goals &amp; conversions</td>
+                                <td class="px-6 py-4 text-center"><span class="text-green-500 text-lg font-bold">&#10003;</span></td>
+                                <td class="px-6 py-4 text-center"><span class="text-green-500 text-lg font-bold">&#10003;</span></td>
+                            </tr>
+                            <tr class="hover:bg-gray-50 transition-colors">
+                                <td class="px-6 py-4 text-sm text-gray-700">E-commerce tracking</td>
+                                <td class="px-6 py-4 text-center"><span class="text-green-500 text-lg font-bold">&#10003;</span></td>
+                                <td class="px-6 py-4 text-center"><span class="text-green-500 text-lg font-bold">&#10003;</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- 5 reasons to switch -->
+        <section class="py-16 bg-white border-t border-gray-100">
+            <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+                <h2 class="text-3xl font-bold text-gray-900 mb-3 text-center">5 reasons teams switch</h2>
+                <p class="text-gray-500 text-center mb-12">From Google Analytics to Argusmetrics</p>
+                <div class="grid md:grid-cols-2 gap-6 lg:gap-8">
+                    <div class="flex gap-5">
+                        <div class="w-11 h-11 rounded-xl bg-red-50 flex items-center justify-center flex-shrink-0">
+                            <i class="fas fa-gavel text-red-500"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-gray-900 mb-2">GDPR enforcement is real</h3>
+                            <p class="text-gray-500 text-sm">In 2022, multiple EU Data Protection Authorities (including Austria, France, and Italy) ruled that using Google Analytics without additional safeguards violated GDPR. Those rulings predate the EU-US Data Privacy Framework adopted in July 2023, so check current guidance for your jurisdiction. Argusmetrics avoids the question entirely, no data ever leaves your own server.</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-5">
+                        <div class="w-11 h-11 rounded-xl bg-orange-50 flex items-center justify-center flex-shrink-0">
+                            <i class="fas fa-cookie-bite text-orange-500"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-gray-900 mb-2">Cookie banners hurt conversions</h3>
+                            <p class="text-gray-500 text-sm">Consent banners interrupt the user experience, and commonly cited industry estimates suggest a sizeable share of visitors reject or dismiss them, skewing your dataset. Argusmetrics requires no banner and counts every visit equally.</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-5">
+                        <div class="w-11 h-11 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
+                            <i class="fas fa-tachometer-alt text-blue-500"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-gray-900 mb-2">GA4 is slow and confusing</h3>
+                            <p class="text-gray-500 text-sm">Google Analytics 4 added complexity without adding clarity. Argusmetrics gives you the answers you actually need, top pages, traffic sources, bounce rates, goals, on a single screen, in under 5 seconds.</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-5">
+                        <div class="w-11 h-11 rounded-xl bg-yellow-50 flex items-center justify-center flex-shrink-0">
+                            <i class="fas fa-user-secret text-yellow-600"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-gray-900 mb-2">Your data is not Google's product</h3>
+                            <p class="text-gray-500 text-sm">Google Analytics is free because your visitors' data powers Google's ad targeting business. With Argusmetrics, your analytics data is yours. We have no ad network. We have no interest in your visitors beyond providing your dashboard.</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-5 md:col-span-2 md:max-w-md md:mx-auto">
+                        <div class="w-11 h-11 rounded-xl bg-green-50 flex items-center justify-center flex-shrink-0">
+                            <i class="fas fa-feather-alt text-green-500"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-gray-900 mb-2">A &lt;3KB script improves page speed</h3>
+                            <p class="text-gray-500 text-sm">The Google tag (gtag.js) is a noticeably heavier download than a minimal analytics script. The Argusmetrics tracking script is under 3KB gzipped, small enough that it's rarely the thing slowing down your page. That's measurable in your Core Web Vitals and PageSpeed score.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Migration CTA -->
+        <section class="py-20 bg-blue-600">
+            <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                <h2 class="text-3xl font-bold text-white mb-4">Ready to make the switch?</h2>
+                <p class="text-blue-100 text-lg mb-3">Spin up your own instance with Docker, replace one script tag, and get a privacy-compliant dashboard on your own server.</p>
+                <p class="text-blue-200 text-sm mb-8">Free &amp; open source &middot; Self-hosted &middot; No signup</p>
+                <a href="https://github.com/Benbo-se/ArgusmetricsSH" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 bg-white text-blue-600 hover:bg-blue-50 font-semibold px-8 py-3 rounded-lg transition-colors text-lg">
+                    <i class="fab fa-github"></i> View on GitHub <i class="fas fa-arrow-right text-sm"></i>
+                </a>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    
+{% endblock %}

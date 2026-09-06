@@ -1,0 +1,18 @@
+{% extends "_layout.html" %}
+{% set page_title = 'Page Not Found - Argusmetrics' %}
+{% set page_desc = "The page you're looking for doesn't exist. Return to Argusmetrics for privacy-first web analytics." %}
+{% block content %}
+    <div class="text-center px-4">
+        <div class="mb-8">
+            <a href="/">
+                <img src="/static/img/logo-96.png" alt="Argusmetrics" width="64" height="64" class="h-16 w-16 mx-auto mb-4">
+            </a>
+        </div>
+        <h1 class="text-6xl font-bold text-gray-900 mb-4">404</h1>
+        <p class="text-xl text-gray-600 mb-8">The page you're looking for doesn't exist.</p>
+        <div class="space-x-4">
+            <a href="/" class="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors">Go Home</a>
+            <a href="/docs/" class="inline-block bg-gray-200 text-gray-700 px-6 py-3 rounded-lg font-semibold hover:bg-gray-300 transition-colors">Documentation</a>
+        </div>
+    </div>
+{% endblock %}
