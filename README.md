@@ -58,12 +58,20 @@ Internet Registries publish their allocations openly, and that is the data
 every commercial geolocation database is built from:
 
 ```bash
-docker compose exec backend python -m app.ip_country refresh
+# development
+docker compose -f docker/docker-compose.yml exec backend \
+  python -m app.ip_country refresh
+# production, or anywhere the compose file is not the default one
+docker exec -w /app argusmetrics-backend python -m app.ip_country refresh
 ```
 
+The compose file lives under `docker/`, so a bare `docker compose exec` from
+the repository root finds no configuration and says so. The container name is
+fixed, which is why the second form works regardless.
+
 That loads roughly 330,000 ranges covering 239 countries, and the scheduler
-keeps it current every Sunday. `python -m app.ip_country status` shows what is
-loaded; `lookup <address>` answers for one address. On a machine with no
+keeps it current every Sunday. Swap `refresh` for `status` to see what is
+loaded, or `lookup <address>` to resolve one address. On a machine with no
 outbound access, download the five `delegated-<registry>-extended-latest`
 files elsewhere and pass `--from-dir`.
 
