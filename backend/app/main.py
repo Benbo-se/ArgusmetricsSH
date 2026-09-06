@@ -68,6 +68,25 @@ async def lifespan(app: FastAPI):
             "verification on (and configure email), or close registration."
         )
 
+    # A BASE_URL with a port in it makes the site answer 400 to every request,
+    # and nothing says why. allowed_hosts below is BASE_URL without its scheme,
+    # so it keeps the port, while Starlette compares it against the Host header
+    # with the port stripped. They can never match. The application starts, the
+    # logs look normal, and every response is a Bad Request.
+    #
+    # Found by a CI job that brings the production stack up, which is the first
+    # thing here that runs the configuration an operator actually writes.
+    if settings.is_production:
+        _host = settings.BASE_URL.replace("https://", "").replace("http://", "")
+        if ":" in _host.rstrip("/"):
+            raise RuntimeError(
+                f"BASE_URL is {settings.BASE_URL!r}, which carries a port. "
+                "The trusted-host check compares it against the Host header, "
+                "and that header arrives without the port, so every request "
+                "would answer 400 Bad Request with nothing in the log to say "
+                "why. Set BASE_URL to the address people type, with no port."
+            )
+
     # Check database connection
     if not check_db_connection():
         logger.error("Failed to connect to database")

@@ -179,3 +179,59 @@ class TestTheOpenDoorCombination:
                 pass
 
         asyncio.run(start())
+
+
+class TestBaseUrlWithAPortIsRefused:
+    """A port in BASE_URL makes the site answer 400 to everything.
+
+    allowed_hosts is BASE_URL without its scheme, so it keeps the port, and
+    Starlette compares it against the Host header with the port stripped. They
+    can never match. The application starts, the log looks normal, and every
+    response is a Bad Request with nothing to say why.
+
+    Found by the CI job that brings the production stack up, which is the
+    first thing here that runs the configuration an operator writes rather
+    than the one the tests use.
+    """
+
+    @staticmethod
+    def _would_refuse(base_url: str, environment: str) -> bool:
+        from unittest.mock import patch
+
+        with patch.object(settings, "BASE_URL", base_url), \
+             patch.object(settings, "ENVIRONMENT", environment):
+            host = settings.BASE_URL.replace("https://", "").replace("http://", "")
+            return settings.is_production and ":" in host.rstrip("/")
+
+    @pytest.mark.parametrize("base_url", [
+        "https://argusmetrics.io",
+        "http://argusmetrics.test",
+        "http://127.0.0.1",
+    ])
+    def test_an_address_without_a_port_is_fine(self, base_url):
+        assert not self._would_refuse(base_url, "production")
+
+    @pytest.mark.parametrize("base_url", [
+        "http://127.0.0.1:8021",
+        "https://argusmetrics.io:8443",
+    ])
+    def test_one_with_a_port_is_refused(self, base_url):
+        assert self._would_refuse(base_url, "production"), (
+            f"{base_url} would start and then answer 400 to every request"
+        )
+
+    def test_development_is_left_alone(self):
+        """Development runs on localhost with a port and no trusted-host
+        middleware, so there is nothing to refuse."""
+        assert not self._would_refuse("http://localhost:8020", "development")
+
+    def test_the_check_is_actually_in_the_startup_path(self):
+        """Otherwise this file agrees with itself and the application does
+        something else."""
+        import pathlib
+
+        main = (pathlib.Path(__file__).resolve().parents[1] / "app" / "main.py").read_text()
+        assert "carries a port" in main, (
+            "the guard is gone from main.py, so a BASE_URL with a port would "
+            "start and answer 400 to everything again"
+        )

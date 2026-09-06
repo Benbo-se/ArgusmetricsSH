@@ -474,12 +474,13 @@ jobs:
           docker run -d --name api --network ci -p 8020:8020 \
             -e DATABASE_URL="postgresql://argus:argus@db:5432/argus" \
             -e SECRET_KEY="ci-dummy-secret-key-0123456789abcdefghij" \
-            -e BASE_URL="http://127.0.0.1:8020" \
+            -e BASE_URL="http://argusmetrics.test" \
             argusmetrics-backend:citest
 
           OK=0
           for i in $(seq 1 45); do
-            if curl -fsS http://127.0.0.1:8020/health >/dev/null 2>&1; then OK=1; break; fi
+            if curl -fsS -H 'Host: argusmetrics.test' \
+                 http://127.0.0.1:8020/health >/dev/null 2>&1; then OK=1; break; fi
             sleep 2
           done
           if [ "$OK" != "1" ]; then
@@ -487,7 +488,7 @@ jobs:
             docker logs api | tail -60
             exit 1
           fi
-          curl -fsS http://127.0.0.1:8020/health
+          curl -fsS -H 'Host: argusmetrics.test' http://127.0.0.1:8020/health
 
   prod:
     needs: [smoke, hygiene]
