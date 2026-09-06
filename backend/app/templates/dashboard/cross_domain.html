@@ -15,7 +15,7 @@
    report an uninterpretable expression. That is exactly what happened: the
    page rendered its shell and nothing else. alpine-components.js avoids it
    by loading without defer, and so does this. #}
-<script src="/static/js/cross-domain.js"></script>
+<script src="{{ static_url('js/cross-domain.js') }}"></script>
 {% endblock %}
 
 {% block content %}

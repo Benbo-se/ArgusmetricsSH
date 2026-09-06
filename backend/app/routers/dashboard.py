@@ -63,6 +63,13 @@ def _country_lookup_available() -> bool:
 
 templates.env.globals["geoip_available"] = _country_lookup_available
 
+# Stylesheets and scripts carry a hash of their own contents, so nginx can
+# cache them forever without a fix being unable to reach anyone. See
+# app/static_files.py. Deliberately not used for tracker.min.js.
+from app.static_files import static_url
+
+templates.env.globals["static_url"] = static_url
+
 # Add custom Jinja2 filters
 def format_number(value):
     """Format number with thousands separator"""

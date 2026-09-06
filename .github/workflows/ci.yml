@@ -369,6 +369,21 @@ jobs:
           # Filerna som ändras vid varje deploy och ligger på fasta URL:er
           # utan innehållshash i namnet. Bara de som går att servera utan
           # backend; dashboardens egna filer ligger i backend-imagen.
+          # Ett fingeravtryck i URL:en ska ge evig cache; utan ska ge kort.
+          # Trackern ska aldrig få den eviga, ens med ett påhittat v=, för
+          # dess URL sitter i andras sidkälla.
+          LONG=$(curl -sI -H 'Host: argusmetrics.io' \
+            'http://127.0.0.1:18099/static/css/tailwind.min.css?v=deadbeef' \
+            | grep -i cache-control | tr -d '\r')
+          echo "$LONG" | grep -qi 'immutable' || {
+            echo "::error::en versionad tillgang far inte den langa cachen: $LONG"; exit 1; }
+
+          TRACKER=$(curl -sI -H 'Host: argusmetrics.io' \
+            'http://127.0.0.1:18099/static/tracker.min.js?v=deadbeef' \
+            | grep -i cache-control | tr -d '\r')
+          echo "$TRACKER" | grep -qi 'immutable' && {
+            echo "::error::trackern fick den langa cachen och gar da inte att laga: $TRACKER"; exit 1; }
+
           FAIL=0
           for FILE in /static/tracker.min.js /static/css/tailwind.min.css; do
             HEADERS=$(curl -sI -H 'Host: argusmetrics.io' \
