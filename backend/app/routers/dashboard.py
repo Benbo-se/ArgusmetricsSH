@@ -251,6 +251,75 @@ async def login_page(request: Request):
     })
 
 
+def require_admin(current_user: User = Depends(get_current_user)) -> User:
+    """Let an administrator through, and tell everyone else there is no page.
+
+    404 rather than 403. A 403 confirms the page exists and that the account
+    is simply not allowed to see it, which is a fact worth not handing out on
+    an instance where the administrator is one named person.
+    """
+    if current_user.email.lower() not in settings.admin_emails:
+        logger.warning(
+            f"Admin page refused for {mask_email(current_user.email)}"
+        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+    return current_user
+
+
+@router.get("/dashboard/admin", response_class=HTMLResponse)
+async def admin_page(
+    request: Request,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """The instance, rather than one website in it.
+
+    Only the waiting list so far, because that is what exists to look at. It
+    was collected with no way to read it, which made a command-line tool the
+    only route to a number the operator actually wants to see.
+    """
+    from sqlalchemy import text
+
+    set_rls_context(db, context="user", user_email=current_user.email)
+    entries = db.execute(
+        text(
+            "SELECT email, source, created_at, notified_at "
+            "  FROM waitlist ORDER BY created_at DESC"
+        )
+    ).all()
+
+    return templates.TemplateResponse("dashboard/admin.html", {
+        "request": request,
+        "current_user": current_user,
+        "entries": entries,
+        "waiting": sum(1 for e in entries if e.notified_at is None),
+    })
+
+
+@router.post("/dashboard/admin/waitlist/remove", response_class=RedirectResponse)
+async def admin_remove_from_waitlist(
+    request: Request,
+    email: str = Form(...),
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Delete one address, which is how the promise on the signup page is kept.
+
+    POST, because a GET with side effects is reachable from a link and from
+    anything that prefetches. Same reason logout is a form.
+    """
+    from sqlalchemy import text
+
+    set_rls_context(db, context="job")
+    db.execute(
+        text("DELETE FROM waitlist WHERE email = :e"),
+        {"e": email.strip().lower()},
+    )
+    db.commit()
+    logger.info("Removed an address from the waiting list")
+    return RedirectResponse(url="/dashboard/admin", status_code=303)
+
+
 @router.get("/signup", response_class=HTMLResponse)
 async def signup_page(request: Request):
     """Render signup page with plan selection.

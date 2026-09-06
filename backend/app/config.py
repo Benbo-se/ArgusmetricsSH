@@ -166,6 +166,17 @@ class Settings(BaseSettings):
         default=True, description="Require email verification before an account works"
     )
 
+    # Who may see the instance-wide admin page. Configuration rather than a
+    # column on users, for two reasons. An attacker who reaches the database
+    # cannot make themselves an administrator by writing a row, and a real
+    # role model with permissions and deprovisioning belongs in one piece
+    # (issue #44) rather than half-built here. Empty means nobody, which is
+    # what an instance that never set it should get.
+    ADMIN_EMAILS: str = Field(
+        default="",
+        description="Comma-separated addresses allowed to see /dashboard/admin",
+    )
+
     # E2E Testing (allows test emails to get verify_url without DEBUG mode)
     E2E_TEST_SECRET: Optional[str] = Field(default=None, description="Secret for E2E tests to get verify_url for @test.argusmetrics.io emails")
 
@@ -189,6 +200,20 @@ class Settings(BaseSettings):
     def sqlalchemy_database_uri(self) -> str:
         """Get SQLAlchemy-compatible database URI."""
         return self.DATABASE_URL
+
+    @property
+    def admin_emails(self) -> set:
+        """The addresses in ADMIN_EMAILS, lower-cased.
+
+        A set rather than a string, so a substring cannot match: with plain
+        containment, "eda@example.com" would be an administrator on an
+        instance configured for "reda@example.com".
+        """
+        return {
+            part.strip().lower()
+            for part in (self.ADMIN_EMAILS or "").split(",")
+            if part.strip()
+        }
 
     @property
     def geoip_available(self) -> bool:
@@ -255,7 +280,7 @@ OPERATOR_SETTINGS = frozenset({
     "DATA_RETENTION_DAYS", "RETENTION_BATCH_SIZE", "RETENTION_MAX_ROWS_PER_RUN",
     "EMAIL_LOG_RETENTION_DAYS",
     # Who may use the instance
-    "ENABLE_REGISTRATION", "ENABLE_EMAIL_VERIFICATION",
+    "ENABLE_REGISTRATION", "ENABLE_EMAIL_VERIFICATION", "ADMIN_EMAILS",
     "MONTHLY_EVENT_LIMIT", "MAX_WEBSITES_PER_ACCOUNT",
     # Throttling
     "RATE_LIMIT_ENABLED", "RATE_LIMIT_PER_MINUTE", "RATE_LIMIT_PER_HOUR",

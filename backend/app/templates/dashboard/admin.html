@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block title %}Admin{% endblock %}
+
+{# The instance, rather than one website in it.
+
+   Only the waiting list so far, because that is what there is to look at. It
+   was collected with no way to read it, so a terminal was the only route to a
+   number the operator wants at a glance.
+
+   Reachable only by an address in ADMIN_EMAILS, and invisible to everyone
+   else: the route answers 404 rather than 403, so it does not confirm that
+   the page exists to an account that may not see it. #}
+{% block content %}
+<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900">Instance admin</h1>
+        <p class="mt-1 text-sm text-gray-600">
+            Signed in as {{ current_user.email }}. This page is not linked from
+            anywhere and is only visible to addresses in
+            <code class="bg-gray-100 px-1 rounded text-xs">ADMIN_EMAILS</code>.
+        </p>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
+        <div class="stat-tile bg-white rounded-lg shadow p-6">
+            <p class="stat-label mb-2">Waiting</p>
+            <p class="stat-value text-3xl text-gray-900">{{ waiting | format_number }}</p>
+        </div>
+        <div class="stat-tile bg-white rounded-lg shadow p-6">
+            <p class="stat-label mb-2">On the list</p>
+            <p class="stat-value text-3xl text-gray-900">{{ entries | length | format_number }}</p>
+        </div>
+        <div class="stat-tile bg-white rounded-lg shadow p-6">
+            <p class="stat-label mb-2">Already notified</p>
+            <p class="stat-value text-3xl text-gray-900">{{ (entries | length - waiting) | format_number }}</p>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow">
+        <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+            <div>
+                <h2 class="text-lg font-semibold text-gray-900">Hosted signup waiting list</h2>
+                <p class="text-sm text-gray-500 mt-0.5">
+                    People who left an address on
+                    <a href="/signup" class="text-blue-600 hover:underline">/signup</a>
+                    while hosted registration is closed.
+                </p>
+            </div>
+        </div>
+
+        {% if entries %}
+        <div class="overflow-x-auto">
+            <table class="min-w-full text-sm">
+                <thead class="bg-gray-50 text-gray-500">
+                    <tr>
+                        <th class="px-6 py-3 text-left font-medium">Address</th>
+                        <th class="px-6 py-3 text-left font-medium">Joined</th>
+                        <th class="px-6 py-3 text-left font-medium">From</th>
+                        <th class="px-6 py-3 text-left font-medium">State</th>
+                        <th class="px-6 py-3 text-right font-medium">
+                            <span class="sr-only">Remove</span>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for entry in entries %}
+                    <tr>
+                        <td class="px-6 py-3 text-gray-900">{{ entry.email }}</td>
+                        <td class="px-6 py-3 text-gray-600 tabular-nums">
+                            {{ entry.created_at.strftime('%Y-%m-%d %H:%M') }}
+                        </td>
+                        <td class="px-6 py-3 text-gray-500">{{ entry.source or '-' }}</td>
+                        <td class="px-6 py-3">
+                            {% if entry.notified_at %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">Notified</span>
+                            {% else %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700">Waiting</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-3 text-right">
+                            {# A form rather than a link. A GET that deletes is
+                               reachable by anything that prefetches, which is
+                               why logging out is a form here too. #}
+                            <form method="post" action="/dashboard/admin/waitlist/remove"
+                                  x-data="confirmRemove" @submit="confirmFirst">
+                                <input type="hidden" name="email" value="{{ entry.email }}">
+                                <button type="submit"
+                                        class="text-sm text-red-600 hover:text-red-800 font-medium">
+                                    Remove
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="px-6 py-12 text-center">
+            <p class="text-gray-500">Nobody has joined the waiting list yet.</p>
+            <p class="text-sm text-gray-400 mt-2">
+                Addresses appear here when someone leaves one on /signup.
+            </p>
+        </div>
+        {% endif %}
+    </div>
+
+    <p class="text-sm text-gray-500 mt-6">
+        Removing an address here is how the promise on the signup page is kept.
+        The same thing from a terminal is
+        <code class="bg-gray-100 px-1 rounded text-xs">python -m app.waitlist remove &lt;address&gt;</code>,
+        which also has <code class="bg-gray-100 px-1 rounded text-xs">export</code>
+        for when the announcement goes out.
+    </p>
+</div>
+{% endblock %}

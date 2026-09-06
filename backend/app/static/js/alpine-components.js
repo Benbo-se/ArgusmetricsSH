@@ -820,6 +820,17 @@ document.addEventListener('alpine:init', () => {
      * whether a given address had used the product, which is a thing this
      * product does not tell people about each other.
      */
+    /** Ask before a delete that cannot be undone. */
+    Alpine.data('confirmRemove', () => ({
+        confirmFirst(event) {
+            const address = this.$el.querySelector('input[name="email"]')
+            const what = address ? address.value : 'this entry'
+            if (!window.confirm(`Remove ${what} from the waiting list?`)) {
+                event.preventDefault()
+            }
+        },
+    }))
+
     Alpine.data('waitlistForm', () => ({
         email: '',
         honeypot: '',
