@@ -6,18 +6,18 @@
     <title>Argusmetrics vs Matomo - Argusmetrics</title>
     <meta name="theme-color" content="#2563eb">
     <link rel="canonical" href="https://argusmetrics.io/compare/matomo">
-    <meta name="description" content="Argusmetrics vs Matomo, both are self-hosted and cookieless, but Argusmetrics ships as a single Docker stack instead of a PHP/MySQL install to maintain.">
+    <meta name="description" content="Argusmetrics vs Matomo: both self-hosted, but Argusmetrics is cookieless out of the box and ships as a single Docker stack instead of a PHP/MySQL install to maintain.">
     <meta property="og:site_name" content="Argusmetrics">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://argusmetrics.io/compare/matomo">
     <meta property="og:title" content="Argusmetrics vs Matomo - Argusmetrics">
-    <meta property="og:description" content="Argusmetrics vs Matomo, both are self-hosted and cookieless, but Argusmetrics ships as a single Docker stack instead of a PHP/MySQL install to maintain.">
+    <meta property="og:description" content="Argusmetrics vs Matomo: both self-hosted, but Argusmetrics is cookieless out of the box and ships as a single Docker stack instead of a PHP/MySQL install to maintain.">
     <meta property="og:image" content="https://argusmetrics.io/static/img/og-image.png">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="Argusmetrics vs Matomo - Argusmetrics">
-    <meta name="twitter:description" content="Both self-hosted and cookieless, Argusmetrics is a single Docker stack instead of a PHP/MySQL install.">
+    <meta name="twitter:description" content="Both self-hosted. Argusmetrics is cookieless by default and a single Docker stack instead of a PHP/MySQL install.">
     <meta name="twitter:image" content="https://argusmetrics.io/static/img/og-image.png">
     <link rel="icon" type="image/x-icon" href="../static/favicon.ico">
     <link rel="icon" type="image/png" sizes="32x32" href="../static/img/favicon-32.png">
@@ -372,6 +372,38 @@
                         </tbody>
                     </table>
                 </div>
+
+                <!-- The default-versus-configured point, which is the whole
+                     difference on the consent row and the one a procurement
+                     reviewer actually asks about. Written to be checkable:
+                     Matomo can reach the same place, and saying so is what
+                     makes the rest of the claim credible. -->
+                <div class="max-w-3xl mx-auto mt-12 bg-blue-50 border border-blue-100 rounded-xl p-6 sm:p-8">
+                    <h3 class="text-xl font-bold text-gray-900 mb-3">The difference is the default, not the ceiling</h3>
+                    <p class="text-gray-700 text-sm leading-relaxed mb-4">
+                        Matomo can be run without a consent banner. France's data protection
+                        authority has approved it that way. Getting there means turning off
+                        cookies, shortening the visitor identifier, anonymising IP addresses
+                        and disabling several defaults, then keeping all of it correct through
+                        every upgrade, and being able to show that you did.
+                    </p>
+                    <p class="text-gray-700 text-sm leading-relaxed mb-4">
+                        Argusmetrics has no such setting, because there is nothing to turn off.
+                        No cookie is ever written. No identifier is stored on the visitor's
+                        device. The visitor hash is derived on the server from a salt that is
+                        replaced every day, over an address already truncated to its /24
+                        network, and scoped to one site. So the full address never enters the
+                        hash, yesterday's visitors cannot be matched to today's even by us,
+                        and the same person on two of your sites is two unrelated hashes. An
+                        installation nobody configured behaves exactly like one that was.
+                    </p>
+                    <p class="text-gray-600 text-sm leading-relaxed">
+                        That matters most when the person who has to answer for it is not the
+                        person who installed it. A default you can describe in one sentence is
+                        easier to defend in a procurement review than a configuration you have
+                        to audit.
+                    </p>
+                </div>
             </div>
         </section>
 
@@ -411,7 +443,7 @@
                             </li>
                             <li class="flex items-start gap-3">
                                 <i class="fas fa-check text-blue-500 flex-shrink-0 mt-0.5"></i>
-                                <span>You want GDPR compliance by default, no additional configuration, no cookie consent popup, no legal grey area.</span>
+                                <span>You want no consent banner as the default rather than as a configuration: nothing to switch off, nothing to re-check after an upgrade, nothing to explain to a reviewer.</span>
                             </li>
                             <li class="flex items-start gap-3">
                                 <i class="fas fa-check text-blue-500 flex-shrink-0 mt-0.5"></i>
