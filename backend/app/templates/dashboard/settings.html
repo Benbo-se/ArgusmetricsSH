@@ -204,12 +204,16 @@
 
                 <div class="relative" x-data="copyButton">
                     <pre class="bg-gray-50 border border-gray-200 rounded-lg p-4 text-xs overflow-x-auto"><code id="not-found-snippet">&lt;script&gt;
-  if (window.argus) {
-    argus.trackEvent('404 Error', {
-      path: window.location.pathname,
-      referrer: document.referrer
-    });
-  }
+  // On load, not immediately: the tracker is deferred, so window.argus
+  // does not exist yet while this page is still being parsed.
+  window.addEventListener('load', function () {
+    if (window.argus) {
+      argus.trackEvent('404 Error', {
+        path: window.location.pathname,
+        referrer: document.referrer
+      });
+    }
+  });
 &lt;/script&gt;</code></pre>
                     <button @click="copy" data-copy-from="not-found-snippet"
                             class="absolute top-2 right-2 px-3 py-1 text-xs font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
@@ -234,12 +238,16 @@
 &lt;!-- Your 404 page content --&gt;
 
 &lt;script&gt;
-  if (window.argus) {
-    argus.trackEvent('404 Error', {
-      path: window.location.pathname,
-      referrer: document.referrer
-    });
-  }
+  // On load, not immediately: the tracker is deferred, so window.argus
+  // does not exist yet while this page is still being parsed.
+  window.addEventListener('load', function () {
+    if (window.argus) {
+      argus.trackEvent('404 Error', {
+        path: window.location.pathname,
+        referrer: document.referrer
+      });
+    }
+  });
 &lt;/script&gt;
 
 &lt;?php get_footer(); ?&gt;</code></pre>
@@ -276,12 +284,16 @@ export default function Custom404() {
                             <pre class="bg-white border border-gray-300 rounded p-2 text-xs overflow-x-auto"><code>&lt;!-- Your 404 page content --&gt;
 
 &lt;script&gt;
-  if (window.argus) {
-    argus.trackEvent('404 Error', {
-      path: window.location.pathname,
-      referrer: document.referrer
-    });
-  }
+  // On load, not immediately: the tracker is deferred, so window.argus
+  // does not exist yet while this page is still being parsed.
+  window.addEventListener('load', function () {
+    if (window.argus) {
+      argus.trackEvent('404 Error', {
+        path: window.location.pathname,
+        referrer: document.referrer
+      });
+    }
+  });
 &lt;/script&gt;
 &lt;/body&gt;</code></pre>
                         </div>

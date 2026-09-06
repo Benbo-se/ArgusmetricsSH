@@ -352,6 +352,11 @@ jobs:
         working-directory: frontend/tracking-script
         run: |
           npm install --silent
+          # Does it reference anything that does not exist? The sync check
+          # below proves the artifact matches the source; it cannot tell that
+          # both of them call a function nobody ever wrote. That shipped, and
+          # a customer's own suite found it before we did.
+          npm run check
           npx terser src/tracker.js --config-file terser.config.json -o /tmp/tracker.check.js
           cmp /tmp/tracker.check.js ../../backend/app/static/tracker.min.js || { echo "backend/app/static/tracker.min.js ur synk med src — kör 'npm run build' i frontend/tracking-script"; exit 1; }
           cmp /tmp/tracker.check.js ../../site/static/tracker.min.js || { echo "site/static/tracker.min.js ur synk med src — kör 'npm run build'"; exit 1; }

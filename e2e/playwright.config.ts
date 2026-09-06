@@ -73,6 +73,12 @@ export default defineConfig({
       dependencies: ['auth'],
     },
     {
+      // Loads the built tracker in a real engine and asserts the console stays
+      // clean. No login: this is what a customer's own page does.
+      name: 'tracker-console',
+      testMatch: /tracker-console\.spec\.ts/,
+    },
+    {
       name: 'landing',
       testMatch: /landing\.spec\.ts/,
       use: { baseURL: SITE_URL },

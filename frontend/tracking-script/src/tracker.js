@@ -821,8 +821,19 @@
     // Add scroll listener
     window.addEventListener('scroll', handleScroll, { passive: true });
 
-    // Check initial scroll position (in case page loads scrolled)
-    setTimeout(checkScrollMilestones, 100);
+    // Take one reading shortly after setup, for a page that is already
+    // scrolled when it loads: an anchor link, a restored position on back
+    // navigation. The listener only fires on movement, so without this a
+    // visitor who lands halfway down and reads without scrolling reports
+    // nothing at all.
+    //
+    // This called checkScrollMilestones until now, which is the name
+    // recordScrollDepth had when it still fired an event at 25, 50, 75 and
+    // 100 per cent. The rename missed this one caller, and JavaScript only
+    // resolves a free variable when it is reached, so nothing complained
+    // until the timer fired in a visitor's browser: a ReferenceError on every
+    // page load of every site running the tracker.
+    setTimeout(recordScrollDepth, 100);
   }
 
   /**
