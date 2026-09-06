@@ -8,9 +8,12 @@ test('nothing overflows the viewport on a phone', async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 812 });
   const problems: string[] = [];
 
+  const checked: string[] = [];
+
   for (const path of PAGES) {
     const res = await page.goto(path).catch(() => null);
     if (!res || res.status() >= 400) { console.log('HOPPAR=' + path); continue; }
+    checked.push(path);
 
     const found = await page.evaluate(() => {
       const w = document.documentElement.clientWidth;
@@ -43,6 +46,16 @@ test('nothing overflows the viewport on a phone', async ({ page }) => {
       problems.push(`${path}  scroll=${found.scrollW} viewport=${found.clientW}  ${found.out.join(' | ')}`);
     }
   }
+  // A page that does not answer is skipped, which means a suite pointed at a
+  // dead host passes every page by checking none of them. This ran in one
+  // second against ten pages once and looked fine.
+  expect(
+    checked,
+    `only ${checked.length} of ${PAGES.length} pages answered, so the rest ` +
+      'were skipped rather than checked. Missing: ' +
+      PAGES.filter(p => !checked.includes(p)).join(', ')
+  ).toHaveLength(PAGES.length);
+
   expect(
     problems,
     'these pages scroll sideways on a 375px phone, which reads as broken ' +
