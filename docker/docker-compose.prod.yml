@@ -88,6 +88,8 @@ services:
       # vem som helst på internet kan skapa konto.
       ENABLE_REGISTRATION: ${ENABLE_REGISTRATION:-false}
       ENABLE_EMAIL_VERIFICATION: ${ENABLE_EMAIL_VERIFICATION:-true}
+      # Vilka adresser som får öppna /dashboard/admin. Tomt betyder ingen.
+      ADMIN_EMAILS: ${ADMIN_EMAILS:-}
 
       # Sessioner och engångslänkar.
       SESSION_EXPIRY_DAYS: ${SESSION_EXPIRY_DAYS:-30}
