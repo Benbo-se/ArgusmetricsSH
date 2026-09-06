@@ -366,20 +366,26 @@ jobs:
             sleep 1
           done
 
-          HEADERS=$(curl -sI -H 'Host: argusmetrics.io' \
-            http://127.0.0.1:18099/static/tracker.min.js)
+          # Filerna som ändras vid varje deploy och ligger på fasta URL:er
+          # utan innehållshash i namnet. Bara de som går att servera utan
+          # backend; dashboardens egna filer ligger i backend-imagen.
+          FAIL=0
+          for FILE in /static/tracker.min.js /static/css/tailwind.min.css; do
+            HEADERS=$(curl -sI -H 'Host: argusmetrics.io' \
+              "http://127.0.0.1:18099$FILE")
+            echo "$HEADERS" | grep -qi 'HTTP/1.1 200' || {
+              echo "::error::$FILE serveras inte alls"; echo "$HEADERS"; FAIL=1; continue; }
+            echo "$HEADERS" | grep -qi 'immutable' && {
+              echo "::error::$FILE serveras som immutable och går alltså inte att laga for nagon som redan laddat den"
+              echo "$HEADERS"; FAIL=1; continue; }
+            MAXAGE=$(echo "$HEADERS" | grep -io 'max-age=[0-9]*' | head -1 | cut -d= -f2)
+            [ -n "$MAXAGE" ] && [ "$MAXAGE" -le 86400 ] || {
+              echo "::error::$FILE cachas '$MAXAGE' sekunder; en fix ska na ut inom ett dygn"
+              echo "$HEADERS"; FAIL=1; continue; }
+            echo "$FILE: max-age=$MAXAGE, inte immutable"
+          done
           docker stop nginx-headers >/dev/null
-
-          echo "$HEADERS" | grep -qi 'HTTP/1.1 200' || {
-            echo "tracker.min.js serveras inte alls:"; echo "$HEADERS"; exit 1; }
-          echo "$HEADERS" | grep -qi 'immutable' && {
-            echo "tracker.min.js serveras som immutable, alltså går den inte att laga för någon som redan laddat den"
-            echo "$HEADERS"; exit 1; }
-          MAXAGE=$(echo "$HEADERS" | grep -io 'max-age=[0-9]*' | head -1 | cut -d= -f2)
-          [ -n "$MAXAGE" ] && [ "$MAXAGE" -le 86400 ] || {
-            echo "tracker.min.js cachas $MAXAGE sekunder; en fix ska nå ut inom ett dygn"
-            echo "$HEADERS"; exit 1; }
-          echo "tracker.min.js: max-age=$MAXAGE, inte immutable"
+          [ "$FAIL" -eq 0 ]
 
       - name: Trackern är byggd från källan och i synk överallt
         working-directory: frontend/tracking-script
