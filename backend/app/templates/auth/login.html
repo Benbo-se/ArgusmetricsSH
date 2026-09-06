@@ -46,7 +46,13 @@
                 </form>
 
                 <div class="mt-6 text-center">
+                    {% if registration_open() %}
                     <a href="/signup" class="text-sm text-blue-600 hover:text-blue-800">No account? Create one</a>
+                    {% else %}
+                    {# "Create one" led to a redirect straight back here, so the
+                       link looked broken. It says what it does now. #}
+                    <a href="/signup" class="text-sm text-blue-600 hover:text-blue-800">Hosted signup is not open yet</a>
+                    {% endif %}
                 </div>
                 <details class="mt-4 text-center">
                     <summary class="text-xs text-gray-500 cursor-pointer">Never got the verification email?</summary>

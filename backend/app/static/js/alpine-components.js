@@ -812,6 +812,58 @@ document.addEventListener('alpine:init', () => {
      * click attribute, as a template literal containing a <script> tag that
      * Jinja rendered a nonce into.
      */
+    /**
+     * The waiting list on the signup page, while hosted registration is closed.
+     *
+     * Answers the same way whether the address was new or already on the list.
+     * A page that said "you are already signed up" would let anyone check
+     * whether a given address had used the product, which is a thing this
+     * product does not tell people about each other.
+     */
+    Alpine.data('waitlistForm', () => ({
+        email: '',
+        honeypot: '',
+        busy: false,
+        done: false,
+        message: '',
+
+        get emailModel() { return modelFor(this, 'email') },
+        get honeypotModel() { return modelFor(this, 'honeypot') },
+        get joined() { return this.done },
+        get notJoined() { return !this.done },
+        get failed() { return !!this.message },
+        get buttonLabel() { return this.busy ? 'Sending\u2026' : 'Tell me when it opens' },
+
+        async join() {
+            if (this.busy) return
+            this.message = ''
+            this.busy = true
+            try {
+                const response = await fetch('/api/v1/waitlist', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: this.email,
+                        website: this.honeypot,
+                        source: window.location.pathname,
+                    }),
+                })
+                if (response.ok) {
+                    this.done = true
+                } else if (response.status === 429) {
+                    this.message = 'Too many attempts. Try again in a while.'
+                } else {
+                    const body = await response.json().catch(() => ({}))
+                    this.message = body.detail || 'That did not work. Try again.'
+                }
+            } catch (e) {
+                this.message = 'Could not reach the server. Try again.'
+            } finally {
+                this.busy = false
+            }
+        },
+    }))
+
     Alpine.data('copyButton', () => ({
         copied: false,
         get isCopied() { return this.copied },

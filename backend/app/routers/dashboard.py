@@ -70,6 +70,10 @@ from app.static_files import static_url
 
 templates.env.globals["static_url"] = static_url
 
+# Whether an account can be created at all. The login page used to offer a
+# link that redirected straight back to itself.
+templates.env.globals["registration_open"] = lambda: settings.ENABLE_REGISTRATION
+
 # Add custom Jinja2 filters
 def format_number(value):
     """Format number with thousands separator"""
@@ -251,11 +255,16 @@ async def login_page(request: Request):
 async def signup_page(request: Request):
     """Render signup page with plan selection.
 
-    Sends people to the login page when registration is closed, rather than
-    showing a form whose submit would be refused.
+    When registration is closed this used to redirect to /login, which is why
+    every "Get started free" button on the site appeared to do nothing: you
+    clicked, the page did not change, and nothing said why. It renders a page
+    that explains itself instead, and takes an address to notify.
     """
     if not settings.ENABLE_REGISTRATION:
-        return RedirectResponse(url="/login", status_code=302)
+        return templates.TemplateResponse("auth/signup_closed.html", {
+            "request": request,
+            "current_user": None,
+        })
 
     return templates.TemplateResponse("auth/signup.html", {
         "request": request,

@@ -51,12 +51,22 @@ class TestRegistrationCanBeClosed:
     def test_the_page_does_not_offer_a_form_that_cannot_work(
         self, client, monkeypatch
     ):
+        """No form, and no silent redirect either.
+
+        This used to assert the redirect to /login, which was the fix when it
+        was written and turned out to be the next bug: every "Get started
+        free" button on the site led there, the page did not change, and
+        nothing explained why. The intent survives, the mechanism does not.
+        """
         monkeypatch.setattr(settings, "ENABLE_REGISTRATION", False)
 
         response = client.get("/signup", follow_redirects=False)
 
-        assert response.status_code == 302
-        assert response.headers["location"] == "/login"
+        assert response.status_code == 200, (
+            "a redirect here is what made the button look broken"
+        )
+        assert "Create your account" not in response.text
+        assert "Hosted signup is not open yet" in response.text
 
     def test_signup_still_works_when_open(self, client, monkeypatch):
         monkeypatch.setattr(settings, "ENABLE_REGISTRATION", True)

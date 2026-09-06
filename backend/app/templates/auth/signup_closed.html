@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}Hosted signup{% endblock %}
+
+{# What "Get started free" leads to while hosted registration is closed.
+
+   It used to redirect to /login, so the button appeared to do nothing at all:
+   you clicked, the page did not change, and there was no explanation anywhere.
+
+   Not a disabled form. People type into disabled fields and get nothing back,
+   and a form that cannot be submitted says less than a sentence that tells you
+   why. One address, which is stored, so the page does something rather than
+   only informing. #}
+{% block content %}
+<div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-lg w-full space-y-8">
+        <div class="text-center">
+            <a href="/" class="inline-block">
+                <img src="{{ static_url('img/ArgusEyefavicon3.png') }}" alt="Argusmetrics"
+                     class="mx-auto h-20 w-20 mb-4 hover:opacity-80 transition-opacity">
+            </a>
+            <h2 class="text-3xl font-extrabold text-gray-900">Hosted signup is not open yet</h2>
+            <p class="mt-3 text-gray-600">
+                Argusmetrics is finished software and you can run it on your own
+                server today. What is not ready is the version where we run it
+                for you.
+            </p>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-xl p-8" x-data="waitlistForm">
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">Leave an address and we will tell you</h3>
+            <p class="text-sm text-gray-600 mb-6">
+                One email, once, when hosted signup opens. Not a newsletter.
+                Your address is stored on this server, goes to nobody else, and
+                is deleted whenever you ask.
+            </p>
+
+            <div x-show="joined" class="mb-4 p-4 bg-green-50 border-l-4 border-green-400 text-green-800 text-sm">
+                Noted. You will get one email when hosted signup opens, and nothing else.
+            </div>
+            <div x-show="failed" class="mb-4 p-3 bg-red-50 border-l-4 border-red-400 text-red-700 text-sm"
+                 x-text="message"></div>
+
+            <form x-show="notJoined" @submit.prevent="join" class="space-y-4">
+                <div>
+                    <label for="waitlist-email" class="block text-sm font-medium text-gray-700 mb-1">
+                        Email address
+                    </label>
+                    <input id="waitlist-email" type="email" required autocomplete="email"
+                           x-model="emailModel"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm
+                                  focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                {# Off-screen and never filled by a person. Same gate the real
+                   signup endpoint uses. #}
+                <input type="text" name="website" x-model="honeypotModel" tabindex="-1"
+                       autocomplete="off" aria-hidden="true"
+                       class="absolute -left-full w-px h-px opacity-0">
+                <button type="submit" :disabled="busy"
+                        class="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-60
+                               text-white font-medium py-2.5 rounded-md transition-colors">
+                    <span x-text="buttonLabel"></span>
+                </button>
+            </form>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">You do not have to wait for it</h3>
+            <p class="text-sm text-gray-600 mb-4">
+                The whole thing is open source under AGPL-3.0 and installs as a
+                Docker stack rather than a server to look after. What the hosted
+                version will run is exactly what you would run.
+            </p>
+            <div class="flex flex-col sm:flex-row gap-3">
+                <a href="https://github.com/Benbo-se/ArgusmetricsSH"
+                   target="_blank" rel="noopener noreferrer"
+                   class="flex-1 text-center bg-gray-900 hover:bg-gray-800 text-white
+                          font-medium py-2.5 rounded-md transition-colors">
+                    Read the source
+                </a>
+                <a href="/docs/"
+                   class="flex-1 text-center border border-gray-300 hover:bg-gray-50
+                          text-gray-700 font-medium py-2.5 rounded-md transition-colors">
+                    Install it
+                </a>
+            </div>
+        </div>
+
+        <p class="text-center text-sm text-gray-600">
+            Already have an account?
+            <a href="/login" class="text-blue-600 hover:text-blue-800 font-medium">Sign in</a>
+        </p>
+    </div>
+</div>
+{% endblock %}

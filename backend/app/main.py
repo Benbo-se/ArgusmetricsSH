@@ -492,12 +492,18 @@ async def sitemap_xml():
 
 
 # Import and include routers
-from app.routers import auth, websites, analytics, dashboard, websocket, dashboard_password, email_reports, revenue, funnels, anomaly
+from app.routers import waitlist, auth, websites, analytics, dashboard, websocket, dashboard_password, email_reports, revenue, funnels, anomaly
 
 app.include_router(
     auth.router,
     prefix=f"{settings.API_V1_PREFIX}/auth",
     tags=["Authentication"],
+)
+
+app.include_router(
+    waitlist.router,
+    prefix=f"{settings.API_V1_PREFIX}/waitlist",
+    tags=["Waitlist"],
 )
 
 app.include_router(
