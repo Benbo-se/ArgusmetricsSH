@@ -348,6 +348,39 @@ jobs:
             -v "$PWD/site:/usr/share/nginx/html:ro" \
             --entrypoint sh nginx:1.27-alpine -c \
             "echo '127.0.0.1 backend' >> /etc/hosts && nginx -t"
+      - name: Trackern går att laga (cache-huvudena, inte bara syntaxen)
+        run: |
+          # nginx -t ovan säger att konfigurationen går att läsa. Den säger
+          # ingenting om vad den gör. /static/ serverades "immutable" i 30
+          # dagar, vilket också gällde tracking-skriptet: webbläsaren frågar
+          # inte ens om filen ändrats, så en fix i trackern nådde bara nya
+          # besökare. Det upptäcktes efter att en ReferenceError legat ute.
+          docker run -d --rm --name nginx-headers -p 18099:80 \
+            -v "$PWD/docker/nginx.prod.conf:/etc/nginx/nginx.conf:ro" \
+            -v "$PWD/site:/usr/share/nginx/html:ro" \
+            --entrypoint sh nginx:1.27-alpine -c \
+            "echo '127.0.0.1 backend' >> /etc/hosts && nginx -g 'daemon off;'"
+          for i in $(seq 1 20); do
+            curl -sf -o /dev/null -H 'Host: argusmetrics.io' \
+              http://127.0.0.1:18099/static/tracker.min.js && break
+            sleep 1
+          done
+
+          HEADERS=$(curl -sI -H 'Host: argusmetrics.io' \
+            http://127.0.0.1:18099/static/tracker.min.js)
+          docker stop nginx-headers >/dev/null
+
+          echo "$HEADERS" | grep -qi 'HTTP/1.1 200' || {
+            echo "tracker.min.js serveras inte alls:"; echo "$HEADERS"; exit 1; }
+          echo "$HEADERS" | grep -qi 'immutable' && {
+            echo "tracker.min.js serveras som immutable, alltså går den inte att laga för någon som redan laddat den"
+            echo "$HEADERS"; exit 1; }
+          MAXAGE=$(echo "$HEADERS" | grep -io 'max-age=[0-9]*' | head -1 | cut -d= -f2)
+          [ -n "$MAXAGE" ] && [ "$MAXAGE" -le 86400 ] || {
+            echo "tracker.min.js cachas $MAXAGE sekunder; en fix ska nå ut inom ett dygn"
+            echo "$HEADERS"; exit 1; }
+          echo "tracker.min.js: max-age=$MAXAGE, inte immutable"
+
       - name: Trackern är byggd från källan och i synk överallt
         working-directory: frontend/tracking-script
         run: |
