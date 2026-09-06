@@ -89,6 +89,25 @@ Lite](https://db-ip.com/db/download/ip-to-country-lite) needs no account
 is free but wants an account and a licence key. Either file goes stale, so put
 its refresh on a schedule too.
 
+## Running it
+
+`./argus` is the way in. It finds the compose file and the container itself,
+so nothing here needs a path or a container name typed at it.
+
+```bash
+./argus health              # alive, and are the scheduled jobs current
+./argus logs backend
+./argus admin add you@example.com   # who may open /dashboard/admin
+./argus waitlist list       # the hosted-signup waiting list
+./argus country refresh     # rebuild the IP-to-country table
+./argus backup              # take a dump now
+./argus backup verify <file>
+```
+
+`./argus` on its own lists the rest. Anything after a passthrough goes
+straight to the command underneath, so `./argus waitlist --help` explains
+that one.
+
 ## The first account
 
 Registration is closed on a production instance, so a fresh database has no way

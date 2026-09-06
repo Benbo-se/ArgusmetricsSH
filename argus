@@ -1,0 +1,220 @@
+#!/usr/bin/env bash
+#
+# One entry point for running this instance.
+#
+#   ./argus health
+#   ./argus admin add you@example.com
+#   ./argus waitlist list
+#   ./argus country refresh
+#   ./argus backup
+#
+# Everything here was a command someone had to be handed: the right compose
+# file, the right container name, the right module path, and a reminder to
+# edit .env and restart afterwards. That is a set of notes, not an operational
+# story, and notes are how a step gets skipped at three in the morning.
+#
+# Run it from anywhere; it finds the repository itself.
+
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+BACKEND_CONTAINER="${ARGUS_CONTAINER:-argusmetrics-backend}"
+ENV_FILE="$ROOT/docker/.env"
+
+# The production compose file when there is one, which is what a server has.
+# ARGUS_COMPOSE overrides it, for a machine running something else.
+if [ -n "${ARGUS_COMPOSE:-}" ]; then
+    COMPOSE_FILE="$ARGUS_COMPOSE"
+elif [ -f "$ROOT/docker/docker-compose.prod.yml" ] && [ -f "$ENV_FILE" ]; then
+    COMPOSE_FILE="$ROOT/docker/docker-compose.prod.yml"
+else
+    COMPOSE_FILE="$ROOT/docker/docker-compose.yml"
+fi
+
+compose() { docker compose -f "$COMPOSE_FILE" "$@"; }
+
+die() { echo "argus: $*" >&2; exit 1; }
+
+running() {
+    docker inspect -f '{{.State.Running}}' "$BACKEND_CONTAINER" 2>/dev/null \
+        | grep -q true
+}
+
+# Run a module inside the backend container. Everything the application knows
+# how to do is reached this way, so the caller never types a container name.
+in_backend() {
+    running || die "$BACKEND_CONTAINER is not running. Try: ./argus up"
+    docker exec -i -w /app "$BACKEND_CONTAINER" python -m "$@"
+}
+
+usage() {
+    cat <<'TEXT'
+argus - run this Argusmetrics instance
+
+  health                    is it alive, and are the scheduled jobs current
+  ps                        what is running
+  logs [service]            follow the log (ctrl-c to stop)
+  up                        start or update the stack
+  restart [service]         restart, re-reading docker/.env
+
+  admin list                who may open /dashboard/admin
+  admin add <email>         let an address in, and restart so it takes effect
+  admin remove <email>      take an address out
+
+  waitlist ...              the hosted-signup waiting list
+                            (count, list, export, remove, mark-notified)
+  country ...               the IP-to-country table
+                            (refresh, status, lookup <address>)
+  bootstrap                 create the first account on a closed instance
+
+  backup                    take a dump now
+  backup verify <file>      restore a dump into a scratch database and count
+  psql [sql]                a shell on the database, or one statement
+
+Anything after a passthrough command goes straight to it, so
+`./argus waitlist --help` explains that one.
+TEXT
+}
+
+# --- the environment file, for settings that need a restart ----------------
+
+env_get() {
+    [ -f "$ENV_FILE" ] || return 0
+    sed -n "s/^${1}=//p" "$ENV_FILE" | tail -1
+}
+
+env_set() {
+    local key="$1" value="$2"
+    [ -f "$ENV_FILE" ] || die "no $ENV_FILE to write to"
+    # Replaces the line if it is there, adds it if it is not, and leaves a
+    # commented-out example alone rather than uncommenting it by accident.
+    if grep -q "^${key}=" "$ENV_FILE"; then
+        local tmp
+        tmp="$(mktemp)"
+        awk -v k="$key" -v v="$value" \
+            '$0 ~ "^" k "=" { print k "=" v; found=1; next } { print }
+             END { if (!found) print k "=" v }' "$ENV_FILE" > "$tmp"
+        cat "$tmp" > "$ENV_FILE"
+        rm -f "$tmp"
+    else
+        printf '\n%s=%s\n' "$key" "$value" >> "$ENV_FILE"
+    fi
+}
+
+# Applying a setting from docker/.env needs the container recreated: a plain
+# restart does not re-read the file. ARGUS_NO_RESTART exists so a setup script
+# can make several changes and restart once at the end, and so the tests for
+# the editing above do not need a running stack.
+restart_backend() {
+    if [ -n "${ARGUS_NO_RESTART:-}" ]; then
+        echo "  (not restarting: ARGUS_NO_RESTART is set)"
+        return 0
+    fi
+    compose up -d backend
+}
+
+admin() {
+    local action="${1:-list}"; shift || true
+    local current
+    current="$(env_get ADMIN_EMAILS)"
+
+    case "$action" in
+        list)
+            if [ -z "$current" ]; then
+                echo "Nobody. /dashboard/admin answers 404 to everyone."
+                echo "Add one with: ./argus admin add you@example.com"
+            else
+                echo "$current" | tr ',' '\n' | sed 's/^ *//; s/ *$//; /^$/d' \
+                    | sed 's/^/  /'
+            fi
+            ;;
+        add)
+            local email="${1:-}"
+            [ -n "$email" ] || die "which address? ./argus admin add you@example.com"
+            case "$email" in *@*.*) ;; *) die "that does not look like an address: $email";; esac
+            if echo ",$current," | grep -qi ",$email,"; then
+                echo "$email is already an administrator."
+                return 0
+            fi
+            if [ -z "$current" ]; then
+                env_set ADMIN_EMAILS "$email"
+            else
+                env_set ADMIN_EMAILS "$current,$email"
+            fi
+            echo "Added $email"
+            echo "Restarting the backend so it takes effect..."
+            restart_backend
+            echo "Done. Open /dashboard/admin signed in as $email."
+            ;;
+        remove)
+            local email="${1:-}"
+            [ -n "$email" ] || die "which address?"
+            local kept
+            # `|| true` because grep exits 1 when it keeps nothing, which is
+            # what removing the last address looks like, and pipefail then
+            # aborts the function before the file is written. The bug was
+            # exactly that: removing the only administrator silently did
+            # nothing and left them in place.
+            kept="$(echo "$current" | tr ',' '\n' | sed 's/^ *//; s/ *$//' \
+                    | grep -vix "$email" | paste -sd, - || true)"
+            env_set ADMIN_EMAILS "$kept"
+            echo "Removed $email"
+            restart_backend
+            ;;
+        *)
+            die "admin what? list, add or remove"
+            ;;
+    esac
+}
+
+# --- dispatch ---------------------------------------------------------------
+
+command="${1:-help}"; shift || true
+
+case "$command" in
+    health)
+        # The Host header is not optional: TrustedHost refuses anything else in
+        # production and answers 400 before the health check runs, which looks
+        # exactly like the application being broken.
+        host="$(env_get BASE_URL | sed 's|https\?://||; s|/.*||')"
+        port="$(env_get WEB_PORT)"
+        curl -fsS -H "Host: ${host:-localhost}" \
+            "http://127.0.0.1:${port:-8021}/health" | (jq . 2>/dev/null || cat)
+        ;;
+    ps)        compose ps "$@" ;;
+    logs)      compose logs -f --tail=100 "$@" ;;
+    up)        compose up -d "$@" ;;
+    restart)   compose up -d "${@:-backend}" ;;
+
+    admin)     admin "$@" ;;
+    waitlist)  in_backend app.waitlist "$@" ;;
+    country)   in_backend app.ip_country "$@" ;;
+    bootstrap)
+        running || die "$BACKEND_CONTAINER is not running. Try: ./argus up"
+        # A terminal, because it prompts for a password twice and never takes
+        # one as an argument where it would land in the shell history.
+        docker exec -it -w /app "$BACKEND_CONTAINER" python -m app.bootstrap "$@"
+        ;;
+
+    backup)
+        if [ "${1:-}" = "verify" ]; then
+            shift
+            [ -n "${1:-}" ] || die "which dump? ./argus backup verify <file>"
+            "$ROOT/scripts/verify-backup.sh" "$@"
+        else
+            "$ROOT/scripts/backup.sh" "$@"
+        fi
+        ;;
+
+    psql)
+        running || die "$BACKEND_CONTAINER is not running"
+        if [ $# -gt 0 ]; then
+            docker exec -i "$BACKEND_CONTAINER" sh -c 'psql "$DATABASE_URL"' <<< "$*"
+        else
+            docker exec -it "$BACKEND_CONTAINER" sh -c 'psql "$DATABASE_URL"'
+        fi
+        ;;
+
+    help|-h|--help) usage ;;
+    *) usage; echo; die "unknown command: $command" ;;
+esac

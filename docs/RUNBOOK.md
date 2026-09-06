@@ -3,9 +3,12 @@
 What to do when something is wrong, written so it is useful at three in the
 morning by somebody who did not build this.
 
-Every check below assumes you are in `/opt/argusmetrics` and that
-`docker compose -f docker/docker-compose.prod.yml` is how you reach the stack.
-That is written `$C` here.
+Every check below assumes you are in `/opt/argusmetrics`.
+
+`./argus` wraps the compose file and the container name, so `./argus logs
+backend` is `docker compose -f docker/docker-compose.prod.yml logs backend`
+without the remembering. Where a check needs compose directly it is written
+`$C`, which is that same long form.
 
 ## First, three commands
 
