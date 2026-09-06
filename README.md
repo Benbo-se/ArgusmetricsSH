@@ -44,11 +44,35 @@ None of it needs an external service.
 
 | Feature | Needs | Without it |
 |---|---|---|
-| Country statistics | `GEOIP_DB_PATH` pointing at a MaxMind GeoLite2-Country.mmdb | Country reads "Unknown". No third-party IP lookup happens either way |
+| Country statistics | `GEOIP_DB_PATH` pointing at any MaxMind-format `.mmdb` | Country reads "Unknown". No third-party IP lookup happens either way |
 | Email (verification, password reset, invitations, reports) | `SMTP_*`, or a Lettermint API key | Verification links are printed to the backend log. Password login works regardless |
 
-For countries, download `GeoLite2-Country.mmdb` (free MaxMind account) into
-`backend/app/data/` and set `GEOIP_DB_PATH=/app/data/GeoLite2-Country.mmdb`.
+### Country data
+
+Countries are resolved from a database file on your own machine. No address is
+ever sent anywhere, which is the whole reason it works this way, and the cost
+is that without the file there is no country data at all.
+
+Two databases fit, both free, and the reader takes either because they are the
+same format:
+
+**DB-IP Lite** needs no account. One download, no key, no signup:
+
+```bash
+curl -sL "https://download.db-ip.com/free/dbip-country-lite-$(date +%Y-%m).mmdb.gz" \
+  | gunzip > backend/app/data/country.mmdb
+```
+
+Then set `GEOIP_DB_PATH=/app/data/country.mmdb`. It is published monthly under
+CC BY 4.0, so if you run a public instance, credit DB-IP somewhere visible.
+
+**MaxMind GeoLite2** is the better-known one and slightly more accurate on
+mobile networks. It is free but needs an account and a licence key, and
+MaxMind's `geoipupdate` keeps it current. Same variable, same file format.
+
+Either way the file goes stale: allocations move, and a database from last
+year quietly attributes traffic to the wrong place. Whichever you pick, put
+the refresh on a schedule.
 
 ## The first account
 
