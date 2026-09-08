@@ -41,7 +41,7 @@ websockets==17.1
 
 # Development & Testing
 pytest==7.4.4
-httpx==0.28.1
+httpx==0.26.0
 
 # Production Server
 gunicorn==26.2.0
