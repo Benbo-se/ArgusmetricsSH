@@ -1,0 +1,16 @@
+# 03:30 daily, matching what the machine has been doing since the backups
+# started being pulled off-host on 2026-09-07.
+[Unit]
+Description=Run the Argusmetrics database dump nightly
+
+[Timer]
+OnCalendar=*-*-* 03:30:00
+# A machine that was off at 03:30 still takes a dump when it comes back, rather
+# than skipping the night silently.
+Persistent=true
+# So twenty machines would not all dump on the same second. One machine here,
+# but it costs nothing and it is the habit that matters.
+RandomizedDelaySec=5m
+
+[Install]
+WantedBy=timers.target
