@@ -121,6 +121,25 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    # TrustedHost avvisar 127.0.0.1 med 400, sa Host-huvudet maste vara
+    # BASE_URL:ens host -- samma fallgrop som deployens health-check ramlade i.
+    # Kollar innehallet, inte bara statuskoden: appen svarar 200 med
+    # "status":"degraded" nar databasen ar borta.
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          python -c "import os,sys,urllib.request as u;
+          host=os.environ.get('BASE_URL','http://localhost').split('://')[-1].split('/')[0];
+          r=u.urlopen(u.Request('http://127.0.0.1:8020/health',headers={'Host':host}),timeout=5);
+          sys.exit(0 if b'\"status\":\"healthy\"' in r.read() else 1)"
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      # Entrypointen kor alembic upgrade head fore uvicorn, sa forsta starten
+      # tar langre tid an de foljande. Utan detta rapporteras en helt normal
+      # migrering som en osund container.
+      start_period: 60s
     networks:
       - argusmetrics-network
     restart: unless-stopped
@@ -133,6 +152,16 @@ services:
       - "127.0.0.1:${WEB_PORT:-8021}:80"
     depends_on:
       - backend
+    # Marknadssiten ar statiska filer i imagen: svarar nginx pa den svarar
+    # webbservern. Backendens halsa mats av backendens egen healthcheck, sa
+    # den har ska inte ga genom proxyn och gora en trasig backend till en
+    # trasig webbserver.
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/ || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     networks:
       - argusmetrics-network
     restart: unless-stopped
