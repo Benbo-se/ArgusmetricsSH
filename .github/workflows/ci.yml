@@ -464,10 +464,27 @@ jobs:
             -e POSTGRES_USER=argus -e POSTGRES_PASSWORD=argus \
             -e POSTGRES_DB=argus \
             timescale/timescaledb:latest-pg16
+          # -h 127.0.0.1, inte socketen. Postgres-imagen kor en tillfallig
+          # server under sin initiering som lyssnar BARA pa unix-socketen, sa
+          # ett pg_isready utan -h svarar ja medan port 5432 fortfarande ar
+          # stangd. Appen startade da mot en stangd port och alembic dog med
+          # "connection to server at db (172.18.0.2), port 5432 failed".
+          #
+          # Loopen failar dessutom nar den tar slut. Forut brot den bara ut och
+          # lat nasta steg starta anda, sa en databas som aldrig kom upp
+          # rapporterades som ett trasigt applikationsbygge.
+          DB_OK=0
           for i in $(seq 1 30); do
-            docker exec db pg_isready -U argus -d argus >/dev/null 2>&1 && break
+            if docker exec db pg_isready -h 127.0.0.1 -U argus -d argus >/dev/null 2>&1; then
+              DB_OK=1; break
+            fi
             sleep 2
           done
+          if [ "$DB_OK" != "1" ]; then
+            echo "::error::Databasen tog inte emot TCP-anslutningar inom 60s"
+            docker logs db | tail -40
+            exit 1
+          fi
 
           # Entrypointen kör alembic upgrade head innan appen startar, så det
           # här är också fresh-install-testet mot den byggda imagen.
