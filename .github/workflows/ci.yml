@@ -559,8 +559,18 @@ jobs:
           # Marknadssiten serveras av web-containern, inte av backend, så den
           # kontrolleras separat: en stack där bara den ena halvan lever ser
           # frisk ut för en hälsokontroll som bara frågar backend.
-          curl -fsS -H 'Host: argusmetrics.test' http://127.0.0.1:8021/ | grep -q "Argusmetrics" \
-            || { echo "::error::Marknadssiten serveras inte"; exit 1; }
+          # Kroppen hamtas fore den soks igenom, inte genom ett ror. Med
+          # pipefail avslutar grep -q sa fort den hittar traffen, roret stangs,
+          # och curl dor med "(23) Failure writing output to destination".
+          # Pipefail plockar da upp curls 23 aven om grep lyckades. Utfallet
+          # beror pa om sidan fick plats i rorbufferten, alltsa pa dess
+          # storlek, vilket ar en flackighet ingen kan felsoka fran felraden.
+          SITE=$(curl -fsS -H 'Host: argusmetrics.test' http://127.0.0.1:8021/)
+          if ! printf '%s' "$SITE" | grep -q "Argusmetrics"; then
+            echo "::error::Marknadssiten serveras inte (${#SITE} tecken kom tillbaka)"
+            printf '%s' "$SITE" | head -c 500
+            exit 1
+          fi
           curl -fsS -o /dev/null -H 'Host: argusmetrics.test' \
             http://127.0.0.1:8021/static/tracker.min.js \
             || { echo "::error::Tracking-skriptet serveras inte"; exit 1; }
