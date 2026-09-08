@@ -228,7 +228,7 @@ Every green commit on `main` publishes images to GHCR:
 `docker/docker-compose.prod.yml` runs the stack with the web container on
 `127.0.0.1:8021`, meant to sit behind your own TLS-terminating reverse proxy.
 Server setup, the CI/CD flow and rollback are in
-[docker/PRODUCTION.md](docker/PRODUCTION.md).
+[DEPLOY.md](DEPLOY.md).
 
 **Back up before you rely on this.** A plain `pg_dump` of a TimescaleDB
 database restores the schema and then aborts the data load on a catalog

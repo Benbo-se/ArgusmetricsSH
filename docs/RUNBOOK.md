@@ -150,6 +150,10 @@ makes the difference.
 Afterwards, count something. A restore that returns rows without its
 row-level security policies is a database every customer can read across.
 
+On a bare machine, create the roles `argusmetrics` and `argus_app` before
+restoring. Without them the load emits 48 errors about roles that do not exist:
+no data is lost, but the grants come back wrong. See DEPLOY.md.
+
 ## Nobody can log in
 
 Sessions live in the database, so a restart does not clear them.
