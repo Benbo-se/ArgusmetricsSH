@@ -161,9 +161,27 @@ SELECT count(*) FROM pg_policies;   -- en återställning utan RLS-policyer är 
 CI kör hela den här övningen vid varje push, med riktig trafik sådd över två
 chunkar, och jämför alla tre siffrorna mot källan.
 
-Kvar att göra när servern finns: schemalägg dumparna, lägg kopior utanför
-maskinen, sätt en GPG-mottagare för kryptering, och kör en riktig återställning
-en gång för hand. Se issue #2.
+**På en tom maskin: skapa rollerna först.** Dumpen innehåller ägarskaps- och
+grant-satser för `argusmetrics` och `argus_app`. Utan dem ger återläsningen 48
+fel om roller som inte finns. Ingen data går förlorad, men rättigheterna blir
+fel, och det är lättare att göra rätt från början:
+
+```sql
+CREATE ROLE argusmetrics LOGIN PASSWORD '...';
+CREATE ROLE argus_app LOGIN PASSWORD '...';
+```
+
+Elva `ONLY option not supported on hypertable operations` och en dubblettnyckel
+i `_timescaledb_catalog.metadata` är däremot TimescaleDB:s normala beteende vid
+återläsning. Jaga dem inte.
+
+**Status 2026-09-08.** Dumparna är schemalagda 03:30, ligger off-host hos
+benbo-infra, och återställningen är bevisad: 3 sekunder ur off-host-kopian, 21
+av 21 tabeller, alla radantal identiska med manifestet, 5 hypertabeller och 3
+chunkar. Arkivets sha256 stämde mot manifestet.
+
+Kvar: sätt `BACKUP_GPG_RECIPIENT`, så dumparna krypteras. De innehåller varje
+kunds e-postadress och varje besökarhash.
 
 ## Schemaändringar
 
