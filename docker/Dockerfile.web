@@ -1,7 +1,7 @@
 # Web-imagen: nginx som serverar marknadssiten (site/) och proxyar appen till
 # backend-containern. Byggs med repo-roten som context:
 #   docker build -f docker/Dockerfile.web .
-FROM nginx:1.27-alpine
+FROM nginx:1.31-alpine
 
 COPY docker/nginx.prod.conf /etc/nginx/nginx.conf
 COPY site/ /usr/share/nginx/html/
