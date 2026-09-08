@@ -1,0 +1,24 @@
+# The nightly database dump. Installed with scripts/install-schedule.sh.
+#
+# A user unit, not a system one, for two reasons: backup.sh writes under $HOME
+# by default, and reaching the docker socket is a group membership the deploy
+# account already has. Running it as root would need both to be re-solved.
+[Unit]
+Description=Argusmetrics nightly database dump
+Documentation=https://github.com/Benbo-se/ArgusmetricsSH/blob/main/scripts/backup.sh
+# The dump talks to the postgres container, so there is nothing to do before
+# docker is up. On a reboot the timer's Persistent=true catches the missed run.
+After=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/argusmetrics
+ExecStart=%h/argusmetrics/scripts/backup.sh
+
+# Set BACKUP_GPG_RECIPIENT here to encrypt the dumps. It is deliberately not
+# set by default: backup.sh warns and continues without it, on the grounds that
+# an unencrypted backup beats no backup. The dumps hold every customer's email
+# address and every visitor hash, so it should be set in production.
+# Environment=BACKUP_GPG_RECIPIENT=backup@benbo.se
+
+# Environment=BACKUP_KEEP_DAYS=30
