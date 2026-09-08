@@ -92,6 +92,14 @@ jobs:
               echo "VARNING: pre-deploy DB-dump misslyckades (fortsätter ändå)"
             fi
 
+            # Rotera dem. Den nattliga dumpen har gjort det sedan den skrevs,
+            # den har inte, sa varje deploy sedan starten ligger kvar. 26
+            # lyckade deployer den 8 september gav ensamma ~78 MB, pa samma
+            # disk som databasen de skyddar. Sju dagar racker gott: efter en
+            # vecka ar den nattliga dumpen den man vill ha anda.
+            find "$HOME/backups/argusmetrics/pre-deploy" -name 'predeploy-*.sql.gz' \
+                 -mtime +7 -print -delete || true
+
             # 2. Spara nuvarande tag för ev. rollback (backend + web deployas
             #    alltid i par med samma tag).
             PREV=$(docker inspect --format '{{.Config.Image}}' argusmetrics-backend 2>/dev/null | sed 's/.*://' || true)

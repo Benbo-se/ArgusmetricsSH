@@ -110,8 +110,14 @@ refreshed at all. Check the file exists and is readable by the backend.
 
 ## The disk is filling
 
-The database and the backups share a disk, which is issue #18 and not yet
-solved.
+The database and the backups share a disk. Copies are pulled off-host since
+2026-09-07, so a disk failure no longer costs the database, but the disk still
+holds both.
+
+Two directories, with different habits. `daily/` rotates at 30 days by itself.
+`pre-deploy/` did not rotate at all until 2026-09-08: every deployment since
+the beginning was still there, and a busy day puts twenty-odd dumps in it. It
+now drops anything older than seven days.
 
 ```bash
 df -h
