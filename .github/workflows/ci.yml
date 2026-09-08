@@ -559,16 +559,16 @@ jobs:
           # Marknadssiten serveras av web-containern, inte av backend, så den
           # kontrolleras separat: en stack där bara den ena halvan lever ser
           # frisk ut för en hälsokontroll som bara frågar backend.
-          # Kroppen hamtas fore den soks igenom, inte genom ett ror. Med
-          # pipefail avslutar grep -q sa fort den hittar traffen, roret stangs,
-          # och curl dor med "(23) Failure writing output to destination".
-          # Pipefail plockar da upp curls 23 aven om grep lyckades. Utfallet
-          # beror pa om sidan fick plats i rorbufferten, alltsa pa dess
-          # storlek, vilket ar en flackighet ingen kan felsoka fran felraden.
+          # Inget ror har. Med pipefail avslutar grep -q sa fort den hittar
+          # traffen, roret stangs, och den som skriver till det dor av broken
+          # pipe -- curl med "(23) Failure writing output to destination", eller
+          # printf med "write error: Broken pipe". Pipefail plockar upp det
+          # felet aven nar grep lyckades, sa steget failar pa att sidan finns.
+          # Bash egen monstermatchning gor samma jobb utan att starta en process.
           SITE=$(curl -fsS -H 'Host: argusmetrics.test' http://127.0.0.1:8021/)
-          if ! printf '%s' "$SITE" | grep -q "Argusmetrics"; then
+          if [[ "$SITE" != *Argusmetrics* ]]; then
             echo "::error::Marknadssiten serveras inte (${#SITE} tecken kom tillbaka)"
-            printf '%s' "$SITE" | head -c 500
+            echo "${SITE:0:500}"
             exit 1
           fi
           curl -fsS -o /dev/null -H 'Host: argusmetrics.test' \
