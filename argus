@@ -110,11 +110,16 @@ env_set() {
 # guessed.
 #
 # This exists because guessing took production down. The compose file says
-# ${ARGUS_TAG:-latest} and the deploy passes ARGUS_TAG=<commit sha> for its own
-# command only; it never writes it to docker/.env. So a plain `compose up -d
-# backend` from here fell back to `latest`, recreated the backend on a
-# different image than the one deployed, and the site answered 502 until
-# somebody passed the right tag by hand.
+# ${ARGUS_TAG:-latest}, and the deploy used to pass ARGUS_TAG=<commit sha> for
+# its own command only. A plain `compose up -d backend` from here fell back to
+# `latest`, recreated the backend on a different image than the one deployed,
+# and the site answered 502 until somebody passed the right tag by hand.
+#
+# The deploy now writes ARGUS_TAG into docker/.env once the health check has
+# passed, so that fallback is gone and `compose up -d` from anywhere agrees
+# with what is deployed. This function stays because the running container is
+# still the most truthful answer to "which image is this", and because it is
+# the only one that works when .env is older than the container.
 running_tag() {
     docker inspect -f '{{.Config.Image}}' "$BACKEND_CONTAINER" 2>/dev/null \
         | sed -n 's/.*://p'

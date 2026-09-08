@@ -59,6 +59,20 @@ jobs:
             set -euo pipefail
             cd /opt/argusmetrics
             COMPOSE="docker compose -f docker/docker-compose.prod.yml"
+
+            # Skriv den tag som faktiskt kor till docker/.env, som compose
+            # laser. Utan den ger compose-filens ${ARGUS_TAG:-latest} tillbaka
+            # "latest" sa fort nagon kor up -d utan att sjalv skicka med taggen,
+            # och efter en rollback betyder det att rollbacken tyst gors om.
+            record_tag() {
+              local tag="$1"
+              if grep -qE '^ARGUS_TAG=' docker/.env; then
+                sed -i -E "s|^ARGUS_TAG=.*|ARGUS_TAG=$tag|" docker/.env
+              else
+                printf '\n# Skriven av deployen: imagen som senast passerade health-checken.\nARGUS_TAG=%s\n' "$tag" >> docker/.env
+              fi
+              echo "docker/.env: ARGUS_TAG=$tag"
+            }
             WEB_PORT=$(grep -E '^WEB_PORT=' docker/.env | cut -d= -f2 || true)
             WEB_PORT=${WEB_PORT:-8021}
             echo "Deployar tag: $DEPLOY_TAG (web-port $WEB_PORT)"
@@ -105,11 +119,17 @@ jobs:
               if [ -n "${PREV:-}" ]; then
                 echo "Rullar tillbaka till $PREV"
                 ARGUS_TAG="$PREV" $COMPOSE up -d
+                record_tag "$PREV"
               else
                 echo "Ingen tidigare tag att rulla tillbaka till."
               fi
               exit 1
             fi
+
+            # 6. Forst nu, nar health-checken sagt ja, ar taggen vard att
+            #    minnas. En deploy som foll ska inte lamna sitt eget nummer i
+            #    .env.
+            record_tag "$DEPLOY_TAG"
 
             echo "==> städa gamla images"
             docker image prune -f >/dev/null
