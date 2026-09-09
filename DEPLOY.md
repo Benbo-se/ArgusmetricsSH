@@ -1,15 +1,21 @@
 # Produktion på egen server (CI/CD)
 
-> **Ingen server är uppsatt än.** Allt nedan är förberett och testat så långt
-> det går utan hårdvara: images byggs på grön main, deploy-workflowen finns,
-> och återställningsövningen körs i CI vid varje push. Det som återstår är
-> engångssetupen i nästa avsnitt. Inget av detta har körts skarpt.
+> **Detta är i drift.** https://argusmetrics.io har körts på egen server sedan
+> 2026-09-04, med TLS, automatisk deploy på grön main, och nattlig dump som
+> kopieras utanför maskinen. Återställningen är inte längre en teori: den
+> gjordes 2026-09-08 ur off-host-kopian, i en container på produktionens exakta
+> image-digest, och alla 21 tabellers radantal stämde med manifestet.
+>
+> Engångssetupen nedan är alltså gjord. Den står kvar för nästa instans.
 
 Dev sker på arbetsdatorn, prod på servern. Flödet är braleads/hushroom-mönstret,
 SSH-varianten (repot är publikt → ingen self-hosted runner på servern):
 
 ```
-push/PR → CI (smoke mot TimescaleDB + hygien)
+push/PR → CI: smoke (enhets- och e2e-tester mot TimescaleDB)
+              hygien (migrationsdrift, inställningar, nginx, cache-huvuden)
+              stack  (startar den byggda imagen, kräver /health)
+              prod   (reser docker-compose.prod.yml, kräver hela kedjan)
   └─ grön main → bygg + pusha images till GHCR
         ghcr.io/benbo-se/argusmetrics-backend:{latest, <sha>}
         ghcr.io/benbo-se/argusmetrics-web:{latest, <sha>}     (nginx + site/)

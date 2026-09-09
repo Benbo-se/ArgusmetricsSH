@@ -14,7 +14,9 @@ import re
 
 import pytest
 
-SITE = pathlib.Path(__file__).resolve().parents[2] / "site" / "index.html"
+ROOT = pathlib.Path(__file__).resolve().parents[2]
+SITE = ROOT / "site" / "index.html"
+README = ROOT / "README.md"
 TESTS = pathlib.Path(__file__).resolve().parent
 
 # Some drift is fine; the number is an order-of-magnitude honesty claim, not an
@@ -93,4 +95,32 @@ def test_ci_actually_has_the_site():
     assert SITE.exists(), (
         f"{SITE} does not exist in CI, so the claim check silently skips. "
         "Fix the path rather than the assertion."
+    )
+
+
+def _claimed_in_readme() -> int:
+    """The backend test count the README states."""
+    match = re.search(r'(\d+) backend tests', README.read_text())
+    assert match, (
+        "the README no longer states a backend test count in the shape this "
+        "test looks for. If the claim was removed, remove this test with it."
+    )
+    return int(match.group(1))
+
+
+@pytest.mark.skipif(not README.exists(), reason="README not in this checkout")
+def test_the_readme_count_is_close_to_the_real_one():
+    """The same rot, in the other document that states a number.
+
+    The home page said 311 while the suite had grown to 445. The README said
+    270. Both are the kind of claim that is true the day it is written and
+    quietly wrong a month later, on pages whose argument is that you do not
+    have to take any of this on trust.
+    """
+    claimed = _claimed_in_readme()
+    actual = _actual_test_count()
+
+    assert abs(claimed - actual) <= actual * TOLERANCE, (
+        f"the README says {claimed} backend tests and there are {actual}. "
+        f"Update it."
     )
