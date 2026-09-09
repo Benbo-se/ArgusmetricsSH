@@ -1,5 +1,20 @@
 # Core Framework
-fastapi[all]==0.109.0
+#
+# Plain fastapi, not fastapi[all]. The [all] extra installs a dozen packages,
+# and every one this project actually uses is pinned explicitly further down:
+# uvicorn, python-multipart, itsdangerous, email-validator, pydantic,
+# websockets, httpx, python-dotenv. The only thing it contributed that was not
+# pinned was Jinja2, which is now.
+#
+# What it also installs is fastapi-cli and, since 0.140, fastapi-cloud-cli: a
+# deployment client for FastAPI's hosted service, in the image of a product
+# whose argument is that you host it yourself. It is also what made the
+# upgrade look impossible. pip could not resolve fastapi-cloud-cli against the
+# rest, backtracked through every version of an unrelated package, and ended
+# up at a 2010 release of ecdsa whose setup.py uses print as a statement. The
+# error named ecdsa and had nothing to do with it.
+fastapi==0.141.1
+jinja2==3.1.6
 uvicorn[standard]==0.52.4
 python-multipart==0.0.32
 

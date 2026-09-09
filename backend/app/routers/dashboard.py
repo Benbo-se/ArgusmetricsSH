@@ -245,8 +245,7 @@ async def logout_get():
 @router.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
     """Render login page."""
-    return templates.TemplateResponse("auth/login.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "auth/login.html", {
         "current_user": None
     })
 
@@ -288,8 +287,7 @@ async def admin_page(
         )
     ).all()
 
-    return templates.TemplateResponse("dashboard/admin.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "dashboard/admin.html", {
         "current_user": current_user,
         "entries": entries,
         "waiting": sum(1 for e in entries if e.notified_at is None),
@@ -330,13 +328,11 @@ async def signup_page(request: Request):
     that explains itself instead, and takes an address to notify.
     """
     if not settings.ENABLE_REGISTRATION:
-        return templates.TemplateResponse("auth/signup_closed.html", {
-            "request": request,
+        return templates.TemplateResponse(request, "auth/signup_closed.html", {
             "current_user": None,
         })
 
-    return templates.TemplateResponse("auth/signup.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "auth/signup.html", {
         "current_user": None
     })
 
@@ -345,8 +341,7 @@ async def signup_page(request: Request):
 async def reset_page(request: Request, token: str):
     """Render the set-new-password page (link from the reset email). The token
     is validated when the form posts to /api/v1/auth/set-password."""
-    return templates.TemplateResponse("auth/reset.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "auth/reset.html", {
         "token": token,
         "current_user": None
     })
@@ -368,8 +363,7 @@ async def verify_page(
     auth_service = AuthService(db)
 
     if not token:
-        return templates.TemplateResponse("auth/verify.html", {
-            "request": request,
+        return templates.TemplateResponse(request, "auth/verify.html", {
             "mode": "code_entry",
             "email": email or "",
             "current_user": None
@@ -397,8 +391,7 @@ async def verify_page(
             return response
 
         # Set session cookie (use raw token, not the hash stored in DB)
-        response = templates.TemplateResponse("auth/verify.html", {
-            "request": request,
+        response = templates.TemplateResponse(request, "auth/verify.html", {
             "success": True,
             "current_user": None
         })
@@ -413,8 +406,7 @@ async def verify_page(
         return response
 
     except ValueError as e:
-        return templates.TemplateResponse("auth/verify.html", {
-            "request": request,
+        return templates.TemplateResponse(request, "auth/verify.html", {
             "success": False,
             "error_message": str(e),
             "current_user": None
@@ -437,8 +429,7 @@ async def accept_invite_page(
     try:
         details = team_service.get_invite_details(token)
     except ValueError as e:
-        return templates.TemplateResponse("auth/accept_invite.html", {
-            "request": request,
+        return templates.TemplateResponse(request, "auth/accept_invite.html", {
             "current_user": user,
             "error": str(e),
         })
@@ -451,8 +442,7 @@ async def accept_invite_page(
     ).first()
 
     if not member:
-        return templates.TemplateResponse("auth/accept_invite.html", {
-            "request": request,
+        return templates.TemplateResponse(request, "auth/accept_invite.html", {
             "current_user": user,
             "error": "Invitation not found or already accepted.",
         })
@@ -465,8 +455,7 @@ async def accept_invite_page(
             # Email matches — auto-accept
             try:
                 result = team_service.accept_invitation(token, user.email)
-                return templates.TemplateResponse("auth/accept_invite.html", {
-                    "request": request,
+                return templates.TemplateResponse(request, "auth/accept_invite.html", {
                     "current_user": user,
                     "accepted": True,
                     "website_name": details["website_name"],
@@ -474,15 +463,13 @@ async def accept_invite_page(
                     "role": details["role"],
                 })
             except ValueError as e:
-                return templates.TemplateResponse("auth/accept_invite.html", {
-                    "request": request,
+                return templates.TemplateResponse(request, "auth/accept_invite.html", {
                     "current_user": user,
                     "error": str(e),
                 })
         else:
             # Wrong email
-            return templates.TemplateResponse("auth/accept_invite.html", {
-                "request": request,
+            return templates.TemplateResponse(request, "auth/accept_invite.html", {
                 "current_user": user,
                 "wrong_email": True,
                 "invitee_email": invitee_email,
@@ -501,8 +488,7 @@ async def accept_invite_page(
         )
 
         # Set pending_invite cookie so /verify redirects back here
-        response = templates.TemplateResponse("auth/accept_invite.html", {
-            "request": request,
+        response = templates.TemplateResponse(request, "auth/accept_invite.html", {
             "current_user": None,
             "needs_login": True,
             "has_account": has_account,
@@ -542,8 +528,7 @@ async def dashboard_index(
     # number. A primary-key lookup rather than a count over pageviews.
     usage = get_usage(db, current_user.email)
 
-    return templates.TemplateResponse("dashboard/index.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "dashboard/index.html", {
         "current_user": current_user,
         "websites": websites,
         "usage": usage,
@@ -573,8 +558,7 @@ async def cross_domain_dashboard(
         for website in websites
     }
 
-    return templates.TemplateResponse("dashboard/cross_domain.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "dashboard/cross_domain.html", {
         "current_user": current_user,
         "websites": websites_dict,
         "website_ids": website_ids
@@ -702,8 +686,7 @@ async def website_dashboard(
     # Add file_downloads to stats dictionary
     stats['file_downloads'] = file_downloads
 
-    return templates.TemplateResponse("dashboard/website.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "dashboard/website.html", {
         "current_user": current_user,
         "website": website,
         "stats": stats,
@@ -746,8 +729,7 @@ async def website_stats_partial(
     )
     realtime_stats = analytics_service.get_realtime_stats(website_id=website_id)
 
-    return templates.TemplateResponse("dashboard/_stats_cards.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "dashboard/_stats_cards.html", {
         "stats": stats,
         "realtime_stats": realtime_stats
     })
@@ -805,8 +787,7 @@ async def website_stats_basic_partial(
         filter_properties=filter_properties
     )
 
-    return templates.TemplateResponse("dashboard/_stats_basic.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "dashboard/_stats_basic.html", {
         "stats": stats
     })
 
@@ -830,8 +811,7 @@ async def website_live_partial(
     realtime_stats = analytics_service.get_realtime_stats(website_id=website_id)
     live_visitors = realtime_stats.get('current_visitors', 0)
 
-    return templates.TemplateResponse("dashboard/_live.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "dashboard/_live.html", {
         "live_visitors": live_visitors
     })
 
@@ -868,8 +848,7 @@ async def website_settings(
 
     # H16: do not expose the session token to JS. Templates authenticate API
     # calls via the httponly session_token cookie (SameSite=Lax mitigates CSRF).
-    return templates.TemplateResponse("dashboard/settings.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "dashboard/settings.html", {
         "current_user": current_user,
         "website": website,
         "alert_settings": alert_settings,
@@ -898,8 +877,7 @@ async def website_team(
 
     # H16: do not expose the session token to JS. Templates authenticate API
     # calls via the httponly session_token cookie (SameSite=Lax mitigates CSRF).
-    return templates.TemplateResponse("dashboard/team.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "dashboard/team.html", {
         "current_user": current_user,
         "website": website,
         "user_email": current_user.email
@@ -938,8 +916,7 @@ async def live_visitors_list(
                 "time_ago": _format_time_ago(visitor.get('timestamp', '')),
             })
 
-        return templates.TemplateResponse("dashboard/_live_list.html", {
-            "request": request,
+        return templates.TemplateResponse(request, "dashboard/_live_list.html", {
             "visitors": visitors,
         })
 
@@ -984,8 +961,7 @@ async def website_goals(
 
     # H16: do not expose the session token to JS. Templates authenticate API
     # calls via the httponly session_token cookie (SameSite=Lax mitigates CSRF).
-    return templates.TemplateResponse("dashboard/goals.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "dashboard/goals.html", {
         "current_user": current_user,
         "website": website,
         "goals": goals_data
@@ -1027,8 +1003,7 @@ async def website_funnels(
 
     # H16: do not expose the session token to JS. Templates authenticate API
     # calls via the httponly session_token cookie (SameSite=Lax mitigates CSRF).
-    return templates.TemplateResponse("dashboard/funnels.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "dashboard/funnels.html", {
         "current_user": current_user,
         "website": website,
         "funnels": funnels_data
@@ -1067,8 +1042,7 @@ async def website_event_details(
         end_date=end
     )
 
-    return templates.TemplateResponse("dashboard/events.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "dashboard/events.html", {
         "current_user": current_user,
         "website": website,
         "event_details": event_details,
@@ -1094,8 +1068,7 @@ async def website_debug_console(
             detail="Website not found or access denied"
         )
 
-    return templates.TemplateResponse("debug/console.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "debug/console.html", {
         "current_user": current_user,
         "website": website
     })
@@ -1143,9 +1116,8 @@ async def public_dashboard(
             if not _has_valid_public_cookie(request, website, share_token):
                 logger.info(f"Public dashboard {website.id} requires password; prompting")
                 return templates.TemplateResponse(
-                    "dashboard/_public_password.html",
+                    request, "dashboard/_public_password.html",
                     {
-                        "request": request,
                         "share_token": share_token,
                         "website_name": website.name,
                         "selected_range": range,
@@ -1185,8 +1157,7 @@ async def public_dashboard(
             end_date=end
         )
 
-        return templates.TemplateResponse("dashboard/public.html", {
-            "request": request,
+        return templates.TemplateResponse(request, "dashboard/public.html", {
             "website": website,
             "stats": stats,
             "live_visitors": live_visitors,
@@ -1254,9 +1225,8 @@ async def public_dashboard_verify(
     if not is_valid:
         logger.info(f"Incorrect public dashboard password for website {website.id}")
         return templates.TemplateResponse(
-            "dashboard/_public_password.html",
+            request, "dashboard/_public_password.html",
             {
-                "request": request,
                 "share_token": share_token,
                 "website_name": website.name,
                 "selected_range": range,
@@ -1360,8 +1330,7 @@ async def website_revenue_dashboard(
         top_products = {'products': [], 'total_products': 0}
         revenue_chart = {'data': [], 'total_revenue': 0, 'total_transactions': 0}
 
-    return templates.TemplateResponse("dashboard/revenue.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "dashboard/revenue.html", {
         "current_user": current_user,
         "website": website,
         "revenue_stats": revenue_stats,
