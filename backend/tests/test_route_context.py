@@ -118,9 +118,32 @@ def _keys(route, path):
     return [f"{m} {path}" for m in sorted(methods) if m != "HEAD"]
 
 
-def _routes():
-    for route in app.routes:
-        path = getattr(route, "path", "")
+def _routes(routes=None, prefix=""):
+    """Every application route, with the path it actually answers on.
+
+    Recursive, because FastAPI stopped flattening. Up to 0.109, include_router
+    copied the sub-router's routes into app.routes and this was a flat walk.
+    Since 0.140 it inserts an _IncludedRouter wrapper instead and the routes
+    live inside it, behind include_context.
+
+    That change is quiet in the worst way. Requests still reach every endpoint,
+    every other test still passes, and anything that reads app.routes simply
+    stops seeing most of the application. Here it meant an audit that asks
+    "which route declares no security context" went from checking eighty
+    routes to checking seventeen, and answered "all of them are fine".
+    """
+    if routes is None:
+        routes = app.routes
+
+    for route in routes:
+        context = getattr(route, "include_context", None)
+        if context is not None:
+            inner = getattr(context, "included_router", None)
+            if inner is not None:
+                yield from _routes(inner.routes, prefix + (context.prefix or ""))
+            continue
+
+        path = prefix + (getattr(route, "path", "") or "")
         if not path or path.startswith("/static"):
             continue
         # Framework surface, not application surface: FastAPI registers the
@@ -130,6 +153,25 @@ def _routes():
         if getattr(endpoint, "__module__", "").startswith(("fastapi", "starlette")):
             continue
         yield route, path
+
+
+def test_the_walk_reaches_the_whole_application():
+    """Guards the audit against silently shrinking.
+
+    Every check in this file iterates _routes(). If that walk stops descending,
+    they all pass by examining almost nothing, which is what happened when
+    FastAPI changed how include_router stores routes.
+    """
+    found = list(_routes())
+    assert len(found) > 60, (
+        f"only {len(found)} routes found. The walk is probably not descending "
+        "into included routers, which makes every check in this file pass "
+        "while examining a fraction of the application."
+    )
+
+    paths = {path for _route, path in found}
+    for expected in ("/api/v1/analytics/track", "/dashboard", "/api/v1/auth/login"):
+        assert expected in paths, f"{expected} is missing from the walk"
 
 
 def test_every_route_declares_a_context_or_is_exempt():
