@@ -79,6 +79,13 @@ export default defineConfig({
       testMatch: /tracker-console\.spec\.ts/,
     },
     {
+      // Measures what the built stylesheet does, not whether a class exists.
+      // The only check that would have caught Tailwind 4 changing the default
+      // border colour underneath 217 elements.
+      name: 'css-contract',
+      testMatch: /css-contract\.spec\.ts/,
+    },
+    {
       name: 'landing',
       testMatch: /landing\.spec\.ts/,
       use: { baseURL: SITE_URL },

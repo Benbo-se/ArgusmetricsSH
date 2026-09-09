@@ -25,15 +25,6 @@ updates:
     groups:
       minor-and-patch:
         update-types: [minor, patch]
-    ignore:
-      # Tailwind 4 ar en migrering, inte en bump: CLI:t flyttade till ett eget
-      # paket, konfigurationen blev CSS-forst, och safelist finns inte langre.
-      # Just safelisten haller klasser som satts vid rendering, och en
-      # oversattning som missar nagra ger ratt bygge, inga fel och fel layout.
-      # Stegen och kontrollen som gor den trygg star i #77. Ta bort det har
-      # blocket samma dag migreringen gors.
-      - dependency-name: tailwindcss
-        update-types: [version-update:semver-major]
 
   - package-ecosystem: npm
     directory: /e2e

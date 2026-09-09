@@ -1,3 +1,83 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* One Tailwind build for both the dashboard and the marketing site.
+ *
+ * Before this there was no build at all: a 39KB file generated once in June
+ * and copied to both static directories, byte for byte identical. Any class
+ * not in that snapshot simply did nothing. No error, no warning, just the
+ * wrong layout, which cost six separate debugging sessions.
+ *
+ * Tailwind 4 configures from CSS rather than from a JavaScript file, so what
+ * used to be tailwind.config.js lives here.
+ *
+ * source(none) turns off automatic file detection. Left on, it scans the whole
+ * project in addition to the @source rules below, which meant reading
+ * dependabot.yml and generating a class called [version-update:semver-major].
+ * Naming the files keeps the build the same on every machine and stops it
+ * growing whenever an unrelated file gains a bracket. */
+
+@import "tailwindcss" source(none);
+
+/* Both template trees are scanned together and the result is written to both
+ * places, so a class used anywhere works everywhere. Two builds that could
+ * drift apart is the bug this replaces, not a feature worth keeping. */
+@source "../../templates/**/*.html";
+@source "../js/**/*.js";
+@source "../../../../site/**/*.html";
+@source "../../../../site/static/js/**/*.js";
+
+/* Dark mode, matched to how this project actually does it.
+ *
+ * The old config said darkMode: 'class', which nothing used: there is not one
+ * `dark:` utility in any template, and the v3 build contained no dark variant
+ * at all. Dark mode lives in theme.css, as custom properties under
+ * [data-theme="dark"] and prefers-color-scheme.
+ *
+ * So this is not a translation of the old setting, which was dead. It points
+ * the variant at the attribute theme.css uses, so that a `dark:` utility
+ * written in future agrees with the toggle instead of following the operating
+ * system, which is what v4's default would do. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* Classes assembled at runtime, which Tailwind cannot see because they never
+ * appear as literal strings. This was `safelist` with three regular
+ * expressions; v4 has no safelist, so each pattern is written out with brace
+ * expansion instead.
+ *
+ * Getting one of these wrong is silent in exactly the way the whole build
+ * exists to prevent: no error, no warning, and the dashboard renders without
+ * styling for a status value nobody happened to look at. The class lists are
+ * compared against the previous build, which is the only check that catches a
+ * dropped one. */
+
+/* Built from a status or metric name in dashboard.js and in the Alpine
+ * expressions inside the templates. */
+@source inline("{bg,text,border}-{green,red,amber,yellow,blue,indigo,purple,violet,sky,rose,emerald,slate,gray}-{50,100,200,300,400,500,600,700,800,900}");
+
+/* Chart and table column counts chosen at render time. */
+@source inline("{grid-cols,col-span}-{1,2,3,4,5,6,12}");
+
+/* Toast and badge variants, keyed on a type string. */
+@source inline("{ring,from,to,via}-{green,red,amber,blue,indigo,purple}-{200,300,400,500,600}");
+
+/* The default border colour, restored.
+ *
+ * v3's preflight painted every element's border gray-200. v4 uses
+ * currentColor instead, so a bare `border` takes the text colour: measured in
+ * a browser, the same class went from rgb(229,231,235) to near black.
+ *
+ * There are 217 bare `border` classes in these templates, on card outlines,
+ * input fields and table dividers. All of them would have turned dark, and
+ * nothing would have said so: the stylesheet builds without error, the whole
+ * test suite passes, and a diff of class names shows nothing because `border`
+ * exists in both builds. Only computing the colour in a browser finds it.
+ *
+ * This is the compatibility rule from Tailwind's own upgrade guide. Removing
+ * it means giving all 217 an explicit colour first. */
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentColor);
+  }
+}
