@@ -86,14 +86,14 @@ Two reasons, and the dashboard now says which. Either nothing is loaded, or
 what is loaded has nothing covering your visitors' addresses.
 
 ```bash
-$C exec backend python -m app.ip_country status
-$C exec backend python -m app.ip_country lookup 81.224.1.1
+./argus country status
+./argus country lookup 81.224.1.1
 ```
 
 `status` empty means the table was never built. Load it:
 
 ```bash
-$C exec backend python -m app.ip_country refresh
+./argus country refresh
 ```
 
 The scheduler redoes this every Sunday at 03:30 UTC as `ip_country_refresh`,
@@ -176,7 +176,7 @@ delivered, verification links appear in the backend log.
 To get back into a brand new instance with no accounts at all:
 
 ```bash
-$C exec backend python -m app.bootstrap
+./argus bootstrap
 ```
 
 It refuses once any account exists.

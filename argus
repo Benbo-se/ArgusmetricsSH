@@ -66,6 +66,7 @@ argus - run this Argusmetrics instance
   country ...               the IP-to-country table
                             (refresh, status, lookup <address>)
   bootstrap                 create the first account on a closed instance
+  test [args]               the backend suite, inside the container
 
   backup                    take a dump now
   backup verify             restore a dump into a scratch database and
@@ -294,6 +295,17 @@ case "$command" in
     admin)     admin "$@" ;;
     waitlist)  in_backend app.waitlist "$@" ;;
     country)   in_backend app.ip_country "$@" ;;
+    test)
+        # The suite runs where the application does, against the same Postgres,
+        # so a pass here means the same thing a pass in CI means. Anything
+        # after the word goes to pytest: ./argus test -k waitlist -x
+        running || die "$BACKEND_CONTAINER is not running. Try: ./argus up"
+        # -t only when there is a terminal, so the command also works from a
+        # script or a pipe, where -it fails with "the input device is not a TTY".
+        TTY=""; [ -t 0 ] && [ -t 1 ] && TTY="-t"
+        docker exec -i $TTY -w /app "$BACKEND_CONTAINER" python -m pytest "$@"
+        ;;
+
     bootstrap)
         running || die "$BACKEND_CONTAINER is not running. Try: ./argus up"
         # A terminal, because it prompts for a password twice and never takes

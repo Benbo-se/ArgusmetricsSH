@@ -44,7 +44,7 @@ None of it needs an external service.
 
 | Feature | Needs | Without it |
 |---|---|---|
-| Country statistics | One `python -m app.ip_country refresh`, or `GEOIP_DB_PATH` | Country reads "Unknown". No third-party IP lookup happens either way |
+| Country statistics | One `./argus country refresh`, or `GEOIP_DB_PATH` | Country reads "Unknown". No third-party IP lookup happens either way |
 | Email (verification, password reset, invitations, reports) | `SMTP_*`, or a Lettermint API key | Verification links are printed to the backend log. Password login works regardless |
 
 ### Country data
@@ -58,16 +58,8 @@ Internet Registries publish their allocations openly, and that is the data
 every commercial geolocation database is built from:
 
 ```bash
-# development
-docker compose -f docker/docker-compose.yml exec backend \
-  python -m app.ip_country refresh
-# production, or anywhere the compose file is not the default one
-docker exec -w /app argusmetrics-backend python -m app.ip_country refresh
+./argus country refresh
 ```
-
-The compose file lives under `docker/`, so a bare `docker compose exec` from
-the repository root finds no configuration and says so. The container name is
-fixed, which is why the second form works regardless.
 
 That loads roughly 330,000 ranges covering 239 countries, and the scheduler
 keeps it current every Sunday. Swap `refresh` for `status` to see what is
@@ -114,7 +106,7 @@ Registration is closed on a production instance, so a fresh database has no way
 in. Create the first account once, after the first start:
 
 ```bash
-docker compose -f docker/docker-compose.prod.yml exec backend python -m app.bootstrap
+./argus bootstrap
 ```
 
 It prompts for an address and a password, and refuses as soon as any account
@@ -195,11 +187,11 @@ because the refusal guards only the order in which things are created.
 ## Tests
 
 ```bash
-docker compose -f docker/docker-compose.yml exec backend python -m pytest
+./argus test                # the backend suite
 cd e2e && npx playwright test
 ```
 
-270 backend tests and 110 end-to-end tests. They run against a real Postgres
+550 backend tests and 136 end-to-end tests. They run against a real Postgres
 and a real browser; nothing important is mocked.
 
 Some of them are unusual and deliberate:
@@ -216,6 +208,17 @@ Some of them are unusual and deliberate:
   policy against the one in the compose file.
 - `test_performance_budget.py` counts the queries each page issues and fails if
   one grows.
+- `test_route_context.py` walks every route and asks which one reaches a
+  policied table without declaring who it is acting as. It descends into
+  included routers, because FastAPI stopped flattening them in 0.140 and the
+  walk silently went from eighty routes to seventeen while still passing.
+- `e2e/tests/css-contract.spec.ts` measures what the built stylesheet computes
+  rather than which classes exist. Tailwind 4 changed the default border colour
+  to `currentColor`, which would have turned 217 borders near black with no
+  error anywhere and the class list unchanged.
+- `e2e/tests/tracker-console.spec.ts` loads the built tracking script in a real
+  browser and requires a silent console. A customer's own suite found a
+  ReferenceError in it before this existed.
 
 ## Production
 
