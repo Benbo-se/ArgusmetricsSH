@@ -167,5 +167,36 @@ jobs:
                 throw e;
               }
             }
-            await github.rest.git.createRef({ ...context.repo, ref: `refs/tags/${name}`, sha });
-            core.notice(`Taggade deploy: ${name} -> ${sha.slice(0, 7)}`);
+            // Taggen ar bokforing. Utrullningen och health-checken har redan
+            // passerat nar vi kommer hit, sa ett fel harifran betyder inte att
+            // deployen misslyckades -- men det farger korningen rod, och en
+            // deploy som ser misslyckad ut fast produktionen ar frisk ar hur
+            // man slutar titta i listan. Se #88: ett 403 uppstod en gang med
+            // exakt den behorighet endpointen kraver, gick inte att aterskapa,
+            // och forsvann av sig sjalvt.
+            //
+            // Ett omforsok, och sedan en varning i stallet for ett kast. En
+            // varning syns i korningens sammanfattning, sa ett ihallande fel
+            // ar fortfarande synligt utan att ljuga om utrullningen.
+            const tag = async () =>
+              github.rest.git.createRef({ ...context.repo, ref: `refs/tags/${name}`, sha });
+
+            try {
+              await tag();
+              core.notice(`Taggade deploy: ${name} -> ${sha.slice(0, 7)}`);
+            } catch (first) {
+              core.warning(`Taggningen foll (${first.status}): ${first.message}. Forsoker igen.`);
+              await new Promise(r => setTimeout(r, 5000));
+              try {
+                await tag();
+                core.notice(`Taggade deploy pa andra forsoket: ${name} -> ${sha.slice(0, 7)}`);
+              } catch (second) {
+                core.warning(
+                  `Kunde inte tagga ${name} -> ${sha.slice(0, 7)} (${second.status}): `
+                  + `${second.message}. Utrullningen och health-checken gick igenom; `
+                  + `det har ar bokforing. Se #88, och tagga for hand med: `
+                  + `gh api repos/${context.repo.owner}/${context.repo.repo}/git/refs `
+                  + `-f ref=refs/tags/${name} -f sha=${sha}`
+                );
+              }
+            }
