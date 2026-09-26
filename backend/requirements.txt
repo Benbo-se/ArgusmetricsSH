@@ -46,7 +46,7 @@ user-agents==2.2.0
 # AI & Chatbot
 
 # GeoIP
-geoip2==4.7.0
+geoip2==4.8.1
 
 # Scheduling
 apscheduler==3.11.3
