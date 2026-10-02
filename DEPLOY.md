@@ -70,6 +70,13 @@ till backend-containern. En deploy släpper alltså sajt + app atomiskt ihop.
 4. **Värd-nginx**: vhost för `argusmetrics.io` som terminerar TLS (certbot) och
    proxyar till `http://127.0.0.1:8021` med `X-Forwarded-Proto https` och
    websocket-upgrade för `/ws/`.
+
+   Sätt `access_log off;` i vhostens `server`-block för `argusmetrics.io`.
+   Värdens standardformat (`combined`) skriver besökarens riktiga adress och
+   hela query-strängen, där verifierings-, återställnings- och
+   inbjudningslänkarnas tokens ligger. Web-containern loggar redan samma
+   förfrågningar utan adress och utan query, så värdens kopia tillför bara
+   det som inte får lagras.
 5. **DNS-cutover** (ej gjord): peka `argusmetrics.io` från GitHub Pages till serverns IP,
    och stäng av Pages under repo-settings (annars ligger gamla siten kvar).
 

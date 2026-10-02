@@ -3,7 +3,8 @@ Cleanup Service for inactive accounts and expired data.
 
 Handles automated cleanup tasks:
 - Delete unverified accounts after 7 days
-- Delete empty accounts (no websites) after 30 days of inactivity
+- Delete empty accounts (no websites, no active memberships) after 30 days
+  of inactivity, counted from creation as well as from the last session
 - Clean up expired sessions
 """
 import logging
@@ -84,20 +85,41 @@ class CleanupService:
         """
         Delete verified accounts with no websites that have been inactive for specified days.
 
+        An account is empty and inactive only when all of these hold:
+
+        - it is itself older than the cutoff. Without this, an account created
+          by `argus bootstrap` minutes before the nightly run, with no session
+          yet because nobody had logged in, was deleted on the spot.
+        - it owns no website.
+        - it is not an active member of anyone else's website. Owning nothing
+          is the normal state of an invited colleague, and one who had not
+          logged in for a month lost their account and their access with it.
+        - it has no session created inside the window.
+
         Args:
             days: Number of days of inactivity after which empty accounts are deleted (default: 30)
 
         Returns:
             int: Number of accounts deleted
         """
+        from app.models.website_member import WebsiteMember, MemberStatus
+
         cutoff_date = datetime.now(timezone.utc) - timedelta(days=days)
 
         try:
-            # Find verified users with no websites and no recent sessions
+            active_membership = self.db.query(WebsiteMember.id).filter(
+                and_(
+                    WebsiteMember.user_email == User.email,
+                    WebsiteMember.status == MemberStatus.ACTIVE,
+                )
+            ).exists()
+
             users_with_no_websites = self.db.query(User).outerjoin(Website).filter(
                 and_(
                     User.is_verified == True,
-                    Website.id == None  # No websites
+                    User.created_at < cutoff_date,
+                    Website.id == None,  # No websites
+                    ~active_membership,
                 )
             ).all()
 

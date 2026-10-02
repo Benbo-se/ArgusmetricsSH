@@ -36,4 +36,7 @@ EXPOSE 8020
 # `command:` (or the CMD below) is exec'd by the entrypoint afterwards.
 RUN chmod +x /app/entrypoint.sh
 ENTRYPOINT ["/app/entrypoint.sh"]
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8020"]
+# No access log: nginx in front already writes one, without query strings.
+# uvicorn's would repeat every request with the query intact, and the
+# verification, reset and invitation links carry their tokens there.
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8020", "--no-access-log"]

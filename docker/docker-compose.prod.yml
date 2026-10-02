@@ -12,8 +12,18 @@
 # för argusmetrics.io och proxyar hit. Postgres och backend nås aldrig från
 # värden/LAN, bara över det interna docker-nätet.
 
+# Dockers json-file roterar inte av sig själv. web-containern skrev ungefär
+# 65 000 rader per dygn till en fil som bara växte, på samma disk som
+# databasen och backuperna.
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "20m"
+    max-file: "5"
+
 services:
   postgres:
+    logging: *logging
     # Pinnad via digest (motsvarar latest-pg16 verifierad lokalt 2026-09-02)
     # så en deploy aldrig råkar dra in en ny major av databasen.
     image: timescale/timescaledb@sha256:68faf0bca42125ff98228a8f5a379bcf0ac588d8156f716be8aaf9befd65857f
@@ -38,6 +48,7 @@ services:
     restart: unless-stopped
 
   backend:
+    logging: *logging
     image: ghcr.io/benbo-se/argusmetrics-backend:${ARGUS_TAG:-latest}
     container_name: argusmetrics-backend
     environment:
@@ -46,7 +57,8 @@ services:
       DATABASE_URL: postgresql://argus_app:${APP_DB_PASSWORD}@postgres:5432/${POSTGRES_DB}
       MIGRATION_DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       SECRET_KEY: ${SECRET_KEY:?SECRET_KEY saknas i docker/.env}
-      # Styr TrustedHost-allowlisten (en "www."-BASE_URL täcker även apex).
+      # Styr TrustedHost-allowlisten: exakt en host, utan port. En www-form
+      # släpper inte igenom apex (se DEPLOY.md).
       BASE_URL: ${BASE_URL:?BASE_URL saknas i docker/.env}
       ENVIRONMENT: production
       DEBUG: "false"
@@ -145,6 +157,7 @@ services:
     restart: unless-stopped
 
   web:
+    logging: *logging
     image: ghcr.io/benbo-se/argusmetrics-web:${ARGUS_TAG:-latest}
     container_name: argusmetrics-web
     ports:

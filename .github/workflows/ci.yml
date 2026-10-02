@@ -406,6 +406,25 @@ jobs:
               echo "$HEADERS"; FAIL=1; continue; }
             echo "$FILE: max-age=$MAXAGE, inte immutable"
           done
+
+          # Access-loggen får inte hålla besökarens adress eller en token ur
+          # query-strängen. Den gamla formen skrev X-Forwarded-For, alltså den
+          # riktiga adressen bakom värd-nginx, och hela $request. Sökvägen ska
+          # däremot finnas, annars går kontrollen igenom på en tom logg.
+          curl -s -o /dev/null -H 'Host: argusmetrics.io' \
+            -H 'X-Forwarded-For: 203.0.113.77' \
+            -H 'Referer: https://kund.example/sida?mejl=synthetic-referer-secret' \
+            'http://127.0.0.1:18099/static/tracker.min.js?token=synthetic-log-token'
+          sleep 1
+          LOG=$(docker logs nginx-headers 2>&1)
+          [[ "$LOG" == *"GET /static/tracker.min.js "* ]] || {
+            echo "::error::förfrågan syns inte i access-loggen, så kontrollen nedan bevisar ingenting"
+            echo "$LOG" | tail -5; FAIL=1; }
+          for SECRET in 203.0.113.77 synthetic-log-token synthetic-referer-secret; do
+            [[ "$LOG" == *"$SECRET"* ]] && {
+              echo "::error::access-loggen innehåller $SECRET"
+              echo "$LOG" | tail -5; FAIL=1; }
+          done
           docker stop nginx-headers >/dev/null
           [ "$FAIL" -eq 0 ]
 
