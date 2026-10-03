@@ -13,13 +13,13 @@
 # rest, backtracked through every version of an unrelated package, and ended
 # up at a 2010 release of ecdsa whose setup.py uses print as a statement. The
 # error named ecdsa and had nothing to do with it.
-fastapi==0.141.1
+fastapi==0.142.1
 jinja2==3.1.6
-uvicorn[standard]==0.53.0
+uvicorn[standard]==0.54.0
 python-multipart==0.0.32
 
 # Database
-sqlalchemy==2.0.54
+sqlalchemy==2.1.1
 psycopg2-binary==2.9.13
 alembic==1.20.0
 
@@ -46,7 +46,7 @@ user-agents==2.2.0
 # AI & Chatbot
 
 # GeoIP
-geoip2==4.7.0
+geoip2==4.8.1
 
 # Scheduling
 apscheduler==3.11.3
