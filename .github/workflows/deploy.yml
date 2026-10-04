@@ -139,7 +139,14 @@ jobs:
             #    .env.
             record_tag "$DEPLOY_TAG"
 
+            # BenboStandard 03-ci, "Remove the old ones": `docker image prune`
+            # only drops untagged images, so 102 argus images sat on the disk
+            # by 2026-10-04. Keep the running tag, the rollback tag and the
+            # newest five; the shared script never removes an image in use.
             echo "==> städa gamla images"
+            PRUNE=$(command -v prune-images || echo "$HOME/bin/prune-images")
+            [ -x "$PRUNE" ] && "$PRUNE" ghcr.io/benbo-se/argusmetrics-backend ghcr.io/benbo-se/argusmetrics-web \
+              --protect "$DEPLOY_TAG" --protect "${PREV:-}" || true
             docker image prune -f >/dev/null
             echo "Deploy OK och frisk: $DEPLOY_TAG"
 
