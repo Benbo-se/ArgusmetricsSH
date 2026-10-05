@@ -264,6 +264,80 @@ class TestRetention:
         assert left == 1, f"expected only the unexpired session to survive, found {left}"
 
 
+class TestEmptyAccountCleanup:
+    """The nightly job that deletes accounts nobody uses.
+
+    Deletion cannot be undone, so the two tests that matter are the ones about
+    who it must leave alone. The third proves it still deletes something, so
+    the other two cannot pass by the job doing nothing.
+    """
+
+    def _user(self, db, created_days_ago):
+        email = f"cleanup-{uuid.uuid4().hex[:8]}@example.com"
+        db.execute(
+            text(
+                "INSERT INTO users (email, is_verified, created_at) "
+                "VALUES (:e, true, now() - make_interval(days => :d))"
+            ),
+            {"e": email, "d": created_days_ago},
+        )
+        db.commit()
+        return email
+
+    def _exists(self, db, email):
+        return bool(
+            db.execute(
+                text("SELECT 1 FROM users WHERE email = :e"), {"e": email}
+            ).scalar()
+        )
+
+    def test_an_account_bootstrapped_tonight_survives(self, db):
+        """`argus bootstrap` makes a verified account with no session and no
+        website. Run just before 03:00 and not yet logged in, it was deleted
+        by the first cleanup, because only sessions were counted as activity.
+        """
+        from app.services.cleanup_service import CleanupService
+
+        set_rls_context(db, context="job")
+        email = self._user(db, created_days_ago=0)
+
+        CleanupService(db).cleanup_empty_inactive_accounts(days=30)
+
+        assert self._exists(db, email), "an account minutes old was deleted as inactive"
+
+    def test_an_active_member_who_owns_nothing_survives(self, db, website):
+        """An invited colleague owns no website, by design. A month without
+        logging in cost them the account and their access."""
+        from app.services.cleanup_service import CleanupService
+
+        set_rls_context(db, context="job")
+        email = self._user(db, created_days_ago=60)
+        db.execute(
+            text(
+                "INSERT INTO website_members (website_id, user_email, owner_email,"
+                "                             role, status, invited_by, invited_at,"
+                "                             accepted_at) "
+                "VALUES (:w, :u, :o, 'viewer', 'active', :o, now(), now())"
+            ),
+            {"w": website["id"], "u": email, "o": website["email"]},
+        )
+        db.commit()
+
+        CleanupService(db).cleanup_empty_inactive_accounts(days=30)
+
+        assert self._exists(db, email), "an active team member was deleted as an empty account"
+
+    def test_an_old_account_with_nothing_is_deleted(self, db):
+        from app.services.cleanup_service import CleanupService
+
+        set_rls_context(db, context="job")
+        email = self._user(db, created_days_ago=60)
+
+        CleanupService(db).cleanup_empty_inactive_accounts(days=30)
+
+        assert not self._exists(db, email), "the cleanup no longer deletes anything"
+
+
 class TestEmailReportDispatch:
     def test_it_finds_a_website_scheduled_for_today(self, db, website):
         """The query that decides whether anyone gets a report at all."""

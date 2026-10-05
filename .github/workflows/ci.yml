@@ -355,6 +355,23 @@ jobs:
             -v "$PWD/site:/usr/share/nginx/html:ro" \
             --entrypoint sh nginx:1.27-alpine -c \
             "echo '127.0.0.1 backend' >> /etc/hosts && nginx -t"
+      - name: Värd-vhosten går igenom root-skriptets spärr och nginx -t
+        run: |
+          # Deployen installerar deploy/nginx/argusmetrics.conf som root via
+          # deploy/argus-host-nginx, som vägrar allt utanför en kort lista.
+          # En vhost som spärren vägrar ska falla här, inte i deployen.
+          deploy/argus-host-nginx --check deploy/nginx/argusmetrics.conf
+          docker run --rm -v "$PWD/deploy/nginx/argusmetrics.conf:/etc/nginx/conf.d/argus.conf:ro" \
+            --entrypoint sh nginx:1.27-alpine -c '
+              set -e
+              apk add -q openssl >/dev/null
+              d=/etc/letsencrypt/live/argusmetrics.io; mkdir -p "$d"
+              openssl req -x509 -newkey rsa:2048 -nodes -subj /CN=ci \
+                -keyout "$d/privkey.pem" -out "$d/fullchain.pem" -days 1 2>/dev/null
+              touch /etc/letsencrypt/options-ssl-nginx.conf
+              openssl dhparam -dsaparam -out /etc/letsencrypt/ssl-dhparams.pem 2048 2>/dev/null
+              nginx -t'
+
       - name: Trackern går att laga (cache-huvudena, inte bara syntaxen)
         run: |
           # nginx -t ovan säger att konfigurationen går att läsa. Den säger
@@ -405,6 +422,25 @@ jobs:
               echo "::error::$FILE cachas '$MAXAGE' sekunder; en fix ska na ut inom ett dygn"
               echo "$HEADERS"; FAIL=1; continue; }
             echo "$FILE: max-age=$MAXAGE, inte immutable"
+          done
+
+          # Access-loggen får inte hålla besökarens adress eller en token ur
+          # query-strängen. Den gamla formen skrev X-Forwarded-For, alltså den
+          # riktiga adressen bakom värd-nginx, och hela $request. Sökvägen ska
+          # däremot finnas, annars går kontrollen igenom på en tom logg.
+          curl -s -o /dev/null -H 'Host: argusmetrics.io' \
+            -H 'X-Forwarded-For: 203.0.113.77' \
+            -H 'Referer: https://kund.example/sida?mejl=synthetic-referer-secret' \
+            'http://127.0.0.1:18099/static/tracker.min.js?token=synthetic-log-token'
+          sleep 1
+          LOG=$(docker logs nginx-headers 2>&1)
+          [[ "$LOG" == *"GET /static/tracker.min.js "* ]] || {
+            echo "::error::förfrågan syns inte i access-loggen, så kontrollen nedan bevisar ingenting"
+            echo "$LOG" | tail -5; FAIL=1; }
+          for SECRET in 203.0.113.77 synthetic-log-token synthetic-referer-secret; do
+            [[ "$LOG" == *"$SECRET"* ]] && {
+              echo "::error::access-loggen innehåller $SECRET"
+              echo "$LOG" | tail -5; FAIL=1; }
           done
           docker stop nginx-headers >/dev/null
           [ "$FAIL" -eq 0 ]
