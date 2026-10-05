@@ -154,19 +154,14 @@ jobs:
                 || echo "::warning::värd-vhosten installerades inte; se loggen ovan"
             fi
 
-            # 8. Argus egna gamla images. prune -f tar bara dinglande lager,
-            #    så varje release blev kvar. Behåll den som kör och den
-            #    föregående, som auto-rollbacken behöver. Andra appars images
-            #    på maskinen rörs inte: bara våra två repon listas.
+            # BenboStandard 03-ci, "Remove the old ones": `docker image prune`
+            # only drops untagged images, so 102 argus images sat on the disk
+            # by 2026-10-04. Keep the running tag, the rollback tag and the
+            # newest five; the shared script never removes an image in use.
             echo "==> städa gamla images"
-            for REPO in ghcr.io/benbo-se/argusmetrics-backend ghcr.io/benbo-se/argusmetrics-web; do
-              docker image ls "$REPO" --format '{{.Tag}}' | while read -r T; do
-                case "$T" in
-                  "$DEPLOY_TAG"|"${PREV:-}"|latest) ;;
-                  *) docker image rm "$REPO:$T" >/dev/null 2>&1 && echo "tog bort $REPO:$T" || true ;;
-                esac
-              done
-            done
+            PRUNE=$(command -v prune-images || echo "$HOME/bin/prune-images")
+            [ -x "$PRUNE" ] && "$PRUNE" ghcr.io/benbo-se/argusmetrics-backend ghcr.io/benbo-se/argusmetrics-web \
+              --protect "$DEPLOY_TAG" --protect "${PREV:-}" || true
             docker image prune -f >/dev/null
             echo "Deploy OK och frisk: $DEPLOY_TAG"
 
