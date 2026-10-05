@@ -21,6 +21,19 @@ ADOPT=0
 
 command -v systemctl >/dev/null || { echo "no systemctl on this machine" >&2; exit 1; }
 
+# A system-level timer already does the job, and is the better form of it:
+# it runs as the deploy user without needing lingering. Production has had
+# one at /etc/systemd/system/argusmetrics-backup.timer since before this
+# script existed, and the check below only looked at user timers and cron, so
+# running this there would have added a second dump every night. Found
+# 2026-10-05.
+system_timers=$(systemctl list-timers --all --no-legend 2>/dev/null || true)
+if [[ "$system_timers" == *argusmetrics-backup.timer* ]]; then
+    echo "A system timer already schedules the backup; nothing to install:"
+    systemctl list-timers argusmetrics-backup.timer --no-pager
+    exit 0
+fi
+
 # Something else already scheduling this project would run alongside these
 # units: two dumps a night rather than one, competing for the same directory.
 # Refuse rather than silently double the schedule.

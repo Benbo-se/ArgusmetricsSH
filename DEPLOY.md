@@ -71,12 +71,24 @@ till backend-containern. En deploy släpper alltså sajt + app atomiskt ihop.
    proxyar till `http://127.0.0.1:8021` med `X-Forwarded-Proto https` och
    websocket-upgrade för `/ws/`.
 
-   Sätt `access_log off;` i vhostens `server`-block för `argusmetrics.io`.
-   Värdens standardformat (`combined`) skriver besökarens riktiga adress och
-   hela query-strängen, där verifierings-, återställnings- och
-   inbjudningslänkarnas tokens ligger. Web-containern loggar redan samma
-   förfrågningar utan adress och utan query, så värdens kopia tillför bara
-   det som inte får lagras.
+   Vhosten ligger i repot, `deploy/nginx/argusmetrics.conf`, och deployen
+   installerar den själv. Det kräver root, så en gång per server:
+
+   ```bash
+   ssh -t reda@<servern> sudo /opt/argusmetrics/deploy/install-host-access.sh
+   ```
+
+   Den lägger `deploy/argus-host-nginx` som `/usr/local/sbin/argus-host-nginx`
+   och en sudoers-rad som låter deploy-användaren köra just det kommandot,
+   utan argument. Skriptet vägrar allt i vhosten utom våra två värdnamn, vår
+   upstream och vårt certifikat, kör `nginx -t` och lägger tillbaka den gamla
+   filen om testet faller. Deployen anropar det vid varje release; oförändrad
+   fil betyder ingen omladdning.
+
+   Vhosten har `access_log off`. Värdens standardformat skriver besökarens
+   riktiga adress och hela query-strängen, där verifierings-, återställnings-
+   och inbjudningslänkarnas tokens ligger. Web-containern loggar samma
+   förfrågningar utan adress och utan query.
 5. **DNS-cutover** (ej gjord): peka `argusmetrics.io` från GitHub Pages till serverns IP,
    och stäng av Pages under repo-settings (annars ligger gamla siten kvar).
 

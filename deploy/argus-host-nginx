@@ -1,0 +1,121 @@
+#!/usr/bin/env bash
+# Install Argusmetrics' host nginx vhost from the repository, then reload.
+#
+# Runs as root through one sudoers line, so the deploy can keep the host's
+# vhost in step with the repository without a person logging in. Installed
+# once by deploy/install-host-access.sh; after that the deploy calls it on
+# every release and it does nothing unless the file changed.
+#
+# It takes no arguments and reads one fixed path. The sudoers line forbids
+# arguments as well. What it installs comes from a checkout the deploy user
+# can write, and the deploy runs whatever is on main, so the content is
+# checked against a short list of what this vhost needs before root touches
+# nginx with it: our two hostnames, our upstream, our certificate. Anything
+# else is refused. nginx's master process runs as root and opens log files,
+# includes and certificates as root, so a free-form config would be a way to
+# read or write any file on a machine shared with six other applications.
+#
+#   argus-host-nginx            validate, install if changed, nginx -t, reload
+#   argus-host-nginx --check F  validate F only; no root needed, no changes
+set -euo pipefail
+
+SRC=/opt/argusmetrics/deploy/nginx/argusmetrics.conf
+DST=/etc/nginx/sites-available/argusmetrics
+LINK=/etc/nginx/sites-enabled/argusmetrics
+
+die() { echo "argus-host-nginx: $*" >&2; exit 1; }
+
+validate() {
+    local file="$1" body stmt word args n=0
+
+    # Full-line comments and certbot's trailing marker go. Any other # is
+    # refused rather than interpreted: nginx only starts a comment at a token
+    # boundary, so stripping from the first # would hide from this check a
+    # directive that nginx still reads.
+    body=$(sed -E -e '/^[[:space:]]*#/d' -e 's/[[:space:]]+# managed by Certbot[[:space:]]*$//' "$file")
+    [[ "$body" == *"#"* ]]  && die "a # outside a full-line comment"
+    [[ "$body" == *"'"* ]]  && die "a single quote"
+    [[ "$body" == *'\'* ]]  && die "a backslash"
+    body=${body//'"upgrade"'/upgrade}
+    [[ "$body" == *'"'* ]]  && die "a double quote other than \"upgrade\""
+
+    # With no quotes or escapes left, every ; { } ends a statement, exactly as
+    # nginx reads it.
+    while IFS= read -r stmt; do
+        read -r word args <<<"$stmt" || true
+        [ -z "${word:-}" ] && continue
+        n=$((n + 1))
+        case "$word" in
+            server|location|proxy_http_version|proxy_set_header|proxy_read_timeout|proxy_redirect|client_max_body_size)
+                ;;
+            server_name)
+                for a in $args; do
+                    [[ "$a" == argusmetrics.io || "$a" == www.argusmetrics.io ]] \
+                        || die "statement $n: server_name may only name argusmetrics.io"
+                done ;;
+            listen)
+                [[ "$args" =~ ^(80|443\ ssl)$ ]] || die "statement $n: listen is 80 or 443 ssl" ;;
+            proxy_pass)
+                [ "$args" = "http://127.0.0.1:8021" ] || die "statement $n: proxy_pass is the web container" ;;
+            access_log)
+                [ "$args" = "off" ] || die "statement $n: access_log may only be off" ;;
+            return)
+                [[ "$args" =~ ^(301\ https://(argusmetrics\.io|\$host)\$request_uri|404)$ ]] \
+                    || die "statement $n: return is a redirect to us or 404" ;;
+            if)
+                [[ "$args" =~ ^\(\$host\ =\ (www\.)?argusmetrics\.io\)$ ]] \
+                    || die "statement $n: if only tests the host" ;;
+            ssl_certificate)
+                [ "$args" = /etc/letsencrypt/live/argusmetrics.io/fullchain.pem ] || die "statement $n: certificate path" ;;
+            ssl_certificate_key)
+                [ "$args" = /etc/letsencrypt/live/argusmetrics.io/privkey.pem ] || die "statement $n: key path" ;;
+            include)
+                [ "$args" = /etc/letsencrypt/options-ssl-nginx.conf ] || die "statement $n: include" ;;
+            ssl_dhparam)
+                [ "$args" = /etc/letsencrypt/ssl-dhparams.pem ] || die "statement $n: dhparam path" ;;
+            *)
+                die "statement $n: directive '$word' is not on the list" ;;
+        esac
+    done < <(printf '%s\n' "$body" | tr ';{}' '\n\n\n')
+
+    [ "$n" -gt 0 ] || die "nothing to install"
+}
+
+if [ "${1:-}" = "--check" ]; then
+    [ -n "${2:-}" ] || die "usage: argus-host-nginx --check FILE"
+    validate "$2"
+    echo "ok: $2"
+    exit 0
+fi
+[ $# -eq 0 ] || die "takes no arguments"
+[ "$(id -u)" -eq 0 ] || die "must run as root (through sudo)"
+
+[ -f "$SRC" ] && [ ! -L "$SRC" ] || die "$SRC is missing or not a regular file"
+
+# Read once, into a root-owned copy, and work only on that, so the file
+# cannot change between being checked and being installed.
+TMP=$(mktemp /etc/nginx/.argusmetrics.XXXXXX)
+trap 'rm -f "$TMP"' EXIT
+cat -- "$SRC" > "$TMP"
+validate "$TMP"
+
+if [ -f "$DST" ] && cmp -s "$TMP" "$DST"; then
+    echo "argus-host-nginx: unchanged"
+    exit 0
+fi
+
+BAK="$DST.bak-argus"
+[ -f "$DST" ] && cp -p "$DST" "$BAK"
+install -m 0644 -o root -g root "$TMP" "$DST"
+[ -e "$LINK" ] || ln -s "$DST" "$LINK"
+
+# nginx -t tests the whole host configuration, every application's vhost.
+# Failing here restores the old file, so a reload never happens on a config
+# that does not load, and nginx keeps serving what it had.
+if ! nginx -t 2>&1; then
+    if [ -f "$BAK" ]; then cp -p "$BAK" "$DST"; else rm -f "$DST" "$LINK"; fi
+    die "nginx -t failed; the previous vhost is back and nginx was not reloaded"
+fi
+
+systemctl reload nginx
+echo "argus-host-nginx: installed and reloaded"

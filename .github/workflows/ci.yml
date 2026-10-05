@@ -355,6 +355,23 @@ jobs:
             -v "$PWD/site:/usr/share/nginx/html:ro" \
             --entrypoint sh nginx:1.27-alpine -c \
             "echo '127.0.0.1 backend' >> /etc/hosts && nginx -t"
+      - name: Värd-vhosten går igenom root-skriptets spärr och nginx -t
+        run: |
+          # Deployen installerar deploy/nginx/argusmetrics.conf som root via
+          # deploy/argus-host-nginx, som vägrar allt utanför en kort lista.
+          # En vhost som spärren vägrar ska falla här, inte i deployen.
+          deploy/argus-host-nginx --check deploy/nginx/argusmetrics.conf
+          docker run --rm -v "$PWD/deploy/nginx/argusmetrics.conf:/etc/nginx/conf.d/argus.conf:ro" \
+            --entrypoint sh nginx:1.27-alpine -c '
+              set -e
+              apk add -q openssl >/dev/null
+              d=/etc/letsencrypt/live/argusmetrics.io; mkdir -p "$d"
+              openssl req -x509 -newkey rsa:2048 -nodes -subj /CN=ci \
+                -keyout "$d/privkey.pem" -out "$d/fullchain.pem" -days 1 2>/dev/null
+              touch /etc/letsencrypt/options-ssl-nginx.conf
+              openssl dhparam -dsaparam -out /etc/letsencrypt/ssl-dhparams.pem 2048 2>/dev/null
+              nginx -t'
+
       - name: Trackern går att laga (cache-huvudena, inte bara syntaxen)
         run: |
           # nginx -t ovan säger att konfigurationen går att läsa. Den säger

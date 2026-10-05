@@ -81,11 +81,24 @@ Pages, and `/health` matches what this repo's deploy workflow greps for.
   `BACKUP_GPG_RECIPIENT` and warns when it is unset, on the grounds that an
   unencrypted backup beats no backup. It is unset. The dumps hold every
   customer's email address and every visitor hash. See issue #70.
-- **The schedule is not in the repository.** `scripts/backup.sh` is committed;
-  whatever runs it nightly at 03:30 is not. A rebuilt server would come up with
-  everything restored and nothing taking backups, silently. Same shape as the
-  bug BenboStandard 01 describes under "The schedule counts as infrastructure".
-  See issue #70.
+- **The backup schedule on the server is a system unit**,
+  `/etc/systemd/system/argusmetrics-backup.timer`, running `backup.sh` as the
+  deploy user at 03:30. The user units in `deploy/` and
+  `scripts/install-schedule.sh` are for a rebuilt server; the installer now
+  exits when the system timer exists, because until 2026-10-05 it would have
+  added a second dump every night. See issue #90.
+
+## The one root step
+
+The host nginx vhost lives in `deploy/nginx/argusmetrics.conf` and the deploy
+installs it through `/usr/local/sbin/argus-host-nginx`, one sudoers line, no
+arguments. That command is the only thing on the server needing root, and it
+is installed once with `deploy/install-host-access.sh`. It refuses any
+directive not on its list, so adding one to the vhost means adding it to the
+list in `deploy/argus-host-nginx` and reinstalling; the deploy warns while the
+installed copy and the repository disagree. The deploy user is in the `docker`
+group, which is root-equivalent anyway; the narrow command is so the deploy
+does not *use* that, not because it could not.
 
 ## Where things are
 

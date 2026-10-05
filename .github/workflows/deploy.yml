@@ -139,7 +139,34 @@ jobs:
             #    .env.
             record_tag "$DEPLOY_TAG"
 
+            # 7. Värd-nginx vhost ur deploy/nginx/argusmetrics.conf. Gör
+            #    ingenting om filen är oförändrad. Ett fel här är en varning,
+            #    inte ett fall: appen är redan frisk, och skriptet har lagt
+            #    tillbaka den gamla vhosten och låtit nginx vara.
+            echo "==> värd-nginx"
+            HOSTNGX=/usr/local/sbin/argus-host-nginx
+            if [ ! -x "$HOSTNGX" ]; then
+              echo "::warning::$HOSTNGX saknas. En gång på servern: sudo /opt/argusmetrics/deploy/install-host-access.sh"
+            else
+              cmp -s deploy/argus-host-nginx "$HOSTNGX" \
+                || echo "::warning::$HOSTNGX skiljer sig från repots deploy/argus-host-nginx. Kör install-host-access.sh igen."
+              sudo -n "$HOSTNGX" \
+                || echo "::warning::värd-vhosten installerades inte; se loggen ovan"
+            fi
+
+            # 8. Argus egna gamla images. prune -f tar bara dinglande lager,
+            #    så varje release blev kvar. Behåll den som kör och den
+            #    föregående, som auto-rollbacken behöver. Andra appars images
+            #    på maskinen rörs inte: bara våra två repon listas.
             echo "==> städa gamla images"
+            for REPO in ghcr.io/benbo-se/argusmetrics-backend ghcr.io/benbo-se/argusmetrics-web; do
+              docker image ls "$REPO" --format '{{.Tag}}' | while read -r T; do
+                case "$T" in
+                  "$DEPLOY_TAG"|"${PREV:-}"|latest) ;;
+                  *) docker image rm "$REPO:$T" >/dev/null 2>&1 && echo "tog bort $REPO:$T" || true ;;
+                esac
+              done
+            done
             docker image prune -f >/dev/null
             echo "Deploy OK och frisk: $DEPLOY_TAG"
 
