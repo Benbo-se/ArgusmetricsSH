@@ -189,20 +189,44 @@ def generate_visitor_hash(ip_address: str, user_agent: str, website_domain: str)
     from datetime import datetime, timezone
     from app.config import settings
 
-    # IPv4: truncate last octet → /24 subnet (192.168.1.123 → 192.168.1.0)
-    # IPv6: truncate to first 3 groups → /48 prefix
-    parts = ip_address.split('.')
-    if len(parts) == 4:
-        truncated_ip = '.'.join(parts[:3]) + '.0'
-    else:
-        ipv6_parts = ip_address.split(':')
-        truncated_ip = ':'.join(ipv6_parts[:3]) + '::'
+    truncated_ip = truncate_ip(ip_address)
 
     # Daily salt = YYYY-MM-DD + SECRET_KEY (UTC)
     daily_salt = datetime.now(timezone.utc).strftime('%Y-%m-%d') + settings.SECRET_KEY
 
     combined = f"{daily_salt}:{website_domain}:{truncated_ip}:{user_agent}"
     return hashlib.sha256(combined.encode('utf-8')).hexdigest()
+
+
+def truncate_ip(ip_address) -> str:
+    """The network an address belongs to: IPv4 to a /24, IPv6 to a /48.
+
+    Parsed and masked as numbers. This used to split the text on ":" and keep
+    three pieces, which counts written groups rather than address groups:
+    2001::1 became "2001::1::" and 2001::2 became "2001::2::", so the host
+    bits the privacy policy says are removed went into the hash, and two
+    spellings of one address hashed differently. The /48 promised was a /48
+    only for addresses written out in full.
+
+    An IPv4 address comes out exactly as the old code wrote it (192.168.1.0),
+    so the visitor hashes of IPv4 traffic do not change. An IPv4-mapped IPv6
+    address is treated as the IPv4 address it carries.
+
+    Anything unparseable becomes one fixed value rather than passing through,
+    so a malformed header cannot put arbitrary text into the hash.
+    """
+    import ipaddress
+
+    try:
+        addr = ipaddress.ip_address(str(ip_address).strip())
+    except ValueError:
+        return "invalid"
+
+    if addr.version == 6 and addr.ipv4_mapped:
+        addr = addr.ipv4_mapped
+
+    prefix = 24 if addr.version == 4 else 48
+    return str(ipaddress.ip_network(f"{addr}/{prefix}", strict=False).network_address)
 
 
 def mask_email(email) -> str:

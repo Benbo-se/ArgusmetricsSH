@@ -123,20 +123,16 @@ def anonymize_ip(ip: str) -> str:
     """
     Truncate an IP address for privacy before exposing it in debug payloads.
 
-    IPv4: keep the first 3 octets and zero the last (/24).
-    IPv6: keep the first 3 groups and collapse the rest (::).
+    The same truncation as the visitor hash (/24 and /48), from the same
+    function. This had its own copy of the textual IPv6 split, with the same
+    fault.
     """
+    from app.utils.security import truncate_ip
+
     if not ip:
         return "unknown"
-    if ":" in ip:
-        # IPv6
-        groups = ip.split(":")
-        return ":".join(groups[:3]) + "::"
-    # IPv4
-    octets = ip.split(".")
-    if len(octets) == 4:
-        return ".".join(octets[:3]) + ".0"
-    return "unknown"
+    truncated = truncate_ip(ip)
+    return "unknown" if truncated == "invalid" else truncated
 
 
 def summarize_user_agent(user_agent: str) -> str:
@@ -461,6 +457,13 @@ async def track_scroll(
     that is in the middle of navigating away, which is the only moment this is
     ever called.
     """
+    # The same refusal as /track. The tracker checks DNT before sending this
+    # too, but it did not until #106, and a browser running an old cached
+    # copy of the script would still send it.
+    dnt = request.headers.get("DNT") or request.headers.get("dnt")
+    if dnt == "1":
+        return {"success": True, "message": "Tracking skipped (DNT)"}
+
     success, message = analytics_service.complete_scroll_depth(
         tracking_code=body.tracking_code,
         path=body.path,

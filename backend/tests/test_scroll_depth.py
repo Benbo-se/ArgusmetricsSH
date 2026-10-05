@@ -106,3 +106,18 @@ class TestItRefusesWhatItShould:
         response = _send_depth(client, website, 40, path="/never-visited")
         assert response.status_code == 200
         assert _stored(db, "/never-visited") is None
+
+    def test_do_not_track_is_refused_here_as_well(self, client, website, db):
+        """/track has refused a DNT request since the start; this endpoint did
+        not (#106). The tracker now checks before sending, but a browser still
+        running an older cached copy of it would send anyway."""
+        _record_pageview(client, website)
+
+        response = client.post(
+            "/api/v1/analytics/track-scroll",
+            json={"tracking_code": website["tracking_code"], "path": "/an-article", "depth": 70},
+            headers={"DNT": "1"},
+        )
+
+        assert response.status_code == 200
+        assert _stored(db) is None, "a depth was stored for a visitor with Do Not Track on"

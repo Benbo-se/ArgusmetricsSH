@@ -36,7 +36,8 @@ function collectProblems(page: import('@playwright/test').Page): string[] {
 }
 
 /** A page that loads the tracker exactly as a customer's site does. */
-async function pageWithTracker(page: import('@playwright/test').Page, baseURL: string) {
+async function pageWithTracker(page: import('@playwright/test').Page, baseURL: string,
+                               { trackLocalhost = true, doNotTrack = false } = {}) {
     // The endpoints are stubbed: this is about whether the script runs, not
     // about what it sends, and a real request would be refused for an
     // unverified domain anyway.
@@ -51,9 +52,10 @@ async function pageWithTracker(page: import('@playwright/test').Page, baseURL: s
             <div style="height: 4000px">Tall enough that scroll depth is measurable.</div>
             <a href="https://example.com/elsewhere">An outbound link</a>
             <a href="/handbook.pdf" download>A download</a>
+            ${doNotTrack ? `<script>Object.defineProperty(navigator, 'doNotTrack', { get: () => '1' });</script>` : ''}
             <script src="${baseURL}/static/tracker.min.js"
                     data-tracking-code="console-check"
-                    data-track-localhost="true"></script>
+                    ${trackLocalhost ? 'data-track-localhost="true"' : ''}></script>
         </body></html>
     `, { waitUntil: 'load' });
 }
@@ -128,5 +130,50 @@ test.describe('The tracker is silent in the console', () => {
 
         expect(depthSent).not.toBeNull();
         expect(depthSent!).toBeGreaterThan(0);
+    });
+
+    /**
+     * #106. Pageviews and events checked Do Not Track and local development;
+     * the scroll report checked neither. A visitor who had asked not to be
+     * tracked sent no pageview and then, on leaving, sent the path and how far
+     * they read. Both tests below go through exactly the flow the test above
+     * proves does send, so they cannot pass by nothing ever being sent.
+     */
+    async function scrollAndLeave(page: import('@playwright/test').Page) {
+        await page.evaluate(() => window.scrollTo(0, 2000));
+        await page.waitForTimeout(400);
+        await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+        await page.evaluate(() => window.dispatchEvent(new Event('pagehide')));
+        await page.waitForTimeout(300);
+    }
+
+    test('Do Not Track also stops the scroll report', async ({ page, baseURL }) => {
+        const sent: string[] = [];
+        page.on('request', request => {
+            if (request.url().includes('/api/v1/analytics/')) sent.push(request.url());
+        });
+
+        // Set inside the page, before the tracker, rather than with an init
+        // script: an init script only runs on navigation, and navigating to
+        // about:blank first left a page that sent nothing at all, so the test
+        // passed against the unfixed tracker too.
+        await pageWithTracker(page, baseURL!, { doNotTrack: true });
+        await scrollAndLeave(page);
+
+        expect(sent, `sent with Do Not Track on:\n${sent.join('\n')}`).toEqual([]);
+    });
+
+    test('a local page sends no scroll report either', async ({ page, baseURL }) => {
+        const sent: string[] = [];
+        page.on('request', request => {
+            if (request.url().includes('/api/v1/analytics/')) sent.push(request.url());
+        });
+
+        // setContent leaves the page on about:blank, which has no hostname and
+        // therefore counts as local, the same as file://.
+        await pageWithTracker(page, baseURL!, { trackLocalhost: false });
+        await scrollAndLeave(page);
+
+        expect(sent, `sent from a local page:\n${sent.join('\n')}`).toEqual([]);
     });
 });

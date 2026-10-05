@@ -70,6 +70,34 @@ class TestIpTruncation:
             2026, 1, 1, ip="2001:db8:1234:5678:9abc:def0:1234:5678"
         ) == _hash_on(2026, 1, 1, ip="2001:db8:1234:ffff:ffff:ffff:ffff:ffff")
 
+    def test_compressed_ipv6_is_truncated_too(self):
+        """The test above only uses addresses written out in full, which is why
+        it passed while the truncation split the text on ":". 2001::1 kept its
+        host part, so two hosts in one /48 hashed differently."""
+        assert _hash_on(2026, 1, 1, ip="2001::1") == _hash_on(
+            2026, 1, 1, ip="2001::2"
+        ), "host bits of a compressed IPv6 address still reach the hash"
+
+    def test_two_spellings_of_one_ipv6_address_hash_alike(self):
+        assert _hash_on(2026, 1, 1, ip="2001:db8:1234::1") == _hash_on(
+            2026, 1, 1, ip="2001:0db8:1234:0000:0000:0000:0000:0001"
+        )
+
+    def test_ipv4_truncates_to_the_same_text_as_before(self):
+        """Pinned, because the text goes into the hash: a different spelling of
+        192.168.1.0 would give every IPv4 visitor a new hash mid-day and count
+        them twice."""
+        from app.utils.security import truncate_ip
+
+        assert truncate_ip("192.168.1.123") == "192.168.1.0"
+        assert truncate_ip("::ffff:192.168.1.123") == "192.168.1.0"
+
+    def test_the_debug_stream_truncates_the_same_way(self):
+        from app.routers.analytics import anonymize_ip
+
+        assert anonymize_ip("2001::1") == anonymize_ip("2001::2") == "2001::"
+        assert anonymize_ip("not an address") == "unknown"
+
 
 class TestSiteScoping:
     """"Domain scoping: hashes are site-specific, no cross-site correlation" """

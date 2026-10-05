@@ -765,6 +765,11 @@
    * without it.
    */
   function sendScrollDepth(depth) {
+    // The same two refusals as a pageview. Without them a visitor with Do
+    // Not Track on, or a developer on localhost, sent no pageview but still
+    // sent the path and depth the moment the page was hidden (#106).
+    if (isDNTEnabled() || isLocalDevelopment()) return;
+
     var trackingCode = getTrackingCode();
     if (!trackingCode) return;
 
