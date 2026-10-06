@@ -1141,6 +1141,18 @@ Content-Type: application/json
   "https://your-argusmetrics-instance.com/api/v1/analytics/stats/7?start_date=2026-08-01&amp;end_date=2026-08-31"</code></pre>
                         </div>
 
+                        <p class="text-gray-700 mb-4">
+                            A token belongs to one website and can only read. It answers 404 for every other website, including others you own.
+                        </p>
+                        <div class="bg-gray-900 text-gray-100 p-4 rounded-lg mb-6 overflow-x-auto">
+                            <pre><code>GET /api/v1/analytics/stats/{website_id}?start_date=&amp;end_date=
+GET /api/v1/analytics/realtime/{website_id}
+GET /api/v1/analytics/goals/{website_id}?start_date=&amp;end_date=
+GET /api/v1/funnels/{funnel_id}/stats?days=30
+GET /api/v1/analytics/export/{website_id}/csv
+GET /api/v1/analytics/export/{website_id}/json</code></pre>
+                        </div>
+
                         <h3 class="text-xl font-semibold text-gray-900 mb-3 mt-6">Track Pageview</h3>
                         <div class="bg-gray-900 text-gray-100 p-4 rounded-lg mb-6 overflow-x-auto">
                             <pre><code>POST /api/v1/analytics/track
