@@ -101,13 +101,29 @@
         </template>
 
         <!-- Create/Edit Modal -->
-        <div x-show="isCreateOpen"
+        {# Closed by the backdrop and by Escape, not by @click.away. The root
+           covers the whole screen, so the only click .away ever saw was one on
+           something underneath it: the button that opened it. Pressing space
+           or Enter with that button still focused makes the browser click it
+           again, and .away closed the dialog it had just opened. That was
+           #40, #100 and #113: a dialog gone the moment you started typing,
+           and an e2e test that failed whenever the keys arrived before focus
+           left the button. The same pattern was on every full-screen modal in
+           the dashboard and is gone from all of them.
+
+           A class rather than x-show. x-show defers showing by a timeout so
+           that .away listeners do not fire on the opening click, which kept
+           the field invisible, and unfocusable, for the first 15 to 30 ms
+           after the click: keys typed in that window were lost. With .away
+           gone the deferral protects nothing, and a class applies before the
+           next key arrives. #}
+        <div :class="createModalClass"
              x-cloak
-             @click.away="closeCreate"
+             @keydown.escape.window="closeCreate"
              class="fixed inset-0 z-50 overflow-y-auto">
             <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
                 <!-- Background overlay -->
-                <div class="fixed inset-0 transition-opacity bg-gray-500/75"></div>
+                <div @click="closeCreate" class="fixed inset-0 transition-opacity bg-gray-500/75"></div>
 
                 <!-- Modal panel -->
                 <div class="relative inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
@@ -127,6 +143,7 @@
                                 </label>
                                 <input type="text"
                                        x-model="formName"
+                                       x-ref="goalName"
                                        @input="generateEventName"
                                        required
                                        placeholder="e.g., Newsletter Signup"
@@ -174,11 +191,11 @@
         <!-- Delete Confirmation Modal -->
         <div x-show="isDeleteOpen"
              x-cloak
-             @click.away="closeDelete"
+             @keydown.escape.window="closeDelete"
              class="fixed inset-0 z-50 overflow-y-auto">
             <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
                 <!-- Background overlay -->
-                <div class="fixed inset-0 transition-opacity bg-gray-500/75"></div>
+                <div @click="closeDelete" class="fixed inset-0 transition-opacity bg-gray-500/75"></div>
 
                 <!-- Modal panel -->
                 <div class="relative inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">

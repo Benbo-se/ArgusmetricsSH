@@ -52,3 +52,40 @@ test('typing immediately after opening does not lose the input',
 
     await expect(page.locator('input').first()).toHaveValue('Checkout reached');
   });
+
+/**
+ * #113, as reported: three goals in a row saved, the fourth did not, with no
+ * error. The dialog was in the DOM but not on screen. Opening it left focus on
+ * the button that opened it; a space typed there clicked that button again,
+ * and @click.away took the click for one outside the dialog and closed it.
+ */
+test('four goals in a row in one session all save', async ({ page, request }) => {
+  const { sessionToken, websiteId } = await createUserWithWebsite(request);
+  await page.goto('/login');
+  await page.evaluate((t) => { document.cookie = `session_token=${t}; path=/`; }, sessionToken);
+  await page.goto(`/dashboard/website/${websiteId}/goals`);
+
+  for (const name of ['Order placed', 'Table booked', 'Menu opened', 'Call clicked']) {
+    await page.getByRole('button', { name: /Create.*Goal/i }).first().click();
+    // Typed without clicking the field first: the dialog has to put the
+    // cursor there itself, or the space in the name lands on the button.
+    await page.keyboard.type(name, { delay: 10 });
+    await page.keyboard.press('Enter');
+    await expect(page.getByText(name, { exact: true })).toBeVisible({ timeout: 5000 });
+  }
+
+  await expect(page.locator('tbody tr')).toHaveCount(4);
+});
+
+test('a Swedish goal name gives an event name without underscores for å ä ö',
+  async ({ page, request }) => {
+    const { sessionToken, websiteId } = await createUserWithWebsite(request);
+    await page.goto('/login');
+    await page.evaluate((t) => { document.cookie = `session_token=${t}; path=/`; }, sessionToken);
+    await page.goto(`/dashboard/website/${websiteId}/goals`);
+
+    await page.getByRole('button', { name: /Create.*Goal/i }).first().click();
+    await page.locator('input').first().pressSequentially('Beställ via Wolt', { delay: 10 });
+
+    await expect(page.locator('form input').nth(1)).toHaveValue('bestall_via_wolt');
+  });
