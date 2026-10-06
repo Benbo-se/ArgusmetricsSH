@@ -254,6 +254,7 @@ document.addEventListener('alpine:init', () => {
         get hasGoals() { return this.goals.length > 0 },
         get hasNoGoals() { return this.goals.length === 0 },
         get isCreateOpen() { return this.createOpen },
+        get createModalClass() { return this.createOpen ? '' : 'hidden' },
         get isDeleteOpen() { return this.deleteOpen },
         get hasError() { return !!this.error },
         get isLoading() { return this.loading },
@@ -296,6 +297,32 @@ document.addEventListener('alpine:init', () => {
          */
         openCreate() {
             this.createOpen = true
+            this.focusName()
+        },
+
+        /**
+         * Moves focus into the dialog once it is showing.
+         *
+         * Left on the button that opened it, focus turned the first space
+         * typed into a second click on that button. For a goal being edited
+         * that click re-ran openEdit and put the old values back over what
+         * had been typed.
+         *
+         * A microtask rather than $nextTick. The dialog's class is applied by
+         * Alpine's own microtask, queued when createOpen was set, so this one
+         * runs straight after it, with the field visible. $nextTick waits for
+         * a timeout on top, and a key pressed in between went to the button:
+         * "Order placed" saved as "rder placed". $nextTick stays as the
+         * fallback for the case the field was not yet focusable.
+         */
+        focusName() {
+            const focus = () => {
+                const field = this.$refs.goalName
+                if (!field) return false
+                field.focus()
+                return document.activeElement === field
+            }
+            queueMicrotask(() => { if (!focus()) this.$nextTick(focus) })
         },
 
         openEdit(goal) {
@@ -308,6 +335,7 @@ document.addEventListener('alpine:init', () => {
             this.eventNameEdited = true
             this.error = null
             this.createOpen = true
+            this.focusName()
         },
 
         openDelete(goal) {
@@ -366,8 +394,17 @@ document.addEventListener('alpine:init', () => {
             event.target.select()
         },
 
+        /**
+         * "Beställ via Wolt" gives bestall_via_wolt, not best_ll_via_wolt.
+         * Accents are taken off before anything is replaced: NFD splits ä
+         * into a and a combining mark, and the mark is what goes. The event
+         * name has to match the string the site sends, and an underscore
+         * where the ä was is a goal that never converts (#113).
+         */
         slugify(value) {
             return (value || '')
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
                 .toLowerCase()
                 .replace(/[^a-z0-9]+/g, '_')
                 .replace(/^_+|_+$/g, '')
@@ -1508,6 +1545,7 @@ document.addEventListener('alpine:init', () => {
         get hasFunnels() { return this.funnels.length > 0 },
         get hasNoFunnels() { return this.funnels.length === 0 },
         get isCreateOpen() { return this.createOpen },
+        get createModalClass() { return this.createOpen ? '' : 'hidden' },
         get isDeleteOpen() { return this.deleteOpen },
         get isStatsOpen() { return this.statsOpen },
         get isLoading() { return this.loading },
@@ -1598,6 +1636,32 @@ document.addEventListener('alpine:init', () => {
          */
         openCreate() {
             this.createOpen = true
+            this.focusName()
+        },
+
+        /**
+         * Moves focus into the dialog once it is showing.
+         *
+         * Left on the button that opened it, focus turned the first space
+         * typed into a second click on that button. For a goal being edited
+         * that click re-ran openEdit and put the old values back over what
+         * had been typed.
+         *
+         * A microtask rather than $nextTick. The dialog's class is applied by
+         * Alpine's own microtask, queued when createOpen was set, so this one
+         * runs straight after it, with the field visible. $nextTick waits for
+         * a timeout on top, and a key pressed in between went to the button:
+         * "Order placed" saved as "rder placed". $nextTick stays as the
+         * fallback for the case the field was not yet focusable.
+         */
+        focusName() {
+            const focus = () => {
+                const field = this.$refs.goalName
+                if (!field) return false
+                field.focus()
+                return document.activeElement === field
+            }
+            queueMicrotask(() => { if (!focus()) this.$nextTick(focus) })
         },
         closeCreate() {
             this.createOpen = false
