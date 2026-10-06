@@ -633,11 +633,18 @@ async def get_goal_stats(
     website_id: int,
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user_or_token),
     analytics_service: AnalyticsService = Depends(get_analytics_service),
     website_service: WebsiteService = Depends(get_website_service)
 ) -> GoalStatsResponse:
-    """Get goal statistics for a website."""
+    """Get goal statistics for a website.
+
+    Readable with an API token as well as a session (#112), like /stats and
+    /export: a service reporting on a site's behalf needs the conversions, and
+    could otherwise only get them by logging in as a person. A token scoped to
+    another website gets 404 from _enforce_token_scope below. Creating,
+    changing and deleting goals stay session-only.
+    """
     logger.info(f"Goal stats request: website_id={website_id}")
 
     # Verify website ownership

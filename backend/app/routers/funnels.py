@@ -24,6 +24,7 @@ from app.models.website import Website
 from app.models.user import User
 from app.models.website_member import MemberRole
 from app.routers.auth import get_current_user
+from app.routers.analytics import get_current_user_or_token, _enforce_token_scope
 from app.services.team_service import TeamService
 
 logger = logging.getLogger(__name__)
@@ -136,11 +137,16 @@ async def list_funnels(
 async def get_funnel_stats(
     funnel_id: int,
     days: int = 30,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user_or_token),
     db: Session = Depends(get_db)
 ):
     """
     Get conversion statistics for a funnel.
+
+    Readable with an API token as well as a session (#112). The route carries
+    no website id, so the token's scope can only be checked once the funnel
+    is loaded; a funnel on another website answers 404, the same as one that
+    does not exist, so a token cannot be used to find out which ids exist.
 
     Args:
         funnel_id: Funnel ID
@@ -163,6 +169,8 @@ async def get_funnel_stats(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Funnel not found"
         )
+
+    _enforce_token_scope(current_user, funnel.website_id)
 
     # Verify access to the funnel's website (any role may view stats)
     team_service = TeamService(db)
