@@ -213,4 +213,51 @@ test.describe('The tracker is silent in the console', () => {
 
         expect(sent, sent.join('\n')).toEqual([]);
     });
+
+    /**
+     * #109. Google Tag Manager loads the tracker with injectScript, which
+     * cannot put data attributes on the tag, so its template passes the
+     * settings in window.argusConfig. The tracker used to ignore that, start
+     * without a tracking code, and send nothing.
+     */
+    test('settings from window.argusConfig work, as GTM passes them', async ({ page, baseURL }) => {
+        const bodies: any[] = [];
+        page.on('request', r => {
+            if (r.url().endsWith('/api/v1/analytics/track')) bodies.push(JSON.parse(r.postData() || '{}'));
+        });
+        await page.route('**/api/v1/analytics/**', route =>
+            route.fulfill({ status: 200, body: '{"success":true}' }));
+
+        await page.setContent(`
+            <!doctype html><html><head><title>GTM site</title></head><body>
+            <script>
+                Object.defineProperty(navigator, 'webdriver', { get: () => false });
+                Object.defineProperty(navigator, 'userAgent', { get: () => ${JSON.stringify(PERSON_UA)} });
+                window.argusConfig = {
+                    trackingCode: 'gtmcode1',
+                    apiEndpoint: '${baseURL}/api/v1/analytics/track',
+                    trackLocalhost: true
+                };
+            </script>
+            <script src="${baseURL}/static/tracker.min.js"></script>
+            </body></html>`, { waitUntil: 'load' });
+        await page.waitForTimeout(500);
+
+        expect(bodies.length, 'no pageview was sent').toBe(1);
+        expect(bodies[0].tracking_code).toBe('gtmcode1');
+    });
+
+    test('trackEvent called from another script keeps the tracking code', async ({ page, baseURL }) => {
+        // document.currentScript is the calling script during a synchronous
+        // call, so reading the code from it lost the code.
+        const events: any[] = [];
+        page.on('request', r => {
+            if (r.url().endsWith('/track-event')) events.push(JSON.parse(r.postData() || '{}'));
+        });
+        await pageWithTracker(page, baseURL!);
+        await page.addScriptTag({ content: "argus.trackEvent('clicked_cta')" });
+        await page.waitForTimeout(400);
+
+        expect(events.map(e => e.tracking_code)).toEqual(['console-check']);
+    });
 });
