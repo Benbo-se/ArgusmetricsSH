@@ -30,6 +30,9 @@ test.describe('Local development is not counted', () => {
     }).catch(() => {});
 
     await page.evaluate((code) => {
+      // Act as a person, so the only reason left to refuse is localhost.
+      Object.defineProperty(navigator, 'webdriver', { get: () => false });
+      Object.defineProperty(navigator, 'userAgent', { get: () => 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0 Safari/537.36' });
       const s = document.createElement('script');
       s.src = '/static/tracker.min.js';
       s.setAttribute('data-tracking-code', code);
@@ -53,6 +56,10 @@ test.describe('Local development is not counted', () => {
     await page.goto('/login');
     await page.setContent('<html><body>hello</body></html>');
     await page.evaluate((code) => {
+      // Playwright's browser reports navigator.webdriver, which the tracker
+      // refuses (#103). The override is about localhost, so act as a person.
+      Object.defineProperty(navigator, 'webdriver', { get: () => false });
+      Object.defineProperty(navigator, 'userAgent', { get: () => 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0 Safari/537.36' });
       const s = document.createElement('script');
       s.src = '/static/tracker.min.js';
       s.setAttribute('data-tracking-code', code);

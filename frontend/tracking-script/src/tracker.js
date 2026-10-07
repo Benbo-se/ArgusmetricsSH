@@ -63,6 +63,31 @@
   }
 
   /**
+   * Whether this browser is a crawler or under automation.
+   *
+   * Crawlers that run JavaScript run this script too. Meta's
+   * meta-externalagent alone sent about 175,000 pageviews to one instance in
+   * nine days in late September 2026. The server refused every one by its
+   * user agent, but each was still a request, and the refusal rested on the
+   * word "crawler" happening to be in Meta's URL.
+   *
+   * navigator.webdriver is the standard flag a browser sets when it is being
+   * driven by automation (Selenium, Puppeteer, Playwright, headless Chrome).
+   * A scraper can hide it, so this is a first filter rather than proof, but a
+   * person never has it set.
+   */
+  var BOT_UA = /bot|crawl|spider|slurp|externalagent|headless|lighthouse|preview|scrap|fetcher/i;
+
+  function isAutomated() {
+    try {
+      if (navigator.webdriver === true) return true;
+    } catch (e) {
+      // Reading it cannot fail in a real browser; never let it stop a pageview.
+    }
+    return BOT_UA.test(navigator.userAgent || '');
+  }
+
+  /**
    * Whether this page is running on a developer's own machine.
    *
    * Local development used to be counted as real traffic, and it showed up
@@ -181,7 +206,7 @@
       return;
     }
 
-    if (isLocalDevelopment()) {
+    if (isLocalDevelopment() || isAutomated()) {
       return;
     }
 
@@ -224,7 +249,7 @@
       return;
     }
 
-    if (isLocalDevelopment()) {
+    if (isLocalDevelopment() || isAutomated()) {
       return;
     }
 
@@ -311,7 +336,7 @@
       return;
     }
 
-    if (isLocalDevelopment()) {
+    if (isLocalDevelopment() || isAutomated()) {
       return;
     }
 
@@ -768,7 +793,7 @@
     // The same two refusals as a pageview. Without them a visitor with Do
     // Not Track on, or a developer on localhost, sent no pageview but still
     // sent the path and depth the moment the page was hidden (#106).
-    if (isDNTEnabled() || isLocalDevelopment()) return;
+    if (isDNTEnabled() || isLocalDevelopment() || isAutomated()) return;
 
     var trackingCode = getTrackingCode();
     if (!trackingCode) return;

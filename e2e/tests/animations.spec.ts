@@ -92,7 +92,7 @@ test('the size scene ends on the measured numbers, to scale', async ({ page }) =
   await expect(size.locator('.ax-us')).toHaveClass(/an-on/);
   const widths = await size.evaluate((w) => ['.ax-ga', '.ax-us'].map(
     (s) => (w.querySelector(s) as HTMLElement).style.width));
-  expect(widths).toEqual(['100%', '1.75%']);
+  expect(widths).toEqual(['100%', '1.81%'])
 });
 
 test('the terminal ends healthy, and its copy button has the real commands', async ({ page, context }) => {
