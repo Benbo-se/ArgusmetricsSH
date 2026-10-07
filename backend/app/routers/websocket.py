@@ -139,8 +139,9 @@ async def websocket_endpoint(
     """
     WebSocket endpoint for real-time analytics updates.
 
-    Authenticates using tracking code and provides live updates when
-    new pageviews are recorded.
+    Authenticates with the session cookie or a website-matched API token,
+    never the tracking code, and sends a message whenever a pageview is
+    recorded for the website (routers/analytics.py, _tell_live_dashboards).
 
     Args:
         websocket: WebSocket connection

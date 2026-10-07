@@ -912,6 +912,50 @@ document.addEventListener('alpine:init', () => {
         },
     }))
 
+    /**
+     * The first-visit guide on a website that has never recorded anything.
+     *
+     * Listens on /ws/live, which the tracking endpoint now feeds, and turns
+     * step three over the moment a pageview is recorded. Authenticated by the
+     * session cookie the browser sends with the handshake; no credential is
+     * put in the URL.
+     */
+    Alpine.data('firstVisit', () => ({
+        arrived: false,
+        path: '',
+        ws: null,
+
+        init() {
+            this.connect()
+        },
+
+        connect() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+            const id = this.$el.dataset.websiteId
+            this.ws = new WebSocket(`${protocol}//${window.location.host}/ws/live/${id}`)
+            this.ws.onmessage = (event) => {
+                const message = JSON.parse(event.data)
+                if (message.type === 'pageview' && !this.arrived) {
+                    this.path = (message.data && message.data.path) || '/'
+                    this.arrived = true
+                }
+            }
+            // Reconnect while still waiting; once the visit is here there is
+            // nothing left to listen for.
+            this.ws.onclose = () => {
+                if (!this.arrived) setTimeout(() => this.connect(), 3000)
+            }
+        },
+
+        get isWaiting() { return !this.arrived },
+        get hasArrived() { return this.arrived },
+        get arrivedPath() { return this.path },
+        get stepThreeMark() { return this.arrived ? '✓' : '3' },
+        get arrivedNumClass() { return this.arrived ? 'fv-done fv-pop' : '' },
+
+        openDashboard() { window.location.reload() },
+    }))
+
     Alpine.data('copyButton', () => ({
         copied: false,
         get isCopied() { return this.copied },
