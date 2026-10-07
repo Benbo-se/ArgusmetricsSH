@@ -288,6 +288,14 @@
         </section>
 
         <!-- CTA -->
+        <!-- The animations from the front page that bear on this comparison. -->
+        <section class="py-16 bg-gray-50 border-t border-gray-100">
+          <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 class="text-2xl font-bold text-gray-900 mb-6 text-center">What happens to a visitor's address</h2>
+            {% include "_anim_ip.html" %}
+          </div>
+        </section>
+
         <section class="py-20 bg-blue-600">
             <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
                 <h2 class="text-3xl font-bold text-white mb-4">Self-host in minutes, not hours</h2>
@@ -304,3 +312,5 @@
     <!-- Footer -->
     
 {% endblock %}
+{% block head_extra %}<link rel="stylesheet" href="{{ static('css/anim.css') }}">{% endblock %}
+{% block scripts %}<script defer src="{{ static('js/anim.js') }}"></script>{% endblock %}

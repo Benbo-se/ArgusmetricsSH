@@ -181,3 +181,54 @@
 .an-m .ab-page .hero { height: 54px; margin-bottom: 8px; }
 .an-m .ab-res { bottom: 12px; padding: 8px 12px; font-size: 12px; }
 .an-m .ab-banner { padding: 10px 14px; font-size: 12px; }
+
+/* ── Scene: script sizes, to scale (ax-) ─────────────────────────────── */
+.an-wrap.ax-wrap { aspect-ratio: 960 / 330; }
+.ax-wrap .an-canvas { height: 330px; }
+.an-wrap.ax-wrap.an-m { aspect-ratio: 520 / 430; }
+.ax-wrap.an-m .an-canvas { height: 430px; }
+.ax-title { position: absolute; left: 32px; top: 24px; font-size: 18px; font-weight: 700; }
+.ax-row { position: absolute; left: 32px; right: 32px; display: grid; grid-template-columns: 250px 1fr 90px; align-items: center; gap: 16px; }
+.ax-r1 { top: 78px; } .ax-r2 { top: 138px; } .ax-r3 { top: 198px; }
+.ax-name { font-size: 15px; font-weight: 600; }
+.ax-name .an-muted { display: block; font-weight: 400; font-size: 12.5px; font-family: ui-monospace, Menlo, Consolas, monospace; }
+.ax-track { height: 22px; border-radius: 6px; background: #e8edf5; overflow: hidden; }
+.ax-bar { height: 100%; min-width: 4px; border-radius: 6px; transform-origin: left center; }
+.an-js .ax-bar[data-t] { transform: scaleX(0); opacity: 1; transition: transform 2.2s cubic-bezier(.2,.8,.2,1); }
+.an-js .ax-bar[data-t].an-on { transform: scaleX(1); }
+.ax-ga { background: #ef4444; } .ax-us { background: #2563eb; } .ax-pl { background: #94a3b8; }
+.ax-num { text-align: right; font-size: 18px; font-variant-numeric: tabular-nums; }
+.ax-note { position: absolute; left: 32px; top: 252px; font-size: 12.5px; }
+.ax-wrap .an-cap { bottom: 14px; }
+.an-m .ax-title { left: 20px; right: 20px; top: 18px; font-size: 18px; }
+.an-m .ax-row { left: 20px; right: 20px; grid-template-columns: 1fr 80px; row-gap: 6px; }
+.an-m .ax-track { grid-column: 1 / -1; grid-row: 2; }
+.an-m .ax-r1 { top: 78px; } .an-m .ax-r2 { top: 160px; } .an-m .ax-r3 { top: 242px; }
+.an-m .ax-note { left: 20px; right: 20px; top: 322px; }
+
+/* ── Scene: self-hosting in a terminal (at-) ─────────────────────────── */
+.an-wrap.at-wrap { background: #0b1220; border-color: #1f2937; }
+.at-term { position: absolute; inset: 24px 24px 74px; border-radius: 12px; background: #0f172a; border: 1px solid #1e293b; overflow: hidden; color: #e2e8f0; }
+.at-bar { display: flex; align-items: center; gap: 8px; padding: 9px 14px; border-bottom: 1px solid #1e293b; font-size: 12.5px; color: #94a3b8; }
+/* pre on each line, not on the body: on the body, the template's indentation
+   between the lines rendered as blank lines of its own. */
+.at-body { padding: 14px 18px; font-size: 15px; line-height: 1.75; }
+.at-body > div { white-space: pre; }
+.at-p { color: #60a5fa; }
+.at-out { color: #94a3b8; }
+.at-cmt { color: #64748b; font-style: italic; }
+.at-ok { color: #4ade80; }
+.at-wrap .an-caret::after { background: #e2e8f0; }
+.at-wrap .an-cap { background: #1e293b; }
+.an-m .at-term { inset: 16px 16px 96px; }
+.an-m .at-body { font-size: 13px; line-height: 1.6; padding: 10px 14px; }
+.an-m .at-body > div { white-space: pre-wrap; word-break: break-all; }
+
+/* ── Reveal on scroll: [data-reveal] (anim.js) ───────────────────────── */
+/* Hidden only once the script has said it is running, so a page without
+   JavaScript, or with reduced motion, shows everything at once. */
+/* Border and shadow are in the list because the cards also carry Tailwind's
+   transition-all for their hover, which this rule replaces. */
+.rv-on [data-reveal] { opacity: 0; transform: translateY(14px);
+  transition: opacity .55s ease, transform .6s cubic-bezier(.2,.8,.2,1), border-color .15s, box-shadow .15s; }
+.rv-on [data-reveal].rv-in { opacity: 1; transform: none; }
