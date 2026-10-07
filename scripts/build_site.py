@@ -76,6 +76,13 @@ def render_all() -> dict:
         keep_trailing_newline=True,
     )
     env.globals["static"] = static_url
+    # The marketing site counts itself with Argusmetrics, as website 15 on the
+    # production instance. The tracker skips localhost on its own, so a local
+    # build or the e2e server sends nothing.
+    env.globals["site_tracking_code"] = "9pyqskf7"
+    # The public dashboard of those numbers (sharing switched on 2026-10-07).
+    # Empty it to take the links down; they only appear while it is set.
+    env.globals["public_stats_url"] = "https://argusmetrics.io/public/ACzDK1ugMdKNufktjLSp5Fhk0Ppq3b5D"
     # Every page may leave these unset and inherit the layout's fallback.
     for optional in ("page_canon", "page_og_url", "page_og_title", "page_og_desc",
                      "page_tw_title", "page_tw_desc", "page_og_img"):
