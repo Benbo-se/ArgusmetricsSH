@@ -42,6 +42,64 @@ function formatNumber(num) {
 }
 
 /**
+ * The line draws itself from left to right, point by point, the first time
+ * the chart appears. Chart.js's "progressive line" recipe: each point starts
+ * where the previous one is and is released after the one before it. Off
+ * with prefers-reduced-motion.
+ */
+function drawInAnimation(points) {
+    if (REDUCED_MOTION || !points) return false;
+    const total = 900;
+    const each = total / points;
+    const previousY = (ctx) => ctx.index === 0
+        ? ctx.chart.scales.y.getPixelForValue(0)
+        : ctx.chart.getDatasetMeta(ctx.datasetIndex).data[ctx.index - 1].getProps(['y'], true).y;
+    return {
+        x: {
+            type: 'number', easing: 'linear', duration: each, from: NaN,
+            delay(ctx) {
+                if (ctx.type !== 'data' || ctx.xStarted) return 0;
+                ctx.xStarted = true;
+                return ctx.index * each;
+            },
+        },
+        y: {
+            type: 'number', easing: 'linear', duration: each, from: previousY,
+            delay(ctx) {
+                if (ctx.type !== 'data' || ctx.yStarted) return 0;
+                ctx.yStarted = true;
+                return ctx.index * each;
+            },
+        },
+    };
+}
+
+/**
+ * A dashed vertical line through the hovered day, so the eye can follow the
+ * tooltip down to the axis and across to the previous period's line.
+ */
+const crosshairPlugin = {
+    id: 'argusCrosshair',
+    afterDatasetsDraw(chart) {
+        const active = chart.tooltip && chart.tooltip.getActiveElements
+            ? chart.tooltip.getActiveElements() : [];
+        if (!active.length) return;
+        const x = active[0].element.x;
+        const { top, bottom } = chart.chartArea;
+        const c = chart.ctx;
+        c.save();
+        c.beginPath();
+        c.moveTo(x, top);
+        c.lineTo(x, bottom);
+        c.lineWidth = 1;
+        c.setLineDash([4, 4]);
+        c.strokeStyle = themeAlpha('--brand-500', 0.45, '#4550c8');
+        c.stroke();
+        c.restore();
+    },
+};
+
+/**
  * Initialize pageviews line chart
  */
 function initPageviewsChart(timeseriesData, previousPeriodData = null) {
@@ -100,9 +158,11 @@ function initPageviewsChart(timeseriesData, previousPeriodData = null) {
             labels: labels,
             datasets: datasets
         },
+        plugins: [crosshairPlugin],
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            animation: drawInAnimation(data.length),
             plugins: {
                 legend: {
                     display: previousPeriodData && previousPeriodData.length > 0,
@@ -329,9 +389,81 @@ window.addEventListener('resize', debounce(() => {
 /**
  * Initialize HTMX event listeners
  */
+/**
+ * Headline numbers count up to their value, and count from the old value to
+ * the new one when a refresh changes them.
+ *
+ * The tiles are rendered on the server as finished text ("1,234", "42%",
+ * "1.5") and swapped by HTMX every few seconds. The number is read back out
+ * of that text, so the server stays the only place that formats it, and only
+ * text that parses back exactly is animated: a duration like "1m 23s" is left
+ * as it is. A refresh that changes nothing animates nothing, which matters
+ * on a five-second cycle. With prefers-reduced-motion the numbers just appear.
+ */
+const REDUCED_MOTION = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+const shownStatValues = new Map();
+
+function parseStatValue(text) {
+    const match = (text || '').trim().match(/^([\d,]+(?:\.\d+)?)(%?)$/);
+    if (!match) return null;
+    const raw = match[1].replace(/,/g, '');
+    return { value: parseFloat(raw), decimals: (raw.split('.')[1] || '').length, suffix: match[2] };
+}
+
+function formatStatValue(value, decimals, suffix) {
+    return value.toLocaleString('en-US', {
+        minimumFractionDigits: decimals,
+        maximumFractionDigits: decimals,
+    }) + suffix;
+}
+
+function countUpStats(root) {
+    const tiles = [];
+    if (root.matches && root.matches('.stat-tile')) tiles.push(root);
+    root.querySelectorAll('.stat-tile').forEach((tile) => tiles.push(tile));
+
+    tiles.forEach((tile) => {
+        const label = tile.querySelector('.stat-label');
+        const el = tile.querySelector('.stat-value');
+        if (!label || !el) return;
+        const target = parseStatValue(el.textContent);
+        if (!target) return;
+
+        const key = label.textContent.trim();
+        const refresh = shownStatValues.has(key);
+        const from = refresh ? shownStatValues.get(key) : 0;
+        shownStatValues.set(key, target.value);
+        if (REDUCED_MOTION || from === target.value) return;
+
+        if (refresh) {
+            // A refresh changed it: say so, briefly.
+            tile.classList.remove('stat-bump');
+            void tile.offsetWidth;
+            tile.classList.add('stat-bump');
+        }
+
+        const finalText = el.textContent;
+        const start = performance.now();
+        const duration = 700;
+        const step = (now) => {
+            const k = Math.min(1, (now - start) / duration);
+            const eased = 1 - Math.pow(1 - k, 3);
+            el.textContent = k < 1
+                ? formatStatValue(from + (target.value - from) * eased, target.decimals, target.suffix)
+                : finalText;
+            if (k < 1) requestAnimationFrame(step);
+        };
+        el.textContent = formatStatValue(from, target.decimals, target.suffix);
+        requestAnimationFrame(step);
+    });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+    // No log line per swap: the stats refresh every few seconds, and that
+    // put a message in the console every five seconds for as long as the
+    // dashboard was open.
     document.body.addEventListener('htmx:afterSwap', (event) => {
-        console.log('HTMX swap completed:', event.detail.target.id);
+        countUpStats(event.detail.target);
     });
 
     document.body.addEventListener('htmx:responseError', (event) => {
@@ -339,11 +471,7 @@ document.addEventListener('DOMContentLoaded', () => {
         showToast('Failed to load data. Please try again.');
     });
 
-    const statsCards = document.querySelectorAll('#stats-cards > div');
-    statsCards.forEach((card, index) => {
-        card.style.animationDelay = (index * 0.1) + 's';
-        card.classList.add('fade-in');
-    });
+    countUpStats(document);
 });
 
 // Export functions for global use
