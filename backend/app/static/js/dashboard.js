@@ -48,7 +48,10 @@ function formatNumber(num) {
  * with prefers-reduced-motion.
  */
 function drawInAnimation(points) {
-    if (REDUCED_MOTION || !points) return false;
+    // Not in a hidden tab: Chart.js animates on requestAnimationFrame, which a
+    // hidden tab never runs, so the chart stayed empty until it was shown, and
+    // forever for anything that renders the page without showing it.
+    if (REDUCED_MOTION || !points || document.hidden) return false;
     const total = 900;
     const each = total / points;
     const previousY = (ctx) => ctx.index === 0
@@ -433,7 +436,11 @@ function countUpStats(root) {
         const refresh = shownStatValues.has(key);
         const from = refresh ? shownStatValues.get(key) : 0;
         shownStatValues.set(key, target.value);
-        if (REDUCED_MOTION || from === target.value) return;
+        // A hidden tab runs no animation frames, so a count started there
+        // froze on its first frame: the public dashboard read 0 visitors, or
+        // 0.6 views per visit halfway to 1.0, until someone looked at it, and
+        // a link preview or a crawler never does. Show the number instead.
+        if (REDUCED_MOTION || document.hidden || from === target.value) return;
 
         if (refresh) {
             // A refresh changed it: say so, briefly.
@@ -455,6 +462,9 @@ function countUpStats(root) {
         };
         el.textContent = formatStatValue(from, target.decimals, target.suffix);
         requestAnimationFrame(step);
+        // And if the tab is hidden mid-count, the server's text still lands:
+        // timers run in a hidden tab, animation frames do not.
+        setTimeout(() => { el.textContent = finalText }, duration + 200);
     });
 }
 

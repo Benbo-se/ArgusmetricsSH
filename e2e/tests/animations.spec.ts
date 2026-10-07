@@ -141,3 +141,12 @@ for (const [path, count] of [['/compare/google-analytics', 3], ['/compare/plausi
     await expect(wraps.first()).toHaveClass(/an-js/);
   });
 }
+
+test('a hidden tab shows each scene finished, not its empty first frame', async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(document, 'hidden', { get: () => true });
+    Object.defineProperty(document, 'visibilityState', { get: () => 'hidden' });
+  });
+  await page.goto('/');
+  await expect(page.locator('.an-wrap').first().locator('.as-tile .v').first()).toHaveText('3');
+});

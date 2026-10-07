@@ -131,7 +131,10 @@
       if (go && !running) { running = true; prev = performance.now(); raf = requestAnimationFrame(tick); }
       else if (!go && running) { running = false; cancelAnimationFrame(raf); }
     }
-    render(0);
+    // A tab that is hidden from the start never runs a frame, and a link
+    // preview or a crawler never shows the page at all: both would be left
+    // with the empty first frame. Draw the still frame until the scene runs.
+    render(document.hidden ? (parseFloat(wrap.dataset.still) || loop * .7) : 0);
     document.addEventListener('visibilitychange', sync);
     if ('IntersectionObserver' in window) {
       new IntersectionObserver(function (es) { visible = es[0].isIntersecting; sync(); }, { threshold: 0.4 }).observe(wrap);
