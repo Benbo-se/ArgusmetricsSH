@@ -74,3 +74,20 @@ test('a refresh that changes a number marks its tile', async ({ page, request })
   await expect(pageviews(page)).toHaveText('5', { timeout: 15000 });
   await expect(page.locator('.stat-tile', { hasText: 'Total Pageviews' })).toHaveClass(/stat-bump/);
 });
+
+test('a hidden tab shows the real numbers, not a count frozen on its first frame', async ({ page, request }) => {
+  // A hidden tab runs no animation frames. The public dashboard, opened in a
+  // background tab, read 0 visitors until someone looked at it.
+  const { sessionToken, websiteId, trackingCode } = await createUserWithWebsite(request);
+  await visits(request, trackingCode, 12);
+  await page.addInitScript(() => {
+    Object.defineProperty(document, 'hidden', { get: () => true });
+    Object.defineProperty(document, 'visibilityState', { get: () => 'hidden' });
+  });
+  await watchPageviews(page);
+  await openDashboard(page, sessionToken, websiteId);
+
+  await expect(pageviews(page)).toHaveText('12');
+  const seen: string[] = await page.evaluate(() => (window as any).__seen);
+  expect(seen.filter((v) => v && v !== '12'), seen.join(',')).toEqual([]);
+});
