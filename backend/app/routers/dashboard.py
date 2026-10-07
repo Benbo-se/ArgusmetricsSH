@@ -686,9 +686,18 @@ async def website_dashboard(
     # Add file_downloads to stats dictionary
     stats['file_downloads'] = file_downloads
 
+    # A website that has never recorded a single pageview gets the first-visit
+    # guide instead of a dashboard of zeros. Any pageview at all, not one in
+    # the selected range: a quiet week is not a new website.
+    from app.models.pageview import Pageview
+    never_recorded = analytics_service.db.query(Pageview.id).filter(
+        Pageview.website_id == website_id
+    ).limit(1).first() is None
+
     return templates.TemplateResponse(request, "dashboard/website.html", {
         "current_user": current_user,
         "website": website,
+        "never_recorded": never_recorded,
         "stats": stats,
         "live_visitors": live_visitors,
         "errors_404": errors_404,

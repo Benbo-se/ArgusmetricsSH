@@ -302,6 +302,37 @@ async def _tell_debug_console(
         logger.warning(f"Debug console broadcast failed: {e}")
 
 
+async def _tell_live_dashboards(db, tracking_code: str, path: Optional[str]) -> None:
+    """Tell the website's open dashboards that a pageview was just recorded.
+
+    /ws/live existed, authenticated and access-checked, and nothing ever sent
+    to it: broadcast_pageview had no caller. The first-visit guide on a new
+    website listens here, so the moment a site starts recording is something
+    its owner sees happen.
+
+    The same gate as the debug console: nothing is looked up unless some
+    dashboard is listening, and it never raises.
+    """
+    try:
+        from app.routers.websocket import broadcast_pageview, manager
+
+        if not manager.active_connections:
+            return
+
+        from app.services.website_lookup import resolve_tracking_code
+
+        website = resolve_tracking_code(db, tracking_code)
+        if not website or website.id not in manager.active_connections:
+            return
+
+        await broadcast_pageview(website.id, {
+            "path": path,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        })
+    except Exception as e:  # pragma: no cover - defensive by design
+        logger.warning(f"Live dashboard broadcast failed: {e}")
+
+
 @router.post("/track", response_model=PageviewTrackResponse, status_code=status.HTTP_200_OK, dependencies=[Depends(check_track_rate_limit), Depends(use_tracking_context)])
 async def track_pageview(
     request: Request,
@@ -422,6 +453,8 @@ async def track_pageview(
 
     if not success:
         raise HTTPException(status_code=_failure_status(message), detail=message)
+
+    await _tell_live_dashboards(analytics_service.db, track_request.tracking_code, track_request.path)
 
     return PageviewTrackResponse(success=True, message=message)
 

@@ -47,6 +47,12 @@ export default defineConfig({
       dependencies: ['auth'],
     },
     {
+      // A new website's first-visit guide turns over when a pageview lands.
+      name: 'firstvisit',
+      testMatch: /firstvisit\.spec\.ts/,
+      dependencies: ['auth'],
+    },
+    {
       name: 'goaledit',
       testMatch: /goaledit\.spec\.ts/,
       dependencies: ['auth'],
