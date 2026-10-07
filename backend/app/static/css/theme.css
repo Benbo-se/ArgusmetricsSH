@@ -416,3 +416,13 @@ input::placeholder { color: var(--text-muted) !important; }
 @media (prefers-reduced-motion: reduce) {
   .fv-dots i, .fv-pop, .fv-arrived { animation: none; }
 }
+
+/* A goal row pulsing when that goal converts (liveConversions). */
+@keyframes goal-pulse {
+  0%   { background-color: color-mix(in srgb, #16a34a 22%, transparent); }
+  100% { background-color: transparent; }
+}
+.goal-pulse { animation: goal-pulse 1.5s ease-out; }
+@media (prefers-reduced-motion: reduce) {
+  .goal-pulse { animation: none; background-color: color-mix(in srgb, #16a34a 12%, transparent); }
+}

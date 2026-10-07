@@ -33,6 +33,7 @@
 <div class="lg:pl-64">
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" x-data="websitePage">
     {% if never_recorded %}{% include "dashboard/_first_visit.html" %}{% endif %}
+    <div x-data="liveConversions" data-website-id="{{ website.id }}" hidden></div>
     <!-- Active Filters Bar -->
     <div x-show="hasFilters" class="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
         <div class="flex items-center justify-between">

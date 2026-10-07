@@ -302,19 +302,23 @@ async def _tell_debug_console(
         logger.warning(f"Debug console broadcast failed: {e}")
 
 
-async def _tell_live_dashboards(db, tracking_code: str, path: Optional[str]) -> None:
-    """Tell the website's open dashboards that a pageview was just recorded.
+async def _tell_live_dashboards(
+    db, tracking_code: str, kind: str, path: Optional[str] = None,
+    event_name: Optional[str] = None,
+) -> None:
+    """Tell the website's open dashboards that something was just recorded.
 
-    /ws/live existed, authenticated and access-checked, and nothing ever sent
-    to it: broadcast_pageview had no caller. The first-visit guide on a new
-    website listens here, so the moment a site starts recording is something
-    its owner sees happen.
+    kind is "pageview" or "conversion". /ws/live existed, authenticated and
+    access-checked, and nothing ever sent to it: broadcast_pageview had no
+    caller. The first-visit guide listens for the first pageview, and every
+    dashboard page for conversions, so a goal converting is something its
+    owner sees happen.
 
     The same gate as the debug console: nothing is looked up unless some
     dashboard is listening, and it never raises.
     """
     try:
-        from app.routers.websocket import broadcast_pageview, manager
+        from app.routers.websocket import manager
 
         if not manager.active_connections:
             return
@@ -325,10 +329,21 @@ async def _tell_live_dashboards(db, tracking_code: str, path: Optional[str]) -> 
         if not website or website.id not in manager.active_connections:
             return
 
-        await broadcast_pageview(website.id, {
-            "path": path,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-        })
+        data = {"timestamp": datetime.now(timezone.utc).isoformat()}
+        if kind == "pageview":
+            data["path"] = path
+        else:
+            # The goal's own name, which is what the owner chose to call it.
+            # Only looked up here, with someone listening.
+            from app.models.goal import Goal
+
+            goal = db.query(Goal).filter(
+                Goal.website_id == website.id, Goal.event_name == event_name
+            ).first()
+            data["event_name"] = event_name
+            data["goal_name"] = goal.name if goal else event_name
+
+        await manager.broadcast_to_website({"type": kind, "data": data}, website.id)
     except Exception as e:  # pragma: no cover - defensive by design
         logger.warning(f"Live dashboard broadcast failed: {e}")
 
@@ -454,7 +469,9 @@ async def track_pageview(
     if not success:
         raise HTTPException(status_code=_failure_status(message), detail=message)
 
-    await _tell_live_dashboards(analytics_service.db, track_request.tracking_code, track_request.path)
+    await _tell_live_dashboards(
+        analytics_service.db, track_request.tracking_code, "pageview", path=track_request.path
+    )
 
     return PageviewTrackResponse(success=True, message=message)
 
@@ -678,6 +695,12 @@ async def track_event(
         f"Recorded {' and '.join(recorded)}" if recorded else goal_message,
         {"event_name": event_request.event_name},
     )
+
+    if goal_success:
+        await _tell_live_dashboards(
+            analytics_service.db, event_request.tracking_code, "conversion",
+            event_name=event_request.event_name,
+        )
 
     # Most events have no goal behind them, so "Goal not found" is only worth
     # reporting when it means nothing at all was recorded.

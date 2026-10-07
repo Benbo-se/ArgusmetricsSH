@@ -28,6 +28,7 @@
     <!-- JSON island: |tojson doesn't escape double quotes, so it must never
          sit inside a double-quoted attribute (attribute-breakout XSS). -->
     <script type="application/json" id="goals-data">{{ goals | tojson }}</script>
+    <div x-data="liveConversions" data-website-id="{{ website.id }}" hidden></div>
     <div class="bg-white rounded-lg shadow p-6 mb-8"
          x-data="goalsPage">
 
@@ -56,7 +57,7 @@
                         {# :key is the goal object itself: the CSP build cannot
                            read goal.id, and object identity is a valid key. #}
                         <template x-for="(goal, index) in goals" :key="index">
-                            <tr x-data="goalRow">
+                            <tr x-data="goalRow" :class="rowClass">
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <div class="text-sm font-medium text-gray-900" x-text="rowName"></div>
                                 </td>
