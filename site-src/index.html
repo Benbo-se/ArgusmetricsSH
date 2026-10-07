@@ -323,8 +323,15 @@
                 <p class="text-xl text-gray-600">Real screenshots, running on demo data</p>
             </div>
 
-            <div class="grid md:grid-cols-2 gap-8">
-                <figure>
+            <!-- Widths in proportion to the two screenshots' aspect ratios
+                 (896x625 is 1.43, 1568x652 is 2.40), so both come out exactly
+                 the same height with nothing cropped. Flex rather than grid
+                 columns: flex takes the gap off first and shares out the rest,
+                 so the proportion holds exactly. In two equal columns the wide
+                 dark-mode one was half the height of the other. Stacked on a
+                 phone, where the flex values do nothing. -->
+            <div class="grid gap-8 md:flex md:items-start">
+                <figure style="flex: 143 1 0%">
                     <div class="rounded-lg border border-gray-200 overflow-hidden shadow-lg bg-white">
                         <img src="/static/img/dashboard-funnel.png"
                              alt="A three-step conversion funnel: 40 visitors on the homepage, 24 reaching pricing, 11 reaching checkout, 27.5% overall conversion"
@@ -336,7 +343,7 @@
                     </figcaption>
                 </figure>
 
-                <figure>
+                <figure style="flex: 240 1 0%">
                     <div class="rounded-lg border border-gray-200 overflow-hidden shadow-lg bg-white">
                         <img src="/static/img/dashboard-dark.png"
                              alt="The same analytics dashboard in dark mode"
