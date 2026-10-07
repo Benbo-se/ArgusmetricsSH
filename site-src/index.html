@@ -42,6 +42,7 @@
       ]
     }
     </script>
+<link rel="stylesheet" href="{{ static('css/anim.css') }}">
 {% endblock %}
 {% block content %}
     <!-- Hero Section -->
@@ -123,34 +124,16 @@
                 See your traffic come to life in seconds
             </h2>
 
-            <!-- Dashboard Screenshot with Fake Browser Frame -->
-            <div class="relative bg-white rounded-lg shadow-2xl border border-gray-200 overflow-hidden hero-frame">
-                <!-- Fake Browser Header -->
-                <div class="bg-gray-100 px-4 py-3 flex items-center gap-2 border-b border-gray-200">
-                    <div class="flex gap-2">
-                        <div class="w-3 h-3 rounded-full bg-red-400"></div>
-                        <div class="w-3 h-3 rounded-full bg-yellow-400"></div>
-                        <div class="w-3 h-3 rounded-full bg-green-400"></div>
-                    </div>
-                    <div class="flex-1 text-center">
-                        <div class="inline-block bg-white rounded px-3 py-1 text-xs text-gray-500 border border-gray-200">
-                            argusmetrics.io/dashboard
-                        </div>
-                    </div>
-                </div>
-                <!-- Screenshot -->
-                <img src="/static/img/dashboard-analytics.png"
-                     alt="The Argusmetrics dashboard: pageviews, unique visitors, views per visitor, live visitor count and a 30-day traffic chart"
-                     width="1568" height="652" loading="lazy"
-                     class="w-full">
-            </div>
+            <!-- Scene 1: snippet to first visit. The real dashboard is in
+                 "See it working" further down; this shows how a visit gets there. -->
+            {% include "_anim_snippet.html" %}
 
             <!-- Subtitle with Trust Element -->
             <p class="mt-6 text-lg text-gray-600">
                 Tracks visitors in real-time, without cookies.
             </p>
             <p class="mt-2 text-sm text-gray-500 italic">
-                Actual screenshot of the dashboard, running on demo data
+                An animation of what happens. Real screenshots are further down.
             </p>
         </div>
     </section>
@@ -304,6 +287,17 @@
         </div>
     </section>
 
+    <!-- Scene 3: a goal, from click to count -->
+    <section class="py-20 px-4 sm:px-6 lg:px-8 bg-gray-50 border-t border-gray-100">
+        <div class="max-w-5xl mx-auto">
+            <div class="text-center mb-10">
+                <h2 class="text-4xl font-bold text-gray-900 mb-4">From a click to a conversion</h2>
+                <p class="text-xl text-gray-600">Goals are one line of code, and they count the moment it runs</p>
+            </div>
+            {% include "_anim_goal.html" %}
+        </div>
+    </section>
+
     <!-- See It Section: the feature grid above is all prose, so show two of
          the claims actually working instead of only asserting them. -->
     <section class="py-20 px-4 sm:px-6 lg:px-8 bg-white border-t border-gray-100">
@@ -347,6 +341,10 @@
             <div class="text-center mb-12">
                 <h2 class="text-4xl font-bold text-gray-900 mb-4">Why Switch to Argusmetrics?</h2>
                 <p class="text-xl text-gray-600">Simple, ethical analytics without the complexity</p>
+            </div>
+
+            <div class="mb-12">
+                {% include "_anim_banner.html" %}
             </div>
 
             <div class="bg-white rounded-2xl shadow-xl overflow-x-auto">
@@ -421,6 +419,10 @@
                     Every analytics product says it respects privacy. Here is what that means
                     here, specifically enough that you can go and verify it.
                 </p>
+            </div>
+
+            <div class="max-w-5xl mx-auto mb-12">
+                {% include "_anim_ip.html" %}
             </div>
 
             <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
@@ -627,4 +629,7 @@
 
     <!-- Footer -->
     
+{% endblock %}
+{% block scripts %}
+<script defer src="{{ static('js/anim.js') }}"></script>
 {% endblock %}

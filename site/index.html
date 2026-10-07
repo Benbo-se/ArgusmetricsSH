@@ -65,6 +65,7 @@
       ]
     }
     </script>
+<link rel="stylesheet" href="/static/css/anim.css?v=dbca0e59">
 
 </head>
 <body class="bg-gray-50 text-gray-900 antialiased">
@@ -297,34 +298,66 @@
                 See your traffic come to life in seconds
             </h2>
 
-            <!-- Dashboard Screenshot with Fake Browser Frame -->
-            <div class="relative bg-white rounded-lg shadow-2xl border border-gray-200 overflow-hidden hero-frame">
-                <!-- Fake Browser Header -->
-                <div class="bg-gray-100 px-4 py-3 flex items-center gap-2 border-b border-gray-200">
-                    <div class="flex gap-2">
-                        <div class="w-3 h-3 rounded-full bg-red-400"></div>
-                        <div class="w-3 h-3 rounded-full bg-yellow-400"></div>
-                        <div class="w-3 h-3 rounded-full bg-green-400"></div>
-                    </div>
-                    <div class="flex-1 text-center">
-                        <div class="inline-block bg-white rounded px-3 py-1 text-xs text-gray-500 border border-gray-200">
-                            argusmetrics.io/dashboard
-                        </div>
-                    </div>
-                </div>
-                <!-- Screenshot -->
-                <img src="/static/img/dashboard-analytics.png"
-                     alt="The Argusmetrics dashboard: pageviews, unique visitors, views per visitor, live visitor count and a 30-day traffic chart"
-                     width="1568" height="652" loading="lazy"
-                     class="w-full">
-            </div>
+            <!-- Scene 1: snippet to first visit. The real dashboard is in
+                 "See it working" further down; this shows how a visit gets there. -->
+            <div class="an-wrap" data-loop="16" data-still="12">
+  <div class="an-canvas" role="img" aria-label="Animation: one script tag is pasted into a page. A visit sends four fields, sets no cookie, and appears on the live dashboard.">
+
+    <div class="an-card as-code">
+      <div class="an-head"><span class="an-dots"></span><span class="an-mono">index.html</span></div>
+<pre class="an-mono">&lt;<span class="k">head</span>&gt;
+  &lt;<span class="k">title</span>&gt;Shop&lt;/<span class="k">title</span>&gt;
+<span class="new">  <span data-type="1,.5">&lt;script defer</span>
+    <span data-type="1.5,1.4">src="https://argusmetrics.io/static/tracker.min.js"</span>
+    <span data-type="2.9,.9">data-tracking-code="k3x9q2ab"&gt;&lt;/script&gt;</span></span>&lt;/<span class="k">head</span>&gt;</pre>
+    </div>
+
+    <div class="an-card as-req an-r" data-t="4.4">
+      <div class="an-head"><span class="an-mono">POST /api/v1/analytics/track</span><span class="an-pill an-ok" style="background:#dcfce7;margin-left:auto">200</span></div>
+      <div class="lines an-mono">
+        <div data-t="4.8" class="an-fade">{</div>
+        <div data-t="5.0" class="an-fade">&nbsp;&nbsp;<span class="kk">"tracking_code"</span>: <span class="vv">"k3x9q2ab"</span>,</div>
+        <div data-t="5.2" class="an-fade">&nbsp;&nbsp;<span class="kk">"path"</span>: <span class="vv">"/pricing"</span>,</div>
+        <div data-t="5.4" class="an-fade">&nbsp;&nbsp;<span class="kk">"referrer"</span>: <span class="vv">"https://google.com/"</span>,</div>
+        <div data-t="5.6" class="an-fade">&nbsp;&nbsp;<span class="kk">"screen_width"</span>: <span class="vv">390</span></div>
+        <div data-t="5.6" class="an-fade">}</div>
+      </div>
+      <div class="foot" data-t="6.2"><span>Cookies set: <b>0</b></span><span class="an-muted">Stored in the browser: nothing</span></div>
+    </div>
+
+    <div class="an-card as-dash">
+      <div class="an-head"><span>shop.example</span><span class="an-live" style="margin-left:auto">Live</span></div>
+      <div class="as-tiles">
+        <div class="as-tile"><div class="l">Visitors now</div><div class="v" data-count="6.8,.5,0,1; 10,.9,1,3">3</div></div>
+        <div class="as-tile"><div class="l">Pageviews today</div><div class="v" data-count="6.8,.5,127,128; 10,.9,128,131">131</div></div>
+      </div>
+      <div class="as-chart">
+        <i style="height:38%"></i><i style="height:52%"></i><i style="height:44%"></i><i style="height:61%"></i>
+        <i style="height:57%"></i><i style="height:70%"></i><i style="height:64%"></i><i style="height:78%"></i>
+        <i style="height:72%"></i><i style="height:66%"></i><i style="height:81%"></i>
+        <i class="now" style="height:24%"><span class="grow an-fade" data-t="6.8" style="height:220%"></span><span class="grow an-fade" data-t="10" style="height:330%"></span></i>
+      </div>
+      <div class="as-pages">
+        <div class="h">Top pages</div>
+        <div class="as-row"><span>/</span><b data-count="10.2,.5,88,89">89</b></div>
+        <div class="as-row hot"><span>/pricing</span><b data-count="6.9,.4,41,42; 10,.6,42,43">43</b></div>
+        <div class="as-row"><span>/blog/cookieless</span><b data-count="10.4,.5,17,18">18</b></div>
+      </div>
+    </div>
+
+    <div class="an-cap" data-t=".4,4.3">Paste one script tag into your page</div>
+    <div class="an-cap" data-t="4.5,6.7">A visit sends four fields, and sets no cookie</div>
+    <div class="an-cap" data-t="6.8,15.4">It shows up on your dashboard, live</div>
+  </div>
+</div>
+
 
             <!-- Subtitle with Trust Element -->
             <p class="mt-6 text-lg text-gray-600">
                 Tracks visitors in real-time, without cookies.
             </p>
             <p class="mt-2 text-sm text-gray-500 italic">
-                Actual screenshot of the dashboard, running on demo data
+                An animation of what happens. Real screenshots are further down.
             </p>
         </div>
     </section>
@@ -478,6 +511,66 @@
         </div>
     </section>
 
+    <!-- Scene 3: a goal, from click to count -->
+    <section class="py-20 px-4 sm:px-6 lg:px-8 bg-gray-50 border-t border-gray-100">
+        <div class="max-w-5xl mx-auto">
+            <div class="text-center mb-10">
+                <h2 class="text-4xl font-bold text-gray-900 mb-4">From a click to a conversion</h2>
+                <p class="text-xl text-gray-600">Goals are one line of code, and they count the moment it runs</p>
+            </div>
+            <div class="an-wrap" data-loop="16" data-still="11">
+  <div class="an-canvas" role="img" aria-label="Animation: a visitor clicks Place order. One line of code sends an order_placed event, the server answers that it recorded a goal conversion, and the Order placed goal counts up from 41 to 42 conversions.">
+
+    <div class="an-card ag-shop">
+      <div class="an-head"><span class="an-dots"></span><span>shop.example/checkout</span></div>
+      <div class="body">
+        <h4 class="an-hide-m">Your order</h4>
+        <div class="ag-line"><span>Oat latte × 2</span><span>89 kr</span></div>
+        <div class="ag-line"><span>Cinnamon bun</span><span>42 kr</span></div>
+        <div class="ag-line tot"><span>Total</span><span>131 kr</span></div>
+      </div>
+      <span class="an-btn ag-order">Place order</span>
+      <div class="ag-thanks an-fade" data-t="4.2,15.2"><div><div class="chk"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M5 13l4 4L19 7"/></svg></div><b>Thank you, order placed</b></div></div>
+    </div>
+
+    <div class="an-card ag-code an-mono">&lt;<span class="k">button</span>
+  <span data-type=".8,1.6">onclick="argus.trackEvent('order_placed')"</span>&gt;
+  Place order
+&lt;/<span class="k">button</span>&gt;</div>
+
+    <div class="an-card ag-dbg">
+      <div class="an-head"><span class="an-mono">POST /api/v1/analytics/track-event</span><span class="an-pill an-ok an-fade" style="background:#14532d;color:#86efac;margin-left:auto" data-t="5.4">200</span></div>
+      <div class="lines an-mono">
+        <div data-t="4.5" class="an-fade">{ <span class="ev">"tracking_code"</span>: "k3x9q2ab",</div>
+        <div data-t="4.7" class="an-fade">&nbsp;&nbsp;<span class="ev">"event_name"</span>: "order_placed" }</div>
+        <div data-t="5.4" class="an-fade"><span class="t">←</span>{ "success": true,</div>
+        <div data-t="5.6" class="an-fade">&nbsp;&nbsp;"message": <span class="ok">"Recorded goal conversion"</span> }</div>
+      </div>
+    </div>
+
+    <div class="an-card ag-goals">
+      <div class="an-head"><span>Goals</span><span class="an-muted" style="margin-left:auto;font-weight:500">Last 30 days</span></div>
+      <table>
+        <tr><th>Goal</th><th class="an-hide-m">Event</th><th style="text-align:right">Conversions</th><th style="text-align:right">Rate</th></tr>
+        <tr class="hot"><td><b>Order placed</b></td><td class="an-mono an-hide-m">order_placed</td>
+          <td class="num" data-count="6.2,.6,41,42">42</td>
+          <td class="num"><span class="ag-swap"><span data-t="0,6.6" class="an-fade">3.1%</span><span data-t="6.6" class="an-fade">3.2%</span></span></td></tr>
+        <tr><td>Newsletter signup</td><td class="an-mono an-hide-m">newsletter_signup</td><td class="num">17</td><td class="num">1.3%</td></tr>
+      </table>
+    </div>
+
+    <div class="an-cursor" data-path="0:300,500; 3.2:239,302c; 6:239,302; 7.2:700,330; 15.2:700,330; 15.8:300,500"
+         data-path-m="0:260,620; 3.2:260,193c; 6:260,193; 7.2:400,540; 15.2:400,540; 15.8:260,620"><svg viewBox="0 0 24 24"><path d="M4 2l16 9-7 2-3 7z" fill="#fff" stroke="#111827" stroke-width="1.6" stroke-linejoin="round"/></svg></div>
+
+    <div class="an-cap" data-t=".4,4.1">One line of code on the button</div>
+    <div class="an-cap" data-t="4.3,6.1">Two fields go out with the click</div>
+    <div class="an-cap" data-t="6.2,15.3">And counts toward the goal straight away</div>
+  </div>
+</div>
+
+        </div>
+    </section>
+
     <!-- See It Section: the feature grid above is all prose, so show two of
          the claims actually working instead of only asserting them. -->
     <section class="py-20 px-4 sm:px-6 lg:px-8 bg-white border-t border-gray-100">
@@ -521,6 +614,53 @@
             <div class="text-center mb-12">
                 <h2 class="text-4xl font-bold text-gray-900 mb-4">Why Switch to Argusmetrics?</h2>
                 <p class="text-xl text-gray-600">Simple, ethical analytics without the complexity</p>
+            </div>
+
+            <div class="mb-12">
+                <div class="an-wrap" data-loop="14" data-still="9">
+  <div class="an-canvas" role="img" aria-label="Animation: the same page twice. With Google Analytics a cookie banner slides up and has to be answered, because it sets the _ga cookies. With Argusmetrics no banner appears, the visit is counted, and nothing is stored on the device.">
+
+    <div class="an-card ab-side ab-l">
+      <div class="an-head"><span class="an-dots"></span><span>shop.example</span></div>
+      <span class="ab-tag">With Google Analytics</span>
+      <div class="ab-page">
+        <div class="hero"></div>
+        <span class="an-bar" style="width:72%"></span><span class="an-bar" style="width:88%"></span>
+        <span class="an-bar" style="width:64%"></span><span class="an-bar an-hide-m" style="width:80%"></span>
+      </div>
+      <div class="ab-banner" data-t="1.4,4">
+        <b>We value your privacy</b><br>
+        <span class="an-muted">We use cookies to analyse our traffic. You can accept or reject them.</span>
+        <div class="btns"><span class="rej">Reject all</span><span class="acc">Accept all</span></div>
+      </div>
+      <div class="ab-res" data-t="4.4">
+        <b>The visitor had to answer first</b>
+        <div class="ab-cookies">Its cookies: <code>_ga</code><code>_ga_&lt;ID&gt;</code></div>
+      </div>
+    </div>
+
+    <div class="an-card ab-side ab-r">
+      <div class="an-head"><span class="an-dots"></span><span>shop.example</span></div>
+      <span class="ab-tag">With Argusmetrics</span>
+      <div class="ab-page">
+        <div class="hero"></div>
+        <span class="an-bar" style="width:72%"></span><span class="an-bar" style="width:88%"></span>
+        <span class="an-bar" style="width:64%"></span><span class="an-bar an-hide-m" style="width:80%"></span>
+      </div>
+      <div class="ab-res" data-t="2">
+        <b>No banner, and the visit is counted</b>
+        <div class="ab-cookies">Cookies: <b style="display:inline">0</b> · Stored on the device: nothing</div>
+      </div>
+    </div>
+
+    <div class="an-cursor" data-path="0:240,520; 3.2:132,398c; 6:132,398; 7:240,520"
+         data-path-m="0:260,640; 3.2:130,250c; 6:130,250; 7:260,640"><svg viewBox="0 0 24 24"><path d="M4 2l16 9-7 2-3 7z" fill="#fff" stroke="#111827" stroke-width="1.6" stroke-linejoin="round"/></svg></div>
+
+    <div class="an-cap" data-t=".4,4.2">Cookies mean asking first</div>
+    <div class="an-cap" data-t="4.4,13.4">No cookies, nothing to ask about</div>
+  </div>
+</div>
+
             </div>
 
             <div class="bg-white rounded-2xl shadow-xl overflow-x-auto">
@@ -595,6 +735,68 @@
                     Every analytics product says it respects privacy. Here is what that means
                     here, specifically enough that you can go and verify it.
                 </p>
+            </div>
+
+            <div class="max-w-5xl mx-auto mb-12">
+                <div class="an-wrap" data-loop="19" data-still="13.5">
+  <div class="an-canvas" role="img" aria-label="Animation: a visitor's IP address 81.224.17.42 is used to look up the country on the server, truncated to 81.224.17.0, hashed together with a salt that changes daily, and discarded. Only the hash is stored, and the next day the same visitor gets a different hash.">
+
+    <div class="an-card ai-in">
+      <div><div class="an-muted" style="font-size:11.5px;font-weight:600;text-transform:uppercase;letter-spacing:.03em">A visit arrives from</div>
+        <div class="ip an-mono">81.224.17.42</div></div>
+      <div class="ua an-mono an-muted an-hide-m">Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X)<br>AppleWebKit/605.1.15 Version/26.6 Mobile Safari · shop.example</div>
+      <div class="ua an-mono an-muted an-show-m">iPhone, Mobile Safari · shop.example</div>
+    </div>
+
+    <div class="an-card ai-stage ai-s1 an-pop" data-t="1.4">
+      <div class="n">1</div><h5>Country, looked up on this server</h5>
+      <div class="big">SE</div>
+      <div class="note">From a table built from the five regional internet registries. No lookup service is called.</div>
+    </div>
+    <div class="ai-arrow ai-a1" data-t="3.6">→</div>
+
+    <div class="an-card ai-stage ai-s2 an-pop" data-t="3.8">
+      <div class="n">2</div><h5>Truncated to its network</h5>
+      <div class="big an-mono">81.224.17.<span class="ai-strike">42</span></div>
+      <div class="big an-mono" data-t="5" style="color:#1d4ed8">81.224.17.0</div>
+      <div class="note">The last part goes. IPv6 keeps only the first /48. The full address is never written anywhere.</div>
+    </div>
+    <div class="ai-arrow ai-a2" data-t="6.2">→</div>
+
+    <div class="an-card ai-stage ai-s3 an-pop" data-t="6.4">
+      <div class="n">3</div><h5>Hashed with today's salt</h5>
+      <div class="ai-in-hash an-mono">
+        <div data-t="6.8" class="an-fade">2026-10-07 + secret</div>
+        <div data-t="7.1" class="an-fade">shop.example</div>
+        <div data-t="7.4" class="an-fade">81.224.17.0</div>
+        <div data-t="7.7" class="an-fade">Mozilla/5.0 (iPhone…</div>
+      </div>
+      <div class="ai-hash an-mono"><span data-type="8.3,1.2">sha256 → 9f3c2a71…d84be1a7</span></div>
+    </div>
+    <div class="ai-arrow ai-a3" data-t="9.8">→</div>
+
+    <div class="an-card ai-stage ai-s4 an-pop" data-t="10">
+      <div class="n">4</div><h5>What is stored</h5>
+      <div class="ai-row an-mono">
+        <div><span>visitor</span><span>9f3c…e1a7</span></div>
+        <div><span>path</span><span>/pricing</span></div>
+        <div><span>country</span><span>SE</span></div>
+        <div><span>device</span><span>mobile</span></div>
+        <div data-t="10.8" class="an-fade"><span>ip</span><span class="nope">not stored</span></div>
+      </div>
+    </div>
+
+    <div class="an-card ai-night" data-t="13">
+      <div class="clock an-mono">00:00 UTC</div>
+      <div>The salt changes at midnight UTC. Tomorrow the same visitor is <span class="h an-mono">b72d0e9f…5a3c04c9</span><span class="an-hide-m">, and nothing links it to today's.</span></div>
+    </div>
+
+    <div class="an-cap" data-t=".4,6.2">The address is only ever held in memory</div>
+    <div class="an-cap" data-t="6.4,12.8">Only a hash is kept, never the address</div>
+    <div class="an-cap" data-t="13,18.4">A day later, it cannot even be matched</div>
+  </div>
+</div>
+
             </div>
 
             <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
@@ -862,6 +1064,8 @@
             </div>
         </div>
     </footer>
+
+<script defer src="/static/js/anim.js?v=e110c27b"></script>
 
 </body>
 </html>

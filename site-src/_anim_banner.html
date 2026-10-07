@@ -1,0 +1,47 @@
+{#- Scene 4: the same page with a cookie-based tool and with this one. The
+    claim about the left side is only what is true of it: Google Analytics 4
+    sets the _ga and _ga_<ID> cookies, and cookies like those are what the
+    consent banner asks about. -#}
+<div class="an-wrap" data-loop="14" data-still="9">
+  <div class="an-canvas" role="img" aria-label="Animation: the same page twice. With Google Analytics a cookie banner slides up and has to be answered, because it sets the _ga cookies. With Argusmetrics no banner appears, the visit is counted, and nothing is stored on the device.">
+
+    <div class="an-card ab-side ab-l">
+      <div class="an-head"><span class="an-dots"></span><span>shop.example</span></div>
+      <span class="ab-tag">With Google Analytics</span>
+      <div class="ab-page">
+        <div class="hero"></div>
+        <span class="an-bar" style="width:72%"></span><span class="an-bar" style="width:88%"></span>
+        <span class="an-bar" style="width:64%"></span><span class="an-bar an-hide-m" style="width:80%"></span>
+      </div>
+      <div class="ab-banner" data-t="1.4,4">
+        <b>We value your privacy</b><br>
+        <span class="an-muted">We use cookies to analyse our traffic. You can accept or reject them.</span>
+        <div class="btns"><span class="rej">Reject all</span><span class="acc">Accept all</span></div>
+      </div>
+      <div class="ab-res" data-t="4.4">
+        <b>The visitor had to answer first</b>
+        <div class="ab-cookies">Its cookies: <code>_ga</code><code>_ga_&lt;ID&gt;</code></div>
+      </div>
+    </div>
+
+    <div class="an-card ab-side ab-r">
+      <div class="an-head"><span class="an-dots"></span><span>shop.example</span></div>
+      <span class="ab-tag">With Argusmetrics</span>
+      <div class="ab-page">
+        <div class="hero"></div>
+        <span class="an-bar" style="width:72%"></span><span class="an-bar" style="width:88%"></span>
+        <span class="an-bar" style="width:64%"></span><span class="an-bar an-hide-m" style="width:80%"></span>
+      </div>
+      <div class="ab-res" data-t="2">
+        <b>No banner, and the visit is counted</b>
+        <div class="ab-cookies">Cookies: <b style="display:inline">0</b> · Stored on the device: nothing</div>
+      </div>
+    </div>
+
+    <div class="an-cursor" data-path="0:240,520; 3.2:132,398c; 6:132,398; 7:240,520"
+         data-path-m="0:260,640; 3.2:130,250c; 6:130,250; 7:260,640"><svg viewBox="0 0 24 24"><path d="M4 2l16 9-7 2-3 7z" fill="#fff" stroke="#111827" stroke-width="1.6" stroke-linejoin="round"/></svg></div>
+
+    <div class="an-cap" data-t=".4,4.2">Cookies mean asking first</div>
+    <div class="an-cap" data-t="4.4,13.4">No cookies, nothing to ask about</div>
+  </div>
+</div>

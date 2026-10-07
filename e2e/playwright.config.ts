@@ -98,6 +98,14 @@ export default defineConfig({
       use: { baseURL: SITE_URL },
     },
     {
+      // The four scenes on the marketing site: that they play, that they
+      // hold still for prefers-reduced-motion, and that they switch to the
+      // phone layout.
+      name: 'animations',
+      testMatch: /animations\.spec\.ts/,
+      use: { baseURL: SITE_URL },
+    },
+    {
       name: 'public-dashboard',
       testMatch: /public-dashboard\.spec\.ts/,
     },
