@@ -426,3 +426,11 @@ input::placeholder { color: var(--text-muted) !important; }
 @media (prefers-reduced-motion: reduce) {
   .goal-pulse { animation: none; background-color: color-mix(in srgb, #16a34a 12%, transparent); }
 }
+
+/* A headline number that a refresh just changed (dashboard.js, countUpStats). */
+@keyframes stat-bump {
+  0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 45%, transparent); }
+  100% { box-shadow: 0 0 0 10px color-mix(in srgb, var(--accent) 0%, transparent); }
+}
+.stat-bump { animation: stat-bump .9s ease-out; }
+@media (prefers-reduced-motion: reduce) { .stat-bump { animation: none; } }
