@@ -501,6 +501,21 @@ document.addEventListener('alpine:init', () => {
      * argument and cannot appear in an attribute.
      */
     Alpine.data('goalRow', () => ({
+        // True for a moment after this goal converts (see liveConversions).
+        justConverted: false,
+
+        init() {
+            window.addEventListener('goal-converted', (event) => {
+                if (!event.detail || event.detail.eventName !== this.goal.event_name) return
+                this.justConverted = false
+                // A frame apart, so a second conversion restarts the pulse.
+                requestAnimationFrame(() => { this.justConverted = true })
+                setTimeout(() => { this.justConverted = false }, 1600)
+            })
+        },
+
+        get rowClass() { return this.justConverted ? 'goal-pulse' : '' },
+
         // Prefixed, and that prefix is the whole point.
         //
         // These used to be called name and eventName, which are also the data
@@ -954,6 +969,44 @@ document.addEventListener('alpine:init', () => {
         get arrivedNumClass() { return this.arrived ? 'fv-done fv-pop' : '' },
 
         openDashboard() { window.location.reload() },
+    }))
+
+    /**
+     * Conversions as they happen, on any page that includes it.
+     *
+     * Listens on /ws/live for "conversion" messages, which /track-event sends
+     * when an event matches a goal, and announces each one as a toast. It also
+     * fires a window event, goal-converted, that the goals table uses to make
+     * the matching row pulse. No markup of its own.
+     */
+    Alpine.data('liveConversions', () => ({
+        ws: null,
+        closed: false,
+
+        init() {
+            this.connect()
+            window.addEventListener('beforeunload', () => { this.closed = true })
+        },
+
+        connect() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+            const id = this.$el.dataset.websiteId
+            this.ws = new WebSocket(`${protocol}//${window.location.host}/ws/live/${id}`)
+            this.ws.onmessage = (event) => {
+                const message = JSON.parse(event.data)
+                if (message.type !== 'conversion' || !message.data) return
+                const name = message.data.goal_name || message.data.event_name
+                window.dispatchEvent(new CustomEvent('toast', {
+                    detail: { message: `🎯 ${name} just converted` },
+                }))
+                window.dispatchEvent(new CustomEvent('goal-converted', {
+                    detail: { eventName: message.data.event_name },
+                }))
+            }
+            this.ws.onclose = () => {
+                if (!this.closed) setTimeout(() => this.connect(), 5000)
+            }
+        },
     }))
 
     Alpine.data('copyButton', () => ({

@@ -47,9 +47,10 @@ export default defineConfig({
       dependencies: ['auth'],
     },
     {
-      // A new website's first-visit guide turns over when a pageview lands.
+      // /ws/live on the dashboard: the first-visit guide turning over when a
+      // pageview lands, and conversions announced as they happen.
       name: 'firstvisit',
-      testMatch: /firstvisit\.spec\.ts/,
+      testMatch: /(firstvisit|liveconversions)\.spec\.ts/,
       dependencies: ['auth'],
     },
     {
