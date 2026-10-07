@@ -74,7 +74,15 @@ KNOWN_BOTS = [
     'selenium', 'puppeteer', 'playwright', 'curl', 'wget',
     'python-requests', 'java', 'go-http-client', 'axios',
     'ahrefsbot', 'semrushbot', 'mj12bot', 'dotbot', 'rogerbot',
-    'screaming frog', 'sitebulb', 'petalbot', 'applebot'
+    'screaming frog', 'sitebulb', 'petalbot', 'applebot',
+    # Crawlers that run JavaScript, named rather than left to the generic
+    # words above. Meta's meta-externalagent sent about 175,000 pageviews to
+    # one instance in nine days of September 2026 and was only refused
+    # because its user agent links to a page with "crawler" in the URL (#103).
+    'meta-externalagent', 'meta-externalfetcher', 'gptbot', 'chatgpt-user',
+    'oai-searchbot', 'claudebot', 'claude-web', 'anthropic-ai', 'perplexitybot',
+    'bytespider', 'amazonbot', 'ccbot', 'diffbot', 'dataforseobot', 'yisouspider',
+    'google-extended', 'googleother', 'lighthouse',
 ]
 
 
@@ -89,6 +97,26 @@ def is_bot_user_agent(user_agent: str) -> bool:
 
     ua_lower = user_agent.lower()
     return any(bot in ua_lower for bot in KNOWN_BOTS)
+
+
+def bot_reason(user_agent: str) -> Optional[str]:
+    """Why this user agent is a bot, or None.
+
+    One check for every tracking endpoint. Pageviews and ecommerce events had
+    their own copies of it; custom events, goals and scroll depth had none, so
+    a crawler that clicked through a page converted goals (#103).
+    """
+    if is_bot_user_agent(user_agent):
+        return "Bot: known pattern"
+    try:
+        from user_agents import parse
+
+        ua = parse(user_agent or "")
+        if ua.is_bot:
+            return f"Bot: {ua.browser.family}"
+    except Exception:
+        pass
+    return None
 
 
 def get_analytics_service(db: Session = Depends(get_db)) -> AnalyticsService:
@@ -586,6 +614,11 @@ async def track_scroll(
         await tell("skipped", "Do Not Track")
         return {"success": True, "message": "Tracking skipped (DNT)"}
 
+    bot = bot_reason(user_agent)
+    if bot:
+        await tell("skipped", bot)
+        return {"success": True, "message": "Tracking skipped (Bot)"}
+
     success, message = analytics_service.complete_scroll_depth(
         tracking_code=body.tracking_code,
         path=body.path,
@@ -658,6 +691,15 @@ async def track_event(
     """
     client_ip = get_client_ip(request)
     user_agent = get_user_agent(request)
+
+    bot = bot_reason(user_agent)
+    if bot:
+        await _tell_debug_console(
+            analytics_service.db, event_request.tracking_code, "event", None,
+            client_ip, user_agent, "skipped", bot,
+            {"event_name": event_request.event_name},
+        )
+        return GoalConversionResponse(success=True, message="Tracking skipped (Bot)")
 
     properties = getattr(event_request, 'properties', None)
     recorded = []

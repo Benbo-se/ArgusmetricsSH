@@ -35,9 +35,17 @@ function collectProblems(page: import('@playwright/test').Page): string[] {
     return problems;
 }
 
+/** A person's user agent. Headless Chromium says "HeadlessChrome", which the
+ *  tracker refuses (#103), so the page presents this one instead. */
+const PERSON_UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0 Safari/537.36';
+
 /** A page that loads the tracker exactly as a customer's site does. */
 async function pageWithTracker(page: import('@playwright/test').Page, baseURL: string,
-                               { trackLocalhost = true, doNotTrack = false } = {}) {
+                               { trackLocalhost = true, doNotTrack = false, asPerson = true, userAgent = '' } = {}) {
+    // Playwright's browser reports navigator.webdriver and a HeadlessChrome
+    // user agent, and the tracker now refuses both (#103). The page acts as a
+    // person unless a test asks otherwise, so the DNT and localhost tests
+    // below are refused for their own reason and not for this one.
     // The endpoints are stubbed: this is about whether the script runs, not
     // about what it sends, and a real request would be refused for an
     // unverified domain anyway.
@@ -53,6 +61,8 @@ async function pageWithTracker(page: import('@playwright/test').Page, baseURL: s
             <a href="https://example.com/elsewhere">An outbound link</a>
             <a href="/handbook.pdf" download>A download</a>
             ${doNotTrack ? `<script>Object.defineProperty(navigator, 'doNotTrack', { get: () => '1' });</script>` : ''}
+            ${asPerson ? `<script>Object.defineProperty(navigator, 'webdriver', { get: () => false });</script>` : ''}
+            <script>Object.defineProperty(navigator, 'userAgent', { get: () => ${JSON.stringify(userAgent || PERSON_UA)} });</script>
             <script src="${baseURL}/static/tracker.min.js"
                     data-tracking-code="console-check"
                     ${trackLocalhost ? 'data-track-localhost="true"' : ''}></script>
@@ -175,5 +185,32 @@ test.describe('The tracker is silent in the console', () => {
         await scrollAndLeave(page);
 
         expect(sent, `sent from a local page:\n${sent.join('\n')}`).toEqual([]);
+    });
+
+    /**
+     * #103. Crawlers that run JavaScript ran the tracker: Meta's alone sent
+     * about 175,000 pageviews to one instance in nine days. Each test goes
+     * through the flow that sends a pageview and a scroll report for a person.
+     */
+    test('an automated browser sends nothing', async ({ page, baseURL }) => {
+        const sent: string[] = [];
+        page.on('request', r => { if (r.url().includes('/api/v1/analytics/')) sent.push(r.url()); });
+
+        await pageWithTracker(page, baseURL!, { asPerson: false });
+        await scrollAndLeave(page);
+
+        expect(sent, sent.join('\n')).toEqual([]);
+    });
+
+    test('a crawler user agent sends nothing', async ({ page, baseURL }) => {
+        const sent: string[] = [];
+        page.on('request', r => { if (r.url().includes('/api/v1/analytics/')) sent.push(r.url()); });
+
+        await pageWithTracker(page, baseURL!, {
+            userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0 Safari/537.36 (compatible; meta-externalagent/1.1)',
+        });
+        await scrollAndLeave(page);
+
+        expect(sent, sent.join('\n')).toEqual([]);
     });
 });
