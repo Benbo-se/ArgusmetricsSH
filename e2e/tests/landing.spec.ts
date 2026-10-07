@@ -76,3 +76,19 @@ test.describe('SEO', () => {
     expect(body).toContain('urlset');
   });
 });
+
+test.describe('WordPress plugin downloads', () => {
+  test('both links in the docs download an archive', async ({ page, request }) => {
+    // The links named a version whose archives were zipped by hand and then
+    // fell behind the source (#110). build_plugin.py --check guards the
+    // contents; this guards that the docs point at what was built.
+    await page.goto('/docs/');
+    const links = page.locator('a[href^="/static/downloads/argus-metrics-"]');
+    await expect(links).toHaveCount(2);
+    for (const href of await links.evaluateAll((as) => as.map((a) => a.getAttribute('href')!))) {
+      const response = await request.get(href);
+      expect(response.status(), href).toBe(200);
+      expect((await response.body()).length, href).toBeGreaterThan(5000);
+    }
+  });
+});
