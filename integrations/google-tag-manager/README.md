@@ -2,6 +2,19 @@
 
 Add Argusmetrics privacy-first analytics to your website using Google Tag Manager.
 
+> **GTM itself is a Google service.** Argusmetrics stays cookieless when it is
+> loaded through Google Tag Manager: it sets no cookie, stores nothing on the
+> device, and sends its data only to your own instance, never to Google. But
+> GTM's own script is fetched from `googletagmanager.com`, so every visitor's
+> browser contacts Google, with their IP address and the page they are on,
+> whatever GTM then loads. Whether that needs consent is a legal question
+> about GTM, not about Argusmetrics, and several European data protection
+> authorities have questioned transfers like it.
+>
+> This integration is for sites that already use GTM. If you are using
+> Argusmetrics to keep Google out of your visitors' browsers, put the
+> snippet straight into your site's `<head>` instead.
+
 ## Table of Contents
 
 - [Method 1: Custom Template (Recommended)](#method-1-custom-template-recommended)
