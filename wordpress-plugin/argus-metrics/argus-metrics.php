@@ -18,7 +18,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('ARGUS_METRICS_VERSION', '1.1.0');
+define('ARGUS_METRICS_VERSION', '1.2.0');
 define('ARGUS_METRICS_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('ARGUS_METRICS_PLUGIN_URL', plugin_dir_url(__FILE__));
 

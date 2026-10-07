@@ -87,6 +87,13 @@ jobs:
           # stämmer med källan, annars är vi tillbaka i tolv handredigerade
           # sidor som driver isär.
           python scripts/build_site.py --check
+      - name: WordPress-pluginets nedladdningar är byggda från källan
+        run: |
+          # Arkiven zippades för hand en gång och delade sedan ut 1.1.0, med
+          # en hostad adress som inte finns, långt efter att källan gått till
+          # 1.2.0 (#110). De byggs reproducerbart, så ombyggnaden ska ge
+          # exakt samma bytes; annars är de inte källan.
+          python scripts/build_plugin.py --check
       - name: Migrera (alembic upgrade head mot tom databas = fresh-install-testet)
         working-directory: backend
         run: alembic upgrade head

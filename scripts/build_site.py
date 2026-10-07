@@ -76,6 +76,10 @@ def render_all() -> dict:
         keep_trailing_newline=True,
     )
     env.globals["static"] = static_url
+    # The download links follow the plugin's own version, which
+    # build_plugin.py has already checked agrees everywhere it is written.
+    import build_plugin
+    env.globals["plugin_version"] = build_plugin.plugin_version()
     # The marketing site counts itself with Argusmetrics, as website 15 on the
     # production instance. The tracker skips localhost on its own, so a local
     # build or the e2e server sends nothing.
