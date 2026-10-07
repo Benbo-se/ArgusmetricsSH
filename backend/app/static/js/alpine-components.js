@@ -1490,13 +1490,30 @@ document.addEventListener('alpine:init', () => {
     /** One row of the debug feed. */
     Alpine.data('debugEventRow', () => ({
         get time() { return new Date(this.event.timestamp).toLocaleTimeString() },
-        get eventType() { return this.event.event_type },
+        get eventType() {
+            const name = this.event.metadata && this.event.metadata.event_name
+            return name ? `${this.event.event_type}: ${name}` : this.event.event_type
+        },
+        // What happened to the request. The tracking endpoints send this for
+        // real traffic; test pings from this page say "test".
+        get outcomeLabel() { return this.event.outcome || 'test' },
+        get outcomeClass() {
+            return {
+                recorded: 'bg-green-100 text-green-800',
+                skipped: 'bg-yellow-100 text-yellow-800',
+                refused: 'bg-red-100 text-red-800',
+            }[this.event.outcome] || 'bg-gray-100 text-gray-700'
+        },
+        get outcomeDetail() { return this.event.detail || '' },
         get path() { return this.event.path },
         get ip() {
             return (this.event.metadata && this.event.metadata.ip) || 'N/A'
         },
         get device() {
-            return (this.event.metadata && this.event.metadata.device) || 'N/A'
+            // Test pings carry a device; real traffic carries the browser
+            // family summary, which says the same and more.
+            const m = this.event.metadata || {}
+            return m.device || m.user_agent || 'N/A'
         },
         get isBot() {
             return !!(this.event.validation && this.event.validation.is_bot)

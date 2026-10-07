@@ -40,6 +40,13 @@ export default defineConfig({
       dependencies: ['auth'],
     },
     {
+      // The live debug console: real traffic arrives as a new row with what
+      // happened to it, and the details dialog opens and closes.
+      name: 'debugconsole',
+      testMatch: /debugconsole\.spec\.ts/,
+      dependencies: ['auth'],
+    },
+    {
       name: 'goaledit',
       testMatch: /goaledit\.spec\.ts/,
       dependencies: ['auth'],
