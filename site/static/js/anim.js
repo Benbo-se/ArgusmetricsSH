@@ -138,6 +138,29 @@
     } else { visible = true; sync(); }
   }
 
-  function boot() { [].forEach.call(document.querySelectorAll('.an-wrap'), init); }
+  /*
+   * [data-reveal]: fades and rises into place the first time it scrolls into
+   * view. data-reveal-delay staggers a row of them, in ms. Nothing is hidden
+   * until this has run, and with reduced motion nothing is hidden at all.
+   */
+  function reveal() {
+    var els = document.querySelectorAll('[data-reveal]');
+    if (!els.length || reduced || !('IntersectionObserver' in window)) return;
+    document.documentElement.classList.add('rv-on');
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (!e.isIntersecting) return;
+        var d = parseInt(e.target.getAttribute('data-reveal-delay'), 10) || 0;
+        setTimeout(function () { e.target.classList.add('rv-in'); }, d);
+        io.unobserve(e.target);
+      });
+    }, { threshold: 0.15 });
+    [].forEach.call(els, function (el) { io.observe(el); });
+  }
+
+  function boot() {
+    [].forEach.call(document.querySelectorAll('.an-wrap'), init);
+    reveal();
+  }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })();

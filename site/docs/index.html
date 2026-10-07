@@ -24,7 +24,7 @@
     <link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png">
     <link rel="apple-touch-icon" sizes="180x180" href="/static/img/icon-180.png">
     <link rel="manifest" href="/static/manifest.json">
-    <link rel="stylesheet" href="/static/css/tailwind.min.css?v=56b9bfba">
+    <link rel="stylesheet" href="/static/css/tailwind.min.css?v=6599b93c">
     <link rel="stylesheet" href="/static/css/site.css?v=38a0f0ff">
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -238,18 +238,55 @@
                     <!-- Quick Start -->
                     <div class="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg p-6 mb-8 text-white">
                         <h2 class="text-2xl font-bold mb-3">Quick Start (30 seconds)</h2>
-                        <p class="mb-4 text-blue-100">Copy this code and paste it in your website's <code class="bg-blue-700 px-2 py-1 rounded">&lt;head&gt;</code> section:</p>
-                        <div class="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto">
-                            <pre><code>&lt;script
+                        <p class="mb-4 text-blue-100">Fill in your own details and copy the result into your website's <code class="bg-blue-700 px-2 py-1 rounded">&lt;head&gt;</code> section:</p>
+                        
+                        <div x-data="{
+                                host: '',
+                                code: '',
+                                localhost: false,
+                                exclude: '',
+                                copied: false,
+                                get base() { return (this.host.trim() || 'https://your-argusmetrics-instance.com').replace(/\/+$/, '').replace(/^(?!https?:\/\/)/, 'https://') },
+                                get snippet() {
+                                    let s = '<script\n  defer\n  data-tracking-code=&quot;' + (this.code.trim() || 'YOUR_CODE') + '&quot;';
+                                    if (this.localhost) s += '\n  data-track-localhost=&quot;true&quot;';
+                                    const ex = this.exclude.split(',').map(d => d.trim()).filter(Boolean).join(',');
+                                    if (ex) s += '\n  data-exclude-outbound=&quot;' + ex + '&quot;';
+                                    return s + '\n  src=&quot;' + this.base + '/static/tracker.min.js&quot;\n></script>';
+                                },
+                                copy() { navigator.clipboard.writeText(this.snippet); this.copied = true; setTimeout(() => this.copied = false, 1500) }
+                             }">
+                            <div class="grid sm:grid-cols-2 gap-3 mb-3">
+                                <label class="block text-sm text-blue-100">Your Argusmetrics address
+                                    <input x-model="host" type="text" placeholder="https://stats.example.com"
+                                           class="mt-1 w-full rounded-md px-3 py-2 text-gray-900 text-sm" autocomplete="off">
+                                </label>
+                                <label class="block text-sm text-blue-100">Tracking code, from your dashboard
+                                    <input x-model="code" type="text" placeholder="k3x9q2ab"
+                                           class="mt-1 w-full rounded-md px-3 py-2 text-gray-900 text-sm font-mono" autocomplete="off">
+                                </label>
+                            </div>
+                            <div class="flex flex-wrap items-center gap-x-6 gap-y-2 mb-3 text-sm text-blue-100">
+                                <label class="inline-flex items-center gap-2"><input type="checkbox" x-model="localhost"> Count localhost too, while testing</label>
+                                <label class="inline-flex items-center gap-2 flex-1 min-w-[16rem]">Not outbound:
+                                    <input x-model="exclude" type="text" placeholder="shop.example.com, blog.example.com"
+                                           class="flex-1 rounded-md px-2 py-1 text-gray-900 text-sm" autocomplete="off">
+                                </label>
+                            </div>
+                            <div class="relative bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto">
+                                <button @click="copy" class="absolute top-2 right-2 px-3 py-1 text-xs font-semibold rounded-md bg-blue-600 hover:bg-blue-500 text-white">
+                                    <span x-show="!copied">Copy</span><span x-show="copied" style="display:none">Copied!</span>
+                                </button>
+                                <pre><code x-text="snippet">&lt;script
   defer
   data-tracking-code="YOUR_CODE"
   src="https://your-argusmetrics-instance.com/static/tracker.min.js"
 &gt;&lt;/script&gt;</code></pre>
+                            </div>
                         </div>
                         <p class="mt-4 text-sm text-blue-100">
-                            Replace <code class="bg-blue-700 px-2 py-1 rounded">YOUR_CODE</code> with your tracking code from your dashboard, and
-                            <code class="bg-blue-700 px-2 py-1 rounded">your-argusmetrics-instance.com</code> with the address of your own Argusmetrics server.
-                            This is the same snippet the dashboard gives you, so you can copy it from there instead.
+                            The tracking code is on your website's settings page in the dashboard, which also has
+                            this snippet ready to copy. The address is your own Argusmetrics server.
                         </p>
                         <p class="mt-3 text-sm text-blue-100">
                             The script posts back to the domain it was loaded from, so nothing else is needed in the

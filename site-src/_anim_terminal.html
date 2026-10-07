@@ -1,0 +1,24 @@
+{#- Self-hosting in a terminal: the README's quick start, with the output
+    docker compose actually prints and the shape /health actually answers. -#}
+<div class="an-wrap at-wrap" data-loop="17" data-still="13">
+  <div class="an-canvas" role="img" aria-label="Animation: a terminal clones the repository, copies the example configuration, starts the stack with docker compose, and the health check answers healthy.">
+    <div class="at-term an-mono">
+      <div class="at-bar"><span class="an-dots"></span><span>~/argusmetrics</span></div>
+      <div class="at-body">
+        <div><span class="at-p">$</span> <span data-type=".4,1.6">git clone https://github.com/Benbo-se/ArgusmetricsSH</span></div>
+        <div data-t="2.2" class="an-fade at-out">Cloning into 'ArgusmetricsSH'... done.</div>
+        <div data-t="2.6" class="an-fade"><span class="at-p">$</span> <span data-type="2.7,1">cd ArgusmetricsSH/docker</span></div>
+        <div data-t="3.9" class="an-fade"><span class="at-p">$</span> <span data-type="4,1">cp .env.example .env</span></div>
+        <div data-t="4.8" class="an-fade at-cmt"># then set SECRET_KEY in .env, the one required value</div>
+        <div data-t="5.6" class="an-fade"><span class="at-p">$</span> <span data-type="5.7,1.4">docker compose up -d postgres backend</span></div>
+        <div data-t="7" class="an-fade at-out"><span class="at-ok">✔</span> Container argusmetrics-postgres  <span class="at-ok">Healthy</span></div>
+        <div data-t="7.8" class="an-fade at-out"><span class="at-ok">✔</span> Container argusmetrics-backend   <span class="at-ok">Started</span></div>
+        <div data-t="8.6" class="an-fade"><span class="at-p">$</span> <span data-type="8.7,1.2">curl -s localhost:8020/health</span></div>
+        <div data-t="10.2" class="an-fade at-out">{"status": <span class="at-ok">"healthy"</span>, "database": "connected", "jobs": {…}}</div>
+      </div>
+    </div>
+    <div class="an-cap" data-t=".3,5.5">Clone it and set one secret</div>
+    <div class="an-cap" data-t="5.6,10.1">Start it. It sets up its own database</div>
+    <div class="an-cap" data-t="10.2,16.4">Running, on your server, in a few minutes</div>
+  </div>
+</div>

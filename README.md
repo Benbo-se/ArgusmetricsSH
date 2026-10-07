@@ -1,6 +1,6 @@
 # Argusmetrics
 
-Privacy-first, cookieless web analytics you run yourself. A 2.5KB script on your
+Privacy-first, cookieless web analytics you run yourself. A 2.7KB script on your
 pages gives you real-time dashboards, goals, funnels and ecommerce reporting
 without cookies, without a consent banner, and without sending a visitor's IP
 address anywhere.

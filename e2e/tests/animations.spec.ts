@@ -8,7 +8,7 @@ import { test, expect, Page } from '@playwright/test';
  * the part a seek cannot prove: that the clock actually runs.
  */
 
-const SCENES = 4;
+const SCENES = 6;  // snippet, size, goal, banner, ip, terminal
 
 async function scenes(page: Page) {
   return page.locator('.an-wrap');
@@ -82,3 +82,62 @@ test('a phone gets the phone layout', async ({ page }) => {
     await expect(wraps.nth(i)).toHaveClass(/an-m/);
   }
 });
+
+
+test('the size scene ends on the measured numbers, to scale', async ({ page }) => {
+  await page.goto('/');
+  const size = page.locator('.ax-wrap');
+  await size.evaluate((w: any) => w.__anRender(6));
+  await expect(size.locator('.ax-r1 .ax-num b')).toHaveText('155');
+  await expect(size.locator('.ax-us')).toHaveClass(/an-on/);
+  const widths = await size.evaluate((w) => ['.ax-ga', '.ax-us'].map(
+    (s) => (w.querySelector(s) as HTMLElement).style.width));
+  expect(widths).toEqual(['100%', '1.75%']);
+});
+
+test('the terminal ends healthy, and its copy button has the real commands', async ({ page, context }) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  await page.goto('/');
+  const term = page.locator('.at-wrap');
+  await term.evaluate((w: any) => w.__anRender(13));
+  await expect(term).toContainText('"healthy"');
+  await expect(term).toContainText('SECRET_KEY');
+
+  await page.getByRole('button', { name: /Copy these commands/ }).click();
+  const copied = await page.evaluate(() => navigator.clipboard.readText());
+  expect(copied).toContain('cp .env.example .env');
+  expect(copied).toContain('docker compose up -d postgres backend');
+});
+
+test('feature cards rise into view, and are all there without motion', async ({ page }) => {
+  await page.goto('/');
+  const card = page.locator('#features [data-reveal]').first();
+  await card.scrollIntoViewIfNeeded();
+  await expect(card).toHaveClass(/rv-in/);
+
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/');
+  // Nothing hidden: the page never opted in to hiding them.
+  expect(await page.evaluate(() => document.documentElement.classList.contains('rv-on'))).toBe(false);
+});
+
+test('the docs build a snippet from what you type', async ({ page }) => {
+  await page.goto('/docs/');
+  await page.getByLabel('Your Argusmetrics address').fill('stats.example.com/');
+  await page.getByLabel('Tracking code, from your dashboard').fill('k3x9q2ab');
+  await page.getByLabel('Count localhost too, while testing').check();
+  const code = page.locator('code', { hasText: 'data-tracking-code' }).first();
+  await expect(code).toContainText('data-tracking-code="k3x9q2ab"');
+  await expect(code).toContainText('data-track-localhost="true"');
+  // The scheme is added and the trailing slash dropped.
+  await expect(code).toContainText('src="https://stats.example.com/static/tracker.min.js"');
+});
+
+for (const [path, count] of [['/compare/google-analytics', 3], ['/compare/plausible', 1], ['/compare/matomo', 1]] as const) {
+  test(`${path} carries its scenes and starts them`, async ({ page }) => {
+    await page.goto(path);
+    const wraps = page.locator('.an-wrap');
+    await expect(wraps).toHaveCount(count);
+    await expect(wraps.first()).toHaveClass(/an-js/);
+  });
+}
