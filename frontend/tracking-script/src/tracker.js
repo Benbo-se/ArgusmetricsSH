@@ -17,26 +17,66 @@
   'use strict';
 
   /**
-   * Get tracking code from script tag data attribute
+   * Settings, from the script tag's data attributes or from window.argusConfig.
+   *
+   * The tag is the normal way. window.argusConfig is for Google Tag Manager:
+   * its sandbox loads this script with injectScript, which cannot put
+   * attributes on the tag, so the GTM template passes the same settings as an
+   * object (#109). Before this the template wrote argusConfig and nothing read
+   * it, so a GTM install started without a tracking code and sent nothing.
+   *
+   * The tag is the one carrying data-tracking-code, not simply
+   * document.currentScript: argus.trackEvent called synchronously from some
+   * other script made currentScript that other script, and the code was lost.
    */
-  function getTrackingCode() {
-    const script = document.currentScript || document.querySelector('script[data-tracking-code]');
-    if (!script) {
-      console.error('[Argusmetrics] No script tag found with data-tracking-code attribute');
-      return null;
-    }
-    return script.getAttribute('data-tracking-code');
+  var CONFIG_KEYS = {
+    'data-tracking-code': 'trackingCode',
+    'data-api-endpoint': 'apiEndpoint',
+    'data-exclude-outbound': 'excludeOutbound',
+    'data-track-localhost': 'trackLocalhost'
+  };
+
+  function settingsTag() {
+    var current = document.currentScript;
+    if (current && current.hasAttribute && current.hasAttribute('data-tracking-code')) return current;
+    return document.querySelector('script[data-tracking-code]');
+  }
+
+  function setting(attr) {
+    var tag = settingsTag();
+    if (tag && tag.hasAttribute(attr)) return tag.getAttribute(attr);
+    var config = window.argusConfig;
+    var value = config && typeof config === 'object' ? config[CONFIG_KEYS[attr]] : undefined;
+    return value === undefined || value === null || value === '' ? null : String(value);
+  }
+
+  /** This script's own element, for working out where it was loaded from. */
+  function ownScript() {
+    return settingsTag() || document.querySelector('script[src*="/static/tracker.min.js"]');
   }
 
   /**
-   * Get API endpoint from script tag or use default
+   * Get tracking code
+   */
+  function getTrackingCode() {
+    var code = setting('data-tracking-code');
+    if (!code) {
+      console.error('[Argusmetrics] No tracking code: set data-tracking-code on the script tag');
+    }
+    return code;
+  }
+
+  /**
+   * The pageview endpoint: configured, or worked out from where this script
+   * was loaded, which is the instance.
    */
   function getApiEndpoint() {
-    const script = document.currentScript || document.querySelector('script[data-tracking-code]');
-    if (script && script.hasAttribute('data-api-endpoint')) {
-      return script.getAttribute('data-api-endpoint');
+    var configured = setting('data-api-endpoint');
+    if (configured) {
+      return configured;
     }
 
+    const script = ownScript();
     // Auto-detect API endpoint from script source URL
     if (script && script.src) {
       try {
@@ -104,8 +144,7 @@
    * what you want while testing the tracker itself.
    */
   function isLocalDevelopment() {
-    var script = document.currentScript || document.querySelector('script[data-tracking-code]');
-    if (script && script.getAttribute('data-track-localhost') === 'true') {
+    if (setting('data-track-localhost') === 'true') {
       return false;
     }
 
@@ -273,24 +312,8 @@
       }
     }
 
-    // Get event tracking endpoint
-    const script = document.currentScript || document.querySelector('script[data-tracking-code]');
-    let eventEndpoint = 'http://localhost:8020/api/v1/analytics/track-event';
-
-    if (script && script.hasAttribute('data-api-endpoint')) {
-      const baseEndpoint = script.getAttribute('data-api-endpoint');
-      // Replace /track with /track-event
-      eventEndpoint = baseEndpoint.replace('/track', '/track-event');
-    } else if (script && script.src) {
-      // Auto-detect API endpoint from script source URL
-      try {
-        const scriptUrl = new URL(script.src);
-        const baseUrl = `${scriptUrl.protocol}//${scriptUrl.host}`;
-        eventEndpoint = `${baseUrl}/api/v1/analytics/track-event`;
-      } catch (e) {
-        console.warn('[Argusmetrics] Failed to auto-detect event endpoint from script source');
-      }
-    }
+    // The same instance as pageviews, so derived from the same place.
+    const eventEndpoint = getApiEndpoint().replace(/\/track$/, '/track-event');
 
     const data = {
       tracking_code: trackingCode,
@@ -351,22 +374,7 @@
       return;
     }
 
-    // Build endpoint URL
-    const script = document.currentScript || document.querySelector('script[data-tracking-code]');
-    let ecomEndpoint = 'http://localhost:8020/api/v1/analytics/track-ecommerce';
-
-    if (script && script.hasAttribute('data-api-endpoint')) {
-      const baseEndpoint = script.getAttribute('data-api-endpoint');
-      ecomEndpoint = baseEndpoint.replace('/track', '/track-ecommerce');
-    } else if (script && script.src) {
-      try {
-        const scriptUrl = new URL(script.src);
-        const baseUrl = `${scriptUrl.protocol}//${scriptUrl.host}`;
-        ecomEndpoint = `${baseUrl}/api/v1/analytics/track-ecommerce`;
-      } catch (e) {
-        console.warn('[Argusmetrics] Failed to auto-detect ecommerce endpoint from script source');
-      }
-    }
+    const ecomEndpoint = getApiEndpoint().replace(/\/track$/, '/track-ecommerce');
 
     const utmParams = getUtmParameters();
     const payload = {
@@ -433,12 +441,8 @@
    * Get excluded domains for outbound link tracking
    */
   function getExcludedDomains() {
-    const script = document.currentScript || document.querySelector('script[data-tracking-code]');
-    if (script && script.hasAttribute('data-exclude-outbound')) {
-      const excluded = script.getAttribute('data-exclude-outbound');
-      return excluded.split(',').map(d => d.trim().toLowerCase());
-    }
-    return [];
+    const excluded = setting('data-exclude-outbound');
+    return excluded ? excluded.split(',').map(d => d.trim().toLowerCase()).filter(Boolean) : [];
   }
 
   /**

@@ -24,7 +24,13 @@ The custom template provides the easiest and most maintainable way to add Argusm
 3. Click **New** in the "Tag Templates" section
 4. Click the **⋮** menu (top right) and select **Import**
 5. Upload the `template.tpl` file
-6. Click **Save**
+6. Open the **Permissions** tab, then **Injects scripts**, and replace
+   `https://analytics.example.com/static/tracker.min.js` with your own
+   instance's address, e.g. `https://analytics.your-domain.com/static/tracker.min.js`.
+   GTM only lets a template load scripts from addresses listed here, and the
+   template cannot know yours in advance. Without this the tag fails and logs
+   why in Preview mode.
+7. Click **Save**
 
 ### Step 2: Create a New Tag
 
@@ -32,13 +38,16 @@ The custom template provides the easiest and most maintainable way to add Argusm
 2. Click on **Tag Configuration**
 3. Scroll down and select **Argusmetrics** (under Custom)
 4. Configure the tag:
-   - **Tracking Code**: Your 8-character code from the dashboard
-   - **API Endpoint** (optional): Leave default unless self-hosting
+   - **Tracking Code**: your 8-character code from the website's settings
+   - **Instance URL**: your own Argusmetrics server, e.g.
+     `https://analytics.your-domain.com`. The script and the endpoint both come
+     from there. There is no hosted service, so this is required.
    - **Exclude Outbound Domains** (optional): e.g., `paypal.com, stripe.com`
-   - **Advanced Settings**:
-     - ✅ Track initial pageview (recommended)
-     - ✅ Enable outbound link tracking (recommended)
-     - ✅ Enable scroll depth tracking (recommended)
+
+Pageviews, outbound links, downloads and scroll depth are all on; the tracker
+has no switches for them. The template hands its settings to the tracker in
+`window.argusConfig`, because a script loaded from GTM's sandbox cannot carry
+the `data-` attributes the tracker otherwise reads.
 
 ### Step 3: Set the Trigger
 

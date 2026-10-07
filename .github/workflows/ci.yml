@@ -457,6 +457,13 @@ jobs:
           npx terser src/tracker.js --config-file terser.config.json -o /tmp/tracker.check.js
           cmp /tmp/tracker.check.js ../../backend/app/static/tracker.min.js || { echo "backend/app/static/tracker.min.js ur synk med src — kör 'npm run build' i frontend/tracking-script"; exit 1; }
           cmp /tmp/tracker.check.js ../../site/static/tracker.min.js || { echo "site/static/tracker.min.js ur synk med src — kör 'npm run build'"; exit 1; }
+      - name: GTM-mallen konfigurerar trackern
+        run: |
+          # Mallen laddade en scriptUrl den aldrig deklarerat och skrev en
+          # window.argusConfig som trackern aldrig läste (#109). Kör mallens
+          # sandlådekod med GTM:s API:er stubbade och kräver att skriptet
+          # kommer från instansen och att inställningarna når trackern.
+          node integrations/google-tag-manager/check-template.mjs
 
   # ── 3. Bygg båda images; push till GHCR bara på grön main ────────────────
   # ── 3. Startar det vi faktiskt levererar ──────────────────────────────────
