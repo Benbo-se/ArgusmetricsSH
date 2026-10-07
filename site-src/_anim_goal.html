@@ -1,0 +1,52 @@
+{#- Scene 3: a button click becomes a goal conversion. The request and the
+    answer are what tracker.js sends and what /track-event returns when the
+    event matches a goal. Not the debug console: it only streams pageviews. -#}
+<div class="an-wrap" data-loop="16" data-still="11">
+  <div class="an-canvas" role="img" aria-label="Animation: a visitor clicks Place order. One line of code sends an order_placed event, the server answers that it recorded a goal conversion, and the Order placed goal counts up from 41 to 42 conversions.">
+
+    <div class="an-card ag-shop">
+      <div class="an-head"><span class="an-dots"></span><span>shop.example/checkout</span></div>
+      <div class="body">
+        <h4 class="an-hide-m">Your order</h4>
+        <div class="ag-line"><span>Oat latte × 2</span><span>89 kr</span></div>
+        <div class="ag-line"><span>Cinnamon bun</span><span>42 kr</span></div>
+        <div class="ag-line tot"><span>Total</span><span>131 kr</span></div>
+      </div>
+      <span class="an-btn ag-order">Place order</span>
+      <div class="ag-thanks an-fade" data-t="4.2,15.2"><div><div class="chk"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M5 13l4 4L19 7"/></svg></div><b>Thank you, order placed</b></div></div>
+    </div>
+
+    <div class="an-card ag-code an-mono">&lt;<span class="k">button</span>
+  <span data-type=".8,1.6">onclick="argus.trackEvent('order_placed')"</span>&gt;
+  Place order
+&lt;/<span class="k">button</span>&gt;</div>
+
+    <div class="an-card ag-dbg">
+      <div class="an-head"><span class="an-mono">POST /api/v1/analytics/track-event</span><span class="an-pill an-ok an-fade" style="background:#14532d;color:#86efac;margin-left:auto" data-t="5.4">200</span></div>
+      <div class="lines an-mono">
+        <div data-t="4.5" class="an-fade">{ <span class="ev">"tracking_code"</span>: "k3x9q2ab",</div>
+        <div data-t="4.7" class="an-fade">&nbsp;&nbsp;<span class="ev">"event_name"</span>: "order_placed" }</div>
+        <div data-t="5.4" class="an-fade"><span class="t">←</span>{ "success": true,</div>
+        <div data-t="5.6" class="an-fade">&nbsp;&nbsp;"message": <span class="ok">"Recorded goal conversion"</span> }</div>
+      </div>
+    </div>
+
+    <div class="an-card ag-goals">
+      <div class="an-head"><span>Goals</span><span class="an-muted" style="margin-left:auto;font-weight:500">Last 30 days</span></div>
+      <table>
+        <tr><th>Goal</th><th class="an-hide-m">Event</th><th style="text-align:right">Conversions</th><th style="text-align:right">Rate</th></tr>
+        <tr class="hot"><td><b>Order placed</b></td><td class="an-mono an-hide-m">order_placed</td>
+          <td class="num" data-count="6.2,.6,41,42">42</td>
+          <td class="num"><span class="ag-swap"><span data-t="0,6.6" class="an-fade">3.1%</span><span data-t="6.6" class="an-fade">3.2%</span></span></td></tr>
+        <tr><td>Newsletter signup</td><td class="an-mono an-hide-m">newsletter_signup</td><td class="num">17</td><td class="num">1.3%</td></tr>
+      </table>
+    </div>
+
+    <div class="an-cursor" data-path="0:300,500; 3.2:239,302c; 6:239,302; 7.2:700,330; 15.2:700,330; 15.8:300,500"
+         data-path-m="0:260,620; 3.2:260,193c; 6:260,193; 7.2:400,540; 15.2:400,540; 15.8:260,620"><svg viewBox="0 0 24 24"><path d="M4 2l16 9-7 2-3 7z" fill="#fff" stroke="#111827" stroke-width="1.6" stroke-linejoin="round"/></svg></div>
+
+    <div class="an-cap" data-t=".4,4.1">One line of code on the button</div>
+    <div class="an-cap" data-t="4.3,6.1">Two fields go out with the click</div>
+    <div class="an-cap" data-t="6.2,15.3">And counts toward the goal straight away</div>
+  </div>
+</div>
