@@ -24,14 +24,14 @@
     <link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png">
     <link rel="apple-touch-icon" sizes="180x180" href="/static/img/icon-180.png">
     <link rel="manifest" href="/static/manifest.json">
-    <link rel="stylesheet" href="/static/css/tailwind.min.css?v=4e816389">
+    <link rel="stylesheet" href="/static/css/tailwind.min.css?v=c93b7e04">
     <link rel="stylesheet" href="/static/css/site.css?v=38a0f0ff">
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.5/dist/cdn.min.js"></script>
     <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
-
+<link rel="stylesheet" href="/static/css/anim.css?v=3a0500ec">
 </head>
 <body class="bg-gray-50 text-gray-900 antialiased">
 
@@ -257,7 +257,7 @@
                             <tr class="hover:bg-gray-50 transition-colors">
                                 <td class="px-6 py-4 text-sm text-gray-700">Lightweight script (&lt;3KB gzip)</td>
                                 <td class="px-6 py-4 text-center"><span class="text-green-500 text-lg font-bold">&#10003;</span></td>
-                                <td class="px-6 py-4 text-center"><span class="text-red-400 text-lg font-bold">&#10007;</span><span class="text-xs text-gray-400 block">~45KB+</span></td>
+                                <td class="px-6 py-4 text-center"><span class="text-red-400 text-lg font-bold">&#10007;</span><span class="text-xs text-gray-400 block">~150KB</span></td>
                             </tr>
                             <tr class="hover:bg-gray-50 transition-colors">
                                 <td class="px-6 py-4 text-sm text-gray-700">Simple, intuitive dashboard</td>
@@ -361,6 +361,145 @@
         </section>
 
         <!-- Migration CTA -->
+        <!-- The animations from the front page that bear on this comparison. -->
+        <section class="py-16 bg-gray-50 border-t border-gray-100">
+          <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 class="text-2xl font-bold text-gray-900 mb-6 text-center">What happens to a visitor's address</h2>
+            <div class="an-wrap" data-loop="19" data-still="13.5">
+  <div class="an-canvas" role="img" aria-label="Animation: a visitor's IP address 81.224.17.42 is used to look up the country on the server, truncated to 81.224.17.0, hashed together with a salt that changes daily, and discarded. Only the hash is stored, and the next day the same visitor gets a different hash.">
+
+    <div class="an-card ai-in">
+      <div><div class="an-muted" style="font-size:11.5px;font-weight:600;text-transform:uppercase;letter-spacing:.03em">A visit arrives from</div>
+        <div class="ip an-mono">81.224.17.42</div></div>
+      <div class="ua an-mono an-muted an-hide-m">Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X)<br>AppleWebKit/605.1.15 Version/26.6 Mobile Safari · shop.example</div>
+      <div class="ua an-mono an-muted an-show-m">iPhone, Mobile Safari · shop.example</div>
+    </div>
+
+    <div class="an-card ai-stage ai-s1 an-pop" data-t="1.4">
+      <div class="n">1</div><h5>Country, looked up on this server</h5>
+      <div class="big">SE</div>
+      <div class="note">From a table built from the five regional internet registries. No lookup service is called.</div>
+    </div>
+    <div class="ai-arrow ai-a1" data-t="3.6">→</div>
+
+    <div class="an-card ai-stage ai-s2 an-pop" data-t="3.8">
+      <div class="n">2</div><h5>Truncated to its network</h5>
+      <div class="big an-mono">81.224.17.<span class="ai-strike">42</span></div>
+      <div class="big an-mono" data-t="5" style="color:#1d4ed8">81.224.17.0</div>
+      <div class="note">The last part goes. IPv6 keeps only the first /48. The full address is never written anywhere.</div>
+    </div>
+    <div class="ai-arrow ai-a2" data-t="6.2">→</div>
+
+    <div class="an-card ai-stage ai-s3 an-pop" data-t="6.4">
+      <div class="n">3</div><h5>Hashed with today's salt</h5>
+      <div class="ai-in-hash an-mono">
+        <div data-t="6.8" class="an-fade">2026-10-07 + secret</div>
+        <div data-t="7.1" class="an-fade">shop.example</div>
+        <div data-t="7.4" class="an-fade">81.224.17.0</div>
+        <div data-t="7.7" class="an-fade">Mozilla/5.0 (iPhone…</div>
+      </div>
+      <div class="ai-hash an-mono"><span data-type="8.3,1.2">sha256 → 9f3c2a71…d84be1a7</span></div>
+    </div>
+    <div class="ai-arrow ai-a3" data-t="9.8">→</div>
+
+    <div class="an-card ai-stage ai-s4 an-pop" data-t="10">
+      <div class="n">4</div><h5>What is stored</h5>
+      <div class="ai-row an-mono">
+        <div><span>visitor</span><span>9f3c…e1a7</span></div>
+        <div><span>path</span><span>/pricing</span></div>
+        <div><span>country</span><span>SE</span></div>
+        <div><span>device</span><span>mobile</span></div>
+        <div data-t="10.8" class="an-fade"><span>ip</span><span class="nope">not stored</span></div>
+      </div>
+    </div>
+
+    <div class="an-card ai-night" data-t="13">
+      <div class="clock an-mono">00:00 UTC</div>
+      <div>The salt changes at midnight UTC. Tomorrow the same visitor is <span class="h an-mono">b72d0e9f…5a3c04c9</span><span class="an-hide-m">, and nothing links it to today's.</span></div>
+    </div>
+
+    <div class="an-cap" data-t=".4,6.2">The address is only ever held in memory</div>
+    <div class="an-cap" data-t="6.4,12.8">Only a hash is kept, never the address</div>
+    <div class="an-cap" data-t="13,18.4">A day later, it cannot even be matched</div>
+  </div>
+</div>
+
+            <h2 class="text-2xl font-bold text-gray-900 mb-6 text-center mt-14">The banner Google Analytics needs, and this does not</h2>
+            <div class="an-wrap" data-loop="14" data-still="9">
+  <div class="an-canvas" role="img" aria-label="Animation: the same page twice. With Google Analytics a cookie banner slides up and has to be answered, because it sets the _ga cookies. With Argusmetrics no banner appears, the visit is counted, and nothing is stored on the device.">
+
+    <div class="an-card ab-side ab-l">
+      <div class="an-head"><span class="an-dots"></span><span>shop.example</span></div>
+      <span class="ab-tag">With Google Analytics</span>
+      <div class="ab-page">
+        <div class="hero"></div>
+        <span class="an-bar" style="width:72%"></span><span class="an-bar" style="width:88%"></span>
+        <span class="an-bar" style="width:64%"></span><span class="an-bar an-hide-m" style="width:80%"></span>
+      </div>
+      <div class="ab-banner" data-t="1.4,4">
+        <b>We value your privacy</b><br>
+        <span class="an-muted">We use cookies to analyse our traffic. You can accept or reject them.</span>
+        <div class="btns"><span class="rej">Reject all</span><span class="acc">Accept all</span></div>
+      </div>
+      <div class="ab-res" data-t="4.4">
+        <b>The visitor had to answer first</b>
+        <div class="ab-cookies">Its cookies: <code>_ga</code><code>_ga_&lt;ID&gt;</code></div>
+      </div>
+    </div>
+
+    <div class="an-card ab-side ab-r">
+      <div class="an-head"><span class="an-dots"></span><span>shop.example</span></div>
+      <span class="ab-tag">With Argusmetrics</span>
+      <div class="ab-page">
+        <div class="hero"></div>
+        <span class="an-bar" style="width:72%"></span><span class="an-bar" style="width:88%"></span>
+        <span class="an-bar" style="width:64%"></span><span class="an-bar an-hide-m" style="width:80%"></span>
+      </div>
+      <div class="ab-res" data-t="2">
+        <b>No banner, and the visit is counted</b>
+        <div class="ab-cookies">Cookies: <b style="display:inline">0</b> · Stored on the device: nothing</div>
+      </div>
+    </div>
+
+    <div class="an-cursor" data-path="0:240,520; 3.2:132,398c; 6:132,398; 7:240,520"
+         data-path-m="0:260,640; 3.2:130,250c; 6:130,250; 7:260,640"><svg viewBox="0 0 24 24"><path d="M4 2l16 9-7 2-3 7z" fill="#fff" stroke="#111827" stroke-width="1.6" stroke-linejoin="round"/></svg></div>
+
+    <div class="an-cap" data-t=".4,4.2">Cookies mean asking first</div>
+    <div class="an-cap" data-t="4.4,13.4">No cookies, nothing to ask about</div>
+  </div>
+</div>
+
+            <h2 class="text-2xl font-bold text-gray-900 mb-6 text-center mt-14">What a visitor downloads first</h2>
+            <div class="an-wrap ax-wrap" data-loop="9" data-still="6">
+  <div class="an-canvas" role="img" aria-label="Bar chart, to scale: the Google tag is 155 KB over the wire, Argusmetrics 2.7 KB, Plausible 1.3 KB, gzipped, measured on 7 October 2026.">
+    <div class="ax-title">What a visitor downloads before your analytics runs</div>
+
+    <div class="ax-row ax-r1">
+      <div class="ax-name">Google tag <span class="an-muted">gtag.js</span></div>
+      <div class="ax-track"><div class="ax-bar ax-ga" data-t=".6" style="width:100%"></div></div>
+      <div class="ax-num"><b data-count=".6,2.4,0,155">155</b> KB</div>
+    </div>
+
+    <div class="ax-row ax-r2">
+      <div class="ax-name">Argusmetrics <span class="an-muted">tracker.min.js</span></div>
+      <div class="ax-track"><div class="ax-bar ax-us" data-t="3.2" style="width:1.75%"></div></div>
+      <div class="ax-num"><b>2.7</b> KB</div>
+    </div>
+
+    <div class="ax-row ax-r3">
+      <div class="ax-name">Plausible <span class="an-muted">script.js</span></div>
+      <div class="ax-track"><div class="ax-bar ax-pl" data-t="3.6" style="width:0.83%"></div></div>
+      <div class="ax-num"><b>1.3</b> KB</div>
+    </div>
+
+    <div class="ax-note an-muted">Gzipped, over the wire, measured 7 October 2026. Bars to scale.</div>
+    <div class="an-cap" data-t="4.4,8.6">About 57 times smaller than the Google tag</div>
+  </div>
+</div>
+
+          </div>
+        </section>
+
         <section class="py-20 bg-blue-600">
             <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
                 <h2 class="text-3xl font-bold text-white mb-4">Ready to make the switch?</h2>
@@ -437,6 +576,6 @@
             </div>
         </div>
     </footer>
-
+<script defer src="/static/js/anim.js?v=5a661c13"></script>
 </body>
 </html>
