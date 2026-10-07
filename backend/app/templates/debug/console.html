@@ -86,7 +86,7 @@
                                 Device
                             </th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Bot?
+                                Result
                             </th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Details
@@ -98,13 +98,16 @@
                             <tr>
                                 <td colspan="7" class="px-6 py-12 text-center text-gray-500">
                                     <i class="fas fa-hourglass-half text-4xl mb-4 block"></i>
-                                    <p>Waiting for debug events...</p>
-                                    <p class="text-sm mt-2">Send tracking requests with <code class="bg-gray-100 px-2 py-1 rounded">debug=true</code></p>
+                                    <p>Waiting for traffic...</p>
+                                    <p class="text-sm mt-2">Every request from your site shows up here while this page is open, with whether it was recorded and why not. Or send a test event below.</p>
                                 </td>
                             </tr>
                         </template>
-                        <template x-for="(event, index) in events" :key="index">
-                            <tr class="hover:bg-gray-50" x-data="debugEventRow">
+                        {# Keyed on the event object rather than the index: with the
+                           index, a new event at the top reused every existing
+                           row element, so there was nothing new to animate in. #}
+                        <template x-for="event in events" :key="event">
+                            <tr class="hover:bg-gray-50 dbg-row-in" x-data="debugEventRow">
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" x-text="time"></td>
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800" x-text="eventType"></span>
@@ -112,9 +115,9 @@
                                 <td class="px-6 py-4 text-sm text-gray-900" x-text="path"></td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" x-text="ip"></td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" x-text="device"></td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <span x-show="isBot" class="text-red-600 font-bold">YES</span>
-                                    <span x-show="isNotBot" class="text-green-600">No</span>
+                                <td class="px-6 py-4 text-sm">
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full" :class="outcomeClass" x-text="outcomeLabel"></span>
+                                    <span class="block text-xs text-gray-500 mt-1" x-text="outcomeDetail"></span>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm">
                                     <button @click="showDetails" class="text-blue-600 hover:text-blue-900">
@@ -128,7 +131,11 @@
             </div>
 
             <!-- Event Details Modal -->
-            <div x-show="hasSelection" @click.away="closeDetails" x-cloak
+            {# The backdrop and Escape close it. With @click.away neither did:
+               the backdrop is the root itself, so a click on it was never
+               "away", and there was no Escape handler. The same pattern as
+               the dashboard modals in #123. #}
+            <div x-show="hasSelection" @click.self="closeDetails" @keydown.escape.window="closeDetails" x-cloak
                  class="fixed inset-0 bg-gray-600/50 overflow-y-auto h-full w-full z-50">
                 <div class="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
                     <div class="flex justify-between items-center mb-4">

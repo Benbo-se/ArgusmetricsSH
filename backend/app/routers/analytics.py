@@ -253,6 +253,55 @@ def _enforce_token_scope(current_user: User, website_id: int) -> None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Website not found or access denied")
 
 
+async def _tell_debug_console(
+    db, tracking_code: str, kind: str, path: Optional[str],
+    client_ip: str, user_agent: str, outcome: str, detail: Optional[str] = None,
+    extra: Optional[dict] = None,
+) -> None:
+    """Show one tracking request in the website's live debug console.
+
+    The console used to show only its own test pings: the tracking endpoints
+    never sent it anything, although its documentation said it carried every
+    event. Now every request it can explain goes there, real ones included,
+    with what happened to it: recorded, skipped (Do Not Track, a bot) or
+    refused, and why. "Why does my site record nothing?" is the question the
+    console exists for, and the answer is usually here.
+
+    Costs nothing while nobody is watching: the website is only looked up when
+    some console is open, and the message only goes to that website's own,
+    authenticated connections. The same reductions as the test pings apply:
+    the address truncated, the user agent reduced to a browser family.
+
+    Never raises. Whatever goes wrong here must not cost a visit.
+    """
+    try:
+        from app.routers.websocket import broadcast_debug_event, debug_manager
+
+        if not debug_manager.active_connections:
+            return
+
+        from app.services.website_lookup import resolve_tracking_code
+
+        website = resolve_tracking_code(db, tracking_code)
+        if not website or website.id not in debug_manager.active_connections:
+            return
+
+        await broadcast_debug_event(website.id, {
+            "event_type": kind,
+            "path": path,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "outcome": outcome,
+            "detail": detail,
+            "metadata": {
+                "ip": anonymize_ip(client_ip),
+                "user_agent": summarize_user_agent(user_agent),
+                **(extra or {}),
+            },
+        })
+    except Exception as e:  # pragma: no cover - defensive by design
+        logger.warning(f"Debug console broadcast failed: {e}")
+
+
 @router.post("/track", response_model=PageviewTrackResponse, status_code=status.HTTP_200_OK, dependencies=[Depends(check_track_rate_limit), Depends(use_tracking_context)])
 async def track_pageview(
     request: Request,
@@ -260,14 +309,21 @@ async def track_pageview(
     analytics_service: AnalyticsService = Depends(get_analytics_service)
 ) -> PageviewTrackResponse:
     """Record a pageview from the tracking script (NO authentication required)."""
+    client_ip = get_client_ip(request)
+    user_agent = get_user_agent(request)
+
+    async def tell(outcome, detail=None):
+        await _tell_debug_console(
+            analytics_service.db, track_request.tracking_code, "pageview",
+            track_request.path, client_ip, user_agent, outcome, detail,
+        )
+
     # Check Do Not Track header
     dnt = request.headers.get("DNT") or request.headers.get("dnt")
     if dnt == "1":
         logger.debug("DNT header detected, skipping tracking")
+        await tell("skipped", "Do Not Track")
         return PageviewTrackResponse(success=True, message="Tracking skipped (DNT)")
-
-    client_ip = get_client_ip(request)
-    user_agent = get_user_agent(request)
 
     # Bot filtering - skip tracking for bots/crawlers
     is_bot = False
@@ -279,6 +335,7 @@ async def track_pageview(
         bot_reason = "Known bot pattern"
         logger.debug(f"Bot detected (blacklist): {user_agent[:50]}, skipping tracking")
         if not track_request.debug:
+            await tell("skipped", "Bot: known pattern")
             return PageviewTrackResponse(success=True, message="Tracking skipped (Bot)")
 
     # Method 2: Use user_agents library for advanced detection
@@ -290,6 +347,7 @@ async def track_pageview(
             bot_reason = f"Bot library detection: {ua.browser.family}"
             logger.debug(f"Bot detected (user_agents): {ua.browser.family}, skipping tracking")
             if not track_request.debug:
+                await tell("skipped", f"Bot: {ua.browser.family}")
                 return PageviewTrackResponse(success=True, message="Tracking skipped (Bot)")
     except Exception as e:
         logger.warning(f"Failed to parse User-Agent for bot detection: {e}")
@@ -316,6 +374,8 @@ async def track_pageview(
             "path": track_request.path,
             "referrer": track_request.referrer,
             "timestamp": datetime.now(timezone.utc).isoformat(),
+            "outcome": "test",
+            "detail": "Test event, not saved",
             "metadata": {
                 "ip": anonymize_ip(client_ip),
                 "user_agent": summarize_user_agent(user_agent),
@@ -357,6 +417,8 @@ async def track_pageview(
         scroll_depth=track_request.scroll_depth,
         properties=track_request.properties
     )
+
+    await tell("recorded" if success else "refused", None if success else message)
 
     if not success:
         raise HTTPException(status_code=_failure_status(message), detail=message)
@@ -460,17 +522,29 @@ async def track_scroll(
     # The same refusal as /track. The tracker checks DNT before sending this
     # too, but it did not until #106, and a browser running an old cached
     # copy of the script would still send it.
+    client_ip = get_client_ip(request)
+    user_agent = get_user_agent(request)
+
+    async def tell(outcome, detail=None):
+        await _tell_debug_console(
+            analytics_service.db, body.tracking_code, "scroll", body.path,
+            client_ip, user_agent, outcome, detail, {"depth": body.depth},
+        )
+
     dnt = request.headers.get("DNT") or request.headers.get("dnt")
     if dnt == "1":
+        await tell("skipped", "Do Not Track")
         return {"success": True, "message": "Tracking skipped (DNT)"}
 
     success, message = analytics_service.complete_scroll_depth(
         tracking_code=body.tracking_code,
         path=body.path,
         depth=body.depth,
-        ip_address=get_client_ip(request),
-        user_agent=get_user_agent(request),
+        ip_address=client_ip,
+        user_agent=user_agent,
     )
+
+    await tell("recorded" if success else "refused", f"Depth {body.depth}%" if success else message)
 
     if not success:
         raise HTTPException(status_code=_failure_status(message), detail=message)
@@ -564,6 +638,14 @@ async def track_event(
     if goal_success:
         recorded.append("goal conversion")
 
+    await _tell_debug_console(
+        analytics_service.db, event_request.tracking_code, "event", None,
+        client_ip, user_agent,
+        "recorded" if recorded else "refused",
+        f"Recorded {' and '.join(recorded)}" if recorded else goal_message,
+        {"event_name": event_request.event_name},
+    )
+
     # Most events have no goal behind them, so "Goal not found" is only worth
     # reporting when it means nothing at all was recorded.
     if not recorded:
@@ -580,20 +662,30 @@ async def track_ecommerce(
 ) -> EcommerceEventResponse:
     """Track an e-commerce event (NO authentication required)."""
     user_agent = get_user_agent(request)
+    client_ip = get_client_ip(request)
+
+    async def tell(outcome, detail=None):
+        await _tell_debug_console(
+            db, event_data.tracking_code, "ecommerce", None, client_ip, user_agent,
+            outcome, detail, {"event_name": event_data.event_type,
+             # Decimal, which JSON cannot carry: left as it is, every
+             # ecommerce line would fail to send, silently.
+             "revenue": None if event_data.revenue is None else str(event_data.revenue)},
+        )
 
     # Bot filtering
     if is_bot_user_agent(user_agent):
+        await tell("skipped", "Bot: known pattern")
         return EcommerceEventResponse(success=True, message="Tracking skipped (Bot)")
 
     try:
         from user_agents import parse as ua_parse
         ua = ua_parse(user_agent)
         if ua.is_bot:
+            await tell("skipped", f"Bot: {ua.browser.family}")
             return EcommerceEventResponse(success=True, message="Tracking skipped (Bot)")
     except Exception:
         pass
-
-    client_ip = get_client_ip(request)
 
     ecommerce_service = EcommerceService(db)
     success, message, event_id = ecommerce_service.record_ecommerce_event(
@@ -621,6 +713,8 @@ async def track_ecommerce(
         utm_content=event_data.utm_content,
         utm_term=event_data.utm_term,
     )
+
+    await tell("recorded" if success else "refused", message)
 
     if not success:
         raise HTTPException(status_code=_failure_status(message), detail=message)

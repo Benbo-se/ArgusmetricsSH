@@ -385,3 +385,15 @@ input::placeholder { color: var(--text-muted) !important; }
     background: var(--surface-sunken);
     color: var(--text-primary);
 }
+
+/* A new line in the live debug console: slides in and flashes once, so a
+   request arriving is something you see rather than a row that was not there
+   a moment ago. Plays on insertion only, which is why the x-for there is
+   keyed on the event and not the index. */
+@keyframes dbg-row-in {
+  from { opacity: 0; transform: translateY(-6px); background-color: color-mix(in srgb, var(--accent) 18%, transparent); }
+  60%  { opacity: 1; transform: none; background-color: color-mix(in srgb, var(--accent) 18%, transparent); }
+  to   { background-color: transparent; }
+}
+.dbg-row-in { animation: dbg-row-in 1.2s ease-out; }
+@media (prefers-reduced-motion: reduce) { .dbg-row-in { animation: none; } }
