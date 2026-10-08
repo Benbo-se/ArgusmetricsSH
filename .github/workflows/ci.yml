@@ -431,6 +431,18 @@ jobs:
             echo "$FILE: max-age=$MAXAGE, inte immutable"
           done
 
+          # Säkerhetshuvudena på det nginx själv serverar (#66). De saknades
+          # helt på marknadssajten och de statiska filerna; mäts här i stället
+          # för att antas. Startsidan, en statisk fil med egen Cache-Control
+          # (som inte ärver huvudena utan upprepar dem) och 404-sidan.
+          for P in / /static/tracker.min.js /static/css/site.css /finns-inte; do
+            H=$(curl -sI -H 'Host: argusmetrics.io' "http://127.0.0.1:18099$P" | tr -d '\r')
+            for WANT in "Strict-Transport-Security: max-age=" "X-Content-Type-Options: nosniff" \
+                        "Referrer-Policy: strict-origin-when-cross-origin" "X-Frame-Options: SAMEORIGIN"; do
+              [[ "$H" == *"$WANT"* ]] || { echo "::error::$P saknar $WANT"; echo "$H"; FAIL=1; }
+            done
+          done
+
           # Access-loggen får inte hålla besökarens adress eller en token ur
           # query-strängen. Den gamla formen skrev X-Forwarded-For, alltså den
           # riktiga adressen bakom värd-nginx, och hela $request. Sökvägen ska
@@ -622,6 +634,16 @@ jobs:
 
           echo "Hälsa genom nginx:"
           curl -fsS -H 'Host: argusmetrics.test' http://127.0.0.1:8021/health
+
+          # En sida backend renderar får HSTS från nginx men behåller sina egna
+          # säkerhetshuvuden, och bara dem: två X-Frame-Options med olika
+          # värden kan få en webbläsare att strunta i båda (#66).
+          LOGIN=$(curl -sI -H 'Host: argusmetrics.test' http://127.0.0.1:8021/login | tr -d '\r')
+          [[ "$LOGIN" == *"Strict-Transport-Security: max-age="* ]] || {
+            echo "::error::/login saknar HSTS"; echo "$LOGIN"; exit 1; }
+          XFO=$(printf '%s\n' "$LOGIN" | awk 'tolower($0) ~ /^x-frame-options:/' | wc -l)
+          [ "$XFO" -eq 1 ] || {
+            echo "::error::/login har $XFO X-Frame-Options, ska ha exakt ett"; echo "$LOGIN"; exit 1; }
 
           # Marknadssiten serveras av web-containern, inte av backend, så den
           # kontrolleras separat: en stack där bara den ena halvan lever ser
