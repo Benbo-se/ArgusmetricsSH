@@ -160,8 +160,11 @@ body {
 .text-gray-800, .text-gray-700 { color: var(--text-secondary) !important; }
 .text-gray-600, .text-gray-500, .text-gray-400 { color: var(--text-muted) !important; }
 
-.border-gray-200, .border-gray-300 { border-color: var(--border-subtle) !important; }
-.divide-gray-100 > * + *, .divide-gray-200 > * + * { border-color: var(--border-subtle) !important; }
+.border-gray-100, .border-gray-200, .border-gray-300 { border-color: var(--border-subtle) !important; }
+/* Every child, not `* + *`: Tailwind 4 draws a divider as the bottom border
+   of every child but the last, so `* + *` left the first one untinted and a
+   bright line under the first row of every divided list in dark mode. */
+.divide-gray-100 > *, .divide-gray-200 > * { border-color: var(--border-subtle) !important; }
 
 .text-blue-600, .text-blue-700, .text-blue-800, .text-blue-900 { color: var(--brand-500) !important; }
 .bg-blue-600, .bg-blue-500 { background-color: var(--brand-500) !important; }
@@ -296,6 +299,51 @@ body {
     color: var(--text-primary);
     box-shadow: var(--shadow-card);
 }
+
+.dash-pill.is-live { background: var(--accent-soft); color: var(--accent); }
+
+/* --- Website cards (dashboard/index.html) -------------------------------- */
+.site-card {
+    transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+}
+.site-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lift) !important;
+    border-color: color-mix(in srgb, var(--brand-500) 45%, var(--border-subtle));
+}
+.site-card-arrow { transition: transform .2s ease, color .2s ease; }
+.site-card:hover .site-card-arrow { transform: translateX(3px); color: var(--brand-500); }
+.site-spark { display: block; width: 100%; height: 44px; overflow: visible; }
+.site-spark-line {
+    fill: none;
+    stroke: var(--brand-500);
+    stroke-width: 2;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+    vector-effect: non-scaling-stroke;
+}
+.site-spark-area { fill: color-mix(in srgb, var(--brand-500) 12%, transparent); }
+.site-spark-empty {
+    stroke: var(--border-strong);
+    stroke-width: 1.5;
+    stroke-dasharray: 4 4;
+    vector-effect: non-scaling-stroke;
+}
+/* The line draws itself once, left to right. pathLength is not set on the
+   polyline, so the dash is measured in its own length: 1000 covers any of
+   them, since the box is 140 wide. */
+.dash-motion .site-spark-line {
+    stroke-dasharray: 1000;
+    stroke-dashoffset: 1000;
+    animation: spark-draw 1.1s cubic-bezier(.4, 0, .2, 1) .25s forwards;
+}
+@keyframes spark-draw { to { stroke-dashoffset: 0; } }
+/* backwards, not both: a fill that outlived the animation would hold
+   transform at none and the hover lift above would never apply. */
+.dash-motion .site-card { animation: dash-rise .5s cubic-bezier(.2, .8, .2, 1) backwards; }
+.dash-motion .site-card:nth-child(2) { animation-delay: .06s; }
+.dash-motion .site-card:nth-child(3) { animation-delay: .12s; }
+.dash-motion .site-card:nth-child(n+4) { animation-delay: .18s; }
 
 /* The page assembles itself on arrival: cards rise in one after another, as
    the scenes on the site do. Only when dashboard.js has added .dash-motion,
