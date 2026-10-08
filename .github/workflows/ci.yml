@@ -476,6 +476,15 @@ jobs:
           npx terser src/tracker.js --config-file terser.config.json -o /tmp/tracker.check.js
           cmp /tmp/tracker.check.js ../../backend/app/static/tracker.min.js || { echo "backend/app/static/tracker.min.js ur synk med src — kör 'npm run build' i frontend/tracking-script"; exit 1; }
           cmp /tmp/tracker.check.js ../../site/static/tracker.min.js || { echo "site/static/tracker.min.js ur synk med src — kör 'npm run build'"; exit 1; }
+      - name: Deployskriptet håller ihop image och konfiguration
+        run: |
+          # Deployskriptet kördes bara mot produktionen, så första gången en
+          # rollback prövades var första gången den behövdes. Kör det mot ett
+          # riktigt git-repo med stubbad docker: image och konfiguration ska
+          # komma från samma commit vid varje compose up, även vid rollback,
+          # och en köad gammal deploy ska inte skriva över en nyare (#111).
+          python3 -c "import yaml" 2>/dev/null || pip install -q pyyaml
+          bash deploy/test-deploy.sh
       - name: GTM-mallen konfigurerar trackern
         run: |
           # Mallen laddade en scriptUrl den aldrig deklarerat och skrev en

@@ -185,8 +185,10 @@ It refuses once any account exists.
 
 Every deploy tags the commit `PROD-YYYY-MM-DD` and pushes images tagged with
 the git SHA. The deploy workflow health-checks and rolls back on its own if
-that fails. To roll back by hand: Actions, Deploy, Run workflow, and give the
-previous SHA as the tag.
+that fails, to the images and the configuration that were running before. To
+roll back by hand: Actions, Deploy, Run workflow, and give a `PROD-` tag or a
+commit. The server's checkout moves to that commit along with the images, so
+the compose file and nginx config come back with it.
 
 A pre-deploy dump is taken every time and lands in
 `~/backups/argusmetrics/pre-deploy/`.

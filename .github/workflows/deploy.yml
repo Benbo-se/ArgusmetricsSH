@@ -17,7 +17,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Image-tag att deploya (git-SHA, default latest)'
+        description: 'Vad som ska deployas: latest (mains senaste), ett commit (kort eller full SHA) eller en PROD-tagg'
         required: false
         default: 'latest'
   workflow_run:
@@ -36,25 +36,53 @@ jobs:
       (github.event.workflow_run.conclusion == 'success' && vars.DEPLOY_ENABLED == 'true')
     runs-on: ubuntu-latest
     environment: production
+    outputs:
+      sha: ${{ steps.t.outputs.tag }}
     steps:
-      - name: Bestäm image-tag
+      # Ett commit för allt (#111). Images byggs och taggas med commitets
+      # fulla SHA, och serverns checkout, som compose- och nginx-
+      # konfigurationen läses från, sätts till samma commit. Förut följde
+      # checkouten alltid origin/main, så en manuell deploy eller rollback av
+      # en äldre version fick gammal image med ny konfiguration.
+      #
+      # Manuellt: "latest" är mains senaste commit vid starten, inte den
+      # rörliga image-taggen latest; ett kort SHA eller en PROD-tagg slås upp
+      # till full SHA. Automatiskt: commitet CI just byggde.
+      - name: Bestäm vilket commit som deployas
         id: t
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          INPUT_TAG: ${{ github.event.inputs.tag }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "tag=${{ github.event.inputs.tag }}" >> "$GITHUB_OUTPUT"
+          if [ "$EVENT" = "workflow_dispatch" ]; then
+            REF="${INPUT_TAG:-latest}"
+            [ "$REF" = "latest" ] && REF=main
+            # Bara det en SHA eller en tagg kan bestå av; inget skal-tecken.
+            [[ "$REF" =~ ^[A-Za-z0-9._/-]{1,100}$ ]] || { echo "::error::Ogiltig ref: $REF"; exit 1; }
+            SHA=$(gh api "repos/${{ github.repository }}/commits/$REF" -q .sha) \
+              || { echo "::error::Hittar inget commit för $REF"; exit 1; }
+            KIND=manual
           else
-            echo "tag=${{ github.event.workflow_run.head_sha }}" >> "$GITHUB_OUTPUT"
+            SHA="$HEAD_SHA"
+            KIND=auto
           fi
+          [[ "$SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::Inte en full SHA: $SHA"; exit 1; }
+          echo "Deployar $SHA ($KIND)"
+          echo "tag=$SHA" >> "$GITHUB_OUTPUT"
+          echo "kind=$KIND" >> "$GITHUB_OUTPUT"
 
       - name: Deploy (dump -> pull -> up -> health -> auto-rollback)
         uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1
         env:
           DEPLOY_TAG: ${{ steps.t.outputs.tag }}
+          DEPLOY_KIND: ${{ steps.t.outputs.kind }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
-          envs: DEPLOY_TAG
+          envs: DEPLOY_TAG,DEPLOY_KIND
           script: |
             set -euo pipefail
             cd /opt/argusmetrics
@@ -77,9 +105,20 @@ jobs:
             WEB_PORT=${WEB_PORT:-8021}
             echo "Deployar tag: $DEPLOY_TAG (web-port $WEB_PORT)"
 
-            echo "==> git pull (compose/conf-ändringar följer med releasen)"
+            echo "==> hämta $DEPLOY_TAG"
             git fetch origin main
-            git reset --hard origin/main
+            git fetch origin "$DEPLOY_TAG" 2>/dev/null || true
+            git cat-file -e "$DEPLOY_TAG^{commit}" \
+              || { echo "::error::Commit $DEPLOY_TAG finns inte i repot"; exit 1; }
+
+            # En köad automatisk deploy som main redan gått förbi: nästa CI-
+            # körning deployar det nyare, och den här skulle bara skriva över
+            # det med något äldre om de kom i fel ordning. En manuell deploy
+            # av ett äldre commit är avsiktlig (rollback) och körs alltid.
+            if [ "$DEPLOY_KIND" = "auto" ] && [ "$(git rev-parse origin/main)" != "$DEPLOY_TAG" ]; then
+              echo "main har gått vidare till $(git rev-parse --short origin/main); hoppar över $DEPLOY_TAG"
+              exit 0
+            fi
 
             # 1. Pre-deploy DB-dump (billig försäkring). Best-effort:
             #    blockerar inte deployen om den misslyckas.
@@ -100,13 +139,22 @@ jobs:
             find "$HOME/backups/argusmetrics/pre-deploy" -name 'predeploy-*.sql.gz' \
                  -mtime +7 -print -delete || true
 
-            # 2. Spara nuvarande tag för ev. rollback (backend + web deployas
-            #    alltid i par med samma tag).
+            # 2. Det som kör nu, för en eventuell rollback: imagens tag och
+            #    det commit dess konfiguration kommer från. Sedan #111 är de
+            #    samma commit; för en release från före det används checkouten.
             PREV=$(docker inspect --format '{{.Config.Image}}' argusmetrics-backend 2>/dev/null | sed 's/.*://' || true)
-            echo "Nuvarande tag: ${PREV:-<ingen>}"
+            if [ -n "$PREV" ] && git cat-file -e "$PREV^{commit}" 2>/dev/null; then
+              PREV_SHA="$PREV"
+            else
+              PREV_SHA=$(git rev-parse HEAD)
+            fi
+            echo "Nuvarande: image ${PREV:-<ingen>}, konfiguration $PREV_SHA"
 
-            # 3. Hämta + starta nya images.
+            # 3. Hämta images innan något ändras: faller hämtningen är varken
+            #    checkout eller containrar rörda. Sedan konfigurationen från
+            #    samma commit, och först därefter start.
             ARGUS_TAG="$DEPLOY_TAG" $COMPOSE pull backend web
+            git reset --hard "$DEPLOY_TAG"
             ARGUS_TAG="$DEPLOY_TAG" $COMPOSE up -d
 
             # 4. Health-check genom hela kedjan (värdport -> web-nginx ->
@@ -125,7 +173,8 @@ jobs:
             if [ "$OK" != "1" ]; then
               echo "HEALTH-CHECK FAILADE efter deploy av $DEPLOY_TAG"
               if [ -n "${PREV:-}" ]; then
-                echo "Rullar tillbaka till $PREV"
+                echo "Rullar tillbaka till $PREV, med konfigurationen från $PREV_SHA"
+                git reset --hard "$PREV_SHA"
                 ARGUS_TAG="$PREV" $COMPOSE up -d
                 record_tag "$PREV"
               else
@@ -176,7 +225,9 @@ jobs:
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
-            const sha = context.payload.workflow_run?.head_sha ?? context.sha;
+            // Det commit deployen faktiskt körde, inte workflowens eget: en
+            // manuell deploy av ett äldre commit taggades annars som main.
+            const sha = '${{ needs.deploy.outputs.sha }}' || context.payload.workflow_run?.head_sha || context.sha;
             const date = new Date().toISOString().slice(0, 10);
             const base = `PROD-${date}`;
             let name = base;
