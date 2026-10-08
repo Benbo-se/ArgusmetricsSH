@@ -21,6 +21,8 @@ from app.models.website import Website
 from app.services.website_lookup import resolve_share_token, tracking_code_exists
 from app.config import settings
 
+from app.utils.security import mask_email  # addresses never go to the log in full (#144)
+
 logger = logging.getLogger(__name__)
 
 
@@ -114,7 +116,7 @@ class WebsiteService:
             )
             print(f"Tracking code: {website.tracking_code}")
         """
-        logger.info(f"Creating website for user: {user_email}, domain: {domain}")
+        logger.info(f"Creating website for user: {mask_email(user_email)}, domain: {domain}")
 
         try:
             # A ceiling on websites per account. Not a commercial limit: it is
@@ -227,7 +229,7 @@ class WebsiteService:
             websites = service.get_user_websites("user@example.com")
             print(f"User has access to {len(websites)} websites")
         """
-        logger.info(f"Retrieving websites for user: {user_email}")
+        logger.info(f"Retrieving websites for user: {mask_email(user_email)}")
 
         try:
             from app.models.website_member import WebsiteMember, MemberStatus
@@ -261,11 +263,11 @@ class WebsiteService:
             # Sort by created_at descending
             websites.sort(key=lambda w: w.created_at, reverse=True)
 
-            logger.debug(f"Found {len(websites)} websites for user: {user_email} ({len(owned_websites)} owned, {len(team_websites)} team)")
+            logger.debug(f"Found {len(websites)} websites for user: {mask_email(user_email)} ({len(owned_websites)} owned, {len(team_websites)} team)")
             return websites
 
         except Exception as e:
-            logger.error(f"Error retrieving websites for {user_email}: {e}", exc_info=True)
+            logger.error(f"Error retrieving websites for {mask_email(user_email)}: {e}", exc_info=True)
             return []
 
     def get_website_by_id(self, website_id: int, user_email: str) -> Optional[Website]:
@@ -289,7 +291,7 @@ class WebsiteService:
             else:
                 print("Website not found or access denied")
         """
-        logger.info(f"Retrieving website {website_id} for user: {user_email}")
+        logger.info(f"Retrieving website {website_id} for user: {mask_email(user_email)}")
 
         try:
             # First check if user owns the website
@@ -318,7 +320,7 @@ class WebsiteService:
                     logger.debug(f"Website found (team member): {website.id} ({website.domain})")
                     return website
 
-            logger.debug(f"Website {website_id} not found or no access for user {user_email}")
+            logger.debug(f"Website {website_id} not found or no access for user {mask_email(user_email)}")
             return None
 
         except Exception as e:
@@ -377,7 +379,7 @@ class WebsiteService:
             )
             print(f"Website updated: {website.name}")
         """
-        logger.info(f"Updating website {website_id} for user: {user_email}")
+        logger.info(f"Updating website {website_id} for user: {mask_email(user_email)}")
 
         # Validate that at least one field is being updated
         if name is None and is_active is None:
@@ -389,7 +391,7 @@ class WebsiteService:
             website = self.get_website_by_id(website_id, user_email)
 
             if not website:
-                logger.warning(f"Website {website_id} not found or access denied for user {user_email}")
+                logger.warning(f"Website {website_id} not found or access denied for user {mask_email(user_email)}")
                 raise ValueError("Website not found or access denied")
 
             # Update fields
@@ -439,14 +441,14 @@ class WebsiteService:
             if success:
                 print("Website deleted successfully")
         """
-        logger.info(f"Deleting website {website_id} for user: {user_email}")
+        logger.info(f"Deleting website {website_id} for user: {mask_email(user_email)}")
 
         try:
             # Get website with ownership verification
             website = self.get_website_by_id(website_id, user_email)
 
             if not website:
-                logger.warning(f"Website {website_id} not found or access denied for user {user_email}")
+                logger.warning(f"Website {website_id} not found or access denied for user {mask_email(user_email)}")
                 raise ValueError("Website not found or access denied")
 
             domain = website.domain
@@ -510,7 +512,7 @@ class WebsiteService:
             website = self.get_website_by_id(website_id, user_email)
 
             if not website:
-                logger.warning(f"Website {website_id} not found or access denied for user {user_email}")
+                logger.warning(f"Website {website_id} not found or access denied for user {mask_email(user_email)}")
                 raise ValueError("Website not found or access denied")
 
             # Update email reports configuration

@@ -47,6 +47,8 @@ from app.services.email_service import email_service
 from app.config import settings
 from app.services.website_lookup import resolve_invite_token
 
+from app.utils.security import mask_email  # addresses never go to the log in full (#144)
+
 logger = logging.getLogger(__name__)
 
 
@@ -91,7 +93,7 @@ class TeamService:
             ).first()
 
             if website:
-                logger.debug(f"User {user_email} is OWNER of website {website_id}")
+                logger.debug(f"User {mask_email(user_email)} is OWNER of website {website_id}")
                 return MemberRole.OWNER
 
             # Then check team membership
@@ -102,10 +104,10 @@ class TeamService:
             ).first()
 
             if member:
-                logger.debug(f"User {user_email} has {member.role} access to website {website_id}")
+                logger.debug(f"User {mask_email(user_email)} has {member.role} access to website {website_id}")
                 return MemberRole(member.role)
 
-            logger.debug(f"User {user_email} has no access to website {website_id}")
+            logger.debug(f"User {mask_email(user_email)} has no access to website {website_id}")
             return None
 
         except Exception as e:
@@ -296,11 +298,11 @@ class TeamService:
                     invite_url=invite_url
                 )
                 if not email_sent:
-                    logger.warning(f"Failed to send invitation email to {invitee_email}")
+                    logger.warning(f"Failed to send invitation email to {mask_email(invitee_email)}")
             except Exception as email_err:
-                logger.warning(f"Email sending failed for invitation to {invitee_email}: {email_err}")
+                logger.warning(f"Email sending failed for invitation to {mask_email(invitee_email)}: {email_err}")
 
-            logger.info(f"Team invitation created: {invitee_email} invited to website {website_id} as {role.value}")
+            logger.info(f"Team invitation created: {mask_email(invitee_email)} invited to website {website_id} as {role.value}")
 
             response = {
                 "member": member,
@@ -369,7 +371,7 @@ class TeamService:
             member.status = MemberStatus.REVOKED
             self.db.commit()
 
-            logger.info(f"Team member removed: {member_email} from website {website_id}")
+            logger.info(f"Team member removed: {mask_email(member_email)} from website {website_id}")
             return True
 
         except Exception as e:
@@ -419,7 +421,7 @@ class TeamService:
             self.db.commit()
             self.db.refresh(member)
 
-            logger.info(f"Role changed: {member_email} now has {new_role.value} role on website {website_id}")
+            logger.info(f"Role changed: {mask_email(member_email)} now has {new_role.value} role on website {website_id}")
             return member
 
         except Exception as e:
@@ -503,7 +505,7 @@ class TeamService:
                 # Create user account
                 user = User(email=accepter_email, is_verified=True)
                 self.db.add(user)
-                logger.info(f"Created user account for {accepter_email} via team invitation")
+                logger.info(f"Created user account for {mask_email(accepter_email)} via team invitation")
 
             # Accept invitation
             member.status = MemberStatus.ACTIVE
@@ -525,7 +527,7 @@ class TeamService:
 
             self.db.commit()
 
-            logger.info(f"Invitation accepted: {accepter_email} joined website {website_id} as {role}")
+            logger.info(f"Invitation accepted: {mask_email(accepter_email)} joined website {website_id} as {role}")
 
             return {
                 "message": "Invitation accepted successfully",

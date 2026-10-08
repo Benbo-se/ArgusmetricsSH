@@ -15,6 +15,8 @@ from sqlalchemy.orm import Session
 from app.database import get_db, set_rls_context
 from app.models.website import Website
 
+from app.utils.security import mask_email  # addresses never go to the log in full (#144)
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
@@ -205,7 +207,7 @@ async def websocket_endpoint(
     set_rls_context(db, context="user", user_email=user_email)
 
     if not TeamService(db).check_website_access(user_email, website_id):
-        logger.warning(f"WebSocket auth failed: {user_email} has no access to website_id={website_id}")
+        logger.warning(f"WebSocket auth failed: {mask_email(user_email)} has no access to website_id={website_id}")
         await websocket.close(code=4003, reason="Access denied")
         return
 
@@ -412,7 +414,7 @@ async def debug_websocket_endpoint(
     # Verify the authenticated user actually has access to this website
     role = TeamService(db).check_website_access(user_email, website_id)
     if not role:
-        logger.warning(f"Debug WebSocket auth failed: {user_email} has no access to website_id={website_id}")
+        logger.warning(f"Debug WebSocket auth failed: {mask_email(user_email)} has no access to website_id={website_id}")
         await websocket.close(code=4003, reason="Access denied")
         return
 

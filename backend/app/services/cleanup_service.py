@@ -158,6 +158,61 @@ class CleanupService:
             self.db.rollback()
             return 0
 
+    def cleanup_expired_invitations(self, days: int = 7) -> int:
+        """Delete pending invitations that can no longer be accepted.
+
+        An invitation stops working 7 days after it is sent (team_service), but
+        the row stayed: the invitee's address, who invited them and the token,
+        kept for nothing (docs/data-map.md, #144). Accepted and revoked rows are
+        memberships and history, and are left alone.
+        """
+        from app.models.website_member import WebsiteMember, MemberStatus
+
+        cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+        try:
+            count = self.db.query(WebsiteMember).filter(
+                and_(
+                    WebsiteMember.status == MemberStatus.PENDING,
+                    WebsiteMember.invited_at < cutoff,
+                )
+            ).delete(synchronize_session=False)
+            self.db.commit()
+            if count:
+                logger.info(f"Deleted {count} expired invitations")
+            return count
+        except Exception as e:
+            logger.error(f"Error cleaning up expired invitations: {e}")
+            self.db.rollback()
+            return 0
+
+    def cleanup_waitlist(self, notified_days: int = 30, max_days: int = 365) -> int:
+        """Delete waitlist entries that have done their job, or waited too long.
+
+        The waitlist had no retention at all: an address stayed until someone
+        removed it by hand (docs/data-map.md, #144). An entry is for telling one
+        person once, so it goes 30 days after they were told, and after a year
+        whether or not they ever were.
+        """
+        from app.models.waitlist import WaitlistEntry
+        from sqlalchemy import or_
+
+        now = datetime.now(timezone.utc)
+        try:
+            count = self.db.query(WaitlistEntry).filter(
+                or_(
+                    WaitlistEntry.notified_at < now - timedelta(days=notified_days),
+                    WaitlistEntry.created_at < now - timedelta(days=max_days),
+                )
+            ).delete(synchronize_session=False)
+            self.db.commit()
+            if count:
+                logger.info(f"Deleted {count} waitlist entries")
+            return count
+        except Exception as e:
+            logger.error(f"Error cleaning up the waitlist: {e}")
+            self.db.rollback()
+            return 0
+
     def cleanup_expired_sessions(self) -> int:
         """
         Delete expired sessions from database.
@@ -404,10 +459,16 @@ class CleanupService:
         unverified = self.cleanup_unverified_accounts(days=7)
         empty_inactive = self.cleanup_empty_inactive_accounts(days=30)
         sessions = self.cleanup_expired_sessions()
+        invitations = self.cleanup_expired_invitations()
+        waitlist = self.cleanup_waitlist()
         retained = self.purge_old_event_data()
 
         logger.info("=" * 80)
-        logger.info(f"CLEANUP COMPLETE - Deleted: {unverified} unverified, {empty_inactive} inactive, {sessions} sessions, {retained} retention rows")
+        logger.info(
+            f"CLEANUP COMPLETE - Deleted: {unverified} unverified, {empty_inactive} inactive, "
+            f"{sessions} sessions, {invitations} invitations, {waitlist} waitlist, "
+            f"{retained} retention rows"
+        )
         logger.info("=" * 80)
 
         return (unverified, empty_inactive, sessions, retained)

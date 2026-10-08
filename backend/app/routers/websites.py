@@ -1139,7 +1139,7 @@ async def invite_team_member(
         HTTPException: 401 if not authenticated
         HTTPException: 403 if insufficient permissions
     """
-    logger.info(f"Team invitation request for website {website_id}: inviting {request.email} as {request.role}")
+    logger.info(f"Team invitation request for website {website_id}: inviting {mask_email(request.email)} as {request.role}")
 
     try:
         from app.models.website_member import MemberRole
@@ -1224,7 +1224,7 @@ async def remove_team_member(
         HTTPException: 403 if insufficient permissions
         HTTPException: 404 if member not found
     """
-    logger.info(f"Remove team member request for website {website_id}: removing {member_email}")
+    logger.info(f"Remove team member request for website {website_id}: removing {mask_email(member_email)}")
 
     try:
         team_service.remove_member(website_id, current_user.email, member_email)
@@ -1304,7 +1304,7 @@ async def change_member_role(
         HTTPException: 403 if insufficient permissions
         HTTPException: 404 if member not found
     """
-    logger.info(f"Change role request for website {website_id}: changing {member_email} to {request.role}")
+    logger.info(f"Change role request for website {website_id}: changing {mask_email(member_email)} to {request.role}")
 
     try:
         from app.models.website_member import MemberRole

@@ -94,6 +94,7 @@ so nothing here needs a path or a container name typed at it.
 ./argus country refresh     # rebuild the IP-to-country table
 ./argus backup              # take a dump now
 ./argus backup verify     # asks which dump
+./argus delete-user --email you@example.com   # an erasure request, done completely
 ```
 
 `./argus` on its own lists the rest. Anything after a passthrough goes

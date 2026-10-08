@@ -15,6 +15,8 @@ from app.models.website import Website
 from app.models.alert_settings import AlertSettings
 from app.services.email_service import email_service
 
+from app.utils.security import mask_email  # addresses never go to the log in full (#144)
+
 logger = logging.getLogger(__name__)
 
 
@@ -129,7 +131,7 @@ class AlertService:
         Returns:
             True if alert sent successfully
         """
-        logger.info(f"Sending spike alert: website_id={website_id}, to={user_email}")
+        logger.info(f"Sending spike alert: website_id={website_id}, to={mask_email(user_email)}")
 
         try:
             # Format alert email
@@ -181,9 +183,9 @@ Argusmetrics
             )
 
             if success:
-                logger.info(f"Spike alert sent to {user_email} for website {website_id}")
+                logger.info(f"Spike alert sent to {mask_email(user_email)} for website {website_id}")
             else:
-                logger.error(f"Failed to send spike alert to {user_email} for website {website_id}")
+                logger.error(f"Failed to send spike alert to {mask_email(user_email)} for website {website_id}")
 
             return success
 
