@@ -25,6 +25,7 @@ from datetime import datetime, timezone
 
 import pytest
 from fastapi.testclient import TestClient
+from app.config import pin_psycopg2
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session
 
@@ -45,7 +46,7 @@ pytestmark = pytest.mark.skipif(
 def engine():
     if not TEST_DATABASE_URL:
         pytest.skip("no database configured")
-    eng = create_engine(TEST_DATABASE_URL, future=True)
+    eng = create_engine(pin_psycopg2(TEST_DATABASE_URL), future=True)
     with eng.connect() as conn:
         # Fail loudly rather than erroring one assertion at a time if the
         # schema was never migrated.

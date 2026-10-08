@@ -17,6 +17,7 @@ import os
 import uuid
 
 import pytest
+from app.config import pin_psycopg2
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 
@@ -36,7 +37,7 @@ PASSWORD = "Str0ng-Passw0rd!x"
 
 @pytest.fixture(scope="module")
 def unprivileged_engine():
-    engine = create_engine(DB_URL, future=True)
+    engine = create_engine(pin_psycopg2(DB_URL), future=True)
     with engine.connect() as conn:
         role, is_super, bypasses = conn.execute(
             text(

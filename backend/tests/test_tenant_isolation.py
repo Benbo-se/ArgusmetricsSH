@@ -19,6 +19,7 @@ import os
 import uuid
 
 import pytest
+from app.config import pin_psycopg2
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import ProgrammingError
 
@@ -41,7 +42,7 @@ pytestmark = pytest.mark.skipif(
 
 @pytest.fixture(scope="module")
 def engine():
-    eng = create_engine(DB_URL, future=True)
+    eng = create_engine(pin_psycopg2(DB_URL), future=True)
     with eng.connect() as conn:
         role, is_super, bypasses = conn.execute(
             text(

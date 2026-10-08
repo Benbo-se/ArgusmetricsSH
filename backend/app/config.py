@@ -7,6 +7,27 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field, field_validator
 
 
+def pin_psycopg2(url: str) -> str:
+    """The database URL with the psycopg2 driver named explicitly.
+
+    SQLAlchemy 2.1 changed the driver a bare postgresql:// URL means, from
+    psycopg2 to psycopg 3. Every URL here is bare, in the compose files, CI,
+    the tests and the server's own .env, and only psycopg2 is installed, so
+    the upgrade stopped at the first migration with "No module named
+    'psycopg'" (#119). Naming the driver here, where the URL is read, keeps
+    every one of those working without touching any of them.
+
+    postgres:// is the old Heroku-style scheme, which SQLAlchemy has not
+    accepted since 1.4. A URL that already names a driver is left alone.
+    """
+    if not url:
+        return url
+    for bare in ("postgres://", "postgresql://"):
+        if url.startswith(bare):
+            return "postgresql+psycopg2://" + url[len(bare):]
+    return url
+
+
 class Settings(BaseSettings):
     """
     Application settings loaded from environment variables.
@@ -190,11 +211,8 @@ class Settings(BaseSettings):
     @field_validator("DATABASE_URL", mode="after")
     @classmethod
     def validate_database_url(cls, v):
-        """Ensure database URL uses postgresql:// scheme."""
-        if v and v.startswith("postgres://"):
-            # Convert postgres:// to postgresql:// for SQLAlchemy 1.4+
-            return v.replace("postgres://", "postgresql://", 1)
-        return v
+        """The URL with the driver named: see pin_psycopg2."""
+        return pin_psycopg2(v)
 
     @property
     def sqlalchemy_database_uri(self) -> str:
