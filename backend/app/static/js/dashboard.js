@@ -102,56 +102,73 @@ const crosshairPlugin = {
     },
 };
 
+/** A fill that fades from the line down to nothing, instead of a flat tint. */
+function fadingFill(context) {
+    const { chart } = context;
+    const area = chart.chartArea;
+    if (!area) return themeAlpha('--brand-500', 0.12, '#4550c8');
+    const g = chart.ctx.createLinearGradient(0, area.top, 0, area.bottom);
+    g.addColorStop(0, themeAlpha('--brand-500', 0.28, '#4550c8'));
+    g.addColorStop(1, themeAlpha('--brand-500', 0, '#4550c8'));
+    return g;
+}
+
+const CHART_METRICS = {
+    visitors: { key: 'visitors', noun: 'visitors' },
+    views: { key: 'views', noun: 'pageviews' },
+};
+
 /**
- * Initialize pageviews line chart
+ * The main chart: one metric over the period, and the previous period dashed
+ * beside it when comparing. `metric` is 'visitors' or 'views'; series written
+ * before visitors were counted per day fall back to views.
  */
-function initPageviewsChart(timeseriesData, previousPeriodData = null) {
+function initPageviewsChart(timeseriesData, previousPeriodData = null, metric = 'views') {
     const ctx = document.getElementById('pageviews-chart');
     if (!ctx) return;
 
+    const m = CHART_METRICS[metric] || CHART_METRICS.views;
+    const pick = (d) => (d[m.key] !== undefined ? d[m.key] : d.views);
     const labels = timeseriesData.map(d => {
         const date = new Date(d.date);
         return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     });
-    const data = timeseriesData.map(d => d.views);
+    const data = timeseriesData.map(pick);
+    const brand = themeColor('--brand-500', '#4550c8');
 
     if (pageviewsChart) {
         pageviewsChart.destroy();
     }
 
-    // Prepare datasets
     const datasets = [{
-        label: 'Current Period',
+        label: 'This period',
         data: data,
-        borderColor: themeColor('--brand-500', '#4550c8'),
-        backgroundColor: themeAlpha('--brand-500', 0.12, '#4550c8'),
-        borderWidth: 2,
+        borderColor: brand,
+        backgroundColor: fadingFill,
+        borderWidth: 2.5,
         fill: true,
-        tension: 0.4,
-        pointRadius: 3,
+        tension: 0.35,
+        // Points only where the pointer is: thirty dots in a row are noise.
+        pointRadius: data.length > 1 ? 0 : 4,
         pointHoverRadius: 5,
-        pointBackgroundColor: themeColor('--brand-500', '#4550c8'),
+        pointBackgroundColor: brand,
         pointBorderColor: themeColor('--surface-card', '#ffffff'),
         pointBorderWidth: 2,
     }];
 
-    // Add previous period dataset if provided
-    if (previousPeriodData && previousPeriodData.length > 0) {
-        const previousData = previousPeriodData.map(d => d.views);
+    const comparing = previousPeriodData && previousPeriodData.length > 0;
+    if (comparing) {
         datasets.push({
-            label: 'Previous Period',
-            data: previousData,
-            borderColor: themeColor('--text-muted', '#767ea0'),
-            backgroundColor: 'rgba(156, 163, 175, 0.05)',
-            borderWidth: 2,
+            label: 'Previous period',
+            data: previousPeriodData.map(pick),
+            borderColor: themeAlpha('--text-muted', 0.8, '#767ea0'),
+            borderWidth: 1.5,
             borderDash: [5, 5],
             fill: false,
-            tension: 0.4,
-            pointRadius: 2,
+            tension: 0.35,
+            pointRadius: 0,
             pointHoverRadius: 4,
             pointBackgroundColor: themeColor('--text-muted', '#767ea0'),
-            pointBorderColor: themeColor('--surface-card', '#ffffff'),
-            pointBorderWidth: 1,
         });
     }
 
@@ -168,7 +185,7 @@ function initPageviewsChart(timeseriesData, previousPeriodData = null) {
             animation: drawInAnimation(data.length),
             plugins: {
                 legend: {
-                    display: previousPeriodData && previousPeriodData.length > 0,
+                    display: comparing,
                     position: 'top',
                     align: 'end',
                     labels: {
@@ -185,38 +202,29 @@ function initPageviewsChart(timeseriesData, previousPeriodData = null) {
                     bodyColor: '#fff',
                     borderColor: themeAlpha('--brand-500', 0.3, '#4550c8'),
                     borderWidth: 1,
-                    padding: 16,
-                    titleFont: { size: 14, weight: 'bold' },
-                    bodyFont: { size: 14 },
+                    padding: 12,
+                    titleFont: { size: 13, weight: 'bold' },
+                    bodyFont: { size: 13 },
                     bodySpacing: 6,
                     cornerRadius: 8,
-                    displayColors: true,
+                    displayColors: comparing,
                     callbacks: {
                         title: function(tooltipItems) {
                             return tooltipItems[0].label;
                         },
                         label: function(context) {
-                            const label = context.dataset.label || '';
-                            const value = context.parsed.y.toLocaleString();
-                            return label + ': ' + value + ' pageviews';
+                            const value = context.parsed.y.toLocaleString() + ' ' + m.noun;
+                            return comparing ? context.dataset.label + ': ' + value : value;
                         },
                         afterBody: function(tooltipItems) {
-                            // Show comparison if both periods are present
-                            if (tooltipItems.length === 2) {
-                                const currentValue = tooltipItems[0].parsed.y;
-                                const previousValue = tooltipItems[1].parsed.y;
-                                const change = currentValue - previousValue;
-                                const changePercent = previousValue > 0 ? ((change / previousValue) * 100).toFixed(1) : 0;
-
-                                if (change > 0) {
-                                    return '\n↑ +' + change.toLocaleString() + ' (+' + changePercent + '%) vs previous period';
-                                } else if (change < 0) {
-                                    return '\n↓ ' + change.toLocaleString() + ' (' + changePercent + '%) vs previous period';
-                                } else {
-                                    return '\n→ No change vs previous period';
-                                }
-                            }
-                            return '';
+                            if (tooltipItems.length !== 2) return '';
+                            const currentValue = tooltipItems[0].parsed.y;
+                            const previousValue = tooltipItems[1].parsed.y;
+                            const change = currentValue - previousValue;
+                            const changePercent = previousValue > 0 ? ((change / previousValue) * 100).toFixed(1) : 0;
+                            if (change > 0) return '\n↑ +' + change.toLocaleString() + ' (+' + changePercent + '%) vs previous period';
+                            if (change < 0) return '\n↓ ' + change.toLocaleString() + ' (' + changePercent + '%) vs previous period';
+                            return '\n→ No change vs previous period';
                         }
                     }
                 }
@@ -227,15 +235,22 @@ function initPageviewsChart(timeseriesData, previousPeriodData = null) {
                     border: { display: false },
                     ticks: {
                         color: themeColor('--text-muted', '#767ea0'),
+                        maxTicksLimit: 5,
+                        precision: 0,
                         callback: function(value) {
                             return formatNumber(value);
                         }
                     },
-                    grid: { color: themeAlpha('--border-subtle', 0.9, '#e3e6ef') }
+                    grid: { color: themeAlpha('--border-subtle', 0.7, '#e3e6ef') }
                 },
                 x: {
                     border: { display: false },
-                    ticks: { color: themeColor('--text-muted', '#767ea0') },
+                    ticks: {
+                        color: themeColor('--text-muted', '#767ea0'),
+                        maxRotation: 0,
+                        autoSkip: true,
+                        maxTicksLimit: 8,
+                    },
                     grid: { display: false }
                 }
             },
@@ -244,6 +259,45 @@ function initPageviewsChart(timeseriesData, previousPeriodData = null) {
                 mode: 'index'
             }
         }
+    });
+}
+
+/**
+ * The Visitors / Pageviews switch above the main chart. Buttons carry
+ * data-chart-metric; the one shown is marked aria-pressed.
+ */
+function bindChartMetricSwitch(timeseriesData, previousPeriodData) {
+    const buttons = document.querySelectorAll('[data-chart-metric]');
+    const show = (metric) => {
+        buttons.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.chartMetric === metric)));
+        initPageviewsChart(timeseriesData, previousPeriodData, metric);
+    };
+    buttons.forEach((b) => b.addEventListener('click', () => show(b.dataset.chartMetric)));
+    show('visitors');
+}
+
+/**
+ * Ranked rows rendered on the server say how big their share is in
+ * data-share; the bar behind them is drawn from a custom property, set here
+ * because a style attribute in the markup would be blocked by style-src.
+ *
+ * The bars are drawn against the largest row in the same list, so the first
+ * row is full width and the rest read as "this much of the top one". Against
+ * the total, six pages of 15% each were six slivers the width of their own
+ * text. The true share is still printed beside each row.
+ */
+function applyShareBars(root) {
+    const lists = new Map();
+    root.querySelectorAll('[data-share]').forEach((el) => {
+        const share = Math.max(0, parseFloat(el.dataset.share) || 0);
+        if (!lists.has(el.parentElement)) lists.set(el.parentElement, []);
+        lists.get(el.parentElement).push([el, share]);
+    });
+    lists.forEach((rows) => {
+        const top = Math.max(...rows.map(([, share]) => share));
+        rows.forEach(([el, share]) => {
+            el.style.setProperty('--share', (top ? (share / top) * 100 : 0) + '%');
+        });
     });
 }
 
@@ -406,6 +460,12 @@ window.addEventListener('resize', debounce(() => {
 const REDUCED_MOTION = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 const shownStatValues = new Map();
 
+// The cards rise in on arrival (.dash-page in theme.css). Set here, while the
+// page is still being parsed, so nothing is painted and then hidden again;
+// never in a hidden tab, where the animation would not run and the cards
+// would stay invisible.
+if (!REDUCED_MOTION && !document.hidden) document.documentElement.classList.add('dash-motion');
+
 function parseStatValue(text) {
     const match = (text || '').trim().match(/^([\d,]+(?:\.\d+)?)(%?)$/);
     if (!match) return null;
@@ -474,6 +534,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // dashboard was open.
     document.body.addEventListener('htmx:afterSwap', (event) => {
         countUpStats(event.detail.target);
+        applyShareBars(event.detail.target);
     });
 
     document.body.addEventListener('htmx:responseError', (event) => {
@@ -482,11 +543,13 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     countUpStats(document);
+    applyShareBars(document);
 });
 
 // Export functions for global use
 window.formatNumber = formatNumber;
 window.initPageviewsChart = initPageviewsChart;
+window.bindChartMetricSwitch = bindChartMetricSwitch;
 window.initDevicesChart = initDevicesChart;
 window.copyTrackingCode = copyTrackingCode;
 window.showToast = showToast;

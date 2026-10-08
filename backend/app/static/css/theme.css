@@ -209,24 +209,26 @@ body {
 }
 
 /* --- Stat tiles ---------------------------------------------------------- */
-/* The four KPI tiles are the first thing read; give them a spine of color and
-   proper numerals instead of four identical white rectangles. */
+/* The headline numbers are the first thing read. They lift a little under the
+   pointer, like the cards in the site's animations, and the change against the
+   previous period is a pill rather than loose colored text. */
 .stat-tile {
     position: relative;
     overflow: hidden;
-    /* Room for the accent spine below. Set here rather than via a `pl-7`
-       utility class: this frozen Tailwind build never scanned that class
-       (see the missing-utilities note above), so it would silently no-op. */
-    padding-left: 1.75rem !important;
+    transition: transform .2s ease, box-shadow .2s ease;
 }
-.stat-tile::before {
-    content: "";
-    position: absolute;
-    inset: 0 auto 0 0;
-    width: 3px;
-    background: var(--brand-500);
+.stat-tile:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lift) !important;
 }
-.stat-tile.is-live::before { background: var(--accent); }
+.stat-tile.is-live {
+    background: linear-gradient(160deg, var(--accent-soft), var(--surface-card) 70%) !important;
+}
+/* Two to a row on a phone, where the tiles' p-6 would leave no room. */
+@media (max-width: 639px) {
+    .dash-page .stat-tile { padding: 1rem !important; }
+    .dash-page .stat-tile .stat-value { font-size: 1.5rem; }
+}
 .stat-tile .stat-value {
     font-variant-numeric: tabular-nums;
     letter-spacing: -.02em;
@@ -239,6 +241,80 @@ body {
     text-transform: uppercase;
     color: var(--text-muted);
 }
+.stat-delta {
+    display: inline-flex;
+    align-items: center;
+    gap: .2em;
+    border-radius: 99px;
+    padding: .1em .55em;
+    font-size: .75rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+.stat-delta.is-better { background: var(--ok-soft); color: var(--ok); }
+.stat-delta.is-worse { background: var(--crit-soft); color: var(--crit); }
+
+/* A small status label beside a heading. */
+.dash-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: .35em;
+    border-radius: 99px;
+    padding: .15em .7em;
+    font-size: .75rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+.dash-pill.is-ok { background: var(--ok-soft); color: var(--ok); }
+.dash-pill.is-ok::before {
+    content: "";
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+}
+.dash-pill.is-muted { background: var(--surface-sunken); color: var(--text-muted); }
+
+/* A segmented switch: buttons in a sunken track, the pressed one raised. */
+.seg {
+    display: inline-flex;
+    padding: 3px;
+    gap: 2px;
+    border-radius: 9px;
+    background: var(--surface-sunken);
+}
+.seg > button {
+    border-radius: 7px;
+    padding: .3rem .8rem;
+    font-size: .8rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    transition: background-color .15s ease, color .15s ease, box-shadow .15s ease;
+}
+.seg > button:hover { color: var(--text-primary); }
+.seg > button[aria-pressed="true"] {
+    background: var(--surface-card);
+    color: var(--text-primary);
+    box-shadow: var(--shadow-card);
+}
+
+/* The page assembles itself on arrival: cards rise in one after another, as
+   the scenes on the site do. Only when dashboard.js has added .dash-motion,
+   which it does for a visible tab without reduced motion, so a page rendered
+   in the background or for a crawler is never left with invisible cards. */
+@keyframes dash-rise {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: none; }
+}
+.dash-motion .dash-page > * {
+    animation: dash-rise .5s cubic-bezier(.2, .8, .2, 1) both;
+}
+.dash-motion .dash-page > :nth-child(2) { animation-delay: .04s; }
+.dash-motion .dash-page > :nth-child(3) { animation-delay: .08s; }
+.dash-motion .dash-page > :nth-child(4) { animation-delay: .12s; }
+.dash-motion .dash-page > :nth-child(5) { animation-delay: .16s; }
+.dash-motion .dash-page > :nth-child(6) { animation-delay: .2s; }
+.dash-motion .dash-page > :nth-child(7) { animation-delay: .24s; }
+.dash-motion .dash-page > :nth-child(n+8) { animation-delay: .28s; }
 
 /* Numbers line up wherever they're compared */
 td, .tabular, [x-text*="views"], [x-text*="count"] {
@@ -275,9 +351,13 @@ td, .tabular, [x-text*="views"], [x-text*="count"] {
     left: 0; bottom: 0; top: 0;
     width: var(--share, 0%);
     background: var(--brand-50);
-    border-radius: 4px;
+    border-radius: 6px;
     z-index: 0;
     pointer-events: none;
+    transition: width .6s cubic-bezier(.2, .8, .2, 1), background-color .15s ease;
+}
+.rank-row.cursor-pointer:hover::after {
+    background: color-mix(in srgb, var(--brand-500) 18%, var(--surface-card));
 }
 .rank-row > * { position: relative; z-index: 1; }
 

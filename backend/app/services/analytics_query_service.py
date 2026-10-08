@@ -553,18 +553,30 @@ class AnalyticsQueryService:
 
             results = self.db.query(
                 func.date(Pageview.timestamp).label('date'),
-                func.count(Pageview.id).label('views')
+                func.count(Pageview.id).label('views'),
+                func.count(func.distinct(Pageview.visitor_hash)).label('visitors')
             ).filter(
                 and_(*conditions)
             ).group_by(func.date(Pageview.timestamp))\
              .order_by(func.date(Pageview.timestamp)).all()
 
-            return [
-                {
-                    "date": r.date.isoformat(),
-                    "views": r.views
-                } for r in results
-            ]
+            # Every day in the range, including the ones nobody came. Without
+            # them a quiet day vanished from the axis instead of reading 0:
+            # the line went straight from the day before to the day after,
+            # and the previous period, matched by position, compared the
+            # wrong days with each other.
+            by_day = {r.date: r for r in results}
+            series = []
+            day = start_date.date()
+            while day <= end_date.date():
+                r = by_day.get(day)
+                series.append({
+                    "date": day.isoformat(),
+                    "views": r.views if r else 0,
+                    "visitors": r.visitors if r else 0,
+                })
+                day += timedelta(days=1)
+            return series
 
         except Exception as e:
             logger.error(f"Error getting timeseries data: {e}", exc_info=True)

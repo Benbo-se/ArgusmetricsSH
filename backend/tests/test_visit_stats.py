@@ -387,3 +387,31 @@ class TestThePublicShareRendersThemToo:
             assert heading in response.text, (
                 f"{heading} is missing from the public dashboard"
             )
+
+
+class TestTheDailySeries:
+    """The chart's points: one per day, quiet days included, with visitors.
+
+    The series used to hold only the days that had traffic. A quiet day
+    disappeared from the axis instead of reading 0, and the previous period,
+    which the chart lines up by position, was compared day for wrong day.
+    """
+
+    def series(self, db, website):
+        return AnalyticsQueryService(db)._get_timeseries_data(
+            website["id"], ANCHOR - timedelta(days=1), ANCHOR + timedelta(days=2)
+        )
+
+    def test_a_day_nobody_came_is_a_zero_not_a_gap(self, db, website, record):
+        record("a", 0)                        # 1 March
+        record("b", 2 * 86400)                # 3 March, nothing on the 2nd
+        days = self.series(db, website)
+        assert [d["date"] for d in days] == ["2026-02-28", "2026-03-01", "2026-03-02", "2026-03-03"]
+        assert [d["views"] for d in days] == [0, 1, 0, 1]
+
+    def test_visitors_are_counted_per_day(self, db, website, record):
+        record("a", 0)
+        record("a", 60, "/pricing")
+        record("b", 120)
+        day = next(d for d in self.series(db, website) if d["date"] == "2026-03-01")
+        assert (day["views"], day["visitors"]) == (3, 2)

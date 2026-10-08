@@ -31,7 +31,7 @@
 {% set active = 'analytics' %}
 {% include 'components/sidebar.html' with context %}
 <div class="lg:pl-64">
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" x-data="websitePage">
+<div class="dash-page max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" x-data="websitePage">
     {% if never_recorded %}{% include "dashboard/_first_visit.html" %}{% endif %}
     <div x-data="liveConversions" data-website-id="{{ website.id }}" hidden></div>
     <!-- Active Filters Bar -->
@@ -268,8 +268,8 @@
     </div>
 
     <!-- Stats cards with auto-refresh -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <!-- First 3 stats -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-8">
+        <!-- The headline numbers -->
         <div id="stats-basic"
              hx-get="/dashboard/website/{{ website.id }}/stats-basic?range={{ selected_range }}&compare={{ 'true' if compare_enabled else 'false' }}{% if active_filters.country %}&country={{ active_filters.country }}{% endif %}{% if active_filters.device %}&device={{ active_filters.device }}{% endif %}{% if active_filters.browser %}&browser={{ active_filters.browser }}{% endif %}{% if active_filters.page %}&page={{ active_filters.page }}{% endif %}{% if active_filters.referrer %}&referrer={{ active_filters.referrer }}{% endif %}"
              hx-trigger="every 10s"
@@ -293,17 +293,22 @@
         </div>
     </div>
 
-    <!-- Anomaly Alerts -->
-    <div class="bg-white rounded-lg shadow p-6 mb-8" x-data="anomalyPanel" data-website-id="{{ website.id }}">
-        <div class="flex items-center justify-between mb-4">
-            <h2 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
+    <!-- Anomaly Alerts: one quiet line while there is nothing to say, the
+         list only when there is. It used to be a large green box announcing
+         that nothing had happened. -->
+    <div class="bg-white rounded-lg shadow px-6 py-4 mb-8" x-data="anomalyPanel" data-website-id="{{ website.id }}">
+        <div class="flex items-center justify-between gap-4">
+            <h2 class="text-base font-semibold text-gray-900 flex items-center gap-2">
                 <svg class="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
                 </svg>
-                Anomaly Alerts
+                Anomalies
+                <span x-show="isLoading" class="dash-pill is-muted">Checking traffic patterns</span>
+                <span x-show="isEmpty" x-cloak class="dash-pill is-ok">Nothing unusual</span>
             </h2>
             <button @click="fetchAnomalies"
                     :disabled="loading"
+                    title="Check again"
                     class="text-sm text-gray-600 hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed">
                 <svg class="w-4 h-4 inline" :class="spinnerClass" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
@@ -311,25 +316,11 @@
             </button>
         </div>
 
-        <!-- Loading State -->
-        <div x-show="loading" class="text-center py-8">
-            <svg class="animate-spin h-8 w-8 mx-auto text-gray-400" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-            <p class="text-sm text-gray-500 mt-2">Analyzing traffic patterns...</p>
-        </div>
-
         <!-- Error State -->
-        <div x-show="hasError" class="text-center py-8">
-            <svg class="w-12 h-12 mx-auto text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-            </svg>
-            <p class="text-sm text-red-600 mt-2" x-text="error"></p>
-        </div>
+        <div x-show="hasError" x-cloak class="mt-3 text-sm text-red-600" x-text="error"></div>
 
         <!-- Anomalies List -->
-        <div x-show="hasAnomalies" class="space-y-3">
+        <div x-show="hasAnomalies" class="space-y-3 mt-4">
             <template x-for="(entry, index) in visibleAnomalies" :key="index">
                 <div x-show="true"
                      :class="severityClasses"
@@ -386,20 +377,17 @@
             </template>
         </div>
 
-        <!-- No Anomalies State -->
-        <div x-show="isEmpty"
-             class="text-center py-8 bg-green-50 rounded-lg border border-green-200">
-            <svg class="w-12 h-12 mx-auto text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-            </svg>
-            <p class="text-sm font-medium text-green-800 mt-2">No anomalies detected</p>
-            <p class="text-xs text-green-600 mt-1">Your website traffic looks normal</p>
-        </div>
     </div>
 
     <!-- Main graph -->
     <div class="bg-white rounded-lg shadow p-6 mb-8">
-        <h2 class="text-lg font-semibold text-gray-900 mb-4">Pageviews Over Time</h2>
+        <div class="flex items-center justify-between gap-4 mb-4">
+            <h2 class="text-lg font-semibold text-gray-900">Over time</h2>
+            <div class="seg" role="group" aria-label="Metric shown in the chart">
+                <button type="button" data-chart-metric="visitors" aria-pressed="true">Visitors</button>
+                <button type="button" data-chart-metric="views" aria-pressed="false">Pageviews</button>
+            </div>
+        </div>
         <div class="relative h-80">
             <canvas id="pageviews-chart"></canvas>
         </div>
@@ -439,11 +427,11 @@
                      attribute and inject a native event handler (stored XSS).
                      Script context is safe (tojson escapes </script>). -->
                 {{ '' }}<script type="application/json" id="top-pages-data">{{ stats.top_pages|tojson }}</script>
-                <div class="space-y-3" x-data="topPagesList" data-total-pageviews="{{ stats.total_pageviews }}">
+                <div class="space-y-1" x-data="topPagesList" data-total-pageviews="{{ stats.total_pageviews }}">
                     <template x-for="(row, index) in pageRows" :key="index">
                         <div x-data="listRow" @click="applyFilter"
-                             class="flex items-center justify-between py-2 border-b border-gray-100 last:border-0 cursor-pointer hover:bg-gray-50 transition-colors rounded px-2 -mx-2"
-                             :class="activeClass">
+                             class="rank-row flex items-center justify-between py-2 cursor-pointer rounded px-2 -mx-2"
+                             :class="activeClass" :style="barStyle">
                             <div class="flex-1 min-w-0">
                                 <p class="text-sm font-medium text-gray-900 truncate" x-text="path"></p>
                             </div>
@@ -470,12 +458,13 @@
             <!-- Entry Pages Tab Content -->
             <div x-show="isTabActive" data-tab="entry">
                 {% if stats.entry_pages and stats.entry_pages|length > 0 %}
-                <div class="space-y-3">
+                <p class="text-xs text-gray-500 mb-2">The first page of a visit, by visits</p>
+                <div class="space-y-1">
                     {% for page in stats.entry_pages %}
-                    <div class="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+                    <div class="rank-row flex items-center justify-between py-2 px-2 -mx-2 rounded"
+                         data-share="{{ (page.entries / stats.total_visits * 100) if stats.total_visits else 0 }}">
                         <div class="flex-1 min-w-0">
                             <p class="text-sm font-medium text-gray-900 truncate">{{ page.path }}</p>
-                            <p class="text-xs text-gray-500 mt-0.5">First page visitors see</p>
                         </div>
                         <div class="ml-4 flex items-center">
                             <span class="text-sm font-semibold text-gray-900">{{ page.entries }}</span>
@@ -492,12 +481,13 @@
             <!-- Exit Pages Tab Content -->
             <div x-show="isTabActive" data-tab="exit">
                 {% if stats.exit_pages and stats.exit_pages|length > 0 %}
-                <div class="space-y-3">
+                <p class="text-xs text-gray-500 mb-2">The last page before leaving, by visits</p>
+                <div class="space-y-1">
                     {% for page in stats.exit_pages %}
-                    <div class="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+                    <div class="rank-row flex items-center justify-between py-2 px-2 -mx-2 rounded"
+                         data-share="{{ (page.exits / stats.total_visits * 100) if stats.total_visits else 0 }}">
                         <div class="flex-1 min-w-0">
                             <p class="text-sm font-medium text-gray-900 truncate">{{ page.path }}</p>
-                            <p class="text-xs text-gray-500 mt-0.5">Last page before leaving</p>
                         </div>
                         <div class="ml-4 flex items-center">
                             <span class="text-sm font-semibold text-gray-900">{{ page.exits }}</span>
@@ -522,11 +512,11 @@
             <!-- Same XSS rationale as the Top Pages island: never |tojson inside
                  a double-quoted attribute. -->
             {{ '' }}<script type="application/json" id="top-referrers-data">{{ stats.top_referrers|tojson }}</script>
-            <div class="space-y-3" x-data="topReferrersList" data-total-pageviews="{{ stats.total_pageviews }}">
+            <div class="space-y-1" x-data="topReferrersList" data-total-pageviews="{{ stats.total_pageviews }}">
                 <template x-for="(row, index) in referrerRows" :key="index">
                     <div x-data="listRow" @click="applyFilter"
-                         class="flex items-center justify-between py-2 border-b border-gray-100 last:border-0 cursor-pointer hover:bg-gray-50 transition-colors rounded px-2 -mx-2"
-                         :class="activeClass">
+                         class="rank-row flex items-center justify-between py-2 cursor-pointer rounded px-2 -mx-2"
+                         :class="activeClass" :style="barStyle">
                         <div class="flex-1 min-w-0 flex items-center gap-2">
                             <span class="text-lg flex-shrink-0" x-text="icon"></span>
                             <p class="text-sm font-medium text-gray-900 truncate" x-text="referrer"></p>
@@ -550,9 +540,10 @@
     <div class="bg-white rounded-lg shadow p-6 mb-8">
         <h2 class="text-lg font-semibold text-gray-900 mb-4">Traffic Channels</h2>
         <p class="text-sm text-gray-600 mb-4">Traffic grouped by source type</p>
-        <div class="space-y-3">
+        <div class="space-y-1">
             {% for channel in stats.traffic_channels %}
-            <div class="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">
+            <div class="rank-row flex items-center justify-between py-3 px-2 -mx-2 rounded"
+                 data-share="{{ (channel.views / stats.total_pageviews * 100) if stats.total_pageviews else 0 }}">
                 <div class="flex items-center gap-3">
                     {% if channel.channel == 'Organic Search' %}
                     <span class="text-2xl">🔍</span>
@@ -993,10 +984,11 @@ argus.trackEvent('button_click', {
                 <span x-show="hasCountryFilter" class="ml-2 text-sm font-normal text-blue-600">(filtered)</span>
             </h2>
             {% if stats.top_countries and stats.top_countries|length > 0 %}
-            <div class="space-y-3">
+            <div class="space-y-1">
                 {% for country in stats.top_countries %}
                 <div @click="applyFilterFromData" data-filter="country" data-value="{{ country.country }}"
-                     class="flex items-center justify-between py-2 cursor-pointer hover:bg-gray-50 transition-colors rounded px-2 -mx-2"
+                     data-share="{{ (country.views / stats.total_pageviews * 100) if stats.total_pageviews else 0 }}"
+                     class="rank-row flex items-center justify-between py-2 cursor-pointer rounded px-2 -mx-2"
                      :class="serverRowClass">
                     <div class="flex items-center space-x-2">
                         <span class="text-xl">{{ country.country | country_flag }}</span>
@@ -1035,20 +1027,28 @@ argus.trackEvent('button_click', {
                 Devices
                 <span x-show="hasDeviceFilter" class="ml-2 text-sm font-normal text-blue-600">(filtered)</span>
             </h2>
-            <div class="relative h-48 mb-4">
-                <canvas id="devices-chart"></canvas>
-            </div>
             {% if stats.devices %}
-            <div class="space-y-2">
-                {% for device, count in stats.devices.items() %}
+            {% set device_total = stats.devices.values() | sum %}
+            {% set device_icons = {'desktop': 'fa-desktop', 'mobile': 'fa-mobile-alt', 'tablet': 'fa-tablet-alt'} %}
+            <div class="space-y-1">
+                {% for device, count in stats.devices.items() | sort(attribute='1', reverse=True) %}
                 <div @click="applyFilterFromData" data-filter="device" data-value="{{ device }}"
-                     class="flex items-center justify-between text-sm py-2 px-2 -mx-2 cursor-pointer hover:bg-gray-50 transition-colors rounded"
+                     data-share="{{ (count / device_total * 100) if device_total else 0 }}"
+                     class="rank-row flex items-center justify-between text-sm py-2 px-2 -mx-2 cursor-pointer rounded"
                      :class="serverRowClass">
-                    <span class="text-gray-700 capitalize">{{ device }}</span>
-                    <span class="font-semibold text-gray-900">{{ count }}</span>
+                    <span class="flex items-center gap-2 text-gray-700 capitalize">
+                        <i class="fas {{ device_icons.get(device, 'fa-question') }} w-4 text-center text-gray-500"></i>
+                        {{ device }}
+                    </span>
+                    <span>
+                        <span class="font-semibold text-gray-900">{{ count | format_number }}</span>
+                        <span class="ml-2 text-xs text-gray-500">{{ "%.0f"|format(count / device_total * 100) if device_total else 0 }}%</span>
+                    </span>
                 </div>
                 {% endfor %}
             </div>
+            {% else %}
+            <p class="text-gray-500 text-center py-8">No device data yet</p>
             {% endif %}
         </div>
 
@@ -1059,7 +1059,7 @@ argus.trackEvent('button_click', {
                 <span x-show="hasBrowserFilter" class="ml-2 text-sm font-normal text-blue-600">(filtered)</span>
             </h2>
             {% if stats.top_browsers and stats.top_browsers|length > 0 %}
-            <div class="space-y-3">
+            <div class="space-y-1">
                 {% for browser in stats.top_browsers %}
                 <!-- Browser name comes from the visitor's User-Agent: read it from a
                      data attribute (autoescape covers double-quoted attrs) instead of
@@ -1067,7 +1067,8 @@ argus.trackEvent('button_click', {
                      would break out of the JS string. -->
                 <div data-browser="{{ browser.browser or 'Unknown' }}"
                      @click="applyFilterFromData" data-filter="browser"
-                     class="flex items-center justify-between py-2 px-2 -mx-2 cursor-pointer hover:bg-gray-50 transition-colors rounded"
+                     data-share="{{ (browser.views / stats.total_pageviews * 100) if stats.total_pageviews else 0 }}"
+                     class="rank-row flex items-center justify-between py-2 px-2 -mx-2 cursor-pointer rounded"
                      :class="serverRowClass">
                     <div class="flex items-center gap-2">
                         {#- browser can be NULL for rows recorded without a
@@ -1111,16 +1112,16 @@ argus.trackEvent('button_click', {
 
     <!-- Live Visitors Section -->
     <div class="bg-white rounded-lg shadow p-6">
-        <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-            <span class="inline-block w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></span>
-            Live Visitors
+        <h2 class="text-lg font-semibold text-gray-900 mb-2 flex items-center gap-2">
+            <span class="live-dot"></span>
+            Live visitors
         </h2>
         <div id="live-visitors-list"
              hx-get="/dashboard/website/{{ website.id }}/live-list"
-             hx-trigger="every 5s"
+             hx-trigger="load, every 5s"
              hx-swap="innerHTML">
-            <!-- Will be populated by HTMX -->
-            <div class="text-center py-8 text-gray-500">Loading...</div>
+            <!-- Filled by HTMX on load and every five seconds after -->
+            <div class="py-8"></div>
         </div>
     </div>
 </div>
@@ -1132,11 +1133,8 @@ argus.trackEvent('button_click', {
         // Initialize pageviews chart
         const timeseriesData = {{ stats.timeseries | tojson | safe }};
         const previousPeriodData = {{ stats.timeseries_previous | tojson | safe if stats.timeseries_previous else 'null' }};
-        initPageviewsChart(timeseriesData, previousPeriodData);
+        bindChartMetricSwitch(timeseriesData, previousPeriodData);
 
-        // Initialize devices chart
-        const devicesData = {{ stats.devices | tojson | safe }};
-        initDevicesChart(devicesData);
     });
 
     function updateDashboard(range, compare) {
