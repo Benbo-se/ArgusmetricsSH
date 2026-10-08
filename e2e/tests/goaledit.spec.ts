@@ -20,7 +20,7 @@ async function createGoal(page: any, name: string) {
   await page.getByRole('button', { name: /Create.*Goal/i }).first().click();
   await page.locator('input').first().pressSequentially(name, { delay: 20 });
   await page.getByRole('button', { name: /^Create Goal$/ }).click();
-  await expect(page.locator('tbody tr')).toHaveCount(1, { timeout: 8000 });
+  await expect(page.locator('.goal-card')).toHaveCount(1, { timeout: 8000 });
 }
 
 test('Edit opens the dialog with the goal already in it', async ({ page, request }) => {

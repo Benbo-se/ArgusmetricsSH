@@ -54,3 +54,41 @@ def test_ago():
     assert ago(NOW, NOW - timedelta(seconds=20)) == "just now"
     assert ago(NOW, NOW - timedelta(minutes=1)) == "1 minute ago"
     assert ago(NOW, NOW - timedelta(hours=5)) == "5 hours ago"
+
+
+class TestGoalCards:
+    """The goals page: thirty days of conversions per goal, and the share of
+    visitors who converted, which unlike conversions per visitor cannot pass
+    100%."""
+
+    def goal(self, db, website_id, event):
+        return db.execute(
+            text("INSERT INTO goals (website_id, name, event_name, created_at) "
+                 "VALUES (:w, :e, :e, now()) RETURNING id"),
+            {"w": website_id, "e": event},
+        ).scalar()
+
+    def convert(self, db, website_id, goal_id, visitor, when):
+        db.execute(
+            text('INSERT INTO goal_conversions (goal_id, website_id, visitor_hash, "timestamp") '
+                 "VALUES (:g, :w, :h, :t)"),
+            {"g": goal_id, "w": website_id, "h": visitor, "t": when},
+        )
+        db.commit()
+
+    def test_conversions_rate_and_line(self, db, website):
+        from app.services.site_activity import goal_activity
+        w = website["id"]
+        order = self.goal(db, w, "order")
+        quiet = self.goal(db, w, "quiet")
+        for v in ("a", "b", "c", "d"):
+            put(db, w, v, NOW - timedelta(days=1))
+        self.convert(db, w, order, "a", NOW - timedelta(days=1))
+        self.convert(db, w, order, "a", NOW - timedelta(hours=2))   # same person again
+        self.convert(db, w, order, "b", NOW - timedelta(days=40))   # outside the window
+        out = goal_activity(db, w, now=NOW)
+        assert out["visitors"] == 4
+        assert out["goals"][order]["conversions"] == 2
+        assert out["goals"][order]["rate"] == 25.0
+        assert out["goals"][order]["spark"]["line"].count(",") == 30
+        assert quiet not in out["goals"]

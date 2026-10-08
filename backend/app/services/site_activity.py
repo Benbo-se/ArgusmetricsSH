@@ -1,4 +1,7 @@
-"""How each website has been doing lately, for the cards on the websites list.
+"""How each website, and each goal, has been doing lately.
+
+recent_activity is for the cards on the websites list, goal_activity for the
+cards on the goals page.
 
 The list showed a name, a tracking code and a badge reading "Active" on every
 site whatever was happening on it. This is what a card now says instead: how
@@ -111,3 +114,67 @@ def recent_activity(db, website_ids: Iterable[int], now: Optional[datetime] = No
             "spark": _spark(days) if any(days) else None,
         }
     return out
+
+
+GOAL_DAYS = 30
+
+
+def goal_activity(db, website_id: int, now: Optional[datetime] = None) -> dict:
+    """Per goal, the last thirty days: conversions, converters, a line.
+
+    `rate` is the share of the period's visitors who converted at least once,
+    which cannot pass 100%. Conversions divided by visitors, which the
+    overview's table shows, can: one visitor ordering twice is two
+    conversions.
+    """
+    now = now or datetime.now(timezone.utc)
+    first = now.date() - timedelta(days=GOAL_DAYS - 1)
+    since = datetime.combine(first, datetime.min.time(), tzinfo=timezone.utc)
+
+    visitors = db.execute(
+        text(
+            'SELECT count(DISTINCT visitor_hash) FROM pageviews '
+            'WHERE website_id = :w AND "timestamp" >= :since'
+        ),
+        {"w": website_id, "since": since},
+    ).scalar() or 0
+
+    rows = db.execute(
+        text(
+            """
+            SELECT goal_id, date("timestamp") AS day,
+                   count(*) AS conversions
+            FROM goal_conversions
+            WHERE website_id = :w AND "timestamp" >= :since
+            GROUP BY goal_id, date("timestamp")
+            """
+        ),
+        {"w": website_id, "since": since},
+    ).all()
+    converters = dict(db.execute(
+        text(
+            """
+            SELECT goal_id, count(DISTINCT visitor_hash)
+            FROM goal_conversions
+            WHERE website_id = :w AND "timestamp" >= :since
+            GROUP BY goal_id
+            """
+        ),
+        {"w": website_id, "since": since},
+    ).all())
+
+    days = {}
+    for r in rows:
+        offset = (r.day - first).days
+        if 0 <= offset < GOAL_DAYS:
+            days.setdefault(r.goal_id, [0] * GOAL_DAYS)[offset] = r.conversions
+
+    out = {}
+    for goal_id, series in days.items():
+        who = converters.get(goal_id, 0)
+        out[goal_id] = {
+            "conversions": sum(series),
+            "rate": round(who / visitors * 100, 1) if visitors else None,
+            "spark": _spark(series),
+        }
+    return {"visitors": visitors, "goals": out}

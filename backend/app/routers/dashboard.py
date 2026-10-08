@@ -23,7 +23,7 @@ from app.database import get_db, set_rls_context
 from app.services.analytics_service import AnalyticsService
 from app.services.website_service import WebsiteService
 from app.services.usage_service import get_usage
-from app.services.site_activity import recent_activity
+from app.services.site_activity import goal_activity, recent_activity
 from app.models.user import User
 from app.routers.auth import get_current_user
 from app.utils.date_helpers import parse_date_range
@@ -958,6 +958,8 @@ async def website_goals(
 
     # Get all goals for this website
     goals = analytics_service.get_goals_list(website_id)
+    activity = goal_activity(analytics_service.db, website_id)
+    quiet = {"conversions": 0, "rate": 0.0 if activity["visitors"] else None, "spark": None}
 
     # Convert goals to dict for JSON serialization
     goals_data = [
@@ -965,7 +967,8 @@ async def website_goals(
             "id": goal.id,
             "name": goal.name,
             "event_name": goal.event_name,
-            "created_at": goal.created_at.isoformat() if goal.created_at else None
+            "created_at": goal.created_at.isoformat() if goal.created_at else None,
+            **activity["goals"].get(goal.id, quiet),
         }
         for goal in goals
     ]
@@ -975,7 +978,8 @@ async def website_goals(
     return templates.TemplateResponse(request, "dashboard/goals.html", {
         "current_user": current_user,
         "website": website,
-        "goals": goals_data
+        "goals": goals_data,
+        "goal_visitors": activity["visitors"],
     })
 
 

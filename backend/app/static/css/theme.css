@@ -345,6 +345,25 @@ body {
 .dash-motion .site-card:nth-child(3) { animation-delay: .12s; }
 .dash-motion .site-card:nth-child(n+4) { animation-delay: .18s; }
 
+/* --- Goal cards (dashboard/goals.html) ----------------------------------- */
+.goal-card { transition: box-shadow .2s ease; }
+.goal-card:hover { box-shadow: var(--shadow-lift) !important; }
+.goal-action { transition: background-color .15s ease, color .15s ease; }
+.goal-action:hover { background: var(--surface-sunken); color: var(--brand-500) !important; }
+.goal-action.is-danger:hover { color: var(--crit) !important; }
+/* A card's background is pinned by the .bg-white retint, which an animated
+   background cannot override, so a conversion rings the card instead. */
+.goal-card.goal-pulse { animation: goal-ring 1.5s ease-out; }
+@keyframes goal-ring {
+    0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--ok) 55%, transparent); }
+    100% { box-shadow: 0 0 0 14px color-mix(in srgb, var(--ok) 0%, transparent); }
+}
+.goal-pulse .goal-count { color: var(--ok) !important; transition: color .2s ease; }
+.goal-howto > summary { list-style: none; }
+.goal-howto > summary::-webkit-details-marker { display: none; }
+.goal-howto > summary::after { content: "+"; float: right; color: var(--text-muted); font-weight: 400; }
+.goal-howto[open] > summary::after { content: "\2212"; }
+
 /* The page assembles itself on arrival: cards rise in one after another, as
    the scenes on the site do. Only when dashboard.js has added .dash-motion,
    which it does for a visible tab without reduced motion, so a page rendered

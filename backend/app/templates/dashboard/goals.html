@@ -17,81 +17,85 @@
 {% set active = 'goals' %}
 {% include 'components/sidebar.html' with context %}
 <div class="lg:pl-64">
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <!-- Header -->
-    <div class="mb-2">
-        <h1 class="text-3xl font-bold text-gray-900">Goals Management</h1>
-        <p class="mt-2 text-gray-600">{{ website.name }} - Track conversions and important events</p>
-    </div>
-
-    <!-- Goals List Section -->
+<div class="dash-page max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <!-- JSON island: |tojson doesn't escape double quotes, so it must never
          sit inside a double-quoted attribute (attribute-breakout XSS). -->
     <script type="application/json" id="goals-data">{{ goals | tojson }}</script>
     <div x-data="liveConversions" data-website-id="{{ website.id }}" hidden></div>
-    <div class="bg-white rounded-lg shadow p-6 mb-8"
-         x-data="goalsPage">
+    <div x-data="goalsPage">
 
-        <!-- Header with Create Button -->
-        <div class="flex items-center justify-between mb-6">
-            <h2 class="text-lg font-semibold text-gray-900">Your Goals</h2>
+        <!-- Header -->
+        <div class="mb-6 flex flex-wrap items-end justify-between gap-4">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">Goals</h1>
+                <p class="mt-2 text-gray-600">
+                    {{ website.name }}: the last 30 days, out of {{ goal_visitors | format_number }} visitors
+                </p>
+            </div>
             <button @click="openCreate"
                     class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                 Create New Goal
             </button>
         </div>
 
-        <!-- Goals Table -->
+        <!-- One card per goal. Conversions and the line come from the server
+             (site_activity.goal_activity) and the count goes up live as
+             conversions arrive (goalRow). A goal created on this page starts
+             at zero with a flat line until the next load. -->
         <template x-if="hasGoals">
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead>
-                        <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Goal Name</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Event Name</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
-                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
-                        {# :key is the goal object itself: the CSP build cannot
-                           read goal.id, and object identity is a valid key. #}
-                        <template x-for="(goal, index) in goals" :key="index">
-                            <tr x-data="goalRow" :class="rowClass">
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm font-medium text-gray-900" x-text="rowName"></div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm text-gray-700 font-mono" x-text="rowEventName"></div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    <span x-text="rowCreatedAt"></span>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                    <button @click="edit"
-                                            class="text-blue-600 hover:text-blue-900 mr-4">
-                                        Edit
-                                    </button>
-                                    <button @click="confirmDelete"
-                                            class="text-red-600 hover:text-red-900">
-                                        Delete
-                                    </button>
-                                </td>
-                            </tr>
-                        </template>
-                    </tbody>
-                </table>
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
+                {# :key is the index: the CSP build cannot read goal.id. #}
+                <template x-for="(goal, index) in goals" :key="index">
+                    <div x-data="goalRow" :class="rowClass" class="goal-card bg-white rounded-lg shadow p-6">
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="min-w-0">
+                                <h3 class="text-lg font-semibold text-gray-900 truncate" x-text="rowName"></h3>
+                                <code class="text-xs text-gray-500 font-mono" x-text="rowEventName"></code>
+                            </div>
+                            <div class="flex-shrink-0 flex gap-1">
+                                <button @click="edit" aria-label="Edit" title="Edit"
+                                        class="goal-action p-1.5 rounded-md text-gray-400">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                    </svg>
+                                </button>
+                                <button @click="confirmDelete" aria-label="Delete" title="Delete"
+                                        class="goal-action is-danger p-1.5 rounded-md text-gray-400">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="mt-5 flex items-baseline gap-2">
+                            <p class="goal-count text-3xl font-bold text-gray-900 tabular-nums" x-text="rowConversions"></p>
+                            <p class="text-sm text-gray-500">conversions</p>
+                            <span x-show="hasRate" class="dash-pill is-muted ml-auto"
+                                  title="Share of the period's visitors who converted at least once"
+                                  x-text="rowRate"></span>
+                        </div>
+
+                        <svg class="site-spark mt-3" viewBox="0 0 140 36" preserveAspectRatio="none" aria-hidden="true">
+                            <path x-show="hasSpark" class="site-spark-area" :d="sparkArea"/>
+                            <polyline x-show="hasSpark" class="site-spark-line" :points="sparkLine"/>
+                            <line x-show="hasNoSpark" class="site-spark-empty" x1="0" y1="35" x2="140" y2="35"/>
+                        </svg>
+
+                        <p class="mt-3 text-xs text-gray-500">Added <span x-text="rowCreatedAt"></span></p>
+                    </div>
+                </template>
             </div>
         </template>
 
         <!-- Empty State -->
         <template x-if="hasNoGoals">
-            <div class="text-center py-12">
+            <div class="bg-white rounded-lg shadow text-center py-12 px-6 mb-8">
                 <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
                 </svg>
                 <h3 class="mt-2 text-sm font-medium text-gray-900">No goals yet</h3>
-                <p class="mt-1 text-sm text-gray-500">Get started by creating your first goal.</p>
+                <p class="mt-1 text-sm text-gray-500">A goal counts one thing you want visitors to do: sign up, order, get in touch.</p>
                 <div class="mt-6">
                     <button @click="openCreate"
                             class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
@@ -237,9 +241,11 @@
         </div>
     </div>
 
-    <!-- Tracking Instructions -->
-    <div class="bg-white rounded-lg shadow p-6 mb-6">
-        <h2 class="text-lg font-semibold text-gray-900 mb-4">How to Track Goals</h2>
+    <!-- Tracking Instructions: folded away once there are goals, since by
+         then they have been read. -->
+    <details class="goal-howto bg-white rounded-lg shadow p-6 mb-6"{% if not goals %} open{% endif %}>
+        <summary class="text-lg font-semibold text-gray-900 cursor-pointer">How to track goals</summary>
+        <div class="mt-4">
         <p class="text-sm text-gray-600 mb-4">
             To track goal conversions, add this JavaScript code to your website where the conversion happens (e.g., on button click, form submission):
         </p>
@@ -262,7 +268,8 @@
         <div class="mt-4 text-sm text-gray-600">
             <p>Make sure the tracking script is installed on your website first. The event name must match the "Event Name" field in your goal configuration.</p>
         </div>
-    </div>
+        </div>
+    </details>
 
 </div>
 </div>
