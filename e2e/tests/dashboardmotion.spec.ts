@@ -1,5 +1,6 @@
 import { test, expect, Page, APIRequestContext } from '@playwright/test';
 import { createUserWithWebsite } from '../helpers/auth';
+import { track } from '../helpers/track';
 
 /**
  * The headline numbers count up, and a refresh that changes one counts from
@@ -11,9 +12,7 @@ const UA = 'Mozilla/5.0 (X11; Linux x86_64) Chrome/141.0 Safari/537.36';
 
 async function visits(request: APIRequestContext, code: string, n: number) {
   for (let i = 0; i < n; i++) {
-    await request.post('/api/v1/analytics/track', {
-      data: { tracking_code: code, path: `/p${i}` }, headers: { 'User-Agent': UA },
-    });
+    await track(request, { tracking_code: code, path: `/p${i}` }, UA);
   }
 }
 

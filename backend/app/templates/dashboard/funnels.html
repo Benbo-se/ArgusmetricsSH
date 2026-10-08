@@ -17,84 +17,82 @@
 {% set active = 'funnels' %}
 {% include 'components/sidebar.html' with context %}
 <div class="lg:pl-64">
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <!-- Header -->
-    <div class="mb-2">
-        <h1 class="text-3xl font-bold text-gray-900">Funnel Analysis</h1>
-        <p class="mt-2 text-gray-600">{{ website.name }} - Track and optimize your conversion funnels</p>
-    </div>
-
-    <!-- Funnels Management Section -->
+<div class="dash-page max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <!-- JSON island: |tojson doesn't escape double quotes, so it must never
          sit inside a double-quoted attribute (attribute-breakout XSS). -->
     <script type="application/json" id="funnels-data">{{ funnels | tojson }}</script>
-    <div class="bg-white rounded-lg shadow p-6 mb-8"
-         x-data="funnelsPage">
+    <div x-data="funnelsPage">
 
-        <!-- Header with Create Button -->
-        <div class="flex items-center justify-between mb-6">
-            <h2 class="text-lg font-semibold text-gray-900">Your Funnels</h2>
-            <button @click="openCreate"
-                    class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                Create New Funnel
-            </button>
+        <!-- Header -->
+        <div class="mb-6 flex flex-wrap items-end justify-between gap-4">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">Funnels</h1>
+                <p class="mt-2 text-gray-600">{{ website.name }}: where visitors drop out on the way to what you want them to do</p>
+            </div>
+            <div class="flex items-center gap-3">
+                <div class="seg" role="group" aria-label="Period">
+                    <button type="button" @click="setDays" data-days="7" :aria-pressed="daysPressed">7 days</button>
+                    <button type="button" @click="setDays" data-days="30" :aria-pressed="daysPressed">30 days</button>
+                    <button type="button" @click="setDays" data-days="90" :aria-pressed="daysPressed">90 days</button>
+                </div>
+                <button @click="openCreate"
+                        class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    Create New Funnel
+                </button>
+            </div>
         </div>
 
-        <!-- Funnels List -->
+        <!-- The funnel itself on every card, rather than behind a View Stats
+             button: a bar per step, as wide as the share of entrants still
+             there, and what was lost between each pair of steps. -->
         <template x-if="hasFunnels">
-            <div class="space-y-4">
+            <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-8">
                 <template x-for="(funnel, index) in funnels" :key="index">
-                    <div x-data="funnelCard" class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                        <div class="flex items-center justify-between mb-3">
-                            <div>
-                                <h3 class="text-lg font-semibold text-gray-900" x-text="name"></h3>
-                                <p class="text-sm text-gray-500">
-                                    <span x-text="stepCount"></span> steps
-                                    <span class="mx-2">•</span>
-                                    Created <span x-text="createdAt"></span>
-                                </p>
+                    <div x-data="funnelCard" class="funnel-card bg-white rounded-lg shadow p-6">
+                        <div class="flex items-start justify-between gap-4 mb-5">
+                            <div class="min-w-0">
+                                <h3 class="text-lg font-semibold text-gray-900 truncate" x-text="name"></h3>
+                                <p class="text-sm text-gray-500"><span x-text="stepCount"></span> steps · added <span x-text="createdAt"></span></p>
                             </div>
-                            <div class="flex items-center space-x-4">
+                            <div class="flex items-start gap-3 flex-shrink-0">
                                 <div class="text-right">
-                                    <p class="text-2xl font-bold text-blue-600" x-text="conversionRate"></p>
-                                    <p class="text-xs text-gray-500">Overall Conversion</p>
+                                    <p class="text-3xl font-bold text-gray-900 tabular-nums" x-text="conversionRate"></p>
+                                    <p class="text-xs text-gray-500">of <span x-text="totalVisitors"></span> who entered finished</p>
                                 </div>
-                                <div class="text-right">
-                                    <p class="text-lg font-semibold text-gray-900" x-text="totalVisitors"></p>
-                                    <p class="text-xs text-gray-500">Total Visitors</p>
-                                </div>
+                                <button @click="confirmDelete" aria-label="Delete" title="Delete"
+                                        class="goal-action is-danger p-1.5 rounded-md text-gray-400">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                    </svg>
+                                </button>
                             </div>
                         </div>
 
-                        <!-- Steps Preview -->
-                        <div class="mb-3 flex items-center space-x-2 overflow-x-auto pb-2">
+                        <ol>
                             <template x-for="(entry, index) in funnelSteps" :key="index">
-                                <div x-data="funnelCardStep" class="flex items-center">
-                                    <div class="flex-shrink-0 bg-gray-100 rounded-lg px-3 py-2 min-w-max">
-                                        <div class="text-xs text-gray-500" x-text="label"></div>
-                                        <div class="font-medium text-sm text-gray-900" x-text="name"></div>
-                                        <div class="text-xs text-gray-600 font-mono" x-text="path"></div>
-                                    </div>
-                                    <template x-if="hasNext">
-                                        <svg class="w-4 h-4 text-gray-400 mx-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                                        </svg>
+                                <li x-data="funnelCardStep">
+                                    <template x-if="showsDropOff">
+                                        <p class="funnel-drop text-xs pl-9 py-1.5" x-text="dropOff"></p>
                                     </template>
-                                </div>
+                                    <div class="flex items-center gap-3">
+                                        <span class="funnel-num" x-text="number"></span>
+                                        <div class="flex-1 min-w-0">
+                                            <div class="flex items-baseline justify-between gap-3">
+                                                <p class="text-sm font-medium text-gray-900 truncate">
+                                                    <span x-text="name"></span>
+                                                    <code class="ml-1 text-xs text-gray-500 font-mono" x-text="path"></code>
+                                                </p>
+                                                <p class="text-sm whitespace-nowrap">
+                                                    <span class="font-semibold text-gray-900 tabular-nums" x-text="visitors"></span>
+                                                    <span class="ml-1 text-xs text-gray-500 tabular-nums" x-text="rate"></span>
+                                                </p>
+                                            </div>
+                                            <div class="funnel-track mt-1.5"><div class="funnel-fill" :style="barStyle"></div></div>
+                                        </div>
+                                    </div>
+                                </li>
                             </template>
-                        </div>
-
-                        <!-- Actions -->
-                        <div class="flex items-center justify-end space-x-3 pt-3 border-t border-gray-200">
-                            <button @click="viewStats"
-                                    class="px-3 py-1.5 text-sm bg-blue-50 text-blue-700 rounded-md hover:bg-blue-100 font-medium">
-                                View Stats
-                            </button>
-                            <button @click="confirmDelete"
-                                    class="px-3 py-1.5 text-sm text-red-600 hover:text-red-800 font-medium">
-                                Delete
-                            </button>
-                        </div>
+                        </ol>
                     </div>
                 </template>
             </div>
@@ -102,7 +100,7 @@
 
         <!-- Empty State -->
         <template x-if="hasNoFunnels">
-            <div class="text-center py-12">
+            <div class="bg-white rounded-lg shadow text-center py-12 px-6 mb-8">
                 <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
                 </svg>
@@ -223,126 +221,6 @@
             </div>
         </div>
 
-        <!-- Stats Modal -->
-        <div x-show="isStatsOpen"
-             x-cloak
-             @keydown.escape.window="closeStats"
-             class="fixed inset-0 z-50 overflow-y-auto">
-            <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-                <!-- Background overlay -->
-                <div @click="closeStats" class="fixed inset-0 transition-opacity bg-gray-500/75"></div>
-
-                <!-- Modal panel -->
-                <div class="relative inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
-                    <div class="bg-white px-4 pt-5 pb-4 sm:p-6">
-                        <div class="flex items-center justify-between mb-4">
-                            <h3 class="text-lg font-medium text-gray-900" x-text="selectedFunnelName"></h3>
-                            <button @click="closeStats"
-                                    class="text-gray-400 hover:text-gray-600">
-                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                </svg>
-                            </button>
-                        </div>
-
-                        <!-- Time Range Selector -->
-                        <div class="mb-6">
-                            <select x-model="daysFilter" @change="reloadStats"
-                                    @change="reloadStats"
-                                    class="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                                <option value="7">Last 7 days</option>
-                                <option value="30">Last 30 days</option>
-                                <option value="90">Last 90 days</option>
-                            </select>
-                        </div>
-
-                        <!-- Loading State -->
-                        <div x-show="statsLoading" class="text-center py-12">
-                            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                            <p class="mt-2 text-sm text-gray-500">Loading stats...</p>
-                        </div>
-
-                        <!-- Stats Content -->
-                        <template x-if="statsReady">
-                            <div>
-                                <!-- Summary -->
-                                <div class="mb-6 grid grid-cols-2 gap-4">
-                                    <div class="bg-blue-50 rounded-lg p-4">
-                                        <p class="text-sm text-gray-600">Total Visitors</p>
-                                        <p class="text-2xl font-bold text-gray-900" x-text="totalVisitors"></p>
-                                    </div>
-                                    <div class="bg-green-50 rounded-lg p-4">
-                                        <p class="text-sm text-gray-600">Overall Conversion</p>
-                                        <p class="text-2xl font-bold text-green-600">
-                                            <span x-text="overallRate"></span>%
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <!-- Funnel Visualization -->
-                                <div class="space-y-3">
-                                    <template x-for="(entry, index) in statsSteps" :key="index">
-                                        <div x-data="funnelStatsStep">
-                                            <div class="flex items-center justify-between mb-2">
-                                                <div class="flex items-center space-x-3">
-                                                    <span class="flex items-center justify-center w-8 h-8 bg-blue-100 text-blue-600 rounded-full text-sm font-semibold"
-                                                          x-text="number"></span>
-                                                    <div>
-                                                        <p class="font-medium text-gray-900" x-text="name"></p>
-                                                        <template x-if="showsDropOff">
-                                                            <p class="text-xs text-red-600">
-                                                                -<span x-text="dropOff"></span>% drop-off
-                                                            </p>
-                                                        </template>
-                                                    </div>
-                                                </div>
-                                                <div class="text-right">
-                                                    <p class="text-lg font-semibold text-gray-900" x-text="visitors"></p>
-                                                    <p class="text-sm text-gray-600">
-                                                        <span x-text="rate"></span>%
-                                                    </p>
-                                                </div>
-                                            </div>
-
-                                            <!-- Progress Bar -->
-                                            <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
-                                                <div class="bg-gradient-to-r from-blue-500 to-blue-600 h-3 rounded-full transition-all duration-500"
-                                                     :style="barStyle"></div>
-                                            </div>
-
-                                            <!-- Arrow -->
-                                            <template x-if="hasNext">
-                                                <div class="flex justify-center my-2">
-                                                    <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
-                                                    </svg>
-                                                </div>
-                                            </template>
-                                        </div>
-                                    </template>
-                                </div>
-                            </div>
-                        </template>
-
-                        <!-- Empty Stats -->
-                        <template x-if="statsEmpty">
-                            <div class="text-center py-8">
-                                <p class="text-gray-500">No data available for this funnel yet.</p>
-                                <p class="text-sm text-gray-400 mt-2">Visitors will appear here once they navigate through your funnel steps.</p>
-                            </div>
-                        </template>
-                    </div>
-
-                    <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                        <button @click="closeStats"
-                                class="w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:w-auto sm:text-sm">
-                            Close
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
         <!-- Delete Confirmation Modal -->
         <div x-show="isDeleteOpen"
              x-cloak
@@ -391,11 +269,11 @@
         </div>
     </div>
 
-    <!-- How Funnels Work -->
-    <div class="bg-white rounded-lg shadow p-6 mb-6">
-        <h2 class="text-lg font-semibold text-gray-900 mb-4">How Funnel Tracking Works</h2>
+    <!-- How Funnels Work: folded away once there are funnels. -->
+    <details class="goal-howto bg-white rounded-lg shadow p-6 mb-6"{% if not funnels %} open{% endif %}>
+        <summary class="text-lg font-semibold text-gray-900 cursor-pointer">How funnels work</summary>
 
-        <div class="space-y-4">
+        <div class="space-y-4 mt-4">
             <div>
                 <h3 class="text-sm font-medium text-gray-900 mb-2">What is a Funnel?</h3>
                 <p class="text-sm text-gray-600">
@@ -439,13 +317,13 @@
             <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <h3 class="text-sm font-medium text-blue-900 mb-2">Key Metrics:</h3>
                 <ul class="text-sm text-blue-800 space-y-1 list-disc list-inside">
-                    <li><strong>Conversion Rate:</strong> Percentage of initial visitors who complete each step</li>
+                    <li><strong>Conversion Rate:</strong> Percentage of initial visitors who complete each step. A step only counts visitors who also reached every step before it, so arriving straight at checkout from a search result does not count as having been through the cart.</li>
                     <li><strong>Drop-off Rate:</strong> Percentage of users who leave between steps</li>
                     <li><strong>Total Visitors:</strong> Number of unique visitors who entered the funnel</li>
                 </ul>
             </div>
         </div>
-    </div>
+    </details>
 
 </div>
 </div>

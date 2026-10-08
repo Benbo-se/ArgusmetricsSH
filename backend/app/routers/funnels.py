@@ -8,10 +8,8 @@ Provides endpoints for:
 """
 import logging
 from typing import List
-from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from sqlalchemy import func
 
 from app.database import get_db
 from app.schemas.funnel import (
@@ -19,13 +17,14 @@ from app.schemas.funnel import (
     FunnelResponse,
     FunnelStatsResponse
 )
-from app.models.funnel import Funnel, FunnelEvent
+from app.models.funnel import Funnel
 from app.models.website import Website
 from app.models.user import User
 from app.models.website_member import MemberRole
 from app.routers.auth import get_current_user
 from app.routers.analytics import get_current_user_or_token, _enforce_token_scope
 from app.services.team_service import TeamService
+from app.services.funnel_stats import funnel_stats
 
 logger = logging.getLogger(__name__)
 
@@ -180,46 +179,7 @@ async def get_funnel_stats(
             detail="Access denied"
         )
 
-    # Calculate date range
-    end_date = datetime.utcnow()
-    start_date = end_date - timedelta(days=days)
-
-    # Get total unique visitors who entered the funnel (step 1)
-    total_visitors = db.query(func.count(func.distinct(FunnelEvent.visitor_id))).filter(
-        FunnelEvent.funnel_id == funnel_id,
-        FunnelEvent.step_number == 1,
-        FunnelEvent.timestamp >= start_date
-    ).scalar() or 0
-
-    # Get conversion stats for each step
-    step_stats = []
-    for step in funnel.steps:
-        step_number = step['step']
-        step_name = step['name']
-
-        # Count unique visitors who reached this step
-        visitors_at_step = db.query(func.count(func.distinct(FunnelEvent.visitor_id))).filter(
-            FunnelEvent.funnel_id == funnel_id,
-            FunnelEvent.step_number == step_number,
-            FunnelEvent.timestamp >= start_date
-        ).scalar() or 0
-
-        # Calculate conversion rate (percentage of total visitors)
-        conversion_rate = (visitors_at_step / total_visitors * 100) if total_visitors > 0 else 0
-
-        step_stats.append({
-            "step": step_number,
-            "name": step_name,
-            "visitors": visitors_at_step,
-            "conversion_rate": round(conversion_rate, 2)
-        })
-
-    return FunnelStatsResponse(
-        funnel_id=funnel.id,
-        funnel_name=funnel.name,
-        total_visitors=total_visitors,
-        steps=step_stats
-    )
+    return FunnelStatsResponse(**funnel_stats(db, funnel, days))
 
 
 @router.delete("/{funnel_id}")

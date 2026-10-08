@@ -364,6 +364,26 @@ body {
 .goal-howto > summary::after { content: "+"; float: right; color: var(--text-muted); font-weight: 400; }
 .goal-howto[open] > summary::after { content: "\2212"; }
 
+/* --- Funnel cards (dashboard/funnels.html) ------------------------------- */
+.funnel-num {
+    flex-shrink: 0;
+    width: 1.5rem; height: 1.5rem;
+    border-radius: 99px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: .75rem; font-weight: 700;
+    background: var(--brand-50); color: var(--brand-500);
+}
+.funnel-track { height: 10px; border-radius: 99px; background: var(--surface-sunken); overflow: hidden; }
+.funnel-fill {
+    height: 100%;
+    width: 0;
+    border-radius: 99px;
+    background: linear-gradient(90deg, var(--brand-500), color-mix(in srgb, var(--brand-500) 70%, var(--accent)));
+    transition: width .8s cubic-bezier(.2, .8, .2, 1);
+}
+.funnel-card li:last-child .funnel-fill { background: var(--ok); }
+.funnel-drop { color: var(--crit); }
+
 /* The page assembles itself on arrival: cards rise in one after another, as
    the scenes on the site do. Only when dashboard.js has added .dash-motion,
    which it does for a visible tab without reduced motion, so a page rendered
