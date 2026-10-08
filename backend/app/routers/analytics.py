@@ -99,6 +99,16 @@ def is_bot_user_agent(user_agent: str) -> bool:
     return any(bot in ua_lower for bot in KNOWN_BOTS)
 
 
+def dnt_requested(request: Request) -> bool:
+    """Whether the request carries Do Not Track.
+
+    Checked by every tracking endpoint. /track and /track-scroll did; custom
+    events, goals and ecommerce did not, so a browser running an old cached
+    tracker, from before it checked DNT itself, still had those recorded.
+    """
+    return (request.headers.get("DNT") or request.headers.get("dnt")) == "1"
+
+
 def bot_reason(user_agent: str) -> Optional[str]:
     """Why this user agent is a bot, or None.
 
@@ -692,6 +702,14 @@ async def track_event(
     client_ip = get_client_ip(request)
     user_agent = get_user_agent(request)
 
+    if dnt_requested(request):
+        await _tell_debug_console(
+            analytics_service.db, event_request.tracking_code, "event", None,
+            client_ip, user_agent, "skipped", "Do Not Track",
+            {"event_name": event_request.event_name},
+        )
+        return GoalConversionResponse(success=True, message="Tracking skipped (DNT)")
+
     bot = bot_reason(user_agent)
     if bot:
         await _tell_debug_console(
@@ -770,6 +788,10 @@ async def track_ecommerce(
              # ecommerce line would fail to send, silently.
              "revenue": None if event_data.revenue is None else str(event_data.revenue)},
         )
+
+    if dnt_requested(request):
+        await tell("skipped", "Do Not Track")
+        return EcommerceEventResponse(success=True, message="Tracking skipped (DNT)")
 
     # Bot filtering
     if is_bot_user_agent(user_agent):
