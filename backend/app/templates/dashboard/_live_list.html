@@ -3,22 +3,21 @@
    autoescaped (fixes stored XSS H9 / L19). `visitors` is a list of dicts with
    keys: country, path, time_ago. The country flag uses the country_flag filter. #}
 {% if visitors %}
-<div class="space-y-3">
+<ul>
     {% for visitor in visitors %}
-    <div class="flex items-center justify-between py-2 border-b border-gray-100">
-        <div class="flex items-center space-x-3">
-            <span class="text-2xl">{{ (visitor.country | country_flag) if visitor.country else "🌍" }}</span>
-            <div>
-                <p class="text-sm font-medium text-gray-900">{{ visitor.path }}</p>
-                {# An unresolved country is None, and Jinja renders that as the
-                   word "None". The flag on the line above already had a
-                   fallback; this one did not, so every visitor read "None". #}
-                <p class="text-xs text-gray-500">{{ visitor.country or "Unknown" }} • {{ visitor.time_ago }}</p>
-            </div>
-        </div>
-    </div>
+    <li class="flex items-center gap-3 py-2.5 border-b border-gray-100 last:border-0">
+        <span class="text-xl leading-none">{{ (visitor.country | country_flag) if visitor.country else "🌍" }}</span>
+        <p class="flex-1 min-w-0 text-sm font-medium text-gray-900 truncate">{{ visitor.path }}</p>
+        {# An unresolved country is None, and Jinja renders that as the
+           word "None". The flag above already had a fallback; this one did
+           not, so every visitor read "None". #}
+        <p class="text-xs text-gray-500 whitespace-nowrap">{{ visitor.country or "Unknown" }} · {{ visitor.time_ago }}</p>
+    </li>
     {% endfor %}
-</div>
+</ul>
 {% else %}
-<p class="text-center py-8 text-gray-500">No visitors online right now</p>
+<div class="flex flex-col items-center gap-2 py-8 text-gray-500">
+    <span class="live-dot"></span>
+    <p class="text-sm">Watching. Nobody is on the site right now.</p>
+</div>
 {% endif %}

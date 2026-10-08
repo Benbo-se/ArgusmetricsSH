@@ -15,7 +15,7 @@
         <p class="stat-value text-3xl text-gray-900">{{ value }}</p>
         {% if change is not none and change != 0 %}
             {% set improving = (change > 0) if higher_is_better else (change < 0) %}
-            <span class="text-sm font-medium {% if improving %}text-green-600{% else %}text-red-600{% endif %}"
+            <span class="stat-delta {% if improving %}is-better{% else %}is-worse{% endif %}"
                   title="Compared with the previous period of the same length">
                 {% if change > 0 %}▲{% else %}▼{% endif %}
                 {{ "%.1f"|format(change|abs) }}%

@@ -2279,10 +2279,13 @@ document.addEventListener('alpine:init', () => {
         },
 
         get pageRows() {
+            // Bars against the top row, as applyShareBars in dashboard.js does.
+            const top = Math.max(0, ...this.topPages.map((p) => p.views))
             return this.topPages.map((page) => ({
                 path: page.path,
                 views: page.views,
                 scroll: page.avg_scroll === null ? '–' : `${page.avg_scroll}% read`,
+                pct: top ? (page.views / top) * 100 : 0,
                 share: this.totalPageviews
                     ? `(${Math.round((page.views / this.totalPageviews) * 100)}%)`
                     : '(0%)',
@@ -2302,10 +2305,12 @@ document.addEventListener('alpine:init', () => {
         },
 
         get referrerRows() {
+            const top = Math.max(0, ...this.topReferrers.map((r) => r.views))
             return this.topReferrers.map((entry) => ({
                 referrer: entry.referrer,
                 views: entry.views,
                 icon: this.iconFor(entry.referrer),
+                pct: top ? (entry.views / top) * 100 : 0,
                 share: this.totalPageviews
                     ? `(${Math.round((entry.views / this.totalPageviews) * 100)}%)`
                     : '(0%)',
@@ -2350,5 +2355,7 @@ document.addEventListener('alpine:init', () => {
         get views() { return this.row.views },
         get scroll() { return this.row.scroll },
         get share() { return this.row.share },
+        /** The share bar behind the row (.rank-row in theme.css). */
+        get barStyle() { return { '--share': `${Math.min(100, this.row.pct || 0)}%` } },
     }))
 })
