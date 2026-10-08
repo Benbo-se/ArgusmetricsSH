@@ -864,7 +864,8 @@ async def website_settings(
         "website": website,
         "alert_settings": alert_settings,
         "base_url": settings.BASE_URL,
-        "user_email": current_user.email
+        "user_email": current_user.email,
+        "activity": recent_activity(db, [website.id])[website.id],
     })
 
 

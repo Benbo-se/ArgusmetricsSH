@@ -8,14 +8,28 @@
 {% set active = 'settings' %}
 {% include 'components/sidebar.html' with context %}
 <div class="lg:pl-64">
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <div class="mb-2">
-        <h1 class="text-3xl font-bold text-gray-900">Website Settings</h1>
-        <p class="mt-2 text-gray-600">{{ website.name }} - {{ website.domain }}</p>
+<div class="dash-page max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="mb-4">
+        <h1 class="text-3xl font-bold text-gray-900">Settings</h1>
+        <p class="mt-2 text-gray-600">{{ website.name }} · {{ website.domain }}</p>
     </div>
 
+    {# A long page of unrelated sections: a row of links that stays in view
+       and marks the section being read (dashboard.js, sectionNav). #}
+    <nav class="settings-nav mb-6" aria-label="Sections" data-section-nav>
+        <a href="#installation">Installation</a>
+        <a href="#not-found">404 errors</a>
+        <a href="#sharing">Sharing</a>
+        <a href="#reports">Email reports</a>
+        <a href="#alerts">Alerts</a>
+        <a href="#details">Details</a>
+        <a href="#danger">Delete</a>
+    </nav>
+
+    <section id="installation" class="settings-section">
+
     <!-- Domain Verification Section -->
-    <div class="bg-white rounded-lg shadow border-l-4 {% if website.is_verified %}border-green-500{% else %}border-yellow-500{% endif %} p-6 mb-6"
+    <div class="bg-white rounded-lg shadow {% if not website.is_verified %}border-l-4 border-yellow-500 {% endif %}p-6 mb-6"
          x-data="domainVerification"
      data-website-id="{{ website.id }}"
      data-domain="{{ website.domain }}"
@@ -43,10 +57,7 @@
 
                 {% if website.is_verified %}
                 <p class="mt-2 text-sm text-gray-600">
-                    ✅ Domain ownership verified on {{ website.verified_at.strftime('%B %d, %Y at %I:%M %p') if website.verified_at else 'Unknown date' }}
-                </p>
-                <p class="mt-1 text-sm text-green-600 font-medium">
-                    Tracking is enabled for this domain.
+                    {% if website.verified_at %}Verified on {{ website.verified_at.strftime('%B %d, %Y') }}. {% endif %}Tracking is enabled for this domain.
                 </p>
                 {% else %}
                 <p class="mt-2 text-sm text-gray-600">
@@ -138,8 +149,17 @@
 
     <!-- Tracking Code Section -->
     <div class="bg-white rounded-lg shadow p-6 mb-6">
-        <div class="flex items-center justify-between mb-4">
-            <h2 class="text-lg font-semibold text-gray-900">Tracking Code</h2>
+        <div class="flex items-center justify-between gap-3 mb-4">
+            <h2 class="text-lg font-semibold text-gray-900 flex flex-wrap items-center gap-2">
+                Tracking Code
+                {% if activity.online %}
+                <span class="dash-pill is-live"><span class="live-dot"></span>Receiving data: {{ activity.online }} online now</span>
+                {% elif activity.last_seen %}
+                <span class="dash-pill is-ok">Receiving data, last visit {{ activity.last_seen }}</span>
+                {% else %}
+                <span class="dash-pill is-muted">No visits recorded yet</span>
+                {% endif %}
+            </h2>
             <a href="{{ base_url }}/docs#installation"
                target="_blank"
                class="inline-flex items-center gap-1 px-3 py-1 text-sm font-medium text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors">
@@ -162,26 +182,21 @@
             </button>
         </div>
 
-        <div class="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h3 class="text-sm font-semibold text-blue-900 mb-2">📚 Platform-Specific Instructions</h3>
-            <p class="text-sm text-blue-800 mb-3">
-                Need help installing on WordPress, React, Next.js, or static HTML? Click "Installation Guides" above for copy-paste ready code examples!
-            </p>
-            <div class="flex flex-wrap gap-2">
-                <span class="px-2 py-1 text-xs font-medium bg-white text-blue-700 rounded">WordPress Plugin</span>
-                <span class="px-2 py-1 text-xs font-medium bg-white text-blue-700 rounded">Next.js 13+</span>
-                <span class="px-2 py-1 text-xs font-medium bg-white text-blue-700 rounded">React</span>
-                <span class="px-2 py-1 text-xs font-medium bg-white text-blue-700 rounded">Static HTML</span>
-            </div>
-        </div>
-    </div>
-
-    <!-- 404 Error Tracking Section -->
-    <div class="bg-white rounded-lg shadow p-6 mb-6">
-        <h2 class="text-lg font-semibold text-gray-900 mb-4">Track 404 Errors</h2>
-        <p class="text-sm text-gray-600 mb-4">
-            Automatically track which pages return 404 errors to find and fix broken links.
+        <p class="mt-3 text-sm text-gray-500">
+            Using WordPress, Next.js, React or Google Tag Manager? The
+            <a href="{{ base_url }}/docs#installation" target="_blank" class="text-blue-600 hover:text-blue-800 font-medium">installation guides</a>
+            have the snippet for each.
         </p>
+    </div>
+    </section>
+
+    <!-- 404 Error Tracking Section: a setup guide, read once, so folded. -->
+    <details id="not-found" class="settings-section goal-howto bg-white rounded-lg shadow p-6 mb-6">
+        <summary class="cursor-pointer">
+            <span class="text-lg font-semibold text-gray-900">Track 404 errors</span>
+            <span class="block mt-1 text-sm font-normal text-gray-600">Find broken links: record which missing pages visitors ask for, and where they came from.</span>
+        </summary>
+        <div class="mt-4">
 
         <div class="space-y-4">
             <!-- Benefits -->
@@ -318,10 +333,11 @@ export default function Custom404() {
                 </div>
             </div>
         </div>
-    </div>
+        </div>
+    </details>
 
     <!-- Public Dashboard Section -->
-    <div class="bg-white rounded-lg shadow p-6 mb-6"
+    <div id="sharing" class="settings-section bg-white rounded-lg shadow p-6 mb-6"
          x-data="publicSharing"
      data-website-id="{{ website.id }}"
      data-is-public="{{ 'true' if website.is_public else 'false' }}"
@@ -430,7 +446,7 @@ export default function Custom404() {
     </div>
 
     <!-- Email Reports Section -->
-    <div class="bg-white rounded-lg shadow p-6 mb-6"
+    <div id="reports" class="settings-section bg-white rounded-lg shadow p-6 mb-6"
          x-data="emailReports"
      data-website-id="{{ website.id }}"
      data-enabled="{{ 'true' if website.email_reports_enabled else 'false' }}"
@@ -551,7 +567,7 @@ export default function Custom404() {
     </div>
 
     <!-- Traffic Alerts -->
-    <div class="bg-white rounded-lg shadow p-6 mb-6"
+    <div id="alerts" class="settings-section bg-white rounded-lg shadow p-6 mb-6"
          x-data="trafficAlerts"
      data-website-id="{{ website.id }}"
      data-enabled="{{ 'true' if alert_settings and alert_settings.email_enabled else 'false' }}"
@@ -635,37 +651,21 @@ export default function Custom404() {
     </div>
 
     <!-- Website Details -->
-    <div class="bg-white rounded-lg shadow p-6 mb-6">
+    <div id="details" class="settings-section bg-white rounded-lg shadow p-6 mb-6">
         <h2 class="text-lg font-semibold text-gray-900 mb-4">Website Details</h2>
-        <form class="space-y-4">
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Website Name</label>
-                <input type="text" value="{{ website.name }}" readonly
-                       class="block w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-600 cursor-not-allowed">
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Domain</label>
-                <input type="text" value="{{ website.domain }}" readonly
-                       class="block w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-600 cursor-not-allowed">
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Tracking Code</label>
-                <input type="text" value="{{ website.tracking_code }}" readonly
-                       class="block w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-600 cursor-not-allowed">
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Created</label>
-                <input type="text" value="{{ website.created_at.strftime('%B %d, %Y at %I:%M %p') if website.created_at else 'N/A' }}" readonly
-                       class="block w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-600 cursor-not-allowed">
-            </div>
-        </form>
+        <dl class="settings-details grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
+            <div><dt>Name</dt><dd>{{ website.name }}</dd></div>
+            <div><dt>Domain</dt><dd>{{ website.domain }}</dd></div>
+            <div><dt>Tracking code</dt><dd><code>{{ website.tracking_code }}</code></dd></div>
+            <div><dt>Created</dt><dd>{{ website.created_at.strftime('%B %d, %Y') if website.created_at else 'N/A' }}</dd></div>
+        </dl>
     </div>
 
     <!-- Danger Zone -->
     <!-- JSON island: |tojson doesn't escape double quotes, so the (user-controlled)
          website name must never be interpolated into a double-quoted attribute. -->
     <script type="application/json" id="delete-confirm-data">{{ {"name": website.name} | tojson }}</script>
-    <div class="bg-white rounded-lg shadow border-2 border-red-200 p-6"
+    <div id="danger" class="settings-section bg-white rounded-lg shadow border-2 border-red-200 p-6"
          x-data="deleteWebsite"
      data-website-id="{{ website.id }}">
         <h2 class="text-lg font-semibold text-red-900 mb-4">Danger Zone</h2>

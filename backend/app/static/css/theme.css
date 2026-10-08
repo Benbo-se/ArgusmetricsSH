@@ -359,9 +359,9 @@ body {
     100% { box-shadow: 0 0 0 14px color-mix(in srgb, var(--ok) 0%, transparent); }
 }
 .goal-pulse .goal-count { color: var(--ok) !important; transition: color .2s ease; }
-.goal-howto > summary { list-style: none; }
+.goal-howto > summary { list-style: none; display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
 .goal-howto > summary::-webkit-details-marker { display: none; }
-.goal-howto > summary::after { content: "+"; float: right; color: var(--text-muted); font-weight: 400; }
+.goal-howto > summary::after { content: "+"; color: var(--text-muted); font-weight: 400; font-size: 1.25rem; line-height: 1.5rem; }
 .goal-howto[open] > summary::after { content: "\2212"; }
 
 /* --- Funnel cards (dashboard/funnels.html) ------------------------------- */
@@ -383,6 +383,41 @@ body {
 }
 .funnel-card li:last-child .funnel-fill { background: var(--ok); }
 .funnel-drop { color: var(--crit); }
+
+/* --- Settings (dashboard/settings.html) --------------------------------- */
+.settings-nav {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    display: flex;
+    gap: 4px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding: 8px 0;
+    margin-left: -4px;
+    background: color-mix(in srgb, var(--surface-page) 88%, transparent);
+    backdrop-filter: blur(8px);
+}
+.settings-nav::-webkit-scrollbar { display: none; }
+.settings-nav a {
+    flex-shrink: 0;
+    border-radius: 99px;
+    padding: .35rem .85rem;
+    font-size: .82rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    transition: background-color .15s ease, color .15s ease;
+}
+.settings-nav a:hover { color: var(--text-primary); background: var(--surface-sunken); }
+.settings-nav a[aria-current="true"] { color: var(--brand-500); background: var(--brand-50); }
+/* Land below the sticky row, not under it. */
+.settings-section { scroll-margin-top: 4.5rem; }
+.settings-details dt {
+    font-size: .72rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--text-muted);
+}
+.settings-details dd { margin-top: .25rem; font-size: .9rem; color: var(--text-primary); overflow-wrap: anywhere; }
+.settings-details code { font-size: .85rem; }
 
 /* The page assembles itself on arrival: cards rise in one after another, as
    the scenes on the site do. Only when dashboard.js has added .dash-motion,
