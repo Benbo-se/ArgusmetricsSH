@@ -115,9 +115,17 @@ till backend-containern. En deploy släpper alltså sajt + app atomiskt ihop.
 ## Rollback
 
 Varje deploy taggas `PROD-YYYY-MM-DD[-N]` och images taggas med git-SHA.
-Manuell rollback: Actions → Deploy → Run workflow → ange förra SHA:n som tag.
-Deployen gör dessutom auto-rollback själv om health-checken failar, och en
-pre-deploy-dump ligger i `~/backups/argusmetrics/pre-deploy/` på servern.
+Manuell rollback: Actions → Deploy → Run workflow → ange en `PROD-`-tagg, ett
+commit (kort eller full SHA) eller `latest` (mains senaste).
+
+En deploy gäller ett commit, både images och serverns checkout, alltså
+compose-filen och nginx-konfigurationen (#111). En rollback till ett äldre
+commit tar därför tillbaka dess konfiguration också, inte bara imagen.
+Deployen gör dessutom auto-rollback själv om health-checken failar, till det
+som körde före med dess konfiguration, och en pre-deploy-dump ligger i
+`~/backups/argusmetrics/pre-deploy/` på servern. En köad automatisk deploy som
+main redan gått förbi hoppar över sig själv. `deploy/test-deploy.sh` kör
+skriptet genom de fallen i CI.
 
 ## Första kontot
 
