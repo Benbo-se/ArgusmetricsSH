@@ -23,6 +23,7 @@ from app.database import get_db, set_rls_context
 from app.services.analytics_service import AnalyticsService
 from app.services.website_service import WebsiteService
 from app.services.usage_service import get_usage
+from app.services.site_activity import recent_activity
 from app.models.user import User
 from app.routers.auth import get_current_user
 from app.utils.date_helpers import parse_date_range
@@ -531,6 +532,7 @@ async def dashboard_index(
     return templates.TemplateResponse(request, "dashboard/index.html", {
         "current_user": current_user,
         "websites": websites,
+        "activity": recent_activity(db, [w.id for w in websites]),
         "usage": usage,
         "website_cap": settings.MAX_WEBSITES_PER_ACCOUNT,
     })

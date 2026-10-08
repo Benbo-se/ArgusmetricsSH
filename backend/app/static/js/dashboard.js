@@ -277,6 +277,18 @@ function bindChartMetricSwitch(timeseriesData, previousPeriodData) {
 }
 
 /**
+ * A progress bar's width, from data-fill (percent). The template used to
+ * write it as style="width: ..." in the markup, which style-src 'self'
+ * refuses, so the monthly usage bar on the websites list was always empty.
+ */
+function applyFills(root) {
+    root.querySelectorAll('[data-fill]').forEach((el) => {
+        const fill = Math.max(0, Math.min(100, parseFloat(el.dataset.fill) || 0));
+        el.style.width = fill + '%';
+    });
+}
+
+/**
  * Ranked rows rendered on the server say how big their share is in
  * data-share; the bar behind them is drawn from a custom property, set here
  * because a style attribute in the markup would be blocked by style-src.
@@ -544,6 +556,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     countUpStats(document);
     applyShareBars(document);
+    applyFills(document);
 });
 
 // Export functions for global use
