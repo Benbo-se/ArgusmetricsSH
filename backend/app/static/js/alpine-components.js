@@ -1640,29 +1640,23 @@ document.addEventListener('alpine:init', () => {
     /**
      * The funnels page.
      *
-     * The stats modal used to reach into funnelStats[selectedFunnel.id].steps
-     * from the template. All of that is getters now, which is not only what
-     * the CSP build requires: the old expressions indexed the same nested
-     * structure four different ways, and one of them (the drop-off) recomputed
-     * a neighbouring step's rate inline.
+     * Every card draws its funnel from funnelStats, loaded for all funnels at
+     * once and again when the period changes. There used to be a stats modal
+     * behind a View Stats button; the card shows what it showed.
      */
     Alpine.data('funnelsPage', () => ({
         funnels: [],
         funnelStats: {},
         createOpen: false,
         deleteOpen: false,
-        statsOpen: false,
-        selectedFunnel: null,
         deletingFunnel: null,
         funnelName: '',
         steps: [],
         loading: false,
-        statsLoading: false,
         error: null,
         days: 30,
 
         get formName() { return modelFor(this, 'funnelName') },
-        get daysFilter() { return modelFor(this, 'days') },
 
         init() {
             const el = document.getElementById('funnels-data')
@@ -1676,7 +1670,6 @@ document.addEventListener('alpine:init', () => {
         get isCreateOpen() { return this.createOpen },
         get createModalClass() { return this.createOpen ? '' : 'hidden' },
         get isDeleteOpen() { return this.deleteOpen },
-        get isStatsOpen() { return this.statsOpen },
         get isLoading() { return this.loading },
         get isNotLoading() { return !this.loading },
         get hasError() { return !!this.error },
@@ -1691,55 +1684,8 @@ document.addEventListener('alpine:init', () => {
                 ? 'bg-gray-400 cursor-not-allowed'
                 : 'bg-red-600 hover:bg-red-700'
         },
-        get selectedFunnelName() {
-            return this.selectedFunnel ? this.selectedFunnel.name : ''
-        },
         get deletingFunnelName() {
             return this.deletingFunnel ? this.deletingFunnel.name : ''
-        },
-
-        /** The stats for whichever funnel the modal is showing, or null. */
-        get currentStats() {
-            if (!this.selectedFunnel) return null
-            return this.funnelStats[this.selectedFunnel.id] || null
-        },
-        get statsReady() { return !this.statsLoading && !!this.currentStats },
-        get statsEmpty() {
-            return (
-                !this.statsLoading &&
-                !!this.currentStats &&
-                (!this.currentStats.steps || this.currentStats.steps.length === 0)
-            )
-        },
-        get statsSteps() {
-            const stats = this.currentStats
-            if (!stats || !stats.steps) return []
-            // Each entry carries what its row needs, including the drop-off
-            // against the step before it, so the template never has to look
-            // sideways in the array.
-            return stats.steps.map((step, index) => ({
-                raw: step,
-                index,
-                number: step.step,
-                name: step.name,
-                visitors: step.visitors,
-                rate: step.conversion_rate.toFixed(1),
-                isFirst: index === 0,
-                isLast: index === stats.steps.length - 1,
-                dropOff: index === 0
-                    ? 0
-                    : Math.max(
-                        0,
-                        stats.steps[index - 1].conversion_rate - step.conversion_rate
-                    ).toFixed(1),
-            }))
-        },
-        get totalVisitors() {
-            return this.currentStats ? this.currentStats.total_visitors : 0
-        },
-        get overallRate() {
-            const steps = this.statsSteps
-            return steps.length ? steps[steps.length - 1].rate : '0.0'
         },
 
         resetForm() {
@@ -1800,7 +1746,6 @@ document.addEventListener('alpine:init', () => {
             this.deleteOpen = false
             this.deletingFunnel = null
         },
-        closeStats() { this.statsOpen = false },
 
         addStep() {
             this.steps.push({ step: this.steps.length + 1, name: '', path: '' })
@@ -1810,12 +1755,6 @@ document.addEventListener('alpine:init', () => {
             if (this.steps.length <= 2) return
             this.steps.splice(index, 1)
             this.steps.forEach((step, i) => { step.step = i + 1 })
-        },
-
-        openStats(funnel) {
-            this.selectedFunnel = funnel
-            this.statsOpen = true
-            this.loadFunnelStats(funnel.id)
         },
 
         openDelete(funnel) {
@@ -1829,14 +1768,18 @@ document.addEventListener('alpine:init', () => {
             )
         },
 
+        /** The period switch above the cards: every funnel, reloaded. */
+        setDays() {
+            this.days = Number(this.$el.dataset.days)
+            this.loadAllFunnelStats()
+        },
+        get daysPressed() { return String(Number(this.$el.dataset.days) === this.days) },
+
         async loadAllFunnelStats() {
-            for (const funnel of this.funnels) {
-                await this.loadFunnelStats(funnel.id, false)
-            }
+            await Promise.all(this.funnels.map((funnel) => this.loadFunnelStats(funnel.id)))
         },
 
-        async loadFunnelStats(funnelId, showModal = true) {
-            if (showModal) this.statsLoading = true
+        async loadFunnelStats(funnelId) {
             try {
                 const response = await fetch(
                     `/api/v1/funnels/${funnelId}/stats?days=${this.days}`,
@@ -1847,15 +1790,6 @@ document.addEventListener('alpine:init', () => {
                 }
             } catch (error) {
                 console.error('Error loading funnel stats:', error)
-            } finally {
-                if (showModal) this.statsLoading = false
-            }
-        },
-
-        /** Reloads the open funnel's stats when the day filter changes. */
-        async reloadStats() {
-            if (this.selectedFunnel) {
-                await this.loadFunnelStats(this.selectedFunnel.id)
             }
         },
 
@@ -1883,7 +1817,7 @@ document.addEventListener('alpine:init', () => {
                 this.funnels.unshift(data)
                 this.createOpen = false
                 this.resetForm()
-                await this.loadFunnelStats(data.id, false)
+                await this.loadFunnelStats(data.id)
                 this.notify('Funnel created successfully')
             } catch (error) {
                 console.error('Error creating funnel:', error)
@@ -1924,40 +1858,61 @@ document.addEventListener('alpine:init', () => {
 
     /** One funnel card in the list. */
     Alpine.data('funnelCard', () => ({
+        get stats() { return this.funnelStats[this.funnel.id] || null },
         get name() { return this.funnel.name },
         get stepCount() { return this.funnel.steps.length },
         get createdAt() {
             return new Date(this.funnel.created_at).toLocaleDateString()
         },
         get conversionRate() {
-            const stats = this.funnelStats[this.funnel.id]
-            if (!stats || !stats.steps || stats.steps.length === 0) return '0%'
-            const last = stats.steps[stats.steps.length - 1]
-            return `${last.conversion_rate.toFixed(1)}%`
+            const steps = this.stats && this.stats.steps
+            if (!steps || steps.length === 0) return '0%'
+            return `${steps[steps.length - 1].conversion_rate.toFixed(1)}%`
         },
         get totalVisitors() {
-            const stats = this.funnelStats[this.funnel.id]
-            return stats ? stats.total_visitors : 0
+            return this.stats ? this.stats.total_visitors.toLocaleString('en-US') : '0'
         },
+        /**
+         * Each step with what its row needs, including what was lost since
+         * the step before, so the template never looks sideways in the
+         * array. Before the stats arrive the steps show with empty bars.
+         */
         get funnelSteps() {
-            return this.funnel.steps.map((step, index) => ({
-                raw: step,
-                label: `Step ${step.step}`,
-                name: step.name,
-                path: step.path,
-                isLast: index === this.funnel.steps.length - 1,
-            }))
+            const counted = (this.stats && this.stats.steps) || []
+            return this.funnel.steps.map((step, index) => {
+                const here = counted[index]
+                const before = counted[index - 1]
+                const lost = here && before && before.visitors
+                    ? Math.round((1 - here.visitors / before.visitors) * 100)
+                    : null
+                return {
+                    number: step.step,
+                    name: step.name,
+                    path: step.path,
+                    visitors: here ? here.visitors.toLocaleString('en-US') : '–',
+                    rate: here ? `${here.conversion_rate.toFixed(0)}%` : '',
+                    pct: here ? here.conversion_rate : 0,
+                    dropOff: lost === null ? '' : `↓ ${lost}% dropped out`,
+                    isFirst: index === 0,
+                }
+            })
         },
-        viewStats() { this.openStats(this.funnel) },
         confirmDelete() { this.openDelete(this.funnel) },
     }))
 
-    /** One step shown on a funnel card. */
+    /** One step on a funnel card: its bar, and the drop-off above it. */
     Alpine.data('funnelCardStep', () => ({
-        get label() { return this.entry.label },
+        get number() { return this.entry.number },
         get name() { return this.entry.name },
         get path() { return this.entry.path },
-        get hasNext() { return !this.entry.isLast },
+        get visitors() { return this.entry.visitors },
+        get rate() { return this.entry.rate },
+        // An object, not a string: Alpine sets a string style with
+        // setAttribute, which style-src 'self' blocks. The object form goes
+        // through CSSOM .style.setProperty, which CSP does not gate.
+        get barStyle() { return { width: `${Math.min(100, this.entry.pct)}%` } },
+        get dropOff() { return this.entry.dropOff },
+        get showsDropOff() { return !this.entry.isFirst && !!this.entry.dropOff },
     }))
 
     /** One step row in the create form, with its two editable fields. */
@@ -1968,21 +1923,6 @@ document.addEventListener('alpine:init', () => {
         remove() { this.removeStepAt(this.index) },
     }))
 
-    /** One step row in the stats modal. */
-    Alpine.data('funnelStatsStep', () => ({
-        // An object, not a string. Alpine sets a string style with
-        // setAttribute, which style-src 'self' blocks outright, so the bar
-        // rendered with no width at all. The object form goes through
-        // CSSOM .style.setProperty, which CSP does not gate.
-        get barStyle() { return { width: `${this.entry.rate}%` } },
-        get number() { return this.entry.number },
-        get name() { return this.entry.name },
-        get visitors() { return this.entry.visitors },
-        get rate() { return this.entry.rate },
-        get dropOff() { return this.entry.dropOff },
-        get showsDropOff() { return !this.entry.isFirst },
-        get hasNext() { return !this.entry.isLast },
-    }))
 })
 
 document.addEventListener('alpine:init', () => {
