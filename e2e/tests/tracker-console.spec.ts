@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { test, expect } from '@playwright/test';
 
 /**
@@ -259,5 +260,53 @@ test.describe('The tracker is silent in the console', () => {
         await page.waitForTimeout(400);
 
         expect(events.map(e => e.tracking_code)).toEqual(['console-check']);
+    });
+
+    /**
+     * #107. In a single-page app the report of how far /old was read went out
+     * after the URL had already changed, and arrived as the depth of /new.
+     * Both ways of leaving: pushState, and the back button (popstate), where
+     * the URL has changed before any script runs.
+     */
+    test('a depth is reported for the page it was read on, in a single-page app', async ({ page }) => {
+        // The tracker is served from the same made-up origin: Chrome refuses a
+        // public-looking page loading a script from 127.0.0.1 (Private Network
+        // Access), which has nothing to do with what is tested here.
+        const trackerJs = readFileSync('../backend/app/static/tracker.min.js', 'utf8');
+        await page.route('http://shop.test/tracker.min.js', route =>
+            route.fulfill({ contentType: 'application/javascript', body: trackerJs }));
+        await page.route('http://shop.test/api/**', route =>
+            route.fulfill({ status: 200, body: '{"success":true}' }));
+        await page.route(/^http:\/\/shop\.test\/(old|new)$/, route => route.fulfill({
+            contentType: 'text/html',
+            body: `<!doctype html><html><body>
+                <div style="height: 4000px">Tall enough to scroll.</div>
+                <script>
+                    Object.defineProperty(navigator, 'webdriver', { get: () => false });
+                    Object.defineProperty(navigator, 'userAgent', { get: () => ${JSON.stringify(PERSON_UA)} });
+                </script>
+                <script src="/tracker.min.js" data-tracking-code="spa-check"
+                        data-api-endpoint="http://shop.test/api/v1/analytics/track" data-track-localhost="true"></script>
+            </body></html>`,
+        }));
+        const depths: { path: string, depth: number }[] = [];
+        page.on('request', r => {
+            if (r.url().includes('/track-scroll')) depths.push(JSON.parse(r.postData() || '{}'));
+        });
+
+        await page.goto('http://shop.test/old');
+        await page.evaluate(() => window.scrollTo(0, 2000));
+        await page.waitForTimeout(400);
+        await page.evaluate(() => history.pushState({}, '', '/new'));
+        await page.waitForTimeout(300);
+
+        expect(depths.map(d => d.path), 'pushState').toEqual(['/old']);
+
+        await page.evaluate(() => window.scrollTo(0, 3500));
+        await page.waitForTimeout(400);
+        await page.goBack();
+        await page.waitForTimeout(300);
+
+        expect(depths.map(d => d.path), 'back button').toEqual(['/old', '/new']);
     });
 });

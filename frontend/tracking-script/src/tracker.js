@@ -713,6 +713,17 @@
   let maxScrollDepth = 0;
 
   /**
+   * The page the current depth belongs to, kept from when measuring started.
+   *
+   * The report goes out when the page is left, and in a single-page app the
+   * URL has already changed by then: the history wrappers call pushState
+   * first, and popstate fires after the back button has changed it. Reading
+   * the URL at that moment sent "75% of /old" as "75% of /new", a page not yet
+   * read (#107). Moving the report before pushState would not fix popstate.
+   */
+  let scrollPath = null;
+
+  /**
    * Calculate the current scroll depth percentage
    */
   function getScrollDepth() {
@@ -805,7 +816,7 @@
     var endpoint = getApiEndpoint().replace(/\/track$/, '/track-scroll');
     var payload = JSON.stringify({
       tracking_code: trackingCode,
-      path: getPath(),
+      path: scrollPath || getPath(),
       depth: depth
     });
 
@@ -850,6 +861,7 @@
     // Reset for the new page. Single-page apps reuse the same document, so
     // without this the second page would inherit the first one's depth.
     maxScrollDepth = 0;
+    scrollPath = getPath();
     scrollDepthReported = false;
 
     // Add scroll listener
