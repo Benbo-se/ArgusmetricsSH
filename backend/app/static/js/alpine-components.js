@@ -436,9 +436,11 @@ document.addEventListener('alpine:init', () => {
 
                 if (editing) {
                     const index = this.goals.findIndex((g) => g.id === editing.id)
-                    if (index !== -1) this.goals[index] = data
+                    // Merged, not replaced: the API answers with the goal
+                    // alone, and the card's numbers came with the page.
+                    if (index !== -1) this.goals[index] = { ...this.goals[index], ...data }
                 } else {
-                    this.goals.unshift(data)
+                    this.goals.unshift({ conversions: 0, rate: null, spark: null, ...data })
                 }
 
                 const message = editing
@@ -503,10 +505,14 @@ document.addEventListener('alpine:init', () => {
     Alpine.data('goalRow', () => ({
         // True for a moment after this goal converts (see liveConversions).
         justConverted: false,
+        // Conversions that arrived while the page was open, on top of the
+        // thirty days the server counted.
+        live: 0,
 
         init() {
             window.addEventListener('goal-converted', (event) => {
                 if (!event.detail || event.detail.eventName !== this.goal.event_name) return
+                this.live += 1
                 this.justConverted = false
                 // A frame apart, so a second conversion restarts the pulse.
                 requestAnimationFrame(() => { this.justConverted = true })
@@ -529,6 +535,15 @@ document.addEventListener('alpine:init', () => {
         get rowCreatedAt() {
             return new Date(this.goal.created_at).toLocaleDateString()
         },
+        get rowConversions() {
+            return ((this.goal.conversions || 0) + this.live).toLocaleString('en-US')
+        },
+        get hasRate() { return this.goal.rate !== null && this.goal.rate !== undefined },
+        get rowRate() { return `${this.goal.rate}% of visitors` },
+        get hasSpark() { return !!this.goal.spark },
+        get hasNoSpark() { return !this.goal.spark },
+        get sparkLine() { return this.goal.spark ? this.goal.spark.line : '' },
+        get sparkArea() { return this.goal.spark ? this.goal.spark.area : '' },
         edit() { this.openEdit(this.goal) },
         confirmDelete() { this.openDelete(this.goal) },
     }))

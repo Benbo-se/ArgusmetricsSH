@@ -35,7 +35,7 @@ test('a goal typed character by character saves with the right event name',
     expect(saved, 'the goal was never saved').not.toBeNull();
     expect(saved.event_name, 'the event name was truncated to the first keystroke')
       .toBe('finding_proven');
-    await expect(page.locator('tbody tr')).toHaveCount(1);
+    await expect(page.locator('.goal-card')).toHaveCount(1);
   });
 
 test('typing immediately after opening does not lose the input',
@@ -74,7 +74,7 @@ test('four goals in a row in one session all save', async ({ page, request }) =>
     await expect(page.getByText(name, { exact: true })).toBeVisible({ timeout: 5000 });
   }
 
-  await expect(page.locator('tbody tr')).toHaveCount(4);
+  await expect(page.locator('.goal-card')).toHaveCount(4);
 });
 
 test('a Swedish goal name gives an event name without underscores for å ä ö',
