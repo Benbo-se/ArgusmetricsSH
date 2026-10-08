@@ -289,6 +289,38 @@ function applyFills(root) {
 }
 
 /**
+ * The row of section links on the settings page marks the section in view.
+ * The section counted as in view is the last one whose top has passed a
+ * line a little below the sticky row, so a short section between two long
+ * ones still gets its turn.
+ */
+function sectionNav() {
+    const nav = document.querySelector('[data-section-nav]');
+    if (!nav) return;
+    const links = [...nav.querySelectorAll('a[href^="#"]')];
+    const sections = links.map((a) => document.getElementById(a.getAttribute('href').slice(1)));
+    const mark = () => {
+        const line = nav.getBoundingClientRect().bottom + 24;
+        let current = 0;
+        sections.forEach((section, i) => {
+            if (section && section.getBoundingClientRect().top <= line) current = i;
+        });
+        // At the very bottom the last section may never reach the line.
+        if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2) {
+            current = sections.length - 1;
+        }
+        links.forEach((a, i) => a.setAttribute('aria-current', i === current ? 'true' : 'false'));
+    };
+    // A folded section opened from its link: open it, then let the browser jump.
+    links.forEach((a, i) => a.addEventListener('click', () => {
+        if (sections[i] && sections[i].tagName === 'DETAILS') sections[i].open = true;
+    }));
+    window.addEventListener('scroll', mark, { passive: true });
+    window.addEventListener('resize', mark);
+    mark();
+}
+
+/**
  * Ranked rows rendered on the server say how big their share is in
  * data-share; the bar behind them is drawn from a custom property, set here
  * because a style attribute in the markup would be blocked by style-src.
@@ -557,6 +589,7 @@ document.addEventListener('DOMContentLoaded', () => {
     countUpStats(document);
     applyShareBars(document);
     applyFills(document);
+    sectionNav();
 });
 
 // Export functions for global use

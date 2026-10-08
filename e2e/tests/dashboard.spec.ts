@@ -86,6 +86,13 @@ test.describe('Website Settings', () => {
 
     await page.goto(`/dashboard/website/${websiteId}/settings`);
     await expect(page.locator('text=Tracking Code').first()).toBeVisible({ timeout: 10000 });
+
+    // The section row: the 404 guide is folded, and its link opens it.
+    const guide = page.locator('details#not-found');
+    await expect(guide).not.toHaveAttribute('open', '');
+    await page.locator('[data-section-nav] a[href="#not-found"]').click();
+    await expect(guide).toHaveAttribute('open', '');
+    await expect(page.getByText('Setup Instructions')).toBeVisible();
   });
 });
 
