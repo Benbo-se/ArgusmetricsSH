@@ -13,13 +13,13 @@
 # rest, backtracked through every version of an unrelated package, and ended
 # up at a 2010 release of ecdsa whose setup.py uses print as a statement. The
 # error named ecdsa and had nothing to do with it.
-fastapi==0.142.1
+fastapi==0.142.2
 jinja2==3.1.6
 uvicorn[standard]==0.54.0
 python-multipart==0.0.32
 
 # Database
-sqlalchemy==2.1.1
+sqlalchemy==2.1.3
 psycopg2-binary==2.9.13
 alembic==1.20.0
 
@@ -35,7 +35,7 @@ email-validator==2.3.0
 # Payments
 
 # Settings & Configuration
-python-dotenv==1.2.3
+python-dotenv==1.2.4
 pydantic==2.13.5
 pydantic-settings==2.15.0
 
@@ -52,7 +52,7 @@ geoip2==4.8.1
 apscheduler==3.11.3
 
 # WebSocket (included in fastapi[all])
-websockets==17.1
+websockets==17.2
 
 # Development & Testing
 pytest==8.4.2
