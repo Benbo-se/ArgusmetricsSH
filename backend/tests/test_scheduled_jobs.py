@@ -430,3 +430,124 @@ class TestTrafficAlerts:
         # Returning None means no spike, which is the correct answer for a
         # website with no traffic. The assertion is that it does not raise.
         AlertService(db).check_traffic_spike(website["id"])
+
+
+class TestDataMapCleanup:
+    """The rows docs/data-map.md found with nothing removing them (#144)."""
+
+    def test_an_invitation_past_its_7_days_is_deleted(self, db, website):
+        from app.services.cleanup_service import CleanupService
+
+        set_rls_context(db, context="job")
+        for label, days in (("stale", 8), ("fresh", 1)):
+            db.execute(
+                text(
+                    "INSERT INTO website_members (website_id, user_email, owner_email, role, status,"
+                    "                             invite_token, invited_by, invited_at) "
+                    "VALUES (:w, :u, :o, 'viewer', 'pending', :t, :o, now() - make_interval(days => :d))"
+                ),
+                {"w": website["id"], "u": f"{label}-{uuid.uuid4().hex[:6]}@example.com",
+                 "o": website["email"], "t": uuid.uuid4().hex, "d": days},
+            )
+        db.commit()
+
+        CleanupService(db).cleanup_expired_invitations()
+
+        left = db.execute(
+            text("SELECT user_email FROM website_members WHERE website_id = :w AND status = 'pending'"),
+            {"w": website["id"]},
+        ).scalars().all()
+        assert [e.split("-")[0] for e in left] == ["fresh"]
+
+    def test_an_accepted_member_is_never_touched(self, db, website):
+        from app.services.cleanup_service import CleanupService
+
+        set_rls_context(db, context="job")
+        db.execute(
+            text(
+                "INSERT INTO website_members (website_id, user_email, owner_email, role, status,"
+                "                             invited_by, invited_at, accepted_at) "
+                "VALUES (:w, :u, :o, 'viewer', 'active', :o, now() - interval '400 days', now())"
+            ),
+            {"w": website["id"], "u": f"member-{uuid.uuid4().hex[:6]}@example.com", "o": website["email"]},
+        )
+        db.commit()
+
+        CleanupService(db).cleanup_expired_invitations()
+
+        assert db.execute(
+            text("SELECT count(*) FROM website_members WHERE website_id = :w AND status = 'active'"),
+            {"w": website["id"]},
+        ).scalar() == 1
+
+    def test_the_waitlist_keeps_only_what_is_still_useful(self, db):
+        from app.services.cleanup_service import CleanupService
+
+        set_rls_context(db, context="job")
+        tag = uuid.uuid4().hex[:6]
+        rows = {
+            "told-long-ago": ("now() - interval '60 days'", "now() - interval '40 days'"),
+            "told-recently": ("now() - interval '60 days'", "now() - interval '5 days'"),
+            "waiting": ("now() - interval '60 days'", "NULL"),
+            "waited-a-year": ("now() - interval '400 days'", "NULL"),
+        }
+        for name, (created, notified) in rows.items():
+            db.execute(text(
+                f"INSERT INTO waitlist (email, source, created_at, notified_at) "
+                f"VALUES (:e, 'test', {created}, {notified})"
+            ), {"e": f"{name}-{tag}@example.com"})
+        db.commit()
+
+        CleanupService(db).cleanup_waitlist()
+
+        left = sorted(e.rsplit("-", 1)[0] for e in db.execute(
+            text("SELECT email FROM waitlist WHERE email LIKE :p"), {"p": f"%-{tag}@example.com"}
+        ).scalars().all())
+        assert left == ["told-recently", "waiting"]
+
+
+class TestDeleteUser:
+    """./argus delete-user: an erasure request, done completely (#144)."""
+
+    def test_it_removes_the_account_its_sites_and_its_memberships(self, db, website):
+        from app.delete_user import delete, plan
+
+        set_rls_context(db, context="job")
+        other = f"other-{uuid.uuid4().hex[:6]}@example.com"
+        db.execute(text("INSERT INTO users (email, is_verified, created_at) VALUES (:e, true, now())"), {"e": other})
+        # The fixture's owner is also a member of somebody else's site.
+        other_site = db.execute(text(
+            "INSERT INTO websites (name, domain, user_email, tracking_code, verification_token, is_verified,"
+            " is_active, email_reports_enabled, is_public, public_password_enabled, created_at) "
+            "VALUES ('o', :d, :e, :tc, :vt, true, true, false, false, false, now()) RETURNING id"
+        ), {"d": f"https://{uuid.uuid4().hex[:8]}.example.com", "e": other,
+            "tc": uuid.uuid4().hex[:8], "vt": uuid.uuid4().hex}).scalar()
+        db.execute(text(
+            "INSERT INTO website_members (website_id, user_email, owner_email, role, status, invited_by,"
+            " invited_at, accepted_at) VALUES (:w, :u, :o, 'viewer', 'active', :o, now(), now())"
+        ), {"w": other_site, "u": website["email"], "o": other})
+        db.execute(text(
+            'INSERT INTO pageviews (website_id, owner_email, path, visitor_hash, "timestamp") '
+            "VALUES (:w, :e, '/', 'h', now())"
+        ), {"w": website["id"], "e": website["email"]})
+        db.commit()
+
+        what = plan(db, website["email"])
+        assert len(what["websites"]) == 1 and what["memberships"] == 1 and what["pageviews"] == 1
+
+        delete(db, website["email"])
+
+        count = lambda q, **p: db.execute(text(q), p).scalar()
+        assert count("SELECT count(*) FROM users WHERE email = :e", e=website["email"]) == 0
+        assert count("SELECT count(*) FROM websites WHERE id = :w", w=website["id"]) == 0
+        assert count("SELECT count(*) FROM pageviews WHERE website_id = :w", w=website["id"]) == 0
+        assert count("SELECT count(*) FROM website_members WHERE user_email = :e", e=website["email"]) == 0, \
+            "a membership of somebody else's site was left with the deleted address in it"
+        assert count("SELECT count(*) FROM websites WHERE id = :w", w=other_site) == 1, \
+            "the other person's site went too"
+
+    def test_an_unknown_address_changes_nothing(self, db):
+        from app.delete_user import delete
+
+        set_rls_context(db, context="job")
+        assert delete(db, f"nobody-{uuid.uuid4().hex[:6]}@example.com") == {}

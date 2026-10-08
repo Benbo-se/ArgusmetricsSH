@@ -66,6 +66,7 @@ argus - run this Argusmetrics instance
   country ...               the IP-to-country table
                             (refresh, status, lookup <address>)
   bootstrap                 create the first account on a closed instance
+  delete-user --email ADDR  delete an account and everything it owns, on request
   test [args]               the backend suite, inside the container
 
   backup                    take a dump now
@@ -294,6 +295,11 @@ case "$command" in
 
     admin)     admin "$@" ;;
     waitlist)  in_backend app.waitlist "$@" ;;
+    # -it so the confirmation prompt can be answered.
+    delete-user)
+        running || die "$BACKEND_CONTAINER is not running. Try: ./argus up"
+        TTY=""; [ -t 0 ] && [ -t 1 ] && TTY="-t"
+        docker exec -i $TTY -w /app "$BACKEND_CONTAINER" python -m app.delete_user "$@" ;;
     country)   in_backend app.ip_country "$@" ;;
     test)
         # The suite runs where the application does, against the same Postgres,

@@ -125,7 +125,7 @@ def get_current_user(
     # this is the same session the route handler will use.
     set_rls_context(db, context="user", user_email=user.email)
 
-    logger.debug(f"Authenticated user: {user.email}")
+    logger.debug(f"Authenticated user: {mask_email(user.email)}")
     return user
 
 
@@ -184,7 +184,7 @@ async def signup(
             "email": "user@example.com"
         }
     """
-    logger.info(f"Signup request received for email: {request.email}")
+    logger.info(f"Signup request received for email: {mask_email(request.email)}")
 
     # Registration closed. Checked here rather than only on the page, because
     # hiding the form closes nothing: this endpoint is what actually creates
