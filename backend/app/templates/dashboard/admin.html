@@ -2,11 +2,10 @@
 
 {% block title %}Admin{% endblock %}
 
-{# The instance, rather than one website in it.
-
-   Only the waiting list so far, because that is what there is to look at. It
-   was collected with no way to read it, so a terminal was the only route to a
-   number the operator wants at a glance.
+{# The instance, rather than one website in it: account invitations, and the
+   waiting list. The waiting list was here first. It was collected with no way
+   to read it, so a terminal was the only route to a number the operator wants
+   at a glance.
 
    Reachable only by an address in ADMIN_EMAILS, and invisible to everyone
    else: the route answers 404 rather than 403, so it does not confirm that
@@ -21,6 +20,73 @@
             anywhere and is only visible to addresses in
             <code class="bg-gray-100 px-1 rounded text-xs">ADMIN_EMAILS</code>.
         </p>
+    </div>
+
+    {# Accounts of one's own while signup is closed (services/account_invites.py). #}
+    <div class="bg-white rounded-lg shadow mb-8">
+        <div class="px-6 py-4 border-b border-gray-100">
+            <h2 class="text-lg font-semibold text-gray-900">Invite someone</h2>
+            <p class="text-sm text-gray-500 mt-0.5">
+                An account of their own, with no access to your websites. They
+                choose a password and add their own site. Registration stays
+                closed for everyone else. The link works once, for {{ invite_days }} days.
+            </p>
+        </div>
+        <div class="px-6 py-5">
+            {% if invite_error %}
+            <p class="mb-4 p-3 rounded-md bg-red-50 border border-red-200 text-sm text-red-700">{{ invite_error }}</p>
+            {% endif %}
+            {% if join_url %}
+            <div class="mb-4 p-4 rounded-md bg-green-50 border border-green-200 text-sm" x-data="copyButton">
+                <p class="text-green-800 font-medium">
+                    {% if invite_sent %}Invitation sent to {{ invited }}.{% else %}Invitation created for {{ invited }}, but the email could not be sent.{% endif %}
+                </p>
+                <p class="mt-1 text-green-700">
+                    {% if invite_sent %}You can also pass the link on yourself.{% else %}Send them this link yourself.{% endif %}
+                    It is shown only now.
+                </p>
+                <div class="mt-2 flex items-center gap-2">
+                    <code id="join-url" class="flex-1 min-w-0 truncate bg-white border border-green-200 rounded px-2 py-1 text-xs">{{ join_url }}</code>
+                    <button type="button" @click="copy" data-copy-from="join-url"
+                            class="px-3 py-1 text-xs font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700">
+                        <span x-show="isNotCopied">Copy</span>
+                        <span x-show="isCopied">Copied!</span>
+                    </button>
+                </div>
+            </div>
+            {% endif %}
+            <form method="post" action="/dashboard/admin/invites" class="flex flex-col sm:flex-row gap-3">
+                <input type="email" name="email" required placeholder="friend@example.com" autocomplete="off"
+                       aria-label="Email address to invite"
+                       class="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                <button type="submit"
+                        class="px-4 py-2 rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
+                    Send invitation
+                </button>
+            </form>
+        </div>
+
+        {% if invites %}
+        <ul class="border-t border-gray-100">
+            {% for invite in invites %}
+            <li class="px-6 py-3 flex items-center justify-between gap-4 text-sm border-b border-gray-100 last:border-0">
+                <div class="min-w-0">
+                    <p class="text-gray-900 truncate">{{ invite.email }}</p>
+                    <p class="text-xs text-gray-500">
+                        Sent {{ invite.created_at.strftime('%Y-%m-%d') }} ·
+                        {% if invite.expires_at <= now %}<span class="text-red-600">expired</span>{% else %}works until {{ invite.expires_at.strftime('%Y-%m-%d') }}{% endif %}
+                    </p>
+                </div>
+                <form method="post" action="/dashboard/admin/invites/revoke">
+                    <input type="hidden" name="invitation_id" value="{{ invite.id }}">
+                    <button type="submit" class="text-sm text-red-600 hover:text-red-800 font-medium">
+                        {% if invite.expires_at <= now %}Remove{% else %}Revoke{% endif %}
+                    </button>
+                </form>
+            </li>
+            {% endfor %}
+        </ul>
+        {% endif %}
     </div>
 
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">

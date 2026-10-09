@@ -13,7 +13,7 @@ Provides endpoints for:
 """
 import logging
 from typing import Optional
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, Request, HTTPException, status, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
@@ -266,19 +266,9 @@ def require_admin(current_user: User = Depends(get_current_user)) -> User:
     return current_user
 
 
-@router.get("/dashboard/admin", response_class=HTMLResponse)
-async def admin_page(
-    request: Request,
-    current_user: User = Depends(require_admin),
-    db: Session = Depends(get_db),
-):
-    """The instance, rather than one website in it.
-
-    Only the waiting list so far, because that is what exists to look at. It
-    was collected with no way to read it, which made a command-line tool the
-    only route to a number the operator actually wants to see.
-    """
+def _render_admin(request: Request, current_user: User, db: Session, **extra):
     from sqlalchemy import text
+    from app.services import account_invites
 
     set_rls_context(db, context="user", user_email=current_user.email)
     entries = db.execute(
@@ -287,11 +277,85 @@ async def admin_page(
             "  FROM waitlist ORDER BY created_at DESC"
         )
     ).all()
+    invites = account_invites.pending(db)
 
     return templates.TemplateResponse(request, "dashboard/admin.html", {
         "current_user": current_user,
         "entries": entries,
         "waiting": sum(1 for e in entries if e.notified_at is None),
+        "invites": invites,
+        "now": datetime.now(timezone.utc),
+        "invite_days": account_invites.INVITE_DAYS,
+        **extra,
+    })
+
+
+@router.get("/dashboard/admin", response_class=HTMLResponse)
+async def admin_page(
+    request: Request,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """The instance, rather than one website in it: the waiting list, and
+    the people invited to an account of their own."""
+    return _render_admin(request, current_user, db)
+
+
+@router.post("/dashboard/admin/invites", response_class=HTMLResponse)
+async def admin_invite(
+    request: Request,
+    email: str = Form(...),
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Invite one person to an account of their own, with signup closed.
+
+    The page answers with the link as well as sending it, so the operator
+    can pass it on directly when the email does not arrive or was never
+    configured. It is shown once, to the operator who made it, and stored
+    nowhere but as a hash.
+    """
+    from app.services import account_invites
+    from app.services.email_service import email_service
+
+    try:
+        token = account_invites.create(db, email, current_user.email)
+    except ValueError as e:
+        return _render_admin(request, current_user, db, invite_error=str(e))
+
+    join_url = f"{settings.BASE_URL}/join/{token}"
+    invited = email.strip().lower()
+    sent = email_service.send_account_invitation(
+        to=invited, invited_by=current_user.email, join_url=join_url,
+        days=account_invites.INVITE_DAYS,
+    )
+    return _render_admin(
+        request, current_user, db,
+        invited=invited, invite_sent=sent, join_url=join_url,
+    )
+
+
+@router.post("/dashboard/admin/invites/revoke", response_class=RedirectResponse)
+async def admin_revoke_invite(
+    invitation_id: int = Form(...),
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    from app.services import account_invites
+
+    account_invites.revoke(db, invitation_id)
+    return RedirectResponse(url="/dashboard/admin", status_code=303)
+
+
+@router.get("/join/{token}", response_class=HTMLResponse)
+async def join_page(request: Request, token: str, db: Session = Depends(get_db)):
+    """Where an account invitation lands: choose a password, and you are in."""
+    from app.services import account_invites
+
+    return templates.TemplateResponse(request, "auth/join.html", {
+        "current_user": None,
+        "email": account_invites.resolve(db, token),
+        "token": token,
     })
 
 
