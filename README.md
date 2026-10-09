@@ -198,7 +198,7 @@ because the refusal guards only the order in which things are created.
 cd e2e && npx playwright test
 ```
 
-550 backend tests and 136 end-to-end tests. They run against a real Postgres
+610 backend tests and 168 end-to-end tests. They run against a real Postgres
 and a real browser; nothing important is mocked.
 
 Some of them are unusual and deliberate:
