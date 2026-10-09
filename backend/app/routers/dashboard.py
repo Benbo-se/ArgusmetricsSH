@@ -284,6 +284,7 @@ def _render_admin(request: Request, current_user: User, db: Session, **extra):
         "entries": entries,
         "waiting": sum(1 for e in entries if e.notified_at is None),
         "invites": invites,
+        "invited_addresses": {i.email for i in invites},
         "now": datetime.now(timezone.utc),
         "invite_days": account_invites.INVITE_DAYS,
         **extra,
@@ -315,13 +316,43 @@ async def admin_invite(
     configured. It is shown once, to the operator who made it, and stored
     nowhere but as a hash.
     """
+    return _render_admin(request, current_user, db, **_send_invite(db, current_user, email))
+
+
+@router.post("/dashboard/admin/waitlist/invite", response_class=HTMLResponse)
+async def admin_invite_from_waitlist(
+    request: Request,
+    email: str = Form(...),
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Let someone on the waiting list in: the same invitation as above, and
+    the entry marked as told, so the list shows who is still waiting and the
+    nightly cleanup removes the address a month later."""
+    from sqlalchemy import text
+
+    result = _send_invite(db, current_user, email)
+    if "join_url" in result:
+        set_rls_context(db, context="job")
+        db.execute(
+            text("UPDATE waitlist SET notified_at = now() "
+                 "WHERE email = :e AND notified_at IS NULL"),
+            {"e": result["invited"]},
+        )
+        db.commit()
+    return _render_admin(request, current_user, db, **result)
+
+
+def _send_invite(db: Session, current_user: User, email: str) -> dict:
+    """Create an account invitation and email it. What the admin page shows
+    about it: the link and whether the email went, or why it was refused."""
     from app.services import account_invites
     from app.services.email_service import email_service
 
     try:
         token = account_invites.create(db, email, current_user.email)
     except ValueError as e:
-        return _render_admin(request, current_user, db, invite_error=str(e))
+        return {"invite_error": str(e)}
 
     join_url = f"{settings.BASE_URL}/join/{token}"
     invited = email.strip().lower()
@@ -329,10 +360,7 @@ async def admin_invite(
         to=invited, invited_by=current_user.email, join_url=join_url,
         days=account_invites.INVITE_DAYS,
     )
-    return _render_admin(
-        request, current_user, db,
-        invited=invited, invite_sent=sent, join_url=join_url,
-    )
+    return {"invited": invited, "invite_sent": sent, "join_url": join_url}
 
 
 @router.post("/dashboard/admin/invites/revoke", response_class=RedirectResponse)

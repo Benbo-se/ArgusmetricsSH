@@ -139,17 +139,30 @@
                         </td>
                         <td class="px-6 py-3 text-gray-500">{{ entry.source or '-' }}</td>
                         <td class="px-6 py-3">
-                            {% if entry.notified_at %}
+                            {% if entry.email in invited_addresses %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-50 text-green-700">Invited</span>
+                            {% elif entry.notified_at %}
                             <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">Notified</span>
                             {% else %}
                             <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700">Waiting</span>
                             {% endif %}
                         </td>
-                        <td class="px-6 py-3 text-right">
+                        <td class="px-6 py-3 text-right whitespace-nowrap">
+                            {% if not entry.notified_at %}
+                            {# Letting them in: an account invitation to this
+                               address, and the entry marked as told. #}
+                            <form method="post" action="/dashboard/admin/waitlist/invite" class="inline">
+                                <input type="hidden" name="email" value="{{ entry.email }}">
+                                <button type="submit"
+                                        class="mr-4 text-sm text-blue-600 hover:text-blue-800 font-medium">
+                                    Invite
+                                </button>
+                            </form>
+                            {% endif %}
                             {# A form rather than a link. A GET that deletes is
                                reachable by anything that prefetches, which is
                                why logging out is a form here too. #}
-                            <form method="post" action="/dashboard/admin/waitlist/remove"
+                            <form method="post" action="/dashboard/admin/waitlist/remove" class="inline"
                                   x-data="confirmRemove" @submit="confirmFirst">
                                 <input type="hidden" name="email" value="{{ entry.email }}">
                                 <button type="submit"

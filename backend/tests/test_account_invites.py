@@ -217,3 +217,47 @@ class TestCleanup:
         CleanupService(db).cleanup_account_invitations()
 
         assert db.query(AccountInvitation).filter(AccountInvitation.email == address).count() == 1
+
+
+class TestInvitingFromTheWaitingList:
+    """Someone who left an address on /signup is let in with one click: an
+    account invitation to that address, and the entry marked as told."""
+
+    @pytest.fixture
+    def waiting(self, db, address):
+        db.execute(text("SELECT argus_join_waitlist(:e, '/signup')"), {"e": address})
+        db.commit()
+        yield address
+        db.execute(text("DELETE FROM waitlist WHERE email = :e"), {"e": address})
+        db.commit()
+
+    def test_the_button_invites_and_marks_the_entry(self, owner_client, as_admin, db, waiting):
+        page = owner_client.get("/dashboard/admin")
+        assert 'action="/dashboard/admin/waitlist/invite"' in page.text
+
+        response = owner_client.post("/dashboard/admin/waitlist/invite", data={"email": waiting})
+
+        assert response.status_code == 200
+        assert re.search(r"/join/[A-Za-z0-9_-]{20,}", response.text)
+        notified = db.execute(text("SELECT notified_at FROM waitlist WHERE email = :e"), {"e": waiting}).scalar()
+        assert notified is not None
+        assert db.query(AccountInvitation).filter(AccountInvitation.email == waiting).count() == 1
+        assert "Invited" in response.text
+
+    def test_a_refused_invitation_leaves_the_entry_waiting(self, owner_client, as_admin, db, website):
+        """An address that already has an account is not invited, and is not
+        marked as told either."""
+        db.execute(text("SELECT argus_join_waitlist(:e, '/signup')"), {"e": website["email"]})
+        db.commit()
+        try:
+            response = owner_client.post("/dashboard/admin/waitlist/invite", data={"email": website["email"]})
+            assert "already has an account" in response.text
+            notified = db.execute(text("SELECT notified_at FROM waitlist WHERE email = :e"), {"e": website["email"]}).scalar()
+            assert notified is None
+        finally:
+            db.execute(text("DELETE FROM waitlist WHERE email = :e"), {"e": website["email"]})
+            db.commit()
+
+    def test_only_the_administrator(self, owner_client, monkeypatch, waiting):
+        monkeypatch.setattr(settings, "ADMIN_EMAILS", "someone-else@example.com")
+        assert owner_client.post("/dashboard/admin/waitlist/invite", data={"email": waiting}).status_code == 404
