@@ -111,7 +111,13 @@ in. Create the first account once, after the first start:
 ```
 
 It prompts for an address and a password, and refuses as soon as any account
-exists. After that, people join by invitation from a website's Team page.
+exists. After that, people join by invitation, in one of two ways:
+
+- **To one of your websites:** from that website's Team page. They see that
+  website and nothing else.
+- **To an account of their own:** from `/dashboard/admin` (an address in
+  `ADMIN_EMAILS`). They get a link, choose a password and add their own site,
+  with no access to yours. Registration stays closed for everyone else.
 
 ## Configuration
 
@@ -192,7 +198,7 @@ because the refusal guards only the order in which things are created.
 cd e2e && npx playwright test
 ```
 
-550 backend tests and 136 end-to-end tests. They run against a real Postgres
+610 backend tests and 168 end-to-end tests. They run against a real Postgres
 and a real browser; nothing important is mocked.
 
 Some of them are unusual and deliberate:

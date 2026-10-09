@@ -363,6 +363,51 @@ The {settings.APP_NAME} Team
         logger.error(f"Failed to send password reset email to {to}")
         return False
 
+    def send_account_invitation(self, to: str, invited_by: str, join_url: str, days: int) -> bool:
+        """An invitation to an account of one's own (services/account_invites.py).
+
+        Neither the address nor the link is logged. The link creates an
+        account, so in a log it would be a working credential.
+        """
+        subject = f"You're invited to {settings.APP_NAME}"
+        if not self.configured:
+            logger.warning("No email backend configured: the account invitation was not sent")
+            self._log_email(to, "account_invitation", subject, False, "no email backend")
+            return False
+
+        text = f"""{invited_by} has invited you to {settings.APP_NAME}, cookieless web analytics.
+
+Choose a password here and add your own website:
+
+{join_url}
+
+The link works once and for {days} days. If you did not expect this, ignore it
+and nothing happens.
+
+{settings.APP_NAME}
+"""
+        html = f"""<!DOCTYPE html>
+<html><body style="font-family: Arial, sans-serif; line-height: 1.6; color: #1f2937;">
+<div style="max-width: 560px; margin: 0 auto; padding: 24px;">
+  <h1 style="font-size: 22px; margin: 0 0 16px;">You're invited to {settings.APP_NAME}</h1>
+  <p><strong>{invited_by}</strong> has invited you to {settings.APP_NAME}, cookieless web analytics.
+     Choose a password and add your own website.</p>
+  <p style="margin: 28px 0;">
+    <a href="{join_url}" style="display: inline-block; padding: 12px 24px; background: #4550c8; color: #fff;
+       text-decoration: none; border-radius: 6px; font-weight: bold;">Create my account</a>
+  </p>
+  <p style="font-size: 13px; color: #6b7280;">Or open this link: <a href="{join_url}" style="color: #4550c8; word-break: break-all;">{join_url}</a></p>
+  <p style="font-size: 13px; color: #6b7280;">The link works once and for {days} days. If you did not expect this, ignore it and nothing happens.</p>
+</div>
+</body></html>
+"""
+        success = self._deliver(to, subject, text, html)
+        self._log_email(to, "account_invitation", subject, success,
+                        None if success else "delivery failed")
+        if not success:
+            logger.error("Failed to send an account invitation")
+        return success
+
     def send_team_invitation(self, to: str, website_name: str, website_domain: str, role: str, invited_by: str, invite_url: str) -> bool:
         """
         Send team invitation email.

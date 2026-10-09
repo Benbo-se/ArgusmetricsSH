@@ -23,6 +23,7 @@ from app.models.email_log import EmailLog
 from app.models.job_run import JobRun
 from app.models.ip_country_range import IpCountryRange
 from app.models.waitlist import WaitlistEntry
+from app.models.account_invitation import AccountInvitation
 from app.models.account_usage import AccountUsage
 
 __all__ = [
@@ -30,6 +31,7 @@ __all__ = [
     "JobRun",
     "IpCountryRange",
     "WaitlistEntry",
+    "AccountInvitation",
     "AccountUsage",
     "Session",
     "Website",

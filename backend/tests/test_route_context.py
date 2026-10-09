@@ -75,6 +75,14 @@ EXEMPT = {
         "for the address it just created"
     ),
     "GET /api/v1/websites/invites/{token}": "same, as JSON",
+    # Account invitations (services/account_invites.py): the same arrangement.
+    # The page resolves through argus_resolve_account_invite, and joining uses
+    # it through argus_use_account_invite and then creates a row in users,
+    # which carries no policy. Neither touches a policied table directly.
+    "GET /join/{token}": "account invitation page, resolves via argus_resolve_account_invite",
+    "POST /api/v1/auth/join": (
+        "uses the invitation via argus_use_account_invite, then creates the user"
+    ),
     "GET /api/v1/dashboard-password/check/{share_token}": (
         "public share link, resolves via argus_resolve_share_token"
     ),

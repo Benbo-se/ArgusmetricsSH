@@ -623,6 +623,37 @@ async def accept_invite_and_create_account(
     return response
 
 
+@router.post("/join")
+async def join_with_account_invitation(
+    body: AcceptInviteRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    """Create the account an account invitation names, and sign it in.
+
+    Like accepting a team invitation, not gated on ENABLE_REGISTRATION: the
+    invitation is the operator's approval of one address. The address comes
+    from the invitation, never from the request.
+    """
+    from fastapi.responses import JSONResponse
+    from app.services import account_invites
+
+    _dual_rate_limit(
+        request, body.token, "join", per_email=10, per_ip=20, window_seconds=900
+    )
+    try:
+        session = account_invites.accept(db, body.token, body.password)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+    response = JSONResponse(
+        {"message": "Account created", "redirect": "/dashboard"},
+        status_code=status.HTTP_201_CREATED,
+    )
+    _set_session_cookie(response, session)
+    return response
+
+
 @router.post("/verify-code")
 async def verify_code(
     body: VerifyCodeRequest,

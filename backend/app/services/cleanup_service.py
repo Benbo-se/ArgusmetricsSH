@@ -11,7 +11,7 @@ import logging
 from datetime import datetime, timedelta, timezone
 from typing import Tuple
 from sqlalchemy.orm import Session
-from sqlalchemy import and_, func
+from sqlalchemy import and_, func, or_
 
 from app.models.user import User
 from app.models.session import Session as UserSession
@@ -182,6 +182,35 @@ class CleanupService:
             return count
         except Exception as e:
             logger.error(f"Error cleaning up expired invitations: {e}")
+            self.db.rollback()
+            return 0
+
+    def cleanup_account_invitations(self, days: int = 30) -> int:
+        """Delete account invitations a month after they stopped mattering.
+
+        Used ones a month after they were used: by then the account exists
+        and the row only says who let it in. Unused ones a month after they
+        expired, which leaves time to see on the admin page that a link ran
+        out and to send a new one. The row holds an address, so it does not
+        stay for good (docs/data-map.md).
+        """
+        from app.models.account_invitation import AccountInvitation
+
+        cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+        try:
+            count = self.db.query(AccountInvitation).filter(
+                or_(
+                    AccountInvitation.accepted_at < cutoff,
+                    and_(AccountInvitation.accepted_at.is_(None),
+                         AccountInvitation.expires_at < cutoff),
+                )
+            ).delete(synchronize_session=False)
+            self.db.commit()
+            if count:
+                logger.info(f"Deleted {count} old account invitations")
+            return count
+        except Exception as e:
+            logger.error(f"Error cleaning up account invitations: {e}")
             self.db.rollback()
             return 0
 
@@ -460,6 +489,7 @@ class CleanupService:
         empty_inactive = self.cleanup_empty_inactive_accounts(days=30)
         sessions = self.cleanup_expired_sessions()
         invitations = self.cleanup_expired_invitations()
+        invitations += self.cleanup_account_invitations()
         waitlist = self.cleanup_waitlist()
         retained = self.purge_old_event_data()
 
