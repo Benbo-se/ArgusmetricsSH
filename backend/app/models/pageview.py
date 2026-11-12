@@ -32,6 +32,11 @@ class Pageview(Base):
         utm_campaign: UTM campaign parameter (e.g., 'summer_sale')
         utm_content: UTM content parameter (e.g., 'banner_ad')
         utm_term: UTM term parameter (e.g., 'running_shoes')
+        os: Operating system family (e.g., 'Windows', 'macOS', 'Linux')
+        os_version: Major version of the operating system (e.g., '10')
+        browser_version: Major version of the browser (e.g., '126')
+        language: Preferred language as language and region (e.g., 'sv-SE')
+        hostname: Hostname the page was served from (e.g., 'blog.example.com')
         screen_width: Screen width in pixels
         screen_height: Screen height in pixels
         scroll_depth: Maximum scroll depth percentage (0-100)
@@ -75,6 +80,18 @@ class Pageview(Base):
 
     # Scroll depth tracking (Sprint 2) - max scroll percentage reached
     scroll_depth = Column(Integer, nullable=True)  # 0-100
+
+    # Visitor dimensions (#204). Deliberately coarse: major versions only, a
+    # fixed list of operating systems, one language tag without script or
+    # variant. The user agent and Accept-Language header they come from are
+    # never stored. NULL on every row older than the columns, and wherever a
+    # value could not be told; reports call that "Unknown". No indexes, for
+    # the reason given above.
+    os = Column(String(50), nullable=True)
+    os_version = Column(String(20), nullable=True)
+    browser_version = Column(String(20), nullable=True)
+    language = Column(String(10), nullable=True)
+    hostname = Column(String(253), nullable=True)
 
     # Custom properties (Session 6) - for advanced filtering/segmentation
     properties = Column(JSONB, nullable=True)
