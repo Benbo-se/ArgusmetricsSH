@@ -20,6 +20,8 @@ from typing import Dict, Iterable, Optional
 
 from sqlalchemy import text
 
+from app.services.goals_service import goal_conversion_stats
+
 DAYS = 14
 ONLINE_WINDOW = timedelta(minutes=5)
 
@@ -123,21 +125,15 @@ def goal_activity(db, website_id: int, now: Optional[datetime] = None) -> dict:
     """Per goal, the last thirty days: conversions, converters, a line.
 
     `rate` is the share of the period's visitors who converted at least once,
-    which cannot pass 100%. Conversions divided by visitors, which the
-    overview's table shows, can: one visitor ordering twice is two
-    conversions.
+    which cannot pass 100%. The overview's table uses the same function
+    (goals_service.goal_conversion_stats), over the range chosen there.
     """
     now = now or datetime.now(timezone.utc)
     first = now.date() - timedelta(days=GOAL_DAYS - 1)
     since = datetime.combine(first, datetime.min.time(), tzinfo=timezone.utc)
 
-    visitors = db.execute(
-        text(
-            'SELECT count(DISTINCT visitor_hash) FROM pageviews '
-            'WHERE website_id = :w AND "timestamp" >= :since'
-        ),
-        {"w": website_id, "since": since},
-    ).scalar() or 0
+    shared = goal_conversion_stats(db, website_id, since)
+    visitors = shared["visitors"]
 
     rows = db.execute(
         text(
@@ -151,18 +147,6 @@ def goal_activity(db, website_id: int, now: Optional[datetime] = None) -> dict:
         ),
         {"w": website_id, "since": since},
     ).all()
-    converters = dict(db.execute(
-        text(
-            """
-            SELECT goal_id, count(DISTINCT visitor_hash)
-            FROM goal_conversions
-            WHERE website_id = :w AND "timestamp" >= :since
-            GROUP BY goal_id
-            """
-        ),
-        {"w": website_id, "since": since},
-    ).all())
-
     days = {}
     for r in rows:
         offset = (r.day - first).days
@@ -171,10 +155,9 @@ def goal_activity(db, website_id: int, now: Optional[datetime] = None) -> dict:
 
     out = {}
     for goal_id, series in days.items():
-        who = converters.get(goal_id, 0)
         out[goal_id] = {
             "conversions": sum(series),
-            "rate": round(who / visitors * 100, 1) if visitors else None,
+            "rate": shared["goals"][goal_id]["rate"] if visitors else None,
             "spark": _spark(series),
         }
     return {"visitors": visitors, "goals": out}
