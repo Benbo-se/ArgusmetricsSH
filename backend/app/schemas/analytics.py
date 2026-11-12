@@ -181,6 +181,19 @@ class PageviewTrackRequest(BaseModel):
         ),
         example={"userId": "123", "plan": "pro", "experiment": "A"}
     )
+    language: Optional[str] = Field(
+        default=None,
+        description=(
+            "The visitor's preferred language (navigator.language). Reduced "
+            "to language and region before it is stored."
+        ),
+        example="sv-SE"
+    )
+    hostname: Optional[str] = Field(
+        default=None,
+        description="Hostname the page was served from (location.hostname)",
+        example="blog.example.com"
+    )
     debug: Optional[bool] = Field(
         default=False,
         description="Debug mode flag - when true, event is NOT recorded in analytics but IS sent to debug WebSocket"
@@ -193,6 +206,20 @@ class PageviewTrackRequest(BaseModel):
         if not v.startswith("/"):
             return f"/{v}"
         return v
+
+    @field_validator("language", mode="before")
+    @classmethod
+    def reduce_language(cls, v: Any) -> Optional[str]:
+        """Normalise, and never refuse: a pageview is worth more than its language."""
+        from app.services.visitor_dimensions import normalise_language
+        return normalise_language(v)
+
+    @field_validator("hostname", mode="before")
+    @classmethod
+    def reduce_hostname(cls, v: Any) -> Optional[str]:
+        """Normalise, and never refuse, for the same reason."""
+        from app.services.visitor_dimensions import normalise_hostname
+        return normalise_hostname(v)
 
     @field_validator("properties")
     @classmethod
@@ -347,6 +374,20 @@ class ComparisonData(BaseModel):
     )
 
 
+class DimensionItem(BaseModel):
+    """
+    One row of a visitor dimension report.
+
+    Attributes:
+        value: The value as a filter takes it (e.g., 'Windows 10', 'sv-SE')
+        label: The value as it is shown (e.g., '1280 to 1439 px')
+        views: Number of pageviews
+    """
+    value: str = Field(..., description="Value, as the dashboard filters on it")
+    label: str = Field(..., description="Value, as it is displayed")
+    views: int = Field(..., description="Number of pageviews", ge=0)
+
+
 class DashboardStatsResponse(BaseModel):
     """
     Response schema for dashboard statistics.
@@ -417,6 +458,14 @@ class DashboardStatsResponse(BaseModel):
     top_browsers: List[Dict[str, Any]] = Field(
         default_factory=list,
         description="List of top browsers by pageviews"
+    )
+    dimensions: Dict[str, List[DimensionItem]] = Field(
+        default_factory=dict,
+        description=(
+            "Top values per visitor dimension: os, os_version, "
+            "browser_version, language, hostname and screen. Pageviews "
+            "without a value are counted as 'Unknown'."
+        )
     )
     top_referrers: List[TopReferrerItem] = Field(
         default_factory=list,

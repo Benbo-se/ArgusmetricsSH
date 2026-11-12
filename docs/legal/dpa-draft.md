@@ -66,6 +66,10 @@ database schema, not from a description.
 | `referrer` | Where the visitor came from, if the browser sent it |
 | `country` | A two-letter country code |
 | `browser` | A browser family, such as "Chrome". Not a full user agent |
+| `browser_version` | The browser's major version, such as "126". Nothing finer |
+| `os`, `os_version` | An operating system from a short list (Windows, macOS, iOS, Android, Chrome OS, Linux, Other) and its major version |
+| `language` | The browser's first preferred language as language and region, such as "sv-SE". Not the list of preferred languages |
+| `hostname` | The hostname the page was served from, such as "blog.example.com" |
 | `device_type` | One of desktop, mobile, tablet |
 | `screen_width`, `screen_height` | Viewport size |
 | `scroll_depth` | How far down the page the visitor reached |

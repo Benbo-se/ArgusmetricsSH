@@ -23,6 +23,7 @@ from app.models.funnel import Funnel
 from app.utils.security import generate_visitor_hash
 from app.services.website_lookup import resolve_tracking_code
 from app.services.usage_service import LIMIT_MESSAGE, may_record
+from app.services import visitor_dimensions
 
 logger = logging.getLogger(__name__)
 
@@ -276,9 +277,16 @@ class AnalyticsRecordingService:
         utm_term: Optional[str] = None,
         screen_height: Optional[int] = None,
         scroll_depth: Optional[int] = None,
-        properties: Optional[Dict] = None
+        properties: Optional[Dict] = None,
+        language: Optional[str] = None,
+        hostname: Optional[str] = None
     ) -> Tuple[bool, str]:
-        """Record a new pageview."""
+        """Record a new pageview.
+
+        `language` and `hostname` are normalised again here, whatever the
+        caller did, so nothing longer or finer than visitor_dimensions allows
+        can reach the table by a route that skipped the request schema.
+        """
         path = sanitize_path(path)
         logger.info(f"Recording pageview: tracking_code={tracking_code}, path={path}")
 
@@ -312,6 +320,7 @@ class AnalyticsRecordingService:
             device_type = self._detect_device_type(screen_width, user_agent)
             browser = self._detect_browser(user_agent)
             country = self._get_country_from_ip(ip_address)
+            from_ua = visitor_dimensions.from_user_agent(user_agent)
 
             pageview = Pageview(
                 website_id=website.id,
@@ -320,6 +329,11 @@ class AnalyticsRecordingService:
                 country=country,
                 device_type=device_type,
                 browser=browser,
+                os=from_ua["os"],
+                os_version=from_ua["os_version"],
+                browser_version=from_ua["browser_version"],
+                language=visitor_dimensions.normalise_language(language),
+                hostname=visitor_dimensions.normalise_hostname(hostname),
                 visitor_hash=visitor_hash,
                 timestamp=datetime.now(timezone.utc),
                 utm_source=utm_source,
