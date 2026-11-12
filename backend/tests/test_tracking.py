@@ -65,8 +65,8 @@ class TestTrackEvent:
         assert response.status_code == 200
         assert count(db, "custom_events", event_name="no_goal_for_this") == 1
 
-    def test_unknown_event_with_no_properties_is_rejected(self, client, website):
-        """Nothing to record: no properties to store and no goal to convert."""
+    def test_event_without_properties_or_goal_is_still_stored(self, client, db, website):
+        """argus.trackEvent('signup_click') on a site with no such goal."""
         response = client.post(
             "/api/v1/analytics/track-event",
             json={
@@ -75,8 +75,32 @@ class TestTrackEvent:
             },
         )
 
+        assert response.status_code == 200
+        assert count(db, "custom_events", event_name="no_goal_for_this") == 1
+        assert count(db, "goal_conversions", website_id=website["id"]) == 0
+
+    def test_event_without_properties_is_stored_next_to_its_conversion(self, client, db, website, goal):
+        client.post(
+            "/api/v1/analytics/track-event",
+            json={
+                "tracking_code": website["tracking_code"],
+                "event_name": goal["event_name"],
+            },
+        )
+
+        assert count(db, "custom_events", event_name=goal["event_name"]) == 1
+        assert count(db, "goal_conversions", website_id=website["id"]) == 1
+
+    def test_event_without_properties_for_an_invalid_code_records_nothing(self, client, db):
+        before = count(db, "custom_events")
+
+        response = client.post(
+            "/api/v1/analytics/track-event",
+            json={"tracking_code": "zzzzzzzz", "event_name": "whatever"},
+        )
+
         assert response.status_code == 400
-        assert "goal not found" in reason(response)
+        assert count(db, "custom_events") == before
 
     def test_an_invalid_tracking_code_records_nothing(self, client, db):
         before = count(db, "custom_events")

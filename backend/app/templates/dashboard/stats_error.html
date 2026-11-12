@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{# Shown instead of the dashboard when the statistics query fails.
+
+   It used to render a dashboard of zeros, which reads as a day without
+   traffic. An error that looks like an empty result is worse than an error. #}
+
+{% block title %}{{ website.name }} - Analytics{% endblock %}
+{% block navbar %}{% endblock %}
+{% block main_class %}{% endblock %}
+
+{% block content %}
+{% set active = 'analytics' %}
+{% include 'components/sidebar.html' with context %}
+<div class="lg:pl-64">
+<div class="dash-page max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="bg-red-50 border border-red-200 rounded-lg p-6" role="alert">
+        <h1 class="text-lg font-semibold text-red-800">Statistics could not be loaded</h1>
+        <p class="mt-2 text-sm text-red-700">
+            Your data is not gone and this is not a quiet day. The query behind this page failed,
+            and it is better to say so than to show zeros. Try again in a moment; if it keeps
+            happening, the server log has the reason.
+        </p>
+        <a href="" class="inline-block mt-4 px-4 py-2 bg-red-600 text-white text-sm rounded-md hover:bg-red-700">Try again</a>
+    </div>
+</div>
+</div>
+{% endblock %}
