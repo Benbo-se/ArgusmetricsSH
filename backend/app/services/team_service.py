@@ -463,7 +463,8 @@ class TeamService:
                 "website_name": invite.website_name,
                 "website_domain": invite.website_domain,
                 "role": invite.role,
-                "invited_by": invite.invited_by
+                "invited_by": invite.invited_by,
+                "invitee_email": invite.invitee_email,
             }
 
         except Exception as e:
