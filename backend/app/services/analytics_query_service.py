@@ -45,9 +45,9 @@ class AnalyticsQueryService:
         """Which pageviews a set of numbers is allowed to see.
 
         One place, because the previous period used to build its own shorter
-        version: no filters and no system-URL exclusion. So with a filter on,
-        the arrow compared a filtered week against an unfiltered one and
-        pointed the wrong way, confidently.
+        version without the filters. So with a filter on, the arrow compared a
+        filtered week against an unfiltered one and pointed the wrong way,
+        confidently.
         """
         conditions = [
             Pageview.website_id == website_id,
@@ -67,17 +67,6 @@ class AnalyticsQueryService:
             conditions.append(Pageview.referrer == filter_referrer)
         if filter_properties:
             conditions.append(Pageview.properties.contains(filter_properties))
-
-        # Exclude system URLs
-        conditions.append(
-            and_(
-                ~Pageview.path.like('/api/%'),
-                ~Pageview.path.like('/static/%'),
-                ~Pageview.path.like('/admin/%'),
-                ~Pageview.path.like('/dashboard/%'),
-                ~Pageview.path.like(r'/\_%', escape='\\')
-            )
-        )
         return conditions
 
     def _get_visit_stats(self, conditions: List) -> Dict:
@@ -539,18 +528,6 @@ class AnalyticsQueryService:
             if filter_properties:
                 conditions.append(Pageview.properties.contains(filter_properties))
 
-            # Same system-URL exclusion as the headline totals — without it the
-            # graph disagrees with total_pageviews on any site with API traffic.
-            conditions.append(
-                and_(
-                    ~Pageview.path.like('/api/%'),
-                    ~Pageview.path.like('/static/%'),
-                    ~Pageview.path.like('/admin/%'),
-                    ~Pageview.path.like('/dashboard/%'),
-                    ~Pageview.path.like(r'/\_%', escape='\\')
-                )
-            )
-
             results = self.db.query(
                 func.date(Pageview.timestamp).label('date'),
                 func.count(Pageview.id).label('views'),
@@ -600,9 +577,9 @@ class AnalyticsQueryService:
         """Get comparison data for previous period.
 
         The filters come along. Without them the previous period counted
-        everything, including the /api/ and /dashboard/ paths the current
-        period excludes, so the arrow beside a filtered number was measuring a
-        different thing from the number it sat next to.
+        everything the current period had filtered out, so the arrow beside a
+        filtered number was measuring a different thing from the number it sat
+        next to.
         """
         try:
             current_visits = current_visits or {}
