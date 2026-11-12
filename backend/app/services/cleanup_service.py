@@ -26,12 +26,22 @@ def _mask(email) -> str:
     return mask_email(email)
 
 
+class CleanupFailed(Exception):
+    """One or more cleanup sub-tasks failed. Raised after all of them ran."""
+
+
 class CleanupService:
     """Service for cleaning up inactive accounts and expired data."""
 
     def __init__(self, db: Session):
         """Initialize cleanup service with database session."""
         self.db = db
+        # One entry per sub-task that failed. Each sub-task catches its own
+        # error so that the others still run; this is how the run learns of it.
+        self.failures: list[str] = []
+
+    def _failed(self, task: str, error: Exception) -> None:
+        self.failures.append(f"{task}: {error}")
 
     def cleanup_unverified_accounts(self, days: int = 7) -> int:
         """
@@ -70,6 +80,7 @@ class CleanupService:
                     self.db.commit()
                     deleted += 1
                 except Exception as e:
+                    self._failed("cleanup_unverified_accounts (delete)", e)
                     self.db.rollback()
                     logger.error(f"Could not delete account {_mask(user.email)}: {e}")
 
@@ -77,6 +88,7 @@ class CleanupService:
             return deleted
 
         except Exception as e:
+            self._failed("cleanup_unverified_accounts", e)
             logger.error(f"Error cleaning up unverified accounts: {e}")
             self.db.rollback()
             return 0
@@ -143,6 +155,7 @@ class CleanupService:
                         self.db.commit()
                         deleted_count += 1
                     except Exception as e:
+                        self._failed("cleanup_empty_inactive_accounts (delete)", e)
                         self.db.rollback()
                         logger.error(f"Could not delete account {_mask(user.email)}: {e}")
 
@@ -154,6 +167,7 @@ class CleanupService:
             return deleted_count
 
         except Exception as e:
+            self._failed("cleanup_empty_inactive_accounts", e)
             logger.error(f"Error cleaning up empty inactive accounts: {e}")
             self.db.rollback()
             return 0
@@ -181,6 +195,7 @@ class CleanupService:
                 logger.info(f"Deleted {count} expired invitations")
             return count
         except Exception as e:
+            self._failed("cleanup_expired_invitations", e)
             logger.error(f"Error cleaning up expired invitations: {e}")
             self.db.rollback()
             return 0
@@ -210,6 +225,7 @@ class CleanupService:
                 logger.info(f"Deleted {count} old account invitations")
             return count
         except Exception as e:
+            self._failed("cleanup_account_invitations", e)
             logger.error(f"Error cleaning up account invitations: {e}")
             self.db.rollback()
             return 0
@@ -238,6 +254,7 @@ class CleanupService:
                 logger.info(f"Deleted {count} waitlist entries")
             return count
         except Exception as e:
+            self._failed("cleanup_waitlist", e)
             logger.error(f"Error cleaning up the waitlist: {e}")
             self.db.rollback()
             return 0
@@ -267,6 +284,7 @@ class CleanupService:
             return count
 
         except Exception as e:
+            self._failed("cleanup_expired_sessions", e)
             logger.error(f"Error cleaning up expired sessions: {e}")
             self.db.rollback()
             return 0
@@ -470,6 +488,7 @@ class CleanupService:
             return total
 
         except Exception as e:
+            self._failed("purge_old_event_data", e)
             logger.error(f"Error purging old event data: {e}")
             self.db.rollback()
             return total
@@ -500,6 +519,14 @@ class CleanupService:
             f"{retained} retention rows"
         )
         logger.info("=" * 80)
+
+        if self.failures:
+            # After every sub-task has had its turn, so one failing does not
+            # stop the others, but raised so the run is recorded as a failure
+            # in job_runs and /health can see it.
+            raise CleanupFailed(
+                f"{len(self.failures)} cleanup step(s) failed: " + "; ".join(self.failures)
+            )
 
         return (unverified, empty_inactive, sessions, retained)
 

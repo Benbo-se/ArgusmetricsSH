@@ -91,7 +91,7 @@ class TestRealTrafficReachesTheConsole:
         assert line["event_type"] == "event"
         assert line["metadata"]["event_name"] == "order_placed"
         assert line["outcome"] == "recorded"
-        assert line["detail"] == "Recorded goal conversion"
+        assert line["detail"] == "Recorded custom event and goal conversion"
 
     def test_an_event_nothing_matches_says_so(self, client, db, website):
         """The usual reason a goal shows nothing: the name the site sends is
@@ -104,8 +104,10 @@ class TestRealTrafficReachesTheConsole:
             )
             line = _next_debug_event(ws)
 
-        assert line["outcome"] == "refused"
-        assert line["detail"], "a refusal has to say why"
+        # Stored as a custom event, but the console still says no goal matched,
+        # because that is the usual reason a goal shows nothing.
+        assert line["outcome"] == "recorded"
+        assert "no goal matched" in line["detail"]
 
     def test_an_ecommerce_event_with_revenue_arrives(self, client, db, website):
         """revenue is a Decimal, which JSON cannot carry. Unconverted, every

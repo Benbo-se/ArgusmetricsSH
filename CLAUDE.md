@@ -74,9 +74,6 @@ Pages, and `/health` matches what this repo's deploy workflow greps for.
 
 ## Deliberately not done
 
-- **`backend` and `web` have no compose healthcheck.** The deploy checks the
-  whole chain from outside, which is what matters. The cost is that
-  `docker compose ps` cannot tell you much between deploys.
 - **Backups are not encrypted.** `scripts/backup.sh` supports
   `BACKUP_GPG_RECIPIENT` and warns when it is unset, on the grounds that an
   unencrypted backup beats no backup. It is unset. The dumps hold every

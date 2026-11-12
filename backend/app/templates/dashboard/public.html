@@ -309,6 +309,8 @@
                     <span class="text-2xl">📧</span>
                     {% elif channel.channel == 'Paid' %}
                     <span class="text-2xl">💰</span>
+                    {% elif channel.channel == 'AI Assistants' %}
+                    <span class="text-2xl">🤖</span>
                     {% elif channel.channel == 'Referral' %}
                     <span class="text-2xl">🔗</span>
                     {% else %}
@@ -322,6 +324,7 @@
                             {% elif channel.channel == 'Direct' %}Direct visits
                             {% elif channel.channel == 'Email' %}From email campaigns
                             {% elif channel.channel == 'Paid' %}From paid advertising
+                            {% elif channel.channel == 'AI Assistants' %}From AI assistants (ChatGPT, Claude, Perplexity, Gemini)
                             {% elif channel.channel == 'Referral' %}From other websites
                             {% endif %}
                         </p>
@@ -437,7 +440,7 @@
         </div>
         {% if stats.total_visitors > 0 %}
         <p class="mt-4 text-xs text-gray-500">
-            Based on {{ stats.total_visitors }} unique visitors in this period
+            Based on {{ stats.total_visitors }} unique visitors in this period. The rate is the share of them who converted at least once.
         </p>
         {% endif %}
         {% else %}
