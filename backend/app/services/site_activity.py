@@ -14,6 +14,9 @@ sites would otherwise wait for twelve.
 Visitors per day are distinct visitor hashes per day. The hash is rebuilt
 daily, so a week's visitors are the sum of its days, which is also what the
 dashboard's own seven-day number counts.
+
+A day is a day in each website's own time zone, so "today" on one card may
+have started hours before "today" on the next.
 """
 from datetime import datetime, timedelta, timezone
 from typing import Dict, Iterable, Optional
@@ -21,6 +24,7 @@ from typing import Dict, Iterable, Optional
 from sqlalchemy import text
 
 from app.services.goals_service import goal_conversion_stats
+from app.utils.date_helpers import DEFAULT_TIMEZONE, day_start, local_date
 
 DAYS = 14
 ONLINE_WINDOW = timedelta(minutes=5)
@@ -59,24 +63,41 @@ def ago(now: datetime, then: datetime) -> str:
     return "just now"
 
 
-def recent_activity(db, website_ids: Iterable[int], now: Optional[datetime] = None) -> Dict[int, dict]:
+def recent_activity(
+    db,
+    website_ids: Iterable[int],
+    now: Optional[datetime] = None,
+    zones: Optional[Dict[int, str]] = None,
+) -> Dict[int, dict]:
+    """`zones` maps a website id to its time zone; a site not in it is UTC."""
     ids = list(website_ids)
     if not ids:
         return {}
     now = now or datetime.now(timezone.utc)
-    today = now.date()
-    first = today - timedelta(days=DAYS - 1)
+    zones = zones or {}
+    tzs = [zones.get(i) or DEFAULT_TIMEZONE for i in ids]
+    # Each site's fourteen days end on its own today and start at its own
+    # midnight thirteen days earlier.
+    firsts = [local_date(now, tz) - timedelta(days=DAYS - 1) for tz in tzs]
+    sinces = [day_start(first, tz) for first, tz in zip(firsts, tzs)]
+    first_of = dict(zip(ids, firsts))
 
+    # Still one query for every site. The zone and the start travel with the
+    # id, and the earliest start is repeated as a plain bound so the planner
+    # can leave old chunks alone before it looks at any site.
     per_day = db.execute(
         text(
             """
-            SELECT website_id, date("timestamp") AS day, count(DISTINCT visitor_hash) AS visitors
-            FROM pageviews
-            WHERE website_id = ANY(:ids) AND "timestamp" >= :since
-            GROUP BY website_id, date("timestamp")
+            SELECT p.website_id, date(timezone(w.tz, p."timestamp")) AS day,
+                   count(DISTINCT p.visitor_hash) AS visitors
+            FROM unnest(CAST(:ids AS integer[]), CAST(:tzs AS text[]),
+                        CAST(:sinces AS timestamptz[])) AS w(id, tz, since)
+            JOIN pageviews p ON p.website_id = w.id AND p."timestamp" >= w.since
+            WHERE p."timestamp" >= :earliest
+            GROUP BY p.website_id, date(timezone(w.tz, p."timestamp"))
             """
         ),
-        {"ids": ids, "since": datetime.combine(first, datetime.min.time(), tzinfo=timezone.utc)},
+        {"ids": ids, "tzs": tzs, "sinces": sinces, "earliest": min(sinces)},
     ).all()
 
     # Per site rather than one GROUP BY: the latest row of each site is an
@@ -97,7 +118,7 @@ def recent_activity(db, website_ids: Iterable[int], now: Optional[datetime] = No
 
     counts = {i: [0] * DAYS for i in ids}
     for r in per_day:
-        offset = (r.day - first).days
+        offset = (r.day - first_of[r.website_id]).days
         if 0 <= offset < DAYS:
             counts[r.website_id][offset] = r.visitors
     seen = {r.website_id: r for r in latest}
@@ -121,16 +142,20 @@ def recent_activity(db, website_ids: Iterable[int], now: Optional[datetime] = No
 GOAL_DAYS = 30
 
 
-def goal_activity(db, website_id: int, now: Optional[datetime] = None) -> dict:
+def goal_activity(
+    db, website_id: int, now: Optional[datetime] = None, tz: str = DEFAULT_TIMEZONE
+) -> dict:
     """Per goal, the last thirty days: conversions, converters, a line.
+
+    Days in `tz`, the website's time zone.
 
     `rate` is the share of the period's visitors who converted at least once,
     which cannot pass 100%. The overview's table uses the same function
     (goals_service.goal_conversion_stats), over the range chosen there.
     """
     now = now or datetime.now(timezone.utc)
-    first = now.date() - timedelta(days=GOAL_DAYS - 1)
-    since = datetime.combine(first, datetime.min.time(), tzinfo=timezone.utc)
+    first = local_date(now, tz) - timedelta(days=GOAL_DAYS - 1)
+    since = day_start(first, tz)
 
     shared = goal_conversion_stats(db, website_id, since)
     visitors = shared["visitors"]
@@ -138,14 +163,14 @@ def goal_activity(db, website_id: int, now: Optional[datetime] = None) -> dict:
     rows = db.execute(
         text(
             """
-            SELECT goal_id, date("timestamp") AS day,
+            SELECT goal_id, date(timezone(:tz, "timestamp")) AS day,
                    count(*) AS conversions
             FROM goal_conversions
             WHERE website_id = :w AND "timestamp" >= :since
-            GROUP BY goal_id, date("timestamp")
+            GROUP BY 1, 2
             """
         ),
-        {"w": website_id, "since": since},
+        {"w": website_id, "since": since, "tz": tz},
     ).all()
     days = {}
     for r in rows:

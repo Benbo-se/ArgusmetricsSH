@@ -19,6 +19,7 @@ class Website(Base):
         created_at: Timestamp when website was added
         updated_at: Timestamp when website was last updated
         is_active: Whether tracking is active for this website
+        timezone: IANA time zone the website counts its days in
         is_public: Whether public dashboard is enabled
         public_share_token: Unique token for public dashboard access
     """
@@ -36,6 +37,8 @@ class Website(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     is_active = Column(Boolean, default=True, nullable=False)
+    # IANA zone name. A day in every statistic is a day in this zone.
+    timezone = Column(String(64), nullable=False, default="UTC", server_default="UTC")
 
     # Email Reports Configuration
     email_reports_enabled = Column(Boolean, default=False, nullable=False, index=True)

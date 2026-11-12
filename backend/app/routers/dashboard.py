@@ -26,7 +26,10 @@ from app.services.usage_service import get_usage
 from app.services.site_activity import goal_activity, recent_activity
 from app.models.user import User
 from app.routers.auth import get_current_user
-from app.utils.date_helpers import parse_date_range
+from app.utils.date_helpers import (
+    DEFAULT_TIMEZONE, is_valid_timezone, local_date, parse_date_range,
+    site_timezone, timezone_choices,
+)
 from app.config import settings
 
 from app.utils.security import mask_email
@@ -193,6 +196,18 @@ def _has_valid_public_cookie(request: Request, website, share_token: str) -> boo
         return False
     expected = {"t": share_token, "p": _public_pw_state(website)}
     return data == expected
+
+
+def _public_timezone(db: Session, website_id: int) -> str:
+    """The time zone of a publicly shared website.
+
+    The share token resolver hands back six fields and the zone is not one of
+    them. Once the request is pinned to the website the public read policy
+    allows this one row, so the zone is read the ordinary way.
+    """
+    from app.models.website import Website
+    name = db.query(Website.timezone).filter(Website.id == website_id).scalar()
+    return name if is_valid_timezone(name) else DEFAULT_TIMEZONE
 
 
 def get_analytics_service(db: Session = Depends(get_db)) -> AnalyticsService:
@@ -631,7 +646,10 @@ async def dashboard_index(
     return templates.TemplateResponse(request, "dashboard/index.html", {
         "current_user": current_user,
         "websites": websites,
-        "activity": recent_activity(db, [w.id for w in websites]),
+        "activity": recent_activity(
+            db, [w.id for w in websites],
+            zones={w.id: site_timezone(w) for w in websites},
+        ),
         "usage": usage,
         "website_cap": settings.MAX_WEBSITES_PER_ACCOUNT,
     })
@@ -722,7 +740,8 @@ async def website_dashboard(
             filter_browser=browser,
             filter_page=page,
             filter_referrer=referrer,
-            filter_properties=filter_properties
+            filter_properties=filter_properties,
+            tz=site_timezone(website)
         )
 
         # Get live visitors count
@@ -829,7 +848,8 @@ async def website_stats_partial(
         stats = analytics_service.get_dashboard_stats(
             website_id=website_id,
             start_date=start,
-            end_date=end
+            end_date=end,
+            tz=site_timezone(website)
         )
         realtime_stats = analytics_service.get_realtime_stats(website_id=website_id)
     except Exception:
@@ -891,7 +911,8 @@ async def website_stats_basic_partial(
             filter_browser=browser,
             filter_page=page,
             filter_referrer=referrer,
-            filter_properties=filter_properties
+            filter_properties=filter_properties,
+            tz=site_timezone(website)
         )
     except Exception:
         return _stats_unavailable()
@@ -966,7 +987,11 @@ async def website_settings(
         "alert_settings": alert_settings,
         "base_url": settings.BASE_URL,
         "user_email": current_user.email,
-        "activity": recent_activity(db, [website.id])[website.id],
+        "activity": recent_activity(
+            db, [website.id], zones={website.id: site_timezone(website)}
+        )[website.id],
+        "site_timezone": site_timezone(website),
+        "timezone_choices": timezone_choices(),
     })
 
 
@@ -1060,7 +1085,7 @@ async def website_goals(
 
     # Get all goals for this website
     goals = analytics_service.get_goals_list(website_id)
-    activity = goal_activity(analytics_service.db, website_id)
+    activity = goal_activity(analytics_service.db, website_id, tz=site_timezone(website))
     quiet = {"conversions": 0, "rate": 0.0 if activity["visitors"] else None, "spark": None}
 
     # Convert goals to dict for JSON serialization
@@ -1252,7 +1277,8 @@ async def public_dashboard(
             website_id=website.id,
             start_date=start,
             end_date=end,
-            compare=True
+            compare=True,
+            tz=_public_timezone(db, website.id)
         )
 
         # Get live visitors count
@@ -1429,7 +1455,8 @@ async def website_revenue_dashboard(
             website_id=website_id,
             start_date=start,
             end_date=end,
-            currency=currency
+            currency=currency,
+            tz=site_timezone(website)
         )
 
     except Exception as e:
@@ -1495,11 +1522,13 @@ async def export_csv(
 
     # Get analytics data
     analytics_service = AnalyticsService(db)
+    tz = site_timezone(website)
     stats = analytics_service.get_dashboard_stats(
         website_id=website.id,
         start_date=start,
         end_date=end,
-        compare=False
+        compare=False,
+        tz=tz
     )
     
     # Create CSV in memory
@@ -1510,7 +1539,9 @@ async def export_csv(
     writer.writerow(['Argusmetrics - Analytics Export'])
     writer.writerow(['Website:', website.name])
     writer.writerow(['Domain:', website.domain])
-    writer.writerow(['Date Range:', f"{start.strftime('%Y-%m-%d')} to {end.strftime('%Y-%m-%d')}"])
+    # The dates of the first and last row below, which are days in the
+    # website's zone.
+    writer.writerow(['Date Range:', f"{local_date(start, tz).isoformat()} to {local_date(end, tz).isoformat()}"])
     writer.writerow(['Exported:', datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')])
     writer.writerow([])
     

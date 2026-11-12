@@ -13,6 +13,7 @@ from sqlalchemy import func, and_, case, distinct, select
 from app.models.pageview import Pageview
 from app.models.website import Website
 from app.services.traffic_sources import classify_channel, own_referrer_regex
+from app.utils.date_helpers import DEFAULT_TIMEZONE, local_date, sql_local_day
 
 logger = logging.getLogger(__name__)
 
@@ -286,9 +287,14 @@ class AnalyticsQueryService:
         filter_browser: Optional[str] = None,
         filter_page: Optional[str] = None,
         filter_referrer: Optional[str] = None,
-        filter_properties: Optional[Dict[str, str]] = None
+        filter_properties: Optional[Dict[str, str]] = None,
+        tz: str = DEFAULT_TIMEZONE
     ) -> Dict:
-        """Get dashboard statistics for a date range."""
+        """Get dashboard statistics for a date range.
+
+        `tz` is the website's time zone: the days of the time series are days
+        in that zone. The range itself is two instants and is not affected.
+        """
         logger.info(
             f"Getting dashboard stats: website_id={website_id}, "
             f"start={start_date}, end={end_date}, compare={compare}, "
@@ -448,7 +454,7 @@ class AnalyticsQueryService:
             timeseries = self._get_timeseries_data(
                 website_id, start_date, end_date,
                 filter_country, filter_device, filter_browser, filter_page, filter_referrer,
-                filter_properties
+                filter_properties, tz=tz
             )
 
             visit_stats = self._get_visit_stats(base_conditions, range_conditions)
@@ -526,7 +532,7 @@ class AnalyticsQueryService:
                 timeseries_previous = self._get_timeseries_data(
                     website_id, prev_start_date, prev_end_date,
                     filter_country, filter_device, filter_browser, filter_page, filter_referrer,
-                    filter_properties
+                    filter_properties, tz=tz
                 )
                 stats['timeseries_previous'] = timeseries_previous
 
@@ -559,9 +565,10 @@ class AnalyticsQueryService:
         filter_browser: Optional[str] = None,
         filter_page: Optional[str] = None,
         filter_referrer: Optional[str] = None,
-        filter_properties: Optional[Dict[str, str]] = None
+        filter_properties: Optional[Dict[str, str]] = None,
+        tz: str = DEFAULT_TIMEZONE
     ) -> List[Dict]:
-        """Get pageviews over time (for graph)."""
+        """Get pageviews over time (for graph), one point per day in `tz`."""
         try:
             conditions = [
                 Pageview.website_id == website_id,
@@ -582,14 +589,19 @@ class AnalyticsQueryService:
             if filter_properties:
                 conditions.append(Pageview.properties.contains(filter_properties))
 
+            # A day is a day in the website's zone, so a pageview at 23:30
+            # UTC belongs to the next day for a site in Stockholm. Grouped in
+            # SQL rather than by adding an offset: the offset changes twice a
+            # year, and the database knows when.
+            day_of = sql_local_day(Pageview.timestamp, tz)
             results = self.db.query(
-                func.date(Pageview.timestamp).label('date'),
+                day_of.label('date'),
                 func.count(Pageview.id).label('views'),
                 func.count(func.distinct(Pageview.visitor_hash)).label('visitors')
             ).filter(
                 and_(*conditions)
-            ).group_by(func.date(Pageview.timestamp))\
-             .order_by(func.date(Pageview.timestamp)).all()
+            ).group_by(day_of)\
+             .order_by(day_of).all()
 
             # Every day in the range, including the ones nobody came. Without
             # them a quiet day vanished from the axis instead of reading 0:
@@ -598,8 +610,11 @@ class AnalyticsQueryService:
             # wrong days with each other.
             by_day = {r.date: r for r in results}
             series = []
-            day = start_date.date()
-            while day <= end_date.date():
+            # The axis walks calendar dates, which is what keeps a 23 or 25
+            # hour day one point wide.
+            day = local_date(start_date, tz)
+            last_day = local_date(end_date, tz)
+            while day <= last_day:
                 r = by_day.get(day)
                 series.append({
                     "date": day.isoformat(),

@@ -23,6 +23,7 @@ from app.services.ecommerce_service import EcommerceService
 from app.services.website_service import WebsiteService
 from app.routers.analytics import check_track_rate_limit, use_tracking_context
 from app.utils.network import get_client_ip
+from app.utils.date_helpers import site_timezone
 
 logger = logging.getLogger(__name__)
 
@@ -255,5 +256,6 @@ async def get_revenue_chart(
         website_id=website_id,
         start_date=start,
         end_date=end,
-        currency=currency
+        currency=currency,
+        tz=site_timezone(website)
     )

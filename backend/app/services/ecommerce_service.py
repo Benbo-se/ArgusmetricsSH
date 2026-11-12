@@ -21,6 +21,7 @@ from app.config import settings
 from app.models.ecommerce_event import EcommerceEvent
 from app.models.website import Website
 from app.utils.security import generate_visitor_hash
+from app.utils.date_helpers import DEFAULT_TIMEZONE, sql_local_day
 from app.services.website_lookup import resolve_tracking_code
 from app.services.usage_service import LIMIT_MESSAGE, may_record
 
@@ -612,10 +613,12 @@ class EcommerceService:
         website_id: int,
         start_date: datetime,
         end_date: datetime,
-        currency: Optional[str] = None
+        currency: Optional[str] = None,
+        tz: str = DEFAULT_TIMEZONE
     ) -> Dict:
         """
-        Get revenue over time (timeseries data).
+        Get revenue over time (timeseries data), one row per day in `tz`,
+        the website's time zone.
 
         Args:
             website_id: Website ID
@@ -632,8 +635,9 @@ class EcommerceService:
         try:
             # Group by day, net of refunds (see get_revenue_stats)
             is_purchase = EcommerceEvent.event_type == 'purchase'
+            day_of = sql_local_day(EcommerceEvent.timestamp, tz)
             results = self.db.query(
-                func.date(EcommerceEvent.timestamp).label('date'),
+                day_of.label('date'),
                 func.sum(case(
                     (is_purchase, EcommerceEvent.revenue),
                     else_=-EcommerceEvent.revenue,
@@ -648,11 +652,7 @@ class EcommerceService:
                     EcommerceEvent.currency == currency.upper(),
                     EcommerceEvent.revenue.isnot(None)
                 )
-            ).group_by(
-                func.date(EcommerceEvent.timestamp)
-            ).order_by(
-                func.date(EcommerceEvent.timestamp)
-            ).all()
+            ).group_by(day_of).order_by(day_of).all()
 
             data = []
             total_revenue = Decimal("0")

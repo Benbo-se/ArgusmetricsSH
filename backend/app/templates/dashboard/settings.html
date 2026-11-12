@@ -22,6 +22,7 @@
         <a href="#sharing">Sharing</a>
         <a href="#reports">Email reports</a>
         <a href="#alerts">Alerts</a>
+        <a href="#timezone">Time zone</a>
         <a href="#details">Details</a>
         <a href="#danger">Delete</a>
     </nav>
@@ -650,6 +651,62 @@ export default function Custom404() {
         </div>
     </div>
 
+    <!-- Time zone -->
+    <div id="timezone" class="settings-section bg-white rounded-lg shadow p-6 mb-6"
+         x-data="siteTimezone"
+         data-website-id="{{ website.id }}"
+         data-timezone="{{ site_timezone }}">
+        <div class="mb-4">
+            <h2 class="text-lg font-semibold text-gray-900">Time Zone</h2>
+            <p class="text-sm text-gray-600 mt-1">
+                A day in the statistics starts at midnight in this time zone.
+                Changing it regroups the history as well, and can be changed back.
+            </p>
+        </div>
+
+        <div class="space-y-4">
+            <div>
+                <label for="site-timezone" class="block text-sm font-medium text-gray-700 mb-2">
+                    Time zone for {{ website.name }}
+                </label>
+                <select id="site-timezone"
+                        x-model="timezone"
+                        class="block w-full sm:w-80 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                    {% for zone in timezone_choices %}
+                    <option value="{{ zone }}"{% if zone == site_timezone %} selected{% endif %}>{{ zone }}</option>
+                    {% endfor %}
+                </select>
+                <p class="mt-2 text-sm text-gray-500" x-show="canSuggest">
+                    Your browser is in <span class="font-medium" x-text="browserZone"></span>.
+                    <button type="button" @click="useBrowserZone"
+                            class="text-blue-600 hover:text-blue-800 underline">Use that</button>
+                </p>
+            </div>
+
+            <div x-show="saved"
+                 x-transition
+                 class="rounded-md bg-green-50 p-4">
+                <p class="text-sm font-medium text-green-800">Time zone saved.</p>
+            </div>
+
+            <div x-show="hasError"
+                 x-transition
+                 class="rounded-md bg-red-50 p-4">
+                <p class="text-sm font-medium text-red-800" x-text="errorMessage"></p>
+            </div>
+
+            <div class="pt-4">
+                <button @click="saveTimezone"
+                        :disabled="isSaving"
+                        :class="saveClass"
+                        class="px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    <span x-show="isNotSaving">Save Settings</span>
+                    <span x-show="isSaving">Saving...</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Website Details -->
     <div id="details" class="settings-section bg-white rounded-lg shadow p-6 mb-6">
         <h2 class="text-lg font-semibold text-gray-900 mb-4">Website Details</h2>
@@ -657,6 +714,7 @@ export default function Custom404() {
             <div><dt>Name</dt><dd>{{ website.name }}</dd></div>
             <div><dt>Domain</dt><dd>{{ website.domain }}</dd></div>
             <div><dt>Tracking code</dt><dd><code>{{ website.tracking_code }}</code></dd></div>
+            <div><dt>Time zone</dt><dd>{{ site_timezone }}</dd></div>
             <div><dt>Created</dt><dd>{{ website.created_at.strftime('%B %d, %Y') if website.created_at else 'N/A' }}</dd></div>
         </dl>
     </div>

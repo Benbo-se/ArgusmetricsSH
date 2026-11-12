@@ -348,19 +348,21 @@ class WebsiteService:
         website_id: int,
         user_email: str,
         name: Optional[str] = None,
-        is_active: Optional[bool] = None
+        is_active: Optional[bool] = None,
+        timezone: Optional[str] = None
     ) -> Website:
         """
         Update a website's information.
 
-        Updates website name and/or active status. Verifies user ownership
-        before allowing updates.
+        Updates website name, active status and/or time zone. Verifies user
+        ownership before allowing updates.
 
         Args:
             website_id: ID of the website to update
             user_email: Email of the user (for ownership verification)
             name: New website name (optional)
             is_active: New active status (optional)
+            timezone: New IANA time zone name (optional)
 
         Returns:
             Website: Updated website object
@@ -382,11 +384,14 @@ class WebsiteService:
         logger.info(f"Updating website {website_id} for user: {mask_email(user_email)}")
 
         # Validate that at least one field is being updated
-        if name is None and is_active is None:
+        if name is None and is_active is None and timezone is None:
             logger.warning("No update fields provided")
             raise ValueError("At least one field must be provided for update")
 
         try:
+            if timezone is not None:
+                self._require_known_timezone(timezone)
+
             # Get website with ownership verification
             website = self.get_website_by_id(website_id, user_email)
 
@@ -403,6 +408,12 @@ class WebsiteService:
                 logger.debug(f"Updating website active status: {website.is_active} -> {is_active}")
                 website.is_active = is_active
 
+            if timezone is not None:
+                # Nothing is stored per day, so this takes effect on the next
+                # page load and applies to the history as well.
+                logger.debug(f"Updating website time zone: {website.timezone} -> {timezone}")
+                website.timezone = timezone
+
             self.db.commit()
             self.db.refresh(website)
 
@@ -417,6 +428,23 @@ class WebsiteService:
             self.db.rollback()
             logger.error(f"Error updating website {website_id}: {e}", exc_info=True)
             raise
+
+    def _require_known_timezone(self, name: str) -> None:
+        """Raise ValueError unless both Python and the database know the zone.
+
+        Both, because both use it: Python works out where a day starts and
+        Postgres groups rows by day, each from its own copy of the zone
+        database. A name only one of them knew would save fine and then fail
+        every dashboard query for the website.
+        """
+        from sqlalchemy import text
+        from app.utils.date_helpers import is_valid_timezone
+
+        known = is_valid_timezone(name) and self.db.execute(
+            text("SELECT 1 FROM pg_timezone_names WHERE name = :name"), {"name": name}
+        ).first() is not None
+        if not known:
+            raise ValueError("Unknown time zone. Use an IANA name such as Europe/Stockholm")
 
     def delete_website(self, website_id: int, user_email: str) -> bool:
         """
