@@ -659,7 +659,8 @@ class GoalStatsItem(BaseModel):
     name: str
     event_name: str
     conversions: int
-    conversion_rate: float = Field(description="Conversion rate as percentage (0-100)")
+    converters: int = Field(default=0, description="Unique visitors who converted at least once")
+    conversion_rate: float = Field(description="Unique converters as a percentage of unique visitors (0-100)")
 
 
 class GoalStatsResponse(BaseModel):
