@@ -11,6 +11,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, and_, case, distinct, select
 
 from app.models.pageview import Pageview
+from app.models.website import Website
+from app.services.traffic_sources import classify_channel, own_referrer_regex
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +43,18 @@ class AnalyticsQueryService:
         self._events = events_service
         self._recording = recording_service
 
+    def _abort(self, what: str) -> None:
+        """Log a failed query and clear the transaction it aborted.
+
+        Postgres refuses every later statement in a transaction after one
+        fails, so without the rollback the next query in the same request
+        fails with "current transaction is aborted" and hides the real error.
+        Callers re-raise: an empty result and a failed query used to look the
+        same on the screen, and a timeout showed up as a quiet day.
+        """
+        logger.error(f"Error {what}", exc_info=True)
+        self.db.rollback()
+
     def _base_conditions(
         self,
         website_id: int,
@@ -56,9 +70,9 @@ class AnalyticsQueryService:
         """Which pageviews a set of numbers is allowed to see.
 
         One place, because the previous period used to build its own shorter
-        version: no filters and no system-URL exclusion. So with a filter on,
-        the arrow compared a filtered week against an unfiltered one and
-        pointed the wrong way, confidently.
+        version without the filters. So with a filter on, the arrow compared a
+        filtered week against an unfiltered one and pointed the wrong way,
+        confidently.
         """
         conditions = [
             Pageview.website_id == website_id,
@@ -78,17 +92,6 @@ class AnalyticsQueryService:
             conditions.append(Pageview.referrer == filter_referrer)
         if filter_properties:
             conditions.append(Pageview.properties.contains(filter_properties))
-
-        # Exclude system URLs
-        conditions.append(
-            and_(
-                ~Pageview.path.like('/api/%'),
-                ~Pageview.path.like('/static/%'),
-                ~Pageview.path.like('/admin/%'),
-                ~Pageview.path.like('/dashboard/%'),
-                ~Pageview.path.like(r'/\_%', escape='\\')
-            )
-        )
         return conditions
 
     def _get_visit_stats(
@@ -166,14 +169,9 @@ class AnalyticsQueryService:
                 ),
             }
 
-        except Exception as e:  # noqa: BLE001
-            logger.error(f"Error calculating visit stats: {e}", exc_info=True)
-            return {
-                "total_visits": 0,
-                "views_per_visit": 0.0,
-                "bounce_rate": 0.0,
-                "avg_visit_seconds": 0,
-            }
+        except Exception:  # noqa: BLE001
+            self._abort("calculating visit stats")
+            raise
 
     @staticmethod
     def _range_conditions(
@@ -360,14 +358,19 @@ class AnalyticsQueryService:
                 and_(*base_conditions)
             ).group_by(Pageview.device_type).all()
 
-            # Top referrers
+            # Top referrers. Visits from the site's own domain are navigation,
+            # not a source, so they are left out here and counted as Direct below.
+            own_domain = self.db.query(Website.domain).filter(
+                Website.id == website_id).scalar()
+            own_regex = own_referrer_regex(own_domain)
+            referrer_conditions = [Pageview.referrer.isnot(None), Pageview.referrer != '']
+            if own_regex:
+                referrer_conditions.append(Pageview.referrer.op('!~*')(own_regex))
             top_referrers = self.db.query(
                 Pageview.referrer,
                 func.count(Pageview.id).label('views')
             ).filter(
-                and_(*base_conditions,
-                     Pageview.referrer.isnot(None),
-                     Pageview.referrer != '')
+                and_(*base_conditions, *referrer_conditions)
             ).group_by(Pageview.referrer)\
              .order_by(func.count(Pageview.id).desc())\
              .limit(10)\
@@ -398,18 +401,27 @@ class AnalyticsQueryService:
              .limit(10)\
              .all()
 
-            # Traffic Channels
-            all_pageviews = self.db.query(
-                Pageview.referrer,
-                Pageview.utm_medium
+            # Traffic Channels: group in SQL, classify each distinct
+            # (referrer origin, medium, source) once, so cost follows the number of
+            # distinct sources and not the number of pageviews.
+            # The referrer is cut to scheme://host[:port] first: the path says
+            # nothing about the channel and would make every article its own group.
+            referrer_origin = func.coalesce(
+                func.substring(Pageview.referrer, r'^([A-Za-z][A-Za-z0-9+.-]*:(//)?[^/?#]*)'),
+                Pageview.referrer)
+            channel_groups = self.db.query(
+                referrer_origin.label('referrer'),
+                Pageview.utm_medium,
+                Pageview.utm_source,
+                func.count(Pageview.id).label('views')
             ).filter(
                 and_(*base_conditions)
-            ).all()
+            ).group_by(referrer_origin, Pageview.utm_medium, Pageview.utm_source).all()
 
             channel_counts = {}
-            for pv in all_pageviews:
-                channel = self._recording._categorize_channel(pv.referrer, pv.utm_medium) if self._recording else "Unknown"
-                channel_counts[channel] = channel_counts.get(channel, 0) + 1
+            for g in channel_groups:
+                channel = classify_channel(g.referrer, g.utm_medium, g.utm_source, own_domain)
+                channel_counts[channel] = channel_counts.get(channel, 0) + g.views
 
             traffic_channels = [
                 {"channel": channel, "views": count}
@@ -533,31 +545,9 @@ class AnalyticsQueryService:
             )
             return stats
 
-        except Exception as e:
-            logger.error(f"Error getting dashboard stats: {e}", exc_info=True)
-            return {
-                "total_pageviews": 0,
-                "unique_visitors": 0,
-                "total_visits": 0,
-                "views_per_visit": 0.0,
-                "bounce_rate": 0.0,
-                "avg_visit_seconds": 0,
-                "avg_scroll_depth": None,
-                "top_pages": [],
-                "entry_pages": [],
-                "exit_pages": [],
-                "top_countries": [],
-                "devices": {},
-                "top_referrers": [],
-                "utm_campaigns": [],
-                "top_browsers": [],
-                "traffic_channels": [],
-                "timeseries": [],
-                "goals": [],
-                "total_visitors": 0,
-                "outbound_links": [],
-                "file_downloads": []
-            }
+        except Exception:
+            self._abort("getting dashboard stats")
+            raise
 
     def _get_timeseries_data(
         self,
@@ -592,18 +582,6 @@ class AnalyticsQueryService:
             if filter_properties:
                 conditions.append(Pageview.properties.contains(filter_properties))
 
-            # Same system-URL exclusion as the headline totals — without it the
-            # graph disagrees with total_pageviews on any site with API traffic.
-            conditions.append(
-                and_(
-                    ~Pageview.path.like('/api/%'),
-                    ~Pageview.path.like('/static/%'),
-                    ~Pageview.path.like('/admin/%'),
-                    ~Pageview.path.like('/dashboard/%'),
-                    ~Pageview.path.like(r'/\_%', escape='\\')
-                )
-            )
-
             results = self.db.query(
                 func.date(Pageview.timestamp).label('date'),
                 func.count(Pageview.id).label('views'),
@@ -631,9 +609,9 @@ class AnalyticsQueryService:
                 day += timedelta(days=1)
             return series
 
-        except Exception as e:
-            logger.error(f"Error getting timeseries data: {e}", exc_info=True)
-            return []
+        except Exception:
+            self._abort("getting timeseries data")
+            raise
 
     def _get_comparison_data(
         self,
@@ -653,9 +631,9 @@ class AnalyticsQueryService:
         """Get comparison data for previous period.
 
         The filters come along. Without them the previous period counted
-        everything, including the /api/ and /dashboard/ paths the current
-        period excludes, so the arrow beside a filtered number was measuring a
-        different thing from the number it sat next to.
+        everything the current period had filtered out, so the arrow beside a
+        filtered number was measuring a different thing from the number it sat
+        next to.
         """
         try:
             current_visits = current_visits or {}
@@ -735,7 +713,13 @@ class AnalyticsQueryService:
             return comparison
 
         except Exception as e:
+            # A fallback that is meant: the arrows are decoration on numbers
+            # already computed, so losing them degrades the page without
+            # misstating anything. The rollback is what keeps it harmless;
+            # without it the page's next query would fail on the aborted
+            # transaction.
             logger.error(f"Error calculating comparison data: {e}", exc_info=True)
+            self.db.rollback()
             return {
                 "comparison": {
                     "pageviews_change": None,
@@ -813,10 +797,6 @@ class AnalyticsQueryService:
             )
             return stats
 
-        except Exception as e:
-            logger.error(f"Error getting realtime stats: {e}", exc_info=True)
-            return {
-                "current_visitors": 0,
-                "recent_pageviews": 0,
-                "live_visitors": []
-            }
+        except Exception:
+            self._abort("getting realtime stats")
+            raise

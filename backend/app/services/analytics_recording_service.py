@@ -225,46 +225,6 @@ class AnalyticsRecordingService:
             logger.warning(f"Failed to detect browser: {e}")
             return "Unknown"
 
-    def _categorize_channel(self, referrer: Optional[str], utm_medium: Optional[str]) -> str:
-        """Categorize traffic source into channels."""
-        if utm_medium:
-            utm_medium_lower = utm_medium.lower()
-            if utm_medium_lower == 'email':
-                return "Email"
-            elif utm_medium_lower in ['cpc', 'ppc', 'paid']:
-                return "Paid"
-
-        if not referrer or referrer == '' or referrer == '(Direct)':
-            return "Direct"
-
-        try:
-            referrer_lower = referrer.lower()
-
-            organic_domains = [
-                'google.com', 'google.', 'bing.com', 'yahoo.com',
-                'duckduckgo.com', 'search.yahoo.com', 'baidu.com',
-                'yandex.com', 'ask.com'
-            ]
-            for domain in organic_domains:
-                if domain in referrer_lower:
-                    return "Organic Search"
-
-            social_domains = [
-                'facebook.com', 'fb.com', 'twitter.com', 't.co',
-                'linkedin.com', 'instagram.com', 'reddit.com',
-                'pinterest.com', 'tiktok.com', 'snapchat.com',
-                'youtube.com', 'vimeo.com'
-            ]
-            for domain in social_domains:
-                if domain in referrer_lower:
-                    return "Social"
-
-            return "Referral"
-
-        except Exception as e:
-            logger.warning(f"Error categorizing channel: {e}")
-            return "Referral"
-
     def _get_country_from_ip(self, ip_address: str) -> Optional[str]:
         """Get country code from IP address.
 

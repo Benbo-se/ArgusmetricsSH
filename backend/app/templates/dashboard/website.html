@@ -271,7 +271,7 @@
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-8">
         <!-- The headline numbers -->
         <div id="stats-basic"
-             hx-get="/dashboard/website/{{ website.id }}/stats-basic?range={{ selected_range }}&compare={{ 'true' if compare_enabled else 'false' }}{% if active_filters.country %}&country={{ active_filters.country }}{% endif %}{% if active_filters.device %}&device={{ active_filters.device }}{% endif %}{% if active_filters.browser %}&browser={{ active_filters.browser }}{% endif %}{% if active_filters.page %}&page={{ active_filters.page }}{% endif %}{% if active_filters.referrer %}&referrer={{ active_filters.referrer }}{% endif %}"
+             hx-get="/dashboard/website/{{ website.id }}/stats-basic?range={{ selected_range }}&compare={{ 'true' if compare_enabled else 'false' }}{% if active_filters.country %}&country={{ active_filters.country|urlencode }}{% endif %}{% if active_filters.device %}&device={{ active_filters.device|urlencode }}{% endif %}{% if active_filters.browser %}&browser={{ active_filters.browser|urlencode }}{% endif %}{% if active_filters.page %}&page={{ active_filters.page|urlencode }}{% endif %}{% if active_filters.referrer %}&referrer={{ active_filters.referrer|urlencode }}{% endif %}"
              hx-trigger="every 10s"
              hx-swap="innerHTML"
              class="contents">
@@ -555,6 +555,8 @@
                     <span class="text-2xl">📧</span>
                     {% elif channel.channel == 'Paid' %}
                     <span class="text-2xl">💰</span>
+                    {% elif channel.channel == 'AI Assistants' %}
+                    <span class="text-2xl">🤖</span>
                     {% elif channel.channel == 'Referral' %}
                     <span class="text-2xl">🔗</span>
                     {% else %}
@@ -568,6 +570,7 @@
                             {% elif channel.channel == 'Direct' %}Direct visits (no referrer)
                             {% elif channel.channel == 'Email' %}From email campaigns (utm_medium=email)
                             {% elif channel.channel == 'Paid' %}From paid advertising (utm_medium=cpc/ppc)
+                            {% elif channel.channel == 'AI Assistants' %}From AI assistants (ChatGPT, Claude, Perplexity, Gemini)
                             {% elif channel.channel == 'Referral' %}From other websites
                             {% endif %}
                         </p>
@@ -683,7 +686,7 @@
         </div>
         {% if stats.total_visitors > 0 %}
         <p class="mt-4 text-xs text-gray-500">
-            Based on {{ stats.total_visitors }} unique visitors in this period
+            Based on {{ stats.total_visitors }} unique visitors in this period. The rate is the share of them who converted at least once.
         </p>
         {% endif %}
     </div>

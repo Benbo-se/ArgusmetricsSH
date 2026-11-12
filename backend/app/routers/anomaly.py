@@ -1,5 +1,5 @@
 """
-Anomaly Detection router for AI-powered traffic analysis.
+Anomaly Detection router: rule-based checks on traffic patterns.
 
 Provides endpoint for detecting unusual patterns:
 - GET /anomalies/{website_id} - Detect anomalies for a website
@@ -30,7 +30,8 @@ async def detect_anomalies(
     """
     Detect anomalies in website traffic.
 
-    Uses AI-powered analysis to detect:
+    Runs fixed rules over recent traffic (no machine learning, no external
+    service) to detect:
     - Traffic spikes
     - Geographic anomalies
     - Bot attacks
@@ -47,7 +48,6 @@ async def detect_anomalies(
     Raises:
         HTTPException 404: If website not found
         HTTPException 403: If user doesn't own website
-        HTTPException 402: If AI quota exhausted
 
     Example Response:
         {
@@ -71,9 +71,7 @@ async def detect_anomalies(
                     "message": "Potential bot attack: 5 visitors with >50 pageviews/hour",
                     "timestamp": "2025-11-01T12:00:00Z"
                 }
-            ],
-            "ai_quota_used": 1,
-            "ai_quota_remaining": 49
+            ]
         }
     """
     logger.info(f"Anomaly detection request: website_id={website_id}, user={mask_email(current_user.email)}")
