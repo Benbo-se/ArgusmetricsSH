@@ -17,6 +17,7 @@ from itsdangerous import SignatureExpired, BadSignature
 from app.models.user import User
 from app.models.session import Session as SessionModel
 from app.utils.security import (
+    normalize_email,
     generate_magic_token,
     verify_magic_token,
     generate_session_token,
@@ -136,6 +137,8 @@ class AuthService:
             result = service.signup_user("user@example.com")
             print(result["message"])
         """
+        email = normalize_email(email)
+
         # Validate email format
         if not validate_email(email):
             logger.warning(f"Invalid email format attempted: {_mask_email(email)}")
@@ -315,7 +318,7 @@ class AuthService:
                 secret=settings.SECRET_KEY,
                 max_age=settings.MAGIC_TOKEN_EXPIRY_SECONDS,
             )
-            email = payload["email"]
+            email = normalize_email(payload["email"])
             magic_jti = payload.get("jti")
 
             logger.info("Magic token verified")
@@ -367,6 +370,7 @@ class AuthService:
         """Mint (or rotate) the user's 6-digit verification code. Rotating also
         resets the attempt counter, so a locked-out user isn't stuck with a
         dead code until it expires."""
+        email = normalize_email(email)
         code = _generate_code()
         user = self.db.query(User).filter(User.email == email).first()
         if user:
@@ -403,6 +407,7 @@ class AuthService:
         """
         import hmac as _hmac
         generic = ValueError("Invalid or expired code. Please request a new one.")
+        email = normalize_email(email)
 
         # Pre-check: exactly 6 ASCII digits (full-width digits from mobile
         # keyboards would otherwise blow up the comparison downstream).
@@ -441,6 +446,7 @@ class AuthService:
         response AND by timing.
         """
         generic = ValueError("Invalid email or password")
+        email = normalize_email(email)
 
         user = self.db.query(User).filter(User.email == email).first()
         password_hash = user.password_hash if user else None
@@ -460,6 +466,7 @@ class AuthService:
     def resend_verification(self, email: str) -> None:
         """Re-send the verification email. Always silent about whether the
         account exists; already-verified accounts get nothing."""
+        email = normalize_email(email)
         user = self.db.query(User).filter(User.email == email).first()
         if not user or user.is_verified:
             return
@@ -472,6 +479,7 @@ class AuthService:
     def request_password_reset(self, email: str) -> Optional[str]:
         """Send a password-reset link (1h expiry). Silent for unknown emails.
         Returns the reset URL ONLY for dev-mode display (None otherwise)."""
+        email = normalize_email(email)
         user = self.db.query(User).filter(User.email == email).first()
         if not user:
             return None
@@ -502,7 +510,7 @@ class AuthService:
         except (BadSignature, Exception):
             raise ValueError("Invalid reset link. Please request a new one.")
 
-        email = payload["email"]
+        email = normalize_email(payload["email"])
         magic_jti = payload.get("jti")
 
         if not password_ok(new_password, email):
@@ -561,7 +569,7 @@ class AuthService:
         if invite is None:
             raise ValueError("This invitation is no longer valid.")
 
-        email = invite.invitee_email.lower().strip()
+        email = normalize_email(invite.invitee_email)
 
         if not password:
             raise ValueError("Password is required")
