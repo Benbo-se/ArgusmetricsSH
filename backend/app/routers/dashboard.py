@@ -39,6 +39,19 @@ router = APIRouter()
 import os
 templates_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "templates")
 templates = Jinja2Templates(directory=templates_dir)
+
+
+def _stats_unavailable() -> HTMLResponse:
+    """What an auto-refreshing partial answers when its query failed.
+
+    A 503 rather than a fragment of zeros: htmx does not swap an error status,
+    so the last good numbers stay on screen and the responseError handler tells
+    the reader something went wrong.
+    """
+    return HTMLResponse(
+        '<p class="text-sm text-red-700">Statistics could not be loaded.</p>',
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+    )
 # base.html builds canonical/og URLs from the instance's own BASE_URL
 templates.env.globals["base_url"] = settings.BASE_URL.rstrip("/")
 def _country_lookup_available() -> bool:
@@ -746,21 +759,14 @@ async def website_dashboard(
 
     except Exception as e:
         logger.error(f"Error getting dashboard stats: {e}", exc_info=True)
-        # Return empty stats on error
-        stats = {
-            'total_pageviews': 0,
-            'unique_visitors': 0,
-            'top_pages': [],
-            'top_countries': [],
-            'devices': {},
-            'top_referrers': [],
-            'timeseries': [],
-            'top_browsers': []
-        }
-        live_visitors = 0
-        errors_404 = []
-        custom_events = {'events': [], 'total_events': 0}
-        file_downloads = []
+        # An error page, not a page of zeros: zeros read as a day without
+        # traffic. 503 so that monitoring and htmx both see a failure.
+        return templates.TemplateResponse(
+            request,
+            "dashboard/stats_error.html",
+            {"current_user": current_user, "website": website},
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
 
     # Build active filters dictionary
     active_filters = {}
@@ -825,12 +831,15 @@ async def website_stats_partial(
     start, end = parse_date_range(range)
 
     # Get stats
-    stats = analytics_service.get_dashboard_stats(
-        website_id=website_id,
-        start_date=start,
-        end_date=end
-    )
-    realtime_stats = analytics_service.get_realtime_stats(website_id=website_id)
+    try:
+        stats = analytics_service.get_dashboard_stats(
+            website_id=website_id,
+            start_date=start,
+            end_date=end
+        )
+        realtime_stats = analytics_service.get_realtime_stats(website_id=website_id)
+    except Exception:
+        return _stats_unavailable()
 
     return templates.TemplateResponse(request, "dashboard/_stats_cards.html", {
         "stats": stats,
@@ -877,18 +886,21 @@ async def website_stats_basic_partial(
             logger.warning(f"Invalid properties JSON: {properties}")
 
     # Get stats with filters
-    stats = analytics_service.get_dashboard_stats(
-        website_id=website_id,
-        start_date=start,
-        end_date=end,
-        compare=compare,
-        filter_country=country,
-        filter_device=device,
-        filter_browser=browser,
-        filter_page=page,
-        filter_referrer=referrer,
-        filter_properties=filter_properties
-    )
+    try:
+        stats = analytics_service.get_dashboard_stats(
+            website_id=website_id,
+            start_date=start,
+            end_date=end,
+            compare=compare,
+            filter_country=country,
+            filter_device=device,
+            filter_browser=browser,
+            filter_page=page,
+            filter_referrer=referrer,
+            filter_properties=filter_properties
+        )
+    except Exception:
+        return _stats_unavailable()
 
     return templates.TemplateResponse(request, "dashboard/_stats_basic.html", {
         "stats": stats
@@ -911,7 +923,10 @@ async def website_live_partial(
             detail="Website not found or access denied"
         )
 
-    realtime_stats = analytics_service.get_realtime_stats(website_id=website_id)
+    try:
+        realtime_stats = analytics_service.get_realtime_stats(website_id=website_id)
+    except Exception:
+        return _stats_unavailable()
     live_visitors = realtime_stats.get('current_visitors', 0)
 
     return templates.TemplateResponse(request, "dashboard/_live.html", {

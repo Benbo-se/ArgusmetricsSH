@@ -43,6 +43,18 @@ class AnalyticsQueryService:
         self._events = events_service
         self._recording = recording_service
 
+    def _abort(self, what: str) -> None:
+        """Log a failed query and clear the transaction it aborted.
+
+        Postgres refuses every later statement in a transaction after one
+        fails, so without the rollback the next query in the same request
+        fails with "current transaction is aborted" and hides the real error.
+        Callers re-raise: an empty result and a failed query used to look the
+        same on the screen, and a timeout showed up as a quiet day.
+        """
+        logger.error(f"Error {what}", exc_info=True)
+        self.db.rollback()
+
     def _base_conditions(
         self,
         website_id: int,
@@ -157,14 +169,9 @@ class AnalyticsQueryService:
                 ),
             }
 
-        except Exception as e:  # noqa: BLE001
-            logger.error(f"Error calculating visit stats: {e}", exc_info=True)
-            return {
-                "total_visits": 0,
-                "views_per_visit": 0.0,
-                "bounce_rate": 0.0,
-                "avg_visit_seconds": 0,
-            }
+        except Exception:  # noqa: BLE001
+            self._abort("calculating visit stats")
+            raise
 
     @staticmethod
     def _range_conditions(
@@ -538,31 +545,9 @@ class AnalyticsQueryService:
             )
             return stats
 
-        except Exception as e:
-            logger.error(f"Error getting dashboard stats: {e}", exc_info=True)
-            return {
-                "total_pageviews": 0,
-                "unique_visitors": 0,
-                "total_visits": 0,
-                "views_per_visit": 0.0,
-                "bounce_rate": 0.0,
-                "avg_visit_seconds": 0,
-                "avg_scroll_depth": None,
-                "top_pages": [],
-                "entry_pages": [],
-                "exit_pages": [],
-                "top_countries": [],
-                "devices": {},
-                "top_referrers": [],
-                "utm_campaigns": [],
-                "top_browsers": [],
-                "traffic_channels": [],
-                "timeseries": [],
-                "goals": [],
-                "total_visitors": 0,
-                "outbound_links": [],
-                "file_downloads": []
-            }
+        except Exception:
+            self._abort("getting dashboard stats")
+            raise
 
     def _get_timeseries_data(
         self,
@@ -624,9 +609,9 @@ class AnalyticsQueryService:
                 day += timedelta(days=1)
             return series
 
-        except Exception as e:
-            logger.error(f"Error getting timeseries data: {e}", exc_info=True)
-            return []
+        except Exception:
+            self._abort("getting timeseries data")
+            raise
 
     def _get_comparison_data(
         self,
@@ -728,7 +713,13 @@ class AnalyticsQueryService:
             return comparison
 
         except Exception as e:
+            # A fallback that is meant: the arrows are decoration on numbers
+            # already computed, so losing them degrades the page without
+            # misstating anything. The rollback is what keeps it harmless;
+            # without it the page's next query would fail on the aborted
+            # transaction.
             logger.error(f"Error calculating comparison data: {e}", exc_info=True)
+            self.db.rollback()
             return {
                 "comparison": {
                     "pageviews_change": None,
@@ -806,10 +797,6 @@ class AnalyticsQueryService:
             )
             return stats
 
-        except Exception as e:
-            logger.error(f"Error getting realtime stats: {e}", exc_info=True)
-            return {
-                "current_visitors": 0,
-                "recent_pageviews": 0,
-                "live_visitors": []
-            }
+        except Exception:
+            self._abort("getting realtime stats")
+            raise
