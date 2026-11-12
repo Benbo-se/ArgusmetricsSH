@@ -25,7 +25,6 @@ alembic==1.20.1
 
 # Security & Authentication
 itsdangerous==2.2.0
-python-jose[cryptography]==3.5.0
 passlib[bcrypt]==1.7.4
 
 # Email
@@ -55,7 +54,7 @@ apscheduler==3.11.3
 websockets==17.4
 
 # Development & Testing
-pytest==8.4.2
+pytest==9.0.3
 httpx==0.28.1
 
 # Production Server
