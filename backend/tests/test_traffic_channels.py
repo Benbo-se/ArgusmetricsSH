@@ -109,5 +109,5 @@ class TestDashboard:
         }
         referrers = [r["referrer"] for r in stats["top_referrers"]]
         assert not any(r.startswith(own + "/") for r in referrers), "own domain listed"
-        assert "https://chatgpt.com/" in referrers
+        assert referrers.count("https://chatgpt.com/") == 1
         assert any(".evil.test" in r for r in referrers), "lookalike must stay listed"
