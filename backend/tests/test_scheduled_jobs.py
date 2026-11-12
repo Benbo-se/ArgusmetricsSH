@@ -327,6 +327,40 @@ class TestEmptyAccountCleanup:
 
         assert self._exists(db, email), "an active team member was deleted as an empty account"
 
+    def test_an_account_that_logged_out_recently_survives(self, db):
+        """Logging out deletes the session row, and the session row was the only
+        record of a login. An invited account with no website that logged in
+        and out last week was therefore deleted by the next nightly run."""
+        from app.models.user import User
+        from app.services.auth_service import AuthService
+        from app.services.cleanup_service import CleanupService
+
+        set_rls_context(db, context="job")
+        email = self._user(db, created_days_ago=60)
+        service = AuthService(db)
+        session = service.create_session(db.query(User).filter_by(email=email).one())
+        db.delete(session)  # what logout does
+        db.commit()
+
+        CleanupService(db).cleanup_empty_inactive_accounts(days=30)
+
+        assert self._exists(db, email), "an account that logged in and out was deleted as inactive"
+
+    def test_an_account_whose_last_login_is_old_is_deleted(self, db):
+        from app.services.cleanup_service import CleanupService
+
+        set_rls_context(db, context="job")
+        email = self._user(db, created_days_ago=90)
+        db.execute(
+            text("UPDATE users SET last_login_at = now() - interval '45 days' WHERE email = :e"),
+            {"e": email},
+        )
+        db.commit()
+
+        CleanupService(db).cleanup_empty_inactive_accounts(days=30)
+
+        assert not self._exists(db, email), "an old last login no longer counts as inactive"
+
     def test_an_old_account_with_nothing_is_deleted(self, db):
         from app.services.cleanup_service import CleanupService
 
