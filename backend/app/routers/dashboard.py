@@ -25,6 +25,8 @@ from app.services.website_service import WebsiteService
 from app.services.usage_service import get_usage
 from app.services import visitor_dimensions
 from app.services.site_activity import goal_activity, recent_activity
+from app.services.annotations_service import annotations_in_window
+from app.models.annotation import MAX_NOTE_LENGTH
 from app.models.user import User
 from app.routers.auth import get_current_user
 from app.utils.date_helpers import (
@@ -816,6 +818,16 @@ async def website_dashboard(
             end_date=end
         )
 
+        # The team's notes on the days the graph shows, and whether this
+        # person may change them: owner and admin, as for goals.
+        from app.models.website_member import MemberRole
+        from app.services.team_service import TeamService
+        annotations = annotations_in_window(analytics_service.db, website_id, window)
+        role = TeamService(analytics_service.db).check_website_access(
+            current_user.email, website_id
+        )
+        can_annotate = role in (MemberRole.OWNER, MemberRole.ADMIN)
+
     except Exception as e:
         logger.error(f"Error getting dashboard stats: {e}", exc_info=True)
         # An error page, not a page of zeros: zeros read as a day without
@@ -862,6 +874,9 @@ async def website_dashboard(
         "live_visitors": live_visitors,
         "errors_404": errors_404,
         "custom_events": custom_events,
+        "annotations": annotations,
+        "can_annotate": can_annotate,
+        "annotation_max_length": MAX_NOTE_LENGTH,
         **_range_context(window, mode),
         "active_filters": active_filters
     })
@@ -1630,7 +1645,18 @@ async def export_csv(
     for item in stats.get('timeseries', []):
         writer.writerow([item['date'], item['views']])
     writer.writerow([])
-    
+
+    # The team's notes on those days, so the file explains its own numbers.
+    # Only when there are any: most exports have none, and a script reading
+    # the sections in order should not meet an empty one.
+    notes = annotations_in_window(db, website.id, window)
+    if notes:
+        writer.writerow(['NOTES'])
+        writer.writerow(['Date', 'Note'])
+        for item in notes:
+            writer.writerow([item['day'], item['note']])
+        writer.writerow([])
+
     # Top pages
     writer.writerow(['TOP PAGES'])
     writer.writerow(['Page', 'Views', 'Percentage'])

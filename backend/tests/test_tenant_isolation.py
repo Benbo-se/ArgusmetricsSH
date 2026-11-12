@@ -524,3 +524,186 @@ def test_an_active_member_reads_the_shared_website(tenants):
     paths = {r[0] for r in conn.execute(text("SELECT path FROM pageviews"))}
 
     assert made["alice"]["path"] in paths, "an active member lost access"
+
+
+class TestAnnotations:
+    """Notes on the traffic graph (#220): the team reads, owner and admin
+    write, and nobody without a session reads them at all.
+
+    Unlike goals, there is no policy for the tracking context or for a public
+    share link, so both read nothing. A note is the team's working note.
+    """
+
+    def _make_note(self, conn, website_id, note="launch"):
+        return conn.execute(
+            text(
+                "INSERT INTO annotations (website_id, day, note) "
+                "VALUES (:w, DATE '2026-03-04', :n) RETURNING id"
+            ),
+            {"w": website_id, "n": note},
+        ).scalar()
+
+    def _notes(self, conn):
+        return {r[0] for r in conn.execute(text("SELECT note FROM annotations"))}
+
+    def _refused(self, conn, statement, params):
+        """Run a write that a policy must refuse, inside a savepoint so the
+        fixture's rows survive and the test can look at them afterwards."""
+        savepoint = conn.begin_nested()
+        with pytest.raises(ProgrammingError) as caught:
+            conn.execute(text(statement), params)
+        savepoint.rollback()
+        assert "row-level security" in str(caught.value), (
+            "the write failed for some reason other than the policy"
+        )
+
+    def test_the_table_is_policied_and_not_owned_by_this_role(self, engine):
+        """The same guard the module applies to TENANT_TABLES: as the owner,
+        or with row-level security off, everything below passes vacuously."""
+        with engine.connect() as conn:
+            owner, enabled = conn.execute(
+                text(
+                    "SELECT t.tableowner, c.relrowsecurity FROM pg_tables t "
+                    "JOIN pg_class c ON c.relname = t.tablename "
+                    "WHERE t.tablename = 'annotations'"
+                )
+            ).one()
+            role = conn.execute(text("SELECT current_user")).scalar()
+        assert enabled, "row-level security is not enabled on annotations"
+        assert owner != role, f"{role} owns annotations; policies do not apply to it"
+
+    def test_notes_do_not_cross_tenants(self, tenants):
+        conn, made = tenants
+        _context(conn, "job")
+        self._make_note(conn, made["alice"]["website_id"], "alice-note")
+        self._make_note(conn, made["bob"]["website_id"], "bob-note")
+
+        _context(conn, "user", user_email=made["bob"]["email"])
+        assert self._notes(conn) == {"bob-note"}, "Bob reads something other than his own notes"
+
+        _context(conn, "user", user_email=made["alice"]["email"])
+        assert self._notes(conn) == {"alice-note"}, "Alice reads something other than her own notes"
+
+    def test_the_owner_writes_their_own(self, tenants):
+        conn, made = tenants
+        _context(conn, "user", user_email=made["alice"]["email"])
+        note_id = self._make_note(conn, made["alice"]["website_id"], "mine")
+        assert conn.execute(
+            text("UPDATE annotations SET note = 'edited' WHERE id = :i"), {"i": note_id}
+        ).rowcount == 1
+        assert conn.execute(
+            text("DELETE FROM annotations WHERE id = :i"), {"i": note_id}
+        ).rowcount == 1
+
+    def test_a_tenant_cannot_write_on_another_tenants_website(self, tenants):
+        conn, made = tenants
+        _context(conn, "job")
+        note_id = self._make_note(conn, made["alice"]["website_id"], "alice-note")
+
+        _context(conn, "user", user_email=made["bob"]["email"])
+        self._refused(
+            conn,
+            "INSERT INTO annotations (website_id, day, note) VALUES (:w, DATE '2026-03-04', 'x')",
+            {"w": made["alice"]["website_id"]},
+        )
+        assert conn.execute(
+            text("UPDATE annotations SET note = 'hijacked' WHERE id = :i"), {"i": note_id}
+        ).rowcount == 0, "Bob changed Alice's note"
+        assert conn.execute(
+            text("DELETE FROM annotations WHERE id = :i"), {"i": note_id}
+        ).rowcount == 0, "Bob deleted Alice's note"
+
+        _context(conn, "job")
+        assert conn.execute(
+            text("SELECT note FROM annotations WHERE id = :i"), {"i": note_id}
+        ).scalar() == "alice-note"
+
+    def test_a_note_cannot_be_moved_onto_another_tenants_website(self, tenants):
+        """UPDATE's WITH CHECK looks at the row as it would become.
+
+        Bob is a viewer of Alice's website on purpose. Without that the read
+        policy refuses the moved row before the write policy is asked, and
+        this passed with WITH CHECK (true). A viewer may read the row where
+        it lands, so only the check on the new row stands in the way.
+        """
+        conn, made = tenants
+        _context(conn, "job")
+        _add_member(conn, made["alice"]["website_id"], made["bob"]["email"], "active")
+
+        _context(conn, "user", user_email=made["bob"]["email"])
+        note_id = self._make_note(conn, made["bob"]["website_id"], "planted")
+
+        self._refused(
+            conn,
+            "UPDATE annotations SET website_id = :w WHERE id = :i",
+            {"w": made["alice"]["website_id"], "i": note_id},
+        )
+
+    def test_a_viewer_reads_and_cannot_write(self, tenants):
+        conn, made = tenants
+        _context(conn, "job")
+        note_id = self._make_note(conn, made["alice"]["website_id"], "alice-note")
+        _add_member(conn, made["alice"]["website_id"], made["bob"]["email"], "active")
+
+        _context(conn, "user", user_email=made["bob"]["email"])
+        assert "alice-note" in self._notes(conn), "a viewer cannot read the team's notes"
+        self._refused(
+            conn,
+            "INSERT INTO annotations (website_id, day, note) VALUES (:w, DATE '2026-03-04', 'x')",
+            {"w": made["alice"]["website_id"]},
+        )
+        assert conn.execute(
+            text("UPDATE annotations SET note = 'hijacked' WHERE id = :i"), {"i": note_id}
+        ).rowcount == 0, "a viewer changed a note"
+        assert conn.execute(
+            text("DELETE FROM annotations WHERE id = :i"), {"i": note_id}
+        ).rowcount == 0, "a viewer deleted a note"
+
+    def test_an_admin_writes(self, tenants):
+        """The other half: the write policies must let the right people in."""
+        conn, made = tenants
+        _context(conn, "job")
+        _add_member(conn, made["alice"]["website_id"], made["bob"]["email"], "active")
+        conn.execute(
+            text("UPDATE website_members SET role = 'admin' WHERE website_id = :w AND user_email = :e"),
+            {"w": made["alice"]["website_id"], "e": made["bob"]["email"]},
+        )
+
+        _context(conn, "user", user_email=made["bob"]["email"])
+        note_id = self._make_note(conn, made["alice"]["website_id"], "by the admin")
+        assert conn.execute(
+            text("UPDATE annotations SET note = 'edited' WHERE id = :i"), {"i": note_id}
+        ).rowcount == 1, "an admin could not change a note"
+        assert conn.execute(
+            text("DELETE FROM annotations WHERE id = :i"), {"i": note_id}
+        ).rowcount == 1, "an admin could not delete a note"
+
+    @pytest.mark.parametrize("status", ["pending", "revoked"])
+    def test_a_member_who_is_not_active_reads_nothing(self, tenants, status):
+        conn, made = tenants
+        _context(conn, "job")
+        self._make_note(conn, made["alice"]["website_id"], "alice-note")
+        _add_member(conn, made["alice"]["website_id"], made["bob"]["email"], status)
+
+        _context(conn, "user", user_email=made["bob"]["email"])
+        assert "alice-note" not in self._notes(conn), f"a {status} member reads the notes"
+
+    @pytest.mark.parametrize("context", ["public", "tracking", ""])
+    def test_no_one_without_a_session_reads_or_writes(self, tenants, context):
+        """A share link shows the numbers and not the notes, the tracking
+        script has no use for them, and no context at all fails closed. All
+        three even when pinned to the very website the note is on."""
+        conn, made = tenants
+        _context(conn, "job")
+        note_id = self._make_note(conn, made["alice"]["website_id"], "alice-note")
+
+        _context(conn, context, website_id=made["alice"]["website_id"])
+        assert self._notes(conn) == set(), f"the {context or 'empty'} context reads notes"
+        self._refused(
+            conn,
+            "INSERT INTO annotations (website_id, day, note) VALUES (:w, DATE '2026-03-04', 'x')",
+            {"w": made["alice"]["website_id"]},
+        )
+        assert conn.execute(
+            text("DELETE FROM annotations WHERE id = :i"), {"i": note_id}
+        ).rowcount == 0

@@ -64,6 +64,13 @@ export default defineConfig({
       dependencies: ['auth'],
     },
     {
+      // Notes on the traffic graph: the list under it, and the marker and
+      // tooltip on the canvas, which nothing but a browser can look at.
+      name: 'annotations',
+      testMatch: /annotations\.spec\.ts/,
+      dependencies: ['auth'],
+    },
+    {
       name: 'localhost',
       testMatch: /localhost\.spec\.ts/,
       dependencies: ['auth'],
