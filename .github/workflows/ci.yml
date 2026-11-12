@@ -747,6 +747,8 @@ jobs:
           tags: |
             ${{ env.IMAGE_BACKEND }}:latest
             ${{ env.IMAGE_BACKEND }}:${{ github.sha }}
+          labels: |
+            org.opencontainers.image.revision=${{ github.sha }}
           cache-from: type=gha,scope=backend
           cache-to: type=gha,mode=max,scope=backend
       - name: Bygg (och pusha) web-imagen (nginx + site/)
@@ -758,10 +760,19 @@ jobs:
           tags: |
             ${{ env.IMAGE_WEB }}:latest
             ${{ env.IMAGE_WEB }}:${{ github.sha }}
+          labels: |
+            org.opencontainers.image.revision=${{ github.sha }}
           cache-from: type=gha,scope=web
           cache-to: type=gha,mode=max,scope=web
 
-  # ── 4. Behåll bara 7 senaste image-versionerna per paket ─────────────────
+  # ── 4. Behåll de 7 senaste imagerna per paket ────────────────────────────
+  # GHCR räknar varje manifest som en version, och en image är tre: index,
+  # plattformsmanifest och attestation. 21 versioner är alltså sju images.
+  # Varje bygge får också en unik revisionsetikett (steget ovan). Utan den
+  # blev en oförändrad image samma plattformsmanifest som förra pushen; det
+  # behöll sitt gamla skapandedatum, räknades som gammalt här och raderades
+  # medan taggarna fortfarande pekade på det, och `compose pull` fick
+  # "manifest not found" på en grön main.
   cleanup:
     needs: build
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -775,11 +786,11 @@ jobs:
         with:
           package-name: argusmetrics-backend
           package-type: container
-          min-versions-to-keep: 7
+          min-versions-to-keep: 21
       - name: Städa argusmetrics-web
         continue-on-error: true
         uses: actions/delete-package-versions@e5bc658cc4c965c472efe991f8beea3981499c55 # v5
         with:
           package-name: argusmetrics-web
           package-type: container
-          min-versions-to-keep: 7
+          min-versions-to-keep: 21

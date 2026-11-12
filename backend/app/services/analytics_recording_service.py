@@ -46,6 +46,11 @@ def sanitize_path(path: str) -> str:
     return base + '?' + urlencode(cleaned, doseq=True)
 
 
+def pathname(path: str) -> str:
+    """The path without its query string, which is what a page is."""
+    return (path or "").partition("?")[0]
+
+
 def _is_routable(ip_address: str) -> bool:
     """Whether an address is worth looking up at all.
 
@@ -220,46 +225,6 @@ class AnalyticsRecordingService:
             logger.warning(f"Failed to detect browser: {e}")
             return "Unknown"
 
-    def _categorize_channel(self, referrer: Optional[str], utm_medium: Optional[str]) -> str:
-        """Categorize traffic source into channels."""
-        if utm_medium:
-            utm_medium_lower = utm_medium.lower()
-            if utm_medium_lower == 'email':
-                return "Email"
-            elif utm_medium_lower in ['cpc', 'ppc', 'paid']:
-                return "Paid"
-
-        if not referrer or referrer == '' or referrer == '(Direct)':
-            return "Direct"
-
-        try:
-            referrer_lower = referrer.lower()
-
-            organic_domains = [
-                'google.com', 'google.', 'bing.com', 'yahoo.com',
-                'duckduckgo.com', 'search.yahoo.com', 'baidu.com',
-                'yandex.com', 'ask.com'
-            ]
-            for domain in organic_domains:
-                if domain in referrer_lower:
-                    return "Organic Search"
-
-            social_domains = [
-                'facebook.com', 'fb.com', 'twitter.com', 't.co',
-                'linkedin.com', 'instagram.com', 'reddit.com',
-                'pinterest.com', 'tiktok.com', 'snapchat.com',
-                'youtube.com', 'vimeo.com'
-            ]
-            for domain in social_domains:
-                if domain in referrer_lower:
-                    return "Social"
-
-            return "Referral"
-
-        except Exception as e:
-            logger.warning(f"Error categorizing channel: {e}")
-            return "Referral"
-
     def _get_country_from_ip(self, ip_address: str) -> Optional[str]:
         """Get country code from IP address.
 
@@ -406,10 +371,15 @@ class AnalyticsRecordingService:
                 Funnel.is_active == True
             ).all()
 
+            # Compared as pathnames: a visitor who lands on /pricing?fbclid=abc
+            # has reached the /pricing step. Events recorded before this
+            # compared the whole string stay as they are; a landing that was
+            # missed then is not recoverable from funnel_events.
+            page = pathname(path)
             for funnel in funnels:
                 steps = funnel.steps or []
                 for step in steps:
-                    if step.get("path") != path:
+                    if pathname(step.get("path")) != page:
                         continue
 
                     step_number = step.get("step")
@@ -426,7 +396,7 @@ class AnalyticsRecordingService:
                             "v": visitor_hash,
                             "n": step_number,
                             "name": step.get("name") or f"Step {step_number}",
-                            "p": path,
+                            "p": page,
                             # Last step reached = this visitor completed the funnel.
                             "done": step_number == max(
                                 (s.get("step") or 0) for s in steps

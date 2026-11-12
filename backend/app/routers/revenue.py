@@ -155,6 +155,7 @@ async def get_top_products(
     website_id: int,
     range: Optional[str] = "30d",
     limit: Optional[int] = 10,
+    currency: Optional[str] = None,  # None = the site's most-used currency
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -165,6 +166,7 @@ async def get_top_products(
         website_id: Website ID
         range: Time range (7d, 30d, 90d, 365d)
         limit: Number of products to return
+        currency: Currency code (default: the site's most-used)
         current_user: Authenticated user
         db: Database session
 
@@ -199,7 +201,8 @@ async def get_top_products(
         website_id=website_id,
         start_date=start,
         end_date=end,
-        limit=limit
+        limit=limit,
+        currency=currency
     )
 
 

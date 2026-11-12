@@ -24,7 +24,7 @@ in the same instant may still both insert; that is the same bound as before
 and the statistics count distinct visitors.
 
 Revision ID: d7c3a15f9e28
-Revises: a4d9e2f6b813
+Revises: d9e4a6c3b827
 Create Date: 2026-11-12 09:00:00.000000
 
 """
@@ -34,7 +34,7 @@ from app.migration_grants import grant
 
 
 revision = 'd7c3a15f9e28'
-down_revision = 'a4d9e2f6b813'
+down_revision = 'd9e4a6c3b827'
 branch_labels = None
 depends_on = None
 
