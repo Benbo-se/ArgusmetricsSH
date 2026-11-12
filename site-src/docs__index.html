@@ -864,10 +864,11 @@ export default function Document() {
                                 <tbody class="divide-y divide-gray-200">
                                     <tr><td class="px-4 py-2"><strong>Paid</strong></td><td class="px-4 py-2"><code>utm_medium</code> is <code>cpc</code>, <code>ppc</code>, or <code>paid</code></td></tr>
                                     <tr><td class="px-4 py-2"><strong>Email</strong></td><td class="px-4 py-2"><code>utm_medium</code> is <code>email</code></td></tr>
-                                    <tr><td class="px-4 py-2"><strong>Organic</strong></td><td class="px-4 py-2">Referrer is Google, Bing, DuckDuckGo, etc.</td></tr>
+                                    <tr><td class="px-4 py-2"><strong>AI Assistants</strong></td><td class="px-4 py-2">Referrer or <code>utm_source</code> is ChatGPT, Claude, Perplexity, Gemini, Copilot, etc.</td></tr>
+                                    <tr><td class="px-4 py-2"><strong>Organic</strong></td><td class="px-4 py-2">Referrer is Google, Bing, DuckDuckGo, Ecosia, Brave, etc.</td></tr>
                                     <tr><td class="px-4 py-2"><strong>Social</strong></td><td class="px-4 py-2">Referrer is Facebook, Twitter, LinkedIn, etc.</td></tr>
                                     <tr><td class="px-4 py-2"><strong>Referral</strong></td><td class="px-4 py-2">Referrer is another website</td></tr>
-                                    <tr><td class="px-4 py-2"><strong>Direct</strong></td><td class="px-4 py-2">No referrer (typed URL, bookmark, etc.)</td></tr>
+                                    <tr><td class="px-4 py-2"><strong>Direct</strong></td><td class="px-4 py-2">No referrer, or a link from your own site (typed URL, bookmark, etc.)</td></tr>
                                 </tbody>
                             </table>
                         </div>
@@ -875,7 +876,7 @@ export default function Document() {
                         <h3 class="text-xl font-semibold text-gray-900 mb-3 mt-6">What You See in the Dashboard</h3>
                         <ul class="list-disc list-inside space-y-2 text-gray-700 ml-4 mb-4">
                             <li><strong>UTM Campaigns</strong>: Table showing source, medium, campaign name, and visitor count</li>
-                            <li><strong>Traffic Channels</strong>: Chart breaking down Paid vs Organic vs Direct vs Social traffic</li>
+                            <li><strong>Traffic Channels</strong>: Chart breaking down Paid, Organic Search, Direct, Social, Email, AI Assistants and Referral traffic</li>
                             <li><strong>Goals</strong>: Combine with conversion goals to see which campaigns actually convert</li>
                         </ul>
 

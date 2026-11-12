@@ -164,3 +164,22 @@ def test_a_page_for_another_customer_s_website_is_refused(owner_client, db, webs
     response = owner_client.get(f"/dashboard/website/{other}")
 
     assert response.status_code == 404
+
+
+def test_a_page_filter_with_an_ampersand_survives_the_poll_url(owner_client, website):
+    """The headline tiles re-fetch themselves every ten seconds from this URL.
+
+    A filter value goes into a query string, so an unencoded ampersand ends the
+    value and starts a parameter of its own, and after ten seconds the tiles
+    show a different filter than the page.
+    """
+    response = owner_client.get(
+        f"/dashboard/website/{website['id']}",
+        params={"page": "/a&b=c"},
+    )
+
+    assert response.status_code == 200, response.text
+    assert "page=/a%26b%3Dc" in response.text, (
+        "the filter value is not encoded in the stat-card poll URL"
+    )
+    assert "page=/a&amp;b=c" not in response.text

@@ -55,6 +55,44 @@ Pages, and `/health` matches what this repo's deploy workflow greps for.
   the guard says ready while port 5432 is still closed.
 - **A wait loop must fail when it runs out.** One in CI only `break`ed, so a
   database that never came up was reported as a broken application image.
+- **The server is shared.** `ghostleads-server` also runs other projects, and
+  their self-hosted runners work as the same `reda` user. Stay inside
+  `/opt/argusmetrics` and the Argusmetrics containers; anything host-wide (a
+  daemon restart, shared config, someone else's data) is the owner's to allow
+  first. The deploy's `docker image prune -f` only removes untagged images that
+  nothing uses and is fine as it is.
+- **A `docker login` saved on the server does not last.** The packages are
+  private, and `~/.docker/config.json` is shared: another project's
+  `docker/login-action` logs out in its post step and leaves
+  `{"auths": {}}`. That is why `docker compose pull` failed with
+  `unauthorized` on 2026-11-12, a month after the last real deploy. The deploy
+  now logs in itself with the job's `GITHUB_TOKEN` into a `mktemp` directory
+  used as `DOCKER_CONFIG`, which a `trap` removes, so it never reads or writes
+  the shared file. `deploy/test-deploy.sh` covers it. Do not print that file
+  either: it can hold a base64 credential.
+- **`manifest ... not found` with a working login means the registry lost a
+  child manifest.** GHCR counts the index, the platform manifest and the
+  attestation as three versions, so `cleanup` keeps 21 for seven images. Two
+  builds with identical content share a platform manifest that keeps its old
+  creation date, and the cleanup deleted it while tags still pointed at it
+  (2026-11-12). Every build now carries a unique
+  `org.opencontainers.image.revision` label. The deletion was inferred from CI
+  logs, not read from the registry.
+- **A green Deploy is not proof of a deploy.** When main has moved on the script
+  prints `main har gått vidare ... hoppar över` and exits 0, so a burst of merges
+  gives green no-ops. Check `git rev-parse HEAD` in `/opt/argusmetrics` and
+  `docker ps` on the server, not the tick.
+- **Rollback restores the image and the configuration, not the database.**
+  Migrations run when the backend starts and the auto-rollback does not
+  downgrade them. Merge schema changes one at a time and check
+  `alembic current` on the server after each; the pre-deploy dump is the way
+  back.
+- **Do not run `pg_dump` from the runner against the PG16 container.**
+  `ubuntu-latest` has client 18, which writes `SET transaction_timeout`, and
+  PG16 rejects it. CI dumps inside the database container (#240).
+- **The test counts in the README and `site-src/` are claims.**
+  `test_site_claims_are_true` fails when they are more than 10 percent off the
+  real count, and only CI sees it (the local harness skips it).
 
 ## Decisions already made
 
@@ -63,8 +101,11 @@ Pages, and `/health` matches what this repo's deploy workflow greps for.
   long-lived credential, and BenboStandard 02 documents it as correct *for this
   constraint*: dedicated key, non-root account, gated deploy, dump and
   auto-rollback. All four are implemented; do not "simplify" any of them away.
-- **The deploy is gated twice**, by `environment: production` and by the repo
-  variable `DEPLOY_ENABLED`. `workflow_run` after green CI does the rest.
+- **The deploy is meant to be gated twice**, by `environment: production` and
+  by the repo variable `DEPLOY_ENABLED`. Checked 2026-11-12: the `production`
+  environment has no protection rules, so `DEPLOY_ENABLED` is the only gate in
+  practice and any green main deploys. A required reviewer on the environment
+  is the owner's decision. `workflow_run` after green CI does the rest.
 - **CI triggers on `pull_request`, never `pull_request_target`.** On a public
   repo that is the line that keeps secrets away from forks.
 - **Actions are pinned to commit SHAs** with the version as a trailing comment,
@@ -74,9 +115,6 @@ Pages, and `/health` matches what this repo's deploy workflow greps for.
 
 ## Deliberately not done
 
-- **`backend` and `web` have no compose healthcheck.** The deploy checks the
-  whole chain from outside, which is what matters. The cost is that
-  `docker compose ps` cannot tell you much between deploys.
 - **Backups are not encrypted.** `scripts/backup.sh` supports
   `BACKUP_GPG_RECIPIENT` and warns when it is unset, on the grounds that an
   unencrypted backup beats no backup. It is unset. The dumps hold every

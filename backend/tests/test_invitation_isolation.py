@@ -189,3 +189,80 @@ def test_the_account_exists_and_is_verified(unprivileged_engine, pending_invitat
     finally:
         session.rollback()
         session.close()
+
+
+# The page the link in the email opens. It is a different code path from
+# create_account_from_invitation above: it reads the pending row itself to show
+# who was invited, and for a signed-in invitee it accepts on the spot.
+
+@pytest.fixture
+def page_client(unprivileged_engine):
+    """A TestClient whose requests run as the unprivileged role."""
+    from urllib.parse import urlparse
+
+    from fastapi.testclient import TestClient
+
+    from app.config import settings
+    from app.database import get_db
+    from app.main import app
+
+    Session = sessionmaker(bind=unprivileged_engine)
+
+    def get_unprivileged_db():
+        session = Session()
+        try:
+            yield session
+        finally:
+            session.close()
+
+    app.dependency_overrides[get_db] = get_unprivileged_db
+    host = urlparse(settings.BASE_URL).netloc
+    client = TestClient(app, base_url=f"https://{host}")
+    assert client.get("/health").status_code == 200, "requests are not reaching the app"
+    yield client
+    app.dependency_overrides.clear()
+
+
+def test_the_link_shows_the_password_form_to_someone_not_signed_in(page_client, pending_invitation):
+    response = page_client.get("/accept-invite", params={"token": pending_invitation["token"]})
+
+    assert response.status_code == 200
+    assert "not found" not in response.text.lower(), (
+        "the invited person is told the invitation does not exist: the page "
+        "read website_members without declaring a row-level security context"
+    )
+    assert pending_invitation["invitee"] in response.text
+    assert "invite-error" in response.text, "no form was rendered"
+
+
+def test_the_link_accepts_for_the_signed_in_invitee(page_client, engine, unprivileged_engine, pending_invitation):
+    from app.models.user import User
+    from app.services.auth_service import AuthService
+
+    with sessionmaker(bind=engine)() as setup:
+        setup.add(User(email=pending_invitation["invitee"], is_verified=True))
+        setup.commit()
+        user = setup.query(User).filter_by(email=pending_invitation["invitee"]).one()
+        raw = AuthService(setup).create_session(user)._raw_token
+
+    page_client.cookies.set("session_token", raw)
+    response = page_client.get("/accept-invite", params={"token": pending_invitation["token"]})
+
+    assert response.status_code == 200
+    assert "not found" not in response.text.lower()
+
+    with unprivileged_engine.begin() as conn:
+        conn.execute(
+            text(
+                "SELECT set_config('app.context', 'user', true),"
+                "       set_config('app.user_email', :e, true)"
+            ),
+            {"e": pending_invitation["invitee"]},
+        )
+        status = conn.execute(
+            text("SELECT status FROM website_members WHERE user_email = :e"),
+            {"e": pending_invitation["invitee"]},
+        ).scalar()
+    assert status is not None and str(status).lower().endswith("active"), (
+        f"the signed-in invitee opened the link and the membership is {status}"
+    )

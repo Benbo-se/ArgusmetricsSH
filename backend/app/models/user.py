@@ -37,5 +37,9 @@ class User(Base):
     pending_code_expires_at = Column(DateTime(timezone=True), nullable=True)
     pending_code_attempts = Column(Integer, default=0, server_default="0", nullable=False)
 
+    # Set on every login. Sessions cannot stand in for this: logging out
+    # deletes the row, so a session only records a login while it is open.
+    last_login_at = Column(DateTime(timezone=True), nullable=True)
+
     def __repr__(self) -> str:
         return f"<User(email='{self.email}', verified={self.is_verified})>"

@@ -109,44 +109,15 @@ class EcommerceService:
             return "Unknown"
 
     def _get_country_from_ip(self, ip_address: str) -> Optional[str]:
+        """Get country code from IP address.
+
+        Uses the same lookup as pageviews: the configured GeoIP file if there
+        is one, otherwise the registry table. Both are local, so no visitor
+        address leaves this server. None means Unknown.
         """
-        Get country code from IP address.
+        from app.services.analytics_recording_service import AnalyticsRecordingService
 
-        Resolves country using ONLY a local MaxMind GeoLite2 database
-        (settings.GEOIP_DB_PATH). No third-party network lookups are
-        performed, so visitor IPs never leave this server. Returns None
-        (country Unknown) when the DB is unconfigured or missing.
-
-        Args:
-            ip_address: IP address to lookup
-
-        Returns:
-            Optional[str]: 2-letter country code or None
-        """
-        if ip_address.startswith(('127.', '10.', '192.168.', '172.16.', '::1', 'localhost')):
-            logger.debug(f"Skipping GeoIP lookup for local IP: {ip_address}")
-            return None
-
-        db_path = settings.GEOIP_DB_PATH
-        if not db_path:
-            return None
-
-        # Resolve country from the local GeoLite2 database only.
-        try:
-            import os
-            import geoip2.database
-
-            if not os.path.exists(db_path):
-                logger.debug(f"GeoIP DB not found at {db_path}; skipping lookup")
-                return None
-
-            with geoip2.database.Reader(db_path) as reader:
-                response = reader.country(ip_address)
-                country_code = response.country.iso_code
-                logger.debug(f"GeoIP lookup: {ip_address} -> {country_code}")
-                return country_code
-        except Exception:
-            return None
+        return AnalyticsRecordingService(self.db)._get_country_from_ip(ip_address)
 
     def record_ecommerce_event(
         self,
@@ -394,17 +365,24 @@ class EcommerceService:
         logger.info(f"Getting revenue stats: website_id={website_id}, currency={currency}")
 
         try:
-            # Query purchase events
+            # Purchases add to revenue and refunds take away from it, so the
+            # figure is net. A refund is not an order, so everything else
+            # counts purchases only.
+            is_purchase = EcommerceEvent.event_type == 'purchase'
             stats = self.db.query(
-                func.sum(EcommerceEvent.revenue).label('total_revenue'),
-                func.count(distinct(EcommerceEvent.transaction_id)).label('total_transactions'),
-                func.sum(EcommerceEvent.tax).label('total_tax'),
-                func.sum(EcommerceEvent.shipping).label('total_shipping'),
-                func.count(distinct(EcommerceEvent.visitor_hash)).label('unique_customers')
+                func.sum(case(
+                    (is_purchase, EcommerceEvent.revenue),
+                    else_=-EcommerceEvent.revenue,
+                )).label('total_revenue'),
+                func.sum(case((is_purchase, EcommerceEvent.revenue), else_=0)).label('gross_revenue'),
+                func.count(distinct(case((is_purchase, EcommerceEvent.transaction_id)))).label('total_transactions'),
+                func.sum(case((is_purchase, EcommerceEvent.tax), else_=0)).label('total_tax'),
+                func.sum(case((is_purchase, EcommerceEvent.shipping), else_=0)).label('total_shipping'),
+                func.count(distinct(case((is_purchase, EcommerceEvent.visitor_hash)))).label('unique_customers')
             ).filter(
                 and_(
                     EcommerceEvent.website_id == website_id,
-                    EcommerceEvent.event_type == 'purchase',
+                    EcommerceEvent.event_type.in_(('purchase', 'refund')),
                     EcommerceEvent.timestamp >= start_date,
                     EcommerceEvent.timestamp <= end_date,
                     EcommerceEvent.currency == currency.upper(),
@@ -418,8 +396,10 @@ class EcommerceService:
             total_shipping = float(stats.total_shipping) if stats.total_shipping else 0.0
             unique_customers = stats.unique_customers or 0
 
-            # Calculate average order value
-            average_order_value = total_revenue / total_transactions if total_transactions > 0 else 0.0
+            # Average order value is what an order was worth when placed, so it
+            # uses the gross figure: a refund does not make an order smaller.
+            gross_revenue = float(stats.gross_revenue) if stats.gross_revenue else 0.0
+            average_order_value = gross_revenue / total_transactions if total_transactions > 0 else 0.0
 
             result = {
                 "total_revenue": Decimal(str(total_revenue)),
@@ -451,21 +431,27 @@ class EcommerceService:
         website_id: int,
         start_date: datetime,
         end_date: datetime,
-        limit: int = 10
+        limit: int = 10,
+        currency: Optional[str] = None
     ) -> Dict:
         """
         Get top selling products.
+
+        Revenue is reported in one currency, chosen the same way as for the
+        totals, so the list and the headline figure agree.
 
         Args:
             website_id: Website ID
             start_date: Start date (inclusive)
             end_date: End date (inclusive)
             limit: Maximum number of products to return
+            currency: Currency to report in; defaults to the site's most-used
 
         Returns:
             Dict: Top products list
         """
-        logger.info(f"Getting top products: website_id={website_id}")
+        currency = self.resolve_currency(website_id, currency)
+        logger.info(f"Getting top products: website_id={website_id}, currency={currency}")
 
         try:
             # Query purchase events grouped by product
@@ -482,6 +468,7 @@ class EcommerceService:
                     EcommerceEvent.event_type == 'purchase',
                     EcommerceEvent.timestamp >= start_date,
                     EcommerceEvent.timestamp <= end_date,
+                    EcommerceEvent.currency == currency,
                     EcommerceEvent.product_name.isnot(None)
                 )
             ).group_by(
@@ -501,6 +488,7 @@ class EcommerceService:
                     EcommerceEvent.event_type == 'purchase',
                     EcommerceEvent.timestamp >= start_date,
                     EcommerceEvent.timestamp <= end_date,
+                    EcommerceEvent.currency == currency,
                     EcommerceEvent.product_name.isnot(None)
                 )
             ).scalar() or 0
@@ -642,15 +630,19 @@ class EcommerceService:
         logger.info(f"Getting revenue timeseries: website_id={website_id}, currency={currency}")
 
         try:
-            # Group by day
+            # Group by day, net of refunds (see get_revenue_stats)
+            is_purchase = EcommerceEvent.event_type == 'purchase'
             results = self.db.query(
                 func.date(EcommerceEvent.timestamp).label('date'),
-                func.sum(EcommerceEvent.revenue).label('revenue'),
-                func.count(distinct(EcommerceEvent.transaction_id)).label('transactions')
+                func.sum(case(
+                    (is_purchase, EcommerceEvent.revenue),
+                    else_=-EcommerceEvent.revenue,
+                )).label('revenue'),
+                func.count(distinct(case((is_purchase, EcommerceEvent.transaction_id)))).label('transactions')
             ).filter(
                 and_(
                     EcommerceEvent.website_id == website_id,
-                    EcommerceEvent.event_type == 'purchase',
+                    EcommerceEvent.event_type.in_(('purchase', 'refund')),
                     EcommerceEvent.timestamp >= start_date,
                     EcommerceEvent.timestamp <= end_date,
                     EcommerceEvent.currency == currency.upper(),
