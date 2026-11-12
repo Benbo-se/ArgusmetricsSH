@@ -11,6 +11,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, and_, case, distinct, select
 
 from app.models.pageview import Pageview
+from app.models.website import Website
+from app.services.traffic_sources import classify_channel, own_referrer_regex
 
 logger = logging.getLogger(__name__)
 
@@ -307,14 +309,19 @@ class AnalyticsQueryService:
                 and_(*base_conditions)
             ).group_by(Pageview.device_type).all()
 
-            # Top referrers
+            # Top referrers. Visits from the site's own domain are navigation,
+            # not a source, so they are left out here and counted as Direct below.
+            own_domain = self.db.query(Website.domain).filter(
+                Website.id == website_id).scalar()
+            own_regex = own_referrer_regex(own_domain)
+            referrer_conditions = [Pageview.referrer.isnot(None), Pageview.referrer != '']
+            if own_regex:
+                referrer_conditions.append(Pageview.referrer.op('!~*')(own_regex))
             top_referrers = self.db.query(
                 Pageview.referrer,
                 func.count(Pageview.id).label('views')
             ).filter(
-                and_(*base_conditions,
-                     Pageview.referrer.isnot(None),
-                     Pageview.referrer != '')
+                and_(*base_conditions, *referrer_conditions)
             ).group_by(Pageview.referrer)\
              .order_by(func.count(Pageview.id).desc())\
              .limit(10)\
@@ -345,18 +352,27 @@ class AnalyticsQueryService:
              .limit(10)\
              .all()
 
-            # Traffic Channels
-            all_pageviews = self.db.query(
-                Pageview.referrer,
-                Pageview.utm_medium
+            # Traffic Channels: group in SQL, classify each distinct
+            # (referrer origin, medium, source) once, so cost follows the number of
+            # distinct sources and not the number of pageviews.
+            # The referrer is cut to scheme://host[:port] first: the path says
+            # nothing about the channel and would make every article its own group.
+            referrer_origin = func.coalesce(
+                func.substring(Pageview.referrer, r'^([A-Za-z][A-Za-z0-9+.-]*:(//)?[^/?#]*)'),
+                Pageview.referrer)
+            channel_groups = self.db.query(
+                referrer_origin.label('referrer'),
+                Pageview.utm_medium,
+                Pageview.utm_source,
+                func.count(Pageview.id).label('views')
             ).filter(
                 and_(*base_conditions)
-            ).all()
+            ).group_by(referrer_origin, Pageview.utm_medium, Pageview.utm_source).all()
 
             channel_counts = {}
-            for pv in all_pageviews:
-                channel = self._recording._categorize_channel(pv.referrer, pv.utm_medium) if self._recording else "Unknown"
-                channel_counts[channel] = channel_counts.get(channel, 0) + 1
+            for g in channel_groups:
+                channel = classify_channel(g.referrer, g.utm_medium, g.utm_source, own_domain)
+                channel_counts[channel] = channel_counts.get(channel, 0) + g.views
 
             traffic_channels = [
                 {"channel": channel, "views": count}
