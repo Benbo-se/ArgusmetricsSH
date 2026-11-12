@@ -271,7 +271,7 @@
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-8">
         <!-- The headline numbers -->
         <div id="stats-basic"
-             hx-get="/dashboard/website/{{ website.id }}/stats-basic?range={{ selected_range }}&compare={{ 'true' if compare_enabled else 'false' }}{% if active_filters.country %}&country={{ active_filters.country }}{% endif %}{% if active_filters.device %}&device={{ active_filters.device }}{% endif %}{% if active_filters.browser %}&browser={{ active_filters.browser }}{% endif %}{% if active_filters.page %}&page={{ active_filters.page }}{% endif %}{% if active_filters.referrer %}&referrer={{ active_filters.referrer }}{% endif %}"
+             hx-get="/dashboard/website/{{ website.id }}/stats-basic?range={{ selected_range }}&compare={{ 'true' if compare_enabled else 'false' }}{% if active_filters.country %}&country={{ active_filters.country|urlencode }}{% endif %}{% if active_filters.device %}&device={{ active_filters.device|urlencode }}{% endif %}{% if active_filters.browser %}&browser={{ active_filters.browser|urlencode }}{% endif %}{% if active_filters.page %}&page={{ active_filters.page|urlencode }}{% endif %}{% if active_filters.referrer %}&referrer={{ active_filters.referrer|urlencode }}{% endif %}"
              hx-trigger="every 10s"
              hx-swap="innerHTML"
              class="contents">
