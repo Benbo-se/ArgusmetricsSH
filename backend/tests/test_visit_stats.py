@@ -226,16 +226,35 @@ class TestTheNumbersAgreeWithEachOther:
         assert 0 < result["total_visits"] <= 3
 
 
-class TestSystemPathsAreExcludedHere_Too:
-    def test_a_dashboard_path_does_not_create_a_visit(self, record, visits):
-        """The base conditions apply, or these numbers count our own UI.
+class TestACustomersOwnAppIsCounted:
+    """Paths under /dashboard/, /admin/, /api/, /static/ and /_ used to vanish.
 
-        The pageview total already excluded /dashboard/ and friends. If the
-        visit query did not, the two would disagree and views-per-visit would
-        come out below one.
-        """
-        record("alice", 0, "/dashboard/website/1")
-        assert visits()["total_visits"] == 0
+    They were excluded from every dashboard number while still being stored and
+    counted against the monthly quota, so a customer measuring their own app
+    under /dashboard/ saw zero pageviews while the usage meter rose. Nothing
+    here is the instance's own interface: its dashboard does not load the
+    tracker, so there was no self-traffic to protect against.
+    """
+
+    @pytest.mark.parametrize(
+        "path",
+        ["/dashboard/website/1", "/admin/users", "/api/v1/things", "/static/app.js", "/_next/data"],
+    )
+    def test_the_path_creates_a_visit(self, record, visits, path):
+        record("alice", 0, path)
+        assert visits()["total_visits"] == 1
+
+    def test_the_headline_total_and_the_graph_agree(self, db, website, record):
+        record("alice", 0, "/dashboard/home")
+        record("bob", 0, "/")
+        stats = AnalyticsQueryService(db).get_dashboard_stats(
+            website_id=website["id"],
+            start_date=ANCHOR - timedelta(hours=1),
+            end_date=ANCHOR + timedelta(hours=1),
+        )
+        assert stats["total_pageviews"] == 2
+        assert sum(d["views"] for d in stats["timeseries"]) == 2
+        assert {p["path"] for p in stats["top_pages"]} == {"/dashboard/home", "/"}
 
 
 class TestTheComparisonMeasuresTheSameThing:
@@ -247,7 +266,7 @@ class TestTheComparisonMeasuresTheSameThing:
     builder.
     """
 
-    def test_both_periods_exclude_system_paths(self, db, website):
+    def test_both_periods_are_built_from_the_same_conditions(self, db, website):
         service = AnalyticsQueryService(db)
         current = service._base_conditions(
             website["id"], ANCHOR, ANCHOR + timedelta(days=1)

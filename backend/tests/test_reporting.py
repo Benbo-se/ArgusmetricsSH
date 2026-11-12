@@ -226,3 +226,25 @@ class TestDomainVerification:
 
         assert response.status_code in (200, 400), response.text
         assert response.status_code != 500, "the DNS lookup crashed the request"
+
+
+class TestReportEmailLinks:
+    def test_every_link_back_to_the_app_resolves_to_a_real_page(self, owner_client, db, website):
+        """The only way to stop the emails is the settings link inside one."""
+        import re
+        from urllib.parse import urlparse
+
+        from app.config import settings
+        from app.models.website import Website
+        from app.services.email_reports_service import EmailReportsService
+
+        site = db.query(Website).filter(Website.id == website["id"]).one()
+        service = EmailReportsService(db)
+        data = service.generate_report_data(site.id, "weekly")
+        body = service.generate_report_html(site, data)
+
+        links = [h for h in re.findall(r'href="([^"]+)"', body) if h.startswith(settings.BASE_URL)]
+        assert len(links) == 2, links
+        for link in links:
+            response = owner_client.get(urlparse(link).path, follow_redirects=False)
+            assert response.status_code == 200, f"{link} answers {response.status_code}"

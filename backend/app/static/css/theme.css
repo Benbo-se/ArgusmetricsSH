@@ -427,8 +427,11 @@ body {
     from { opacity: 0; transform: translateY(10px); }
     to   { opacity: 1; transform: none; }
 }
+/* backwards, not both: a fill that kept the last keyframe would leave a
+   transform on every section after the animation, and each section would
+   become a stacking context, so a z-50 panel in one is painted under the next. */
 .dash-motion .dash-page > * {
-    animation: dash-rise .5s cubic-bezier(.2, .8, .2, 1) both;
+    animation: dash-rise .5s cubic-bezier(.2, .8, .2, 1) backwards;
 }
 .dash-motion .dash-page > :nth-child(2) { animation-delay: .04s; }
 .dash-motion .dash-page > :nth-child(3) { animation-delay: .08s; }

@@ -11,6 +11,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, and_, case, distinct, select
 
 from app.models.pageview import Pageview
+from app.models.website import Website
+from app.services.traffic_sources import classify_channel, own_referrer_regex
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +21,17 @@ logger = logging.getLogger(__name__)
 # comparable to what anyone reading them has seen elsewhere, and it matches the
 # window the scroll-depth completion already uses.
 VISIT_TIMEOUT_SECONDS = 1800
+
+# A page is its path. The tracker stores the query string too, so a campaign
+# click on /pricing is /pricing?fbclid=abc, and grouping on the raw column gives
+# every click its own row. Readers compare this instead; the stored path is left
+# as it was, which is why history needs no migration.
+#
+# Every dashboard query is bounded by website_id and a timestamp range, which
+# idx_pageviews_website_timestamp serves. The (website_id, path, timestamp)
+# index cannot serve an expression, and nothing here relied on it for more
+# than a narrower scan inside that range.
+PAGE_PATH = func.split_part(Pageview.path, "?", 1)
 
 
 class AnalyticsQueryService:
@@ -29,6 +42,18 @@ class AnalyticsQueryService:
         self._goals = goals_service
         self._events = events_service
         self._recording = recording_service
+
+    def _abort(self, what: str) -> None:
+        """Log a failed query and clear the transaction it aborted.
+
+        Postgres refuses every later statement in a transaction after one
+        fails, so without the rollback the next query in the same request
+        fails with "current transaction is aborted" and hides the real error.
+        Callers re-raise: an empty result and a failed query used to look the
+        same on the screen, and a timeout showed up as a quiet day.
+        """
+        logger.error(f"Error {what}", exc_info=True)
+        self.db.rollback()
 
     def _base_conditions(
         self,
@@ -45,9 +70,9 @@ class AnalyticsQueryService:
         """Which pageviews a set of numbers is allowed to see.
 
         One place, because the previous period used to build its own shorter
-        version: no filters and no system-URL exclusion. So with a filter on,
-        the arrow compared a filtered week against an unfiltered one and
-        pointed the wrong way, confidently.
+        version without the filters. So with a filter on, the arrow compared a
+        filtered week against an unfiltered one and pointed the wrong way,
+        confidently.
         """
         conditions = [
             Pageview.website_id == website_id,
@@ -62,25 +87,16 @@ class AnalyticsQueryService:
         if filter_browser:
             conditions.append(Pageview.browser == filter_browser)
         if filter_page:
-            conditions.append(Pageview.path == filter_page)
+            conditions.append(PAGE_PATH == filter_page)
         if filter_referrer:
             conditions.append(Pageview.referrer == filter_referrer)
         if filter_properties:
             conditions.append(Pageview.properties.contains(filter_properties))
-
-        # Exclude system URLs
-        conditions.append(
-            and_(
-                ~Pageview.path.like('/api/%'),
-                ~Pageview.path.like('/static/%'),
-                ~Pageview.path.like('/admin/%'),
-                ~Pageview.path.like('/dashboard/%'),
-                ~Pageview.path.like(r'/\_%', escape='\\')
-            )
-        )
         return conditions
 
-    def _get_visit_stats(self, conditions: List) -> Dict:
+    def _get_visit_stats(
+        self, conditions: List, range_conditions: Optional[List] = None
+    ) -> Dict:
         """Group pageviews into visits, and measure them.
 
         A visitor hash is not a visit. Someone who reads three pages this
@@ -105,44 +121,16 @@ class AnalyticsQueryService:
         and it is averaged in rather than excluded, which is what Plausible and
         GA both do; excluding them would make the number look better without
         meaning more.
+
+        `conditions` is what the screen is filtered on; `range_conditions` is
+        only the site and the time range. Visits are built from every pageview
+        in the range and the filter then picks which visits count, so a filter
+        on /pricing measures the whole visit of everyone who saw /pricing
+        rather than turning each of them into a one-page bounce. Without
+        `range_conditions` the two are the same, which is the unfiltered case.
         """
         try:
-            ordered = select(
-                Pageview.visitor_hash.label("visitor_hash"),
-                Pageview.timestamp.label("ts"),
-                func.lag(Pageview.timestamp).over(
-                    partition_by=Pageview.visitor_hash,
-                    order_by=Pageview.timestamp,
-                ).label("previous_ts"),
-            ).where(and_(*conditions)).subquery()
-
-            started = select(
-                ordered.c.visitor_hash,
-                ordered.c.ts,
-                case(
-                    # The visitor's first pageview in the range always starts
-                    # one. A visit running across the boundary is counted from
-                    # where the range begins, which is the same convention the
-                    # pageview count already uses.
-                    (ordered.c.previous_ts.is_(None), 1),
-                    (
-                        func.extract("epoch", ordered.c.ts - ordered.c.previous_ts)
-                        > VISIT_TIMEOUT_SECONDS,
-                        1,
-                    ),
-                    else_=0,
-                ).label("starts_a_visit"),
-            ).subquery()
-
-            numbered = select(
-                started.c.visitor_hash,
-                started.c.ts,
-                func.sum(started.c.starts_a_visit).over(
-                    partition_by=started.c.visitor_hash,
-                    order_by=started.c.ts,
-                    rows=(None, 0),
-                ).label("visit_number"),
-            ).subquery()
+            numbered = self._numbered_visits(range_conditions or conditions, conditions)
 
             visits = select(
                 func.count().label("views"),
@@ -151,6 +139,8 @@ class AnalyticsQueryService:
                 ).label("seconds"),
             ).group_by(
                 numbered.c.visitor_hash, numbered.c.visit_number
+            ).having(
+                func.max(numbered.c.matched) == 1
             ).subquery()
 
             row = self.db.execute(
@@ -179,14 +169,111 @@ class AnalyticsQueryService:
                 ),
             }
 
-        except Exception as e:  # noqa: BLE001
-            logger.error(f"Error calculating visit stats: {e}", exc_info=True)
-            return {
-                "total_visits": 0,
-                "views_per_visit": 0.0,
-                "bounce_rate": 0.0,
-                "avg_visit_seconds": 0,
-            }
+        except Exception:  # noqa: BLE001
+            self._abort("calculating visit stats")
+            raise
+
+    @staticmethod
+    def _range_conditions(
+        website_id: int, start_date: datetime, end_date: datetime
+    ) -> List:
+        """The site and the time range, and nothing a user can filter on."""
+        return [
+            Pageview.website_id == website_id,
+            Pageview.timestamp >= start_date,
+            Pageview.timestamp <= end_date,
+        ]
+
+    @staticmethod
+    def _numbered_visits(range_conditions: List, matching_conditions: List):
+        """Every pageview in the range, numbered into visits.
+
+        The single definition of a visit: a visitor's pageviews, split wherever
+        the gap to the previous one exceeds VISIT_TIMEOUT_SECONDS. Visit stats
+        and entry/exit pages both read it, so they cannot drift apart again.
+        `matched` is 1 on the rows the filter lets through; a visit is kept if
+        any of its rows matched.
+        """
+        ordered = select(
+            Pageview.id.label("id"),
+            Pageview.visitor_hash.label("visitor_hash"),
+            Pageview.timestamp.label("ts"),
+            Pageview.path.label("path"),
+            case((and_(*matching_conditions), 1), else_=0).label("matched"),
+            func.lag(Pageview.timestamp).over(
+                partition_by=Pageview.visitor_hash,
+                order_by=Pageview.timestamp,
+            ).label("previous_ts"),
+        ).where(and_(*range_conditions)).subquery()
+
+        started = select(
+            ordered.c.id,
+            ordered.c.visitor_hash,
+            ordered.c.ts,
+            ordered.c.path,
+            ordered.c.matched,
+            case(
+                # The visitor's first pageview in the range always starts
+                # one. A visit running across the boundary is counted from
+                # where the range begins, which is the same convention the
+                # pageview count already uses.
+                (ordered.c.previous_ts.is_(None), 1),
+                (
+                    func.extract("epoch", ordered.c.ts - ordered.c.previous_ts)
+                    > VISIT_TIMEOUT_SECONDS,
+                    1,
+                ),
+                else_=0,
+            ).label("starts_a_visit"),
+        ).subquery()
+
+        return select(
+            started.c.id,
+            started.c.visitor_hash,
+            started.c.ts,
+            started.c.path,
+            started.c.matched,
+            func.sum(started.c.starts_a_visit).over(
+                partition_by=started.c.visitor_hash,
+                order_by=started.c.ts,
+                rows=(None, 0),
+            ).label("visit_number"),
+        ).subquery()
+
+    def _entry_exit_pages(self, range_conditions: List, matching_conditions: List):
+        """Where visits began and where they ended, as (entries, exits) rows.
+
+        By visit, as the dashboard says: the first and last pageview of each
+        visit, using the same thirty minute definition as the visit numbers.
+        With a filter on, it is the visits that touched a matching page, and
+        the entry is where such a visit really began, not the matching page.
+        """
+        numbered = self._numbered_visits(range_conditions, matching_conditions)
+        visit = (numbered.c.visitor_hash, numbered.c.visit_number)
+        ranked = select(
+            numbered.c.path,
+            func.row_number().over(
+                partition_by=visit, order_by=(numbered.c.ts, numbered.c.id)
+            ).label("from_start"),
+            func.row_number().over(
+                partition_by=visit,
+                order_by=(numbered.c.ts.desc(), numbered.c.id.desc()),
+            ).label("from_end"),
+            func.max(numbered.c.matched).over(partition_by=visit).label("visit_matched"),
+        ).subquery()
+
+        page = func.split_part(ranked.c.path, "?", 1)
+
+        def top(rank_column, label):
+            return self.db.execute(
+                select(page.label("path"), func.count().label(label))
+                .where(rank_column == 1, ranked.c.visit_matched == 1)
+                .group_by(page)
+                .order_by(func.count().desc())
+                .limit(10)
+            ).all()
+
+        return top(ranked.c.from_start, "entries"), top(ranked.c.from_end, "exits")
 
     def get_dashboard_stats(
         self,
@@ -236,57 +323,21 @@ class AnalyticsQueryService:
             # that have a value, since a visitor who leaves before the script
             # measures anything records NULL rather than nought.
             top_pages = self.db.query(
-                Pageview.path,
+                PAGE_PATH.label('path'),
                 func.count(Pageview.id).label('views'),
                 func.avg(Pageview.scroll_depth).label('avg_scroll')
             ).filter(
                 and_(*base_conditions)
-            ).group_by(Pageview.path)\
+            ).group_by(PAGE_PATH)\
              .order_by(func.count(Pageview.id).desc())\
              .limit(10)\
              .all()
 
-            # Entry pages
-            entry_pages_subquery = self.db.query(
-                Pageview.visitor_hash,
-                func.min(Pageview.timestamp).label('first_visit')
-            ).filter(and_(*base_conditions))\
-             .group_by(Pageview.visitor_hash, func.date(Pageview.timestamp))\
-             .subquery()
-
-            entry_pages = self.db.query(
-                Pageview.path,
-                func.count(Pageview.id).label('entries')
-            ).join(entry_pages_subquery,
-                and_(
-                    Pageview.visitor_hash == entry_pages_subquery.c.visitor_hash,
-                    Pageview.timestamp == entry_pages_subquery.c.first_visit
-                )
-            ).filter(and_(*base_conditions))\
-             .group_by(Pageview.path)\
-             .order_by(func.count(Pageview.id).desc())\
-             .limit(10).all()
-
-            # Exit pages
-            exit_pages_subquery = self.db.query(
-                Pageview.visitor_hash,
-                func.max(Pageview.timestamp).label('last_visit')
-            ).filter(and_(*base_conditions))\
-             .group_by(Pageview.visitor_hash, func.date(Pageview.timestamp))\
-             .subquery()
-
-            exit_pages = self.db.query(
-                Pageview.path,
-                func.count(Pageview.id).label('exits')
-            ).join(exit_pages_subquery,
-                and_(
-                    Pageview.visitor_hash == exit_pages_subquery.c.visitor_hash,
-                    Pageview.timestamp == exit_pages_subquery.c.last_visit
-                )
-            ).filter(and_(*base_conditions))\
-             .group_by(Pageview.path)\
-             .order_by(func.count(Pageview.id).desc())\
-             .limit(10).all()
+            # Entry and exit pages, by visit
+            range_conditions = self._range_conditions(website_id, start_date, end_date)
+            entry_pages, exit_pages = self._entry_exit_pages(
+                range_conditions, base_conditions
+            )
 
             # Top countries
             top_countries = self.db.query(
@@ -307,14 +358,19 @@ class AnalyticsQueryService:
                 and_(*base_conditions)
             ).group_by(Pageview.device_type).all()
 
-            # Top referrers
+            # Top referrers. Visits from the site's own domain are navigation,
+            # not a source, so they are left out here and counted as Direct below.
+            own_domain = self.db.query(Website.domain).filter(
+                Website.id == website_id).scalar()
+            own_regex = own_referrer_regex(own_domain)
+            referrer_conditions = [Pageview.referrer.isnot(None), Pageview.referrer != '']
+            if own_regex:
+                referrer_conditions.append(Pageview.referrer.op('!~*')(own_regex))
             top_referrers = self.db.query(
                 Pageview.referrer,
                 func.count(Pageview.id).label('views')
             ).filter(
-                and_(*base_conditions,
-                     Pageview.referrer.isnot(None),
-                     Pageview.referrer != '')
+                and_(*base_conditions, *referrer_conditions)
             ).group_by(Pageview.referrer)\
              .order_by(func.count(Pageview.id).desc())\
              .limit(10)\
@@ -345,18 +401,27 @@ class AnalyticsQueryService:
              .limit(10)\
              .all()
 
-            # Traffic Channels
-            all_pageviews = self.db.query(
-                Pageview.referrer,
-                Pageview.utm_medium
+            # Traffic Channels: group in SQL, classify each distinct
+            # (referrer origin, medium, source) once, so cost follows the number of
+            # distinct sources and not the number of pageviews.
+            # The referrer is cut to scheme://host[:port] first: the path says
+            # nothing about the channel and would make every article its own group.
+            referrer_origin = func.coalesce(
+                func.substring(Pageview.referrer, r'^([A-Za-z][A-Za-z0-9+.-]*:(//)?[^/?#]*)'),
+                Pageview.referrer)
+            channel_groups = self.db.query(
+                referrer_origin.label('referrer'),
+                Pageview.utm_medium,
+                Pageview.utm_source,
+                func.count(Pageview.id).label('views')
             ).filter(
                 and_(*base_conditions)
-            ).all()
+            ).group_by(referrer_origin, Pageview.utm_medium, Pageview.utm_source).all()
 
             channel_counts = {}
-            for pv in all_pageviews:
-                channel = self._recording._categorize_channel(pv.referrer, pv.utm_medium) if self._recording else "Unknown"
-                channel_counts[channel] = channel_counts.get(channel, 0) + 1
+            for g in channel_groups:
+                channel = classify_channel(g.referrer, g.utm_medium, g.utm_source, own_domain)
+                channel_counts[channel] = channel_counts.get(channel, 0) + g.views
 
             traffic_channels = [
                 {"channel": channel, "views": count}
@@ -386,7 +451,7 @@ class AnalyticsQueryService:
                 filter_properties
             )
 
-            visit_stats = self._get_visit_stats(base_conditions)
+            visit_stats = self._get_visit_stats(base_conditions, range_conditions)
 
             # Site-wide engagement, from a column the tracker has always
             # written. Averaged over the pageviews that reported a depth: a
@@ -480,31 +545,9 @@ class AnalyticsQueryService:
             )
             return stats
 
-        except Exception as e:
-            logger.error(f"Error getting dashboard stats: {e}", exc_info=True)
-            return {
-                "total_pageviews": 0,
-                "unique_visitors": 0,
-                "total_visits": 0,
-                "views_per_visit": 0.0,
-                "bounce_rate": 0.0,
-                "avg_visit_seconds": 0,
-                "avg_scroll_depth": None,
-                "top_pages": [],
-                "entry_pages": [],
-                "exit_pages": [],
-                "top_countries": [],
-                "devices": {},
-                "top_referrers": [],
-                "utm_campaigns": [],
-                "top_browsers": [],
-                "traffic_channels": [],
-                "timeseries": [],
-                "goals": [],
-                "total_visitors": 0,
-                "outbound_links": [],
-                "file_downloads": []
-            }
+        except Exception:
+            self._abort("getting dashboard stats")
+            raise
 
     def _get_timeseries_data(
         self,
@@ -533,23 +576,11 @@ class AnalyticsQueryService:
             if filter_browser:
                 conditions.append(Pageview.browser == filter_browser)
             if filter_page:
-                conditions.append(Pageview.path == filter_page)
+                conditions.append(PAGE_PATH == filter_page)
             if filter_referrer:
                 conditions.append(Pageview.referrer == filter_referrer)
             if filter_properties:
                 conditions.append(Pageview.properties.contains(filter_properties))
-
-            # Same system-URL exclusion as the headline totals — without it the
-            # graph disagrees with total_pageviews on any site with API traffic.
-            conditions.append(
-                and_(
-                    ~Pageview.path.like('/api/%'),
-                    ~Pageview.path.like('/static/%'),
-                    ~Pageview.path.like('/admin/%'),
-                    ~Pageview.path.like('/dashboard/%'),
-                    ~Pageview.path.like(r'/\_%', escape='\\')
-                )
-            )
 
             results = self.db.query(
                 func.date(Pageview.timestamp).label('date'),
@@ -578,9 +609,9 @@ class AnalyticsQueryService:
                 day += timedelta(days=1)
             return series
 
-        except Exception as e:
-            logger.error(f"Error getting timeseries data: {e}", exc_info=True)
-            return []
+        except Exception:
+            self._abort("getting timeseries data")
+            raise
 
     def _get_comparison_data(
         self,
@@ -600,9 +631,9 @@ class AnalyticsQueryService:
         """Get comparison data for previous period.
 
         The filters come along. Without them the previous period counted
-        everything, including the /api/ and /dashboard/ paths the current
-        period excludes, so the arrow beside a filtered number was measuring a
-        different thing from the number it sat next to.
+        everything the current period had filtered out, so the arrow beside a
+        filtered number was measuring a different thing from the number it sat
+        next to.
         """
         try:
             current_visits = current_visits or {}
@@ -629,7 +660,10 @@ class AnalyticsQueryService:
                 func.count(distinct(Pageview.visitor_hash))
             ).filter(and_(*prev_conditions)).scalar() or 0
 
-            prev_visits = self._get_visit_stats(prev_conditions)
+            prev_visits = self._get_visit_stats(
+                prev_conditions,
+                self._range_conditions(website_id, prev_start_date, prev_end_date),
+            )
 
             def calculate_change(current: float, previous: float) -> Optional[float]:
                 if previous == 0:
@@ -679,7 +713,13 @@ class AnalyticsQueryService:
             return comparison
 
         except Exception as e:
+            # A fallback that is meant: the arrows are decoration on numbers
+            # already computed, so losing them degrades the page without
+            # misstating anything. The rollback is what keeps it harmless;
+            # without it the page's next query would fail on the aborted
+            # transaction.
             logger.error(f"Error calculating comparison data: {e}", exc_info=True)
+            self.db.rollback()
             return {
                 "comparison": {
                     "pageviews_change": None,
@@ -757,10 +797,6 @@ class AnalyticsQueryService:
             )
             return stats
 
-        except Exception as e:
-            logger.error(f"Error getting realtime stats: {e}", exc_info=True)
-            return {
-                "current_visitors": 0,
-                "recent_pageviews": 0,
-                "live_visitors": []
-            }
+        except Exception:
+            self._abort("getting realtime stats")
+            raise
