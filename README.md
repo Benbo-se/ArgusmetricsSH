@@ -33,7 +33,8 @@ Add a website in the dashboard, then put its snippet on your pages:
 ## What you get
 
 Pageviews, unique visitors, real-time, top pages with scroll depth, referrers,
-countries, devices and browsers, UTM campaigns, custom events with properties,
+countries, devices, browsers and operating systems with their major versions,
+languages, hostnames, screen sizes, UTM campaigns, custom events with properties,
 goals, funnels, ecommerce and revenue, cross-domain reporting, public share
 links (optionally password-protected), team members with roles, scheduled email
 reports, traffic-spike alerts, an API with tokens, and a live debug console.

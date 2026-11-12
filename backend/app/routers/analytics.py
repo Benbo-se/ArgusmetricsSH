@@ -12,6 +12,7 @@ from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException, status, Request, Header, Cookie
 
 from app.services.usage_service import LIMIT_MESSAGE
+from app.services import visitor_dimensions
 from app.utils.date_helpers import parse_api_window, site_timezone
 from app.utils.csv_safe import SafeWriter
 from sqlalchemy.orm import Session
@@ -501,7 +502,17 @@ async def track_pageview(
         utm_term=track_request.utm_term,
         screen_height=track_request.screen_height,
         scroll_depth=track_request.scroll_depth,
-        properties=track_request.properties
+        properties=track_request.properties,
+        # What the tracker sent, or else what the request itself says. The
+        # fallbacks are for a browser still running a cached tracker from
+        # before it sent these: the first Accept-Language preference and the
+        # Origin every cross-site fetch carries. Neither header is stored.
+        language=track_request.language
+        or visitor_dimensions.language_from_accept_language(
+            request.headers.get("accept-language")
+        ),
+        hostname=track_request.hostname
+        or visitor_dimensions.hostname_from_origin(request.headers.get("origin")),
     )
 
     await tell("recorded" if success else "refused", None if success else message)
@@ -1011,7 +1022,12 @@ async def export_csv(
     # Create CSV
     output = io.StringIO()
     writer = SafeWriter(output)
-    writer.writerow(['Timestamp', 'Path', 'Referrer', 'Country', 'Device', 'Browser', 'Visitor Hash'])
+    # New columns go last: a script reading this file by position keeps
+    # finding what it found before.
+    writer.writerow([
+        'Timestamp', 'Path', 'Referrer', 'Country', 'Device', 'Browser', 'Visitor Hash',
+        'Browser Version', 'OS', 'OS Version', 'Language', 'Hostname',
+    ])
 
     for pv in pageviews:
         writer.writerow([
@@ -1021,7 +1037,12 @@ async def export_csv(
             pv.country or '',
             pv.device_type or '',
             pv.browser or '',
-            pv.visitor_hash[:16] + '...'  # Truncate for privacy
+            pv.visitor_hash[:16] + '...',  # Truncate for privacy
+            pv.browser_version or '',
+            pv.os or '',
+            pv.os_version or '',
+            pv.language or '',
+            pv.hostname or '',
         ])
 
     output.seek(0)
@@ -1086,7 +1107,12 @@ async def export_json(
                 "referrer": pv.referrer,
                 "country": pv.country,
                 "device": pv.device_type,
-                "browser": pv.browser
+                "browser": pv.browser,
+                "browser_version": pv.browser_version,
+                "os": pv.os,
+                "os_version": pv.os_version,
+                "language": pv.language,
+                "hostname": pv.hostname
             }
             for pv in pageviews
         ]

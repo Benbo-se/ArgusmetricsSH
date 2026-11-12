@@ -14,17 +14,17 @@ inte med en CHECK: listan över zoner ändras med tzdata och hör inte hemma i
 schemat. websites har redan radnivåsäkerhet och rättigheter på tabellnivå,
 som täcker den nya kolumnen.
 
-Revision ID: e5f1b7d4c938
-Revises: d7c3a15f9e28
-Create Date: 2026-11-12 13:00:00.000000
+Revision ID: a6c2d8e4f913
+Revises: e5f7b8d4c938
+Create Date: 2026-11-12 14:00:00.000000
 
 """
 import sqlalchemy as sa
 from alembic import op
 
 
-revision = 'e5f1b7d4c938'
-down_revision = 'd7c3a15f9e28'
+revision = 'a6c2d8e4f913'
+down_revision = 'e5f7b8d4c938'
 branch_labels = None
 depends_on = None
 

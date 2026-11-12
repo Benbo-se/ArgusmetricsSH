@@ -2006,6 +2006,13 @@ document.addEventListener('alpine:init', () => {
      * what the CSP build needs and a little safer: the value no longer travels
      * through a JavaScript string literal rendered by Jinja.
      */
+    // The visitor dimension filters (#204). The names are the query
+    // parameters, and the same list the server keeps in
+    // app/services/visitor_dimensions.py.
+    const DIMENSION_FILTERS = [
+        'os', 'os_version', 'browser_version', 'language', 'hostname', 'screen',
+    ]
+
     Alpine.data('websitePage', () => ({
         state: { range: '7d', compare: false, filters: {} },
         compareOn: false,
@@ -2073,6 +2080,7 @@ document.addEventListener('alpine:init', () => {
             const f = this.filters
             return !!(
                 f.country || f.device || f.browser || f.page || f.referrer ||
+                DIMENSION_FILTERS.some((name) => f[name]) ||
                 Object.keys(this.properties).length > 0
             )
         },
@@ -2141,6 +2149,7 @@ document.addEventListener('alpine:init', () => {
             f.browser = ''
             f.page = ''
             f.referrer = ''
+            for (const name of DIMENSION_FILTERS) f[name] = ''
             f.properties = {}
             this.updateDashboard()
         },
@@ -2150,7 +2159,7 @@ document.addEventListener('alpine:init', () => {
             url.searchParams.set('range', this.range)
             url.searchParams.set('compare', this.compareOn ? 'true' : 'false')
 
-            for (const name of ['country', 'device', 'browser', 'page', 'referrer']) {
+            for (const name of ['country', 'device', 'browser', 'page', 'referrer', ...DIMENSION_FILTERS]) {
                 const value = this.filters[name]
                 if (value) url.searchParams.set(name, value)
                 else url.searchParams.delete(name)

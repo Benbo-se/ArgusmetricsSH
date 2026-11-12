@@ -23,6 +23,7 @@ from app.database import get_db, set_rls_context
 from app.services.analytics_service import AnalyticsService
 from app.services.website_service import WebsiteService
 from app.services.usage_service import get_usage
+from app.services import visitor_dimensions
 from app.services.site_activity import goal_activity, recent_activity
 from app.models.user import User
 from app.routers.auth import get_current_user
@@ -79,6 +80,23 @@ def _country_lookup_available() -> bool:
 
 
 templates.env.globals["geoip_available"] = _country_lookup_available
+
+
+def _dimension_filters(request: Request) -> dict:
+    """The visitor dimension filters present in the query string (#204).
+
+    Read from the request rather than declared one by one on each route: there
+    are six, two routes take them, and the list lives in one place.
+    """
+    return {
+        name: request.query_params[name]
+        for name in visitor_dimensions.DIMENSION_NAMES
+        if request.query_params.get(name)
+    }
+
+
+# The reports the template loops over: filter name and heading.
+templates.env.globals["visitor_dimensions"] = visitor_dimensions.DIMENSIONS
 
 # Stylesheets and scripts carry a hash of their own contents, so nginx can
 # cache them forever without a fix being unable to reach anyone. See
@@ -741,6 +759,7 @@ async def website_dashboard(
             filter_page=page,
             filter_referrer=referrer,
             filter_properties=filter_properties,
+            filter_dimensions=_dimension_filters(request),
             tz=site_timezone(website)
         )
 
@@ -795,6 +814,7 @@ async def website_dashboard(
         active_filters['referrer'] = referrer
     if filter_properties:
         active_filters['properties'] = filter_properties
+    active_filters.update(_dimension_filters(request))
 
     # Add file_downloads to stats dictionary
     stats['file_downloads'] = file_downloads
@@ -912,6 +932,7 @@ async def website_stats_basic_partial(
             filter_page=page,
             filter_referrer=referrer,
             filter_properties=filter_properties,
+            filter_dimensions=_dimension_filters(request),
             tz=site_timezone(website)
         )
     except Exception:
@@ -1596,6 +1617,14 @@ async def export_csv(
     writer.writerow(['Browser', 'Views'])
     for browser in stats.get('top_browsers', [])[:20]:
         writer.writerow([browser['browser'], browser['views']])
+
+    # Operating systems, versions, languages, hostnames, screen sizes
+    for name, title in visitor_dimensions.DIMENSIONS:
+        writer.writerow([])
+        writer.writerow([title.upper()])
+        writer.writerow([title, 'Views'])
+        for item in stats.get('dimensions', {}).get(name, []):
+            writer.writerow([item['label'], item['views']])
     
     # Prepare response
     output.seek(0)

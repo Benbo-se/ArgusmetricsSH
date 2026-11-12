@@ -64,6 +64,9 @@ The tracking script collects minimal data:
 1. **Page Path**: The URL path being viewed (e.g., `/blog/post-1`)
 2. **Referrer**: Where the visitor came from (e.g., `https://google.com`)
 3. **Screen Width**: Used to determine device type (desktop/mobile/tablet)
+4. **Language**: `navigator.language`, the first preferred language only. The
+   server keeps language and region (`sv-SE`); `navigator.languages` is never read
+5. **Hostname**: `location.hostname`, so subdomains can be told apart
 
 ### What is NOT collected:
 
