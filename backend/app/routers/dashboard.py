@@ -1426,7 +1426,8 @@ async def website_revenue_dashboard(
             website_id=website_id,
             start_date=start,
             end_date=end,
-            limit=10
+            limit=10,
+            currency=currency
         )
 
         # Get revenue timeseries for chart
