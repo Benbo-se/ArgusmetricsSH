@@ -3,7 +3,7 @@ Alert Settings model for configuring traffic spike alerts.
 
 Allows users to configure when they should receive alerts about unusual traffic.
 """
-from sqlalchemy import Column, Integer, Float, Boolean, ForeignKey, String
+from sqlalchemy import Column, DateTime, Integer, Float, Boolean, ForeignKey, String
 from sqlalchemy.sql import func
 from app.database import Base
 
@@ -27,6 +27,8 @@ class AlertSettings(Base):
     spike_threshold = Column(Float, nullable=False, default=2.0)  # 200% of typical
     email_enabled = Column(Boolean, nullable=False, default=True)
     alert_email = Column(String(255), nullable=False)
+    # When the last alert went out; the check stays quiet for a cooldown after.
+    last_alerted_at = Column(DateTime(timezone=True), nullable=True)
 
     def __repr__(self) -> str:
         return f"<AlertSettings(website_id={self.website_id}, threshold={self.spike_threshold}x)>"

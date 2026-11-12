@@ -156,8 +156,8 @@ def traffic_alerts_task():
     with alerts enabled would never actually hear about a spike. This is the
     job that connects the two.
 
-    check_traffic_spike() compares the last hour against the weekly hourly
-    baseline and returns None unless the site has email alerts enabled, so
+    check_traffic_spike() compares the last hour against the same hour on the previous days
+    and returns None unless the site has email alerts enabled, so
     sites that never opted in cost one cheap query and nothing else.
     """
     from app.database import SessionLocal, set_rls_context
