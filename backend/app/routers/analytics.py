@@ -12,6 +12,7 @@ from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException, status, Request, Header, Cookie
 
 from app.services.usage_service import LIMIT_MESSAGE
+from app.utils.date_helpers import parse_api_window
 from sqlalchemy.orm import Session
 
 from app.database import get_db, set_rls_context
@@ -536,15 +537,7 @@ async def get_dashboard_stats(
     
     # Parse dates or use defaults (last 30 days)
     try:
-        if end_date:
-            end = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
-        else:
-            end = datetime.utcnow()
-        
-        if start_date:
-            start = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
-        else:
-            start = end - timedelta(days=30)
+        start, end = parse_api_window(start_date, end_date)
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid date format. Use ISO format (YYYY-MM-DD)")
     
@@ -869,15 +862,7 @@ async def get_goal_stats(
 
     # Parse dates or use defaults (last 30 days)
     try:
-        if end_date:
-            end = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
-        else:
-            end = datetime.utcnow()
-
-        if start_date:
-            start = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
-        else:
-            start = end - timedelta(days=30)
+        start, end = parse_api_window(start_date, end_date)
     except ValueError:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid date format")
 
@@ -1001,15 +986,7 @@ async def export_csv(
 
     # Parse dates
     try:
-        if end_date:
-            end = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
-        else:
-            end = datetime.utcnow()
-
-        if start_date:
-            start = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
-        else:
-            start = end - timedelta(days=30)
+        start, end = parse_api_window(start_date, end_date)
     except ValueError:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid date format")
 
@@ -1075,15 +1052,7 @@ async def export_json(
 
     # Parse dates
     try:
-        if end_date:
-            end = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
-        else:
-            end = datetime.utcnow()
-
-        if start_date:
-            start = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
-        else:
-            start = end - timedelta(days=30)
+        start, end = parse_api_window(start_date, end_date)
     except ValueError:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid date format")
 
@@ -1284,15 +1253,7 @@ async def get_custom_events_summary(
 
     # Parse dates or use defaults (last 30 days)
     try:
-        if end_date:
-            end = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
-        else:
-            end = datetime.utcnow()
-
-        if start_date:
-            start = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
-        else:
-            start = end - timedelta(days=30)
+        start, end = parse_api_window(start_date, end_date)
     except ValueError:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid date format")
 
@@ -1322,15 +1283,7 @@ async def get_event_details(
 
     # Parse dates or use defaults (last 30 days)
     try:
-        if end_date:
-            end = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
-        else:
-            end = datetime.utcnow()
-
-        if start_date:
-            start = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
-        else:
-            start = end - timedelta(days=30)
+        start, end = parse_api_window(start_date, end_date)
     except ValueError:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid date format")
 
@@ -1363,15 +1316,7 @@ async def get_available_properties(
 
     # Parse dates or use defaults (last 30 days)
     try:
-        if end_date:
-            end = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
-        else:
-            end = datetime.utcnow()
-
-        if start_date:
-            start = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
-        else:
-            start = end - timedelta(days=30)
+        start, end = parse_api_window(start_date, end_date)
     except ValueError:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid date format")
 
