@@ -722,21 +722,22 @@ async def track_event(
     properties = getattr(event_request, 'properties', None)
     recorded = []
 
-    if properties:
-        success, message = analytics_service.record_custom_event(
-            tracking_code=event_request.tracking_code,
-            event_name=event_request.event_name,
-            properties=properties,
-            ip_address=client_ip,
-            user_agent=user_agent
-        )
+    # Always stored: a goal is something the event may also convert, not a
+    # condition for keeping it. An event nobody made a goal for is still data.
+    success, message = analytics_service.record_custom_event(
+        tracking_code=event_request.tracking_code,
+        event_name=event_request.event_name,
+        properties=properties,
+        ip_address=client_ip,
+        user_agent=user_agent
+    )
 
-        # An explicit request to record a custom event, so a failure here is
-        # the caller's answer even if the goal below converts.
-        if not success:
-            raise HTTPException(status_code=_failure_status(message), detail=message)
+    # An explicit request to record a custom event, so a failure here is
+    # the caller's answer even if the goal below converts.
+    if not success:
+        raise HTTPException(status_code=_failure_status(message), detail=message)
 
-        recorded.append("custom event")
+    recorded.append("custom event")
 
     goal_success, goal_message = analytics_service.record_goal_conversion(
         tracking_code=event_request.tracking_code,
@@ -752,7 +753,12 @@ async def track_event(
         analytics_service.db, event_request.tracking_code, "event", None,
         client_ip, user_agent,
         "recorded" if recorded else "refused",
-        f"Recorded {' and '.join(recorded)}" if recorded else goal_message,
+        (
+            f"Recorded {' and '.join(recorded)}"
+            # The usual reason a goal stays at zero is a name that differs,
+            # so say that no goal matched rather than leave it implied.
+            + ("" if goal_success else f" (no goal matched: {goal_message})")
+        ) if recorded else goal_message,
         {"event_name": event_request.event_name},
     )
 
