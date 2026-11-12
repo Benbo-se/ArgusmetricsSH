@@ -28,11 +28,13 @@ PY
 cat > "$T/bin/docker" <<'EOF'
 #!/usr/bin/env bash
 case "$1" in
+  login) echo "$DOCKER_CONFIG" > "$T/login_cfg"; echo "$*" > "$T/login_args"; cat > "$T/login_stdin"
+         [ -n "${FAIL_LOGIN:-}" ] && exit 1; true ;;
   inspect) echo "ghcr.io/benbo-se/argusmetrics-backend:$(cat "$T/running")" ;;
   compose)
     shift 3
     case "$1" in
-      pull) [ -n "${FAIL_PULL:-}" ] && exit 1; true ;;
+      pull) echo "$DOCKER_CONFIG" > "$T/pull_cfg"; [ -n "${FAIL_PULL:-}" ] && exit 1; true ;;
       up) echo "$ARGUS_TAG" > "$T/running"
           if [ "$(git -C "$T/work" rev-parse HEAD)" = "$ARGUS_TAG" ]; then echo match; else echo MISMATCH; fi >> "$T/ups" ;;
       exec) echo "dump" ;;
@@ -65,12 +67,13 @@ setup() {
   git -C "$T/work" reset -q --hard "$B"
   printf 'BASE_URL=https://example.test\nARGUS_TAG=%s\n' "$B" > "$T/work/docker/.env"
   echo "$B" > "$T/running"; : > "$T/ups"
+  rm -f "$T/login_cfg" "$T/login_args" "$T/login_stdin" "$T/pull_cfg"; rm -rf "$T/home/.docker"
 }
 
 deploy() {
   sed "s#cd /opt/argusmetrics#cd $T/work#" "$T/server.sh" > "$T/run.sh"
   set +e
-  env PATH="$T/bin:$PATH" HOME="$T/home" T="$T" "$@" bash "$T/run.sh" > "$T/out" 2>&1
+  env PATH="$T/bin:$PATH" HOME="$T/home" T="$T" GHCR_USER=ci GHCR_TOKEN=tok-test "$@" bash "$T/run.sh" > "$T/out" 2>&1
   STATUS=$?
   set -e
 }
@@ -107,6 +110,17 @@ expect "images and configuration match at every up, the rollback's too" consiste
 echo "Deploy whose images cannot be pulled"
 setup; deploy DEPLOY_TAG="$C" DEPLOY_KIND=auto FAIL_PULL=1
 expect "fails with nothing changed" '[ $STATUS -ne 0 ] && [ ! -s $T/ups ] && [ "$(at)" = "$B" ] && [ "$(env_tag)" = "$B" ]'
+
+echo "GHCR login (the server is shared; its ~/.docker/config.json is other projects' to rewrite)"
+setup; deploy DEPLOY_TAG="$C" DEPLOY_KIND=auto
+expect "logs in with the job token on stdin, not in the arguments" '[ "$(cat $T/login_stdin)" = tok-test ] && grep -q -- "-u ci" $T/login_args && ! grep -q tok-test $T/login_args'
+expect "uses its own docker config and never creates the shared one" '[ -n "$(cat $T/login_cfg)" ] && [ "$(cat $T/login_cfg)" != "$T/home/.docker" ] && [ ! -e "$T/home/.docker" ]'
+expect "pulls with that same config" '[ "$(cat $T/pull_cfg)" = "$(cat $T/login_cfg)" ]'
+expect "removes the config afterwards" '[ ! -e "$(cat $T/login_cfg)" ]'
+
+echo "Deploy whose GHCR login is refused"
+setup; deploy DEPLOY_TAG="$C" DEPLOY_KIND=auto FAIL_LOGIN=1
+expect "fails with nothing changed and the config removed" '[ $STATUS -ne 0 ] && [ ! -s $T/ups ] && [ ! -e $T/pull_cfg ] && [ "$(at)" = "$B" ] && [ "$(env_tag)" = "$B" ] && [ ! -e "$(cat $T/login_cfg)" ]'
 
 echo "Deploy of a commit that does not exist"
 setup; deploy DEPLOY_TAG="$(printf 'f%.0s' {1..40})" DEPLOY_KIND=manual
