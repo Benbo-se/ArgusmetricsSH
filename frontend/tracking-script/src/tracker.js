@@ -3,7 +3,7 @@
  * Privacy-first analytics tracking
  *
  * Features:
- * - Minimal data collection (path, referrer, screen width)
+ * - Minimal data collection (path, referrer, screen width, language, hostname)
  * - No cookies
  * - Respects Do Not Track (DNT)
  * - fetch with keepalive, so reports survive the page being left
@@ -267,6 +267,11 @@
       // every page it counted one referral per page read (#177).
       referrer: pageviewsSent === 0 ? getReferrer() : null,
       screen_width: getScreenWidth(),
+      // The first preferred language only, never navigator.languages: the
+      // whole list is a fingerprint. The server cuts it to language and
+      // region. The hostname tells subdomains apart (#204).
+      language: navigator.language || null,
+      hostname: window.location.hostname || null,
       ...utmParams
     };
 

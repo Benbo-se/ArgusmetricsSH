@@ -25,6 +25,12 @@
         'browser': active_filters.browser or '',
         'page': active_filters.page or '',
         'referrer': active_filters.referrer or '',
+        'os': active_filters.os or '',
+        'os_version': active_filters.os_version or '',
+        'browser_version': active_filters.browser_version or '',
+        'language': active_filters.language or '',
+        'hostname': active_filters.hostname or '',
+        'screen': active_filters.screen or '',
         'properties': active_filters.properties or {}
     }
 } | tojson }}</script>
@@ -112,6 +118,25 @@
                         </button>
                     </div>
                 </template>
+
+                <!-- Visitor dimension badges (#204). Rendered by the server,
+                     which knows the active filters, with the value as
+                     autoescaped text; the button names its filter the same
+                     way the ones above do. -->
+                {% for name, title in visitor_dimensions %}
+                {% if active_filters[name] %}
+                <div class="inline-flex items-center gap-1.5 px-3 py-1 bg-white border border-gray-300 rounded-full text-sm max-w-xs"
+                     data-dimension-chip="{{ name }}">
+                    <span class="text-gray-500">{{ title }}:</span>
+                    <span class="font-medium truncate">{{ active_filters[name] }}</span>
+                    <button @click="removeFilter" data-filter="{{ name }}" class="ml-1 text-gray-500 hover:text-red-600 flex-shrink-0">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+                {% endif %}
+                {% endfor %}
 
                 <!-- Property Filter Badges -->
                 <template x-for="(chip, index) in propertyChips" :key="index">
@@ -271,7 +296,7 @@
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-8">
         <!-- The headline numbers -->
         <div id="stats-basic"
-             hx-get="/dashboard/website/{{ website.id }}/stats-basic?range={{ selected_range }}&compare={{ 'true' if compare_enabled else 'false' }}{% if active_filters.country %}&country={{ active_filters.country|urlencode }}{% endif %}{% if active_filters.device %}&device={{ active_filters.device|urlencode }}{% endif %}{% if active_filters.browser %}&browser={{ active_filters.browser|urlencode }}{% endif %}{% if active_filters.page %}&page={{ active_filters.page|urlencode }}{% endif %}{% if active_filters.referrer %}&referrer={{ active_filters.referrer|urlencode }}{% endif %}"
+             hx-get="/dashboard/website/{{ website.id }}/stats-basic?range={{ selected_range }}&compare={{ 'true' if compare_enabled else 'false' }}{% if active_filters.country %}&country={{ active_filters.country|urlencode }}{% endif %}{% if active_filters.device %}&device={{ active_filters.device|urlencode }}{% endif %}{% if active_filters.browser %}&browser={{ active_filters.browser|urlencode }}{% endif %}{% if active_filters.page %}&page={{ active_filters.page|urlencode }}{% endif %}{% if active_filters.referrer %}&referrer={{ active_filters.referrer|urlencode }}{% endif %}{% for name, title in visitor_dimensions %}{% if active_filters[name] %}&{{ name }}={{ active_filters[name]|urlencode }}{% endif %}{% endfor %}"
              hx-trigger="every 10s"
              hx-swap="innerHTML"
              class="contents">
@@ -1111,6 +1136,40 @@ argus.trackEvent('button_click', {
             <p class="text-gray-500 text-center py-8">No browser data yet</p>
             {% endif %}
         </div>
+    </div>
+
+    <!-- Operating systems, versions, languages, hostnames, screen sizes
+         (#204). One loop, since the six differ only in name and heading.
+         Pageviews recorded before these were collected have no value and
+         are listed as Unknown rather than left out. -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+        {% for name, title in visitor_dimensions %}
+        {% set rows = stats.dimensions[name] if stats.dimensions else [] %}
+        <div class="bg-white rounded-lg shadow p-6" data-dimension="{{ name }}">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">
+                {{ title }}
+                {% if active_filters[name] %}<span class="ml-2 text-sm font-normal text-blue-600">(filtered)</span>{% endif %}
+            </h2>
+            {% if rows %}
+            <div class="space-y-1">
+                {% for row in rows %}
+                <div @click="applyFilterFromData" data-filter="{{ name }}" data-value="{{ row.value }}"
+                     data-share="{{ (row.views / stats.total_pageviews * 100) if stats.total_pageviews else 0 }}"
+                     class="rank-row flex items-center justify-between py-2 px-2 -mx-2 cursor-pointer rounded"
+                     :class="serverRowClass">
+                    <span class="text-sm truncate {{ 'text-gray-400 italic' if row.value == 'Unknown' else 'text-gray-700' }}">{{ row.label }}</span>
+                    <span class="flex-shrink-0 ml-2">
+                        <span class="text-sm font-semibold text-gray-900">{{ row.views | format_number }}</span>
+                        <span class="ml-2 text-xs text-gray-500">{% if stats.total_pageviews > 0 %}{{ "%.0f"|format((row.views / stats.total_pageviews) * 100) }}%{% else %}0%{% endif %}</span>
+                    </span>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-gray-500 text-center py-8">No data yet</p>
+            {% endif %}
+        </div>
+        {% endfor %}
     </div>
 
     <!-- Live Visitors Section -->

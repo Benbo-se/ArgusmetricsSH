@@ -189,7 +189,7 @@
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 pt-28">
         <div class="bg-white rounded-lg shadow-sm p-8 md:p-12">
             <h1 class="text-4xl font-bold text-gray-900 mb-4">Privacy Policy</h1>
-            <p class="text-gray-600 mb-8">Last updated: September 3, 2026</p>
+            <p class="text-gray-600 mb-8">Last updated: November 12, 2026</p>
 
             <div class="prose prose-blue max-w-none">
                 <!-- Introduction -->
@@ -254,7 +254,12 @@
                         <li><strong>Page path:</strong> which page was visited, with sensitive query parameters stripped before storage</li>
                         <li><strong>Referrer:</strong> where the visitor came from, and any UTM campaign parameters in the link</li>
                         <li><strong>Country:</strong> looked up from the IP address using a local database, after which the IP is discarded</li>
-                        <li><strong>Device and browser type:</strong> derived from the User-Agent, plus screen dimensions</li>
+                        <li><strong>Device, browser and operating system:</strong> derived from the User-Agent and kept only as a
+                            family and a major version (for example "Chrome 126" on "Windows 10"), plus screen dimensions. The
+                            User-Agent itself is not stored.</li>
+                        <li><strong>Language:</strong> the browser's first preferred language, reduced to language and region
+                            (for example "sv-SE"). The full list of preferred languages is not stored.</li>
+                        <li><strong>Hostname:</strong> which of your hostnames the page was on, so that subdomains can be told apart</li>
                         <li><strong>Timestamp</strong>, and how far down the page the visitor scrolled</li>
                         <li><strong>A visitor hash</strong>, described in section 2.3</li>
                         <li><strong>Any custom properties you choose to send</strong> with an event. These are entirely under your
