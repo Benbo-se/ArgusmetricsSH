@@ -34,7 +34,7 @@ from app.migration_grants import grant
 
 
 revision = 'd7c3a15f9e28'
-down_revision = 'a4d9e2f6b813'
+down_revision = 'd9e4a6c3b827'
 branch_labels = None
 depends_on = None
 

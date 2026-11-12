@@ -9,6 +9,8 @@ stays in the table, and the readers compare the part before the question mark.
 from datetime import datetime, timedelta, timezone
 
 import pytest
+
+from app.database import set_rls_context
 from sqlalchemy import text
 
 from app.models.funnel import Funnel, FunnelEvent
@@ -98,6 +100,7 @@ class TestFunnelWritePath:
         )
 
     def test_a_campaign_landing_reaches_the_step(self, db, funnel):
+        set_rls_context(db, 'tracking', website_id=funnel.website_id)
         AnalyticsRecordingService(db)._record_funnel_steps(
             funnel.website_id, "/pricing?fbclid=abc", "v1"
         )
@@ -111,6 +114,7 @@ class TestFunnelWritePath:
         )
         db.add(funnel)
         db.commit()
+        set_rls_context(db, 'tracking', website_id=funnel.website_id)
         AnalyticsRecordingService(db)._record_funnel_steps(
             website["id"], "/pricing?y=2", "v1"
         )
@@ -118,6 +122,7 @@ class TestFunnelWritePath:
         assert self.reached(db, funnel) == [("v1", 1)]
 
     def test_a_different_page_does_not(self, db, funnel):
+        set_rls_context(db, 'tracking', website_id=funnel.website_id)
         AnalyticsRecordingService(db)._record_funnel_steps(
             funnel.website_id, "/pricing-old?fbclid=abc", "v1"
         )
