@@ -141,7 +141,7 @@ class EmailReportsService:
         Returns:
             str: HTML email content
         """
-        dashboard_url = f"{settings.BASE_URL}/dashboard/{website.id}"
+        dashboard_url = f"{settings.BASE_URL}/dashboard/website/{website.id}"
         website_name = html.escape(str(website.name))
         website_domain = html.escape(str(website.domain))
 
