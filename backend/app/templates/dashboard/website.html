@@ -555,6 +555,8 @@
                     <span class="text-2xl">📧</span>
                     {% elif channel.channel == 'Paid' %}
                     <span class="text-2xl">💰</span>
+                    {% elif channel.channel == 'AI Assistants' %}
+                    <span class="text-2xl">🤖</span>
                     {% elif channel.channel == 'Referral' %}
                     <span class="text-2xl">🔗</span>
                     {% else %}
@@ -568,6 +570,7 @@
                             {% elif channel.channel == 'Direct' %}Direct visits (no referrer)
                             {% elif channel.channel == 'Email' %}From email campaigns (utm_medium=email)
                             {% elif channel.channel == 'Paid' %}From paid advertising (utm_medium=cpc/ppc)
+                            {% elif channel.channel == 'AI Assistants' %}From AI assistants (ChatGPT, Claude, Perplexity, Gemini)
                             {% elif channel.channel == 'Referral' %}From other websites
                             {% endif %}
                         </p>
