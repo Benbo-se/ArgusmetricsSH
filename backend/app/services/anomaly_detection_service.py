@@ -1,5 +1,5 @@
 """
-Anomaly Detection Service - AI-powered traffic analysis.
+Anomaly Detection Service - rule-based traffic analysis.
 
 Detects unusual patterns in analytics data:
 - Traffic spikes

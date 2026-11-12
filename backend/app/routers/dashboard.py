@@ -39,6 +39,19 @@ router = APIRouter()
 import os
 templates_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "templates")
 templates = Jinja2Templates(directory=templates_dir)
+
+
+def _stats_unavailable() -> HTMLResponse:
+    """What an auto-refreshing partial answers when its query failed.
+
+    A 503 rather than a fragment of zeros: htmx does not swap an error status,
+    so the last good numbers stay on screen and the responseError handler tells
+    the reader something went wrong.
+    """
+    return HTMLResponse(
+        '<p class="text-sm text-red-700">Statistics could not be loaded.</p>',
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+    )
 # base.html builds canonical/og URLs from the instance's own BASE_URL
 templates.env.globals["base_url"] = settings.BASE_URL.rstrip("/")
 def _country_lookup_available() -> bool:
@@ -527,25 +540,19 @@ async def accept_invite_page(
             "error": str(e),
         })
 
-    # Get the invitee email from the pending member record
-    from app.models.website_member import WebsiteMember, MemberStatus
-    member = db.query(WebsiteMember).filter(
-        WebsiteMember.invite_token == token,
-        WebsiteMember.status == MemberStatus.PENDING
-    ).first()
-
-    if not member:
-        return templates.TemplateResponse(request, "auth/accept_invite.html", {
-            "current_user": user,
-            "error": "Invitation not found or already accepted.",
-        })
-
-    invitee_email = member.user_email
+    # The invitee's address comes from resolving the token, which works without
+    # a row-level security context. Reading website_members directly here found
+    # nothing as the production role: whoever opened the link was told the
+    # invitation did not exist.
+    invitee_email = details["invitee_email"]
 
     if user:
         # User is logged in
         if user.email.lower() == invitee_email.lower():
-            # Email matches — auto-accept
+            # Email matches, so accept. Accepting reads and updates
+            # website_members, whose policies match on the caller's address.
+            from app.database import set_rls_context
+            set_rls_context(db, context="user", user_email=user.email)
             try:
                 result = team_service.accept_invitation(token, user.email)
                 return templates.TemplateResponse(request, "auth/accept_invite.html", {
@@ -746,21 +753,14 @@ async def website_dashboard(
 
     except Exception as e:
         logger.error(f"Error getting dashboard stats: {e}", exc_info=True)
-        # Return empty stats on error
-        stats = {
-            'total_pageviews': 0,
-            'unique_visitors': 0,
-            'top_pages': [],
-            'top_countries': [],
-            'devices': {},
-            'top_referrers': [],
-            'timeseries': [],
-            'top_browsers': []
-        }
-        live_visitors = 0
-        errors_404 = []
-        custom_events = {'events': [], 'total_events': 0}
-        file_downloads = []
+        # An error page, not a page of zeros: zeros read as a day without
+        # traffic. 503 so that monitoring and htmx both see a failure.
+        return templates.TemplateResponse(
+            request,
+            "dashboard/stats_error.html",
+            {"current_user": current_user, "website": website},
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
 
     # Build active filters dictionary
     active_filters = {}
@@ -825,12 +825,15 @@ async def website_stats_partial(
     start, end = parse_date_range(range)
 
     # Get stats
-    stats = analytics_service.get_dashboard_stats(
-        website_id=website_id,
-        start_date=start,
-        end_date=end
-    )
-    realtime_stats = analytics_service.get_realtime_stats(website_id=website_id)
+    try:
+        stats = analytics_service.get_dashboard_stats(
+            website_id=website_id,
+            start_date=start,
+            end_date=end
+        )
+        realtime_stats = analytics_service.get_realtime_stats(website_id=website_id)
+    except Exception:
+        return _stats_unavailable()
 
     return templates.TemplateResponse(request, "dashboard/_stats_cards.html", {
         "stats": stats,
@@ -877,18 +880,21 @@ async def website_stats_basic_partial(
             logger.warning(f"Invalid properties JSON: {properties}")
 
     # Get stats with filters
-    stats = analytics_service.get_dashboard_stats(
-        website_id=website_id,
-        start_date=start,
-        end_date=end,
-        compare=compare,
-        filter_country=country,
-        filter_device=device,
-        filter_browser=browser,
-        filter_page=page,
-        filter_referrer=referrer,
-        filter_properties=filter_properties
-    )
+    try:
+        stats = analytics_service.get_dashboard_stats(
+            website_id=website_id,
+            start_date=start,
+            end_date=end,
+            compare=compare,
+            filter_country=country,
+            filter_device=device,
+            filter_browser=browser,
+            filter_page=page,
+            filter_referrer=referrer,
+            filter_properties=filter_properties
+        )
+    except Exception:
+        return _stats_unavailable()
 
     return templates.TemplateResponse(request, "dashboard/_stats_basic.html", {
         "stats": stats
@@ -911,7 +917,10 @@ async def website_live_partial(
             detail="Website not found or access denied"
         )
 
-    realtime_stats = analytics_service.get_realtime_stats(website_id=website_id)
+    try:
+        realtime_stats = analytics_service.get_realtime_stats(website_id=website_id)
+    except Exception:
+        return _stats_unavailable()
     live_visitors = realtime_stats.get('current_visitors', 0)
 
     return templates.TemplateResponse(request, "dashboard/_live.html", {
@@ -1411,7 +1420,8 @@ async def website_revenue_dashboard(
             website_id=website_id,
             start_date=start,
             end_date=end,
-            limit=10
+            limit=10,
+            currency=currency
         )
 
         # Get revenue timeseries for chart
@@ -1470,8 +1480,8 @@ async def export_csv(
     3. Contains: Date, Pageviews, Visitors, Bounce Rate, Top Pages, etc.
     """
     from fastapi.responses import StreamingResponse
-    import csv
     from io import StringIO
+    from app.utils.csv_safe import SafeWriter
     from datetime import datetime, timedelta, timezone
     
     # Get website
@@ -1494,7 +1504,7 @@ async def export_csv(
     
     # Create CSV in memory
     output = StringIO()
-    writer = csv.writer(output)
+    writer = SafeWriter(output)
     
     # Write header
     writer.writerow(['Argusmetrics - Analytics Export'])
@@ -1509,7 +1519,7 @@ async def export_csv(
     writer.writerow(['Total Pageviews', stats.get('total_pageviews', 0)])
     writer.writerow(['Unique Visitors', stats.get('unique_visitors', 0)])
     writer.writerow(['Bounce Rate', f"{stats.get('bounce_rate', 0):.1f}%"])
-    writer.writerow(['Avg. Visit Duration', f"{stats.get('avg_duration', 0):.0f}s"])
+    writer.writerow(['Avg. Visit Duration', f"{stats.get('avg_visit_seconds', 0):.0f}s"])
     writer.writerow([])
     
     # Pageviews over time
@@ -1529,18 +1539,18 @@ async def export_csv(
     
     # Referrers
     writer.writerow(['TOP REFERRERS'])
-    writer.writerow(['Referrer', 'Visitors', 'Percentage'])
-    for ref in stats.get('referrers', [])[:20]:
-        pct = (ref['visitors'] / stats.get('unique_visitors', 1)) * 100 if stats.get('unique_visitors', 0) > 0 else 0
-        writer.writerow([ref['referrer'] or 'Direct', ref['visitors'], f"{pct:.1f}%"])
+    writer.writerow(['Referrer', 'Views', 'Percentage'])
+    for ref in stats.get('top_referrers', [])[:20]:
+        pct = (ref['views'] / stats.get('total_pageviews', 1)) * 100 if stats.get('total_pageviews', 0) > 0 else 0
+        writer.writerow([ref['referrer'] or 'Direct', ref['views'], f"{pct:.1f}%"])
     writer.writerow([])
     
     # Countries
     writer.writerow(['TOP COUNTRIES'])
-    writer.writerow(['Country', 'Visitors', 'Percentage'])
-    for country in stats.get('countries', [])[:20]:
-        pct = (country['visitors'] / stats.get('unique_visitors', 1)) * 100 if stats.get('unique_visitors', 0) > 0 else 0
-        writer.writerow([country['country'], country['visitors'], f"{pct:.1f}%"])
+    writer.writerow(['Country', 'Views', 'Percentage'])
+    for country in stats.get('top_countries', [])[:20]:
+        pct = (country['views'] / stats.get('total_pageviews', 1)) * 100 if stats.get('total_pageviews', 0) > 0 else 0
+        writer.writerow([country['country'], country['views'], f"{pct:.1f}%"])
     writer.writerow([])
     
     # Devices
@@ -1552,9 +1562,9 @@ async def export_csv(
     
     # Browsers
     writer.writerow(['TOP BROWSERS'])
-    writer.writerow(['Browser', 'Visitors'])
-    for browser in stats.get('browsers', [])[:20]:
-        writer.writerow([browser['browser'], browser['visitors']])
+    writer.writerow(['Browser', 'Views'])
+    for browser in stats.get('top_browsers', [])[:20]:
+        writer.writerow([browser['browser'], browser['views']])
     
     # Prepare response
     output.seek(0)

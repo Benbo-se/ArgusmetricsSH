@@ -155,6 +155,19 @@ class TestPasswordGate:
             "the visitor is refused without being told how to get in"
         )
 
+    def test_the_prompt_is_styled_from_our_own_stylesheet(
+        self, client, db, shared_website
+    ):
+        """The page's CSP allows scripts from 'self' only, so a Tailwind CDN
+        script never runs and the form shows up unstyled."""
+        self._protect(db, shared_website["id"])
+
+        response = client.get(f"/public/{shared_website['share_token']}")
+
+        assert response.status_code == 401
+        assert "cdn.tailwindcss.com" not in response.text
+        assert "/static/css/tailwind.min.css" in response.text
+
     def test_the_check_endpoint_reports_that_a_password_is_needed(
         self, client, db, shared_website
     ):

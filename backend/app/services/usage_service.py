@@ -83,6 +83,11 @@ def may_record(db: Session, owner_email: str) -> bool:
     try:
         usage = get_usage(db, owner_email)
     except Exception as exc:  # noqa: BLE001
+        # Failing open is only real if the caller can still write. A failed
+        # statement leaves the transaction aborted, and the pageview insert
+        # that follows would be refused by Postgres: the event lost anyway,
+        # with a log line saying it was let through.
+        db.rollback()
         logger.warning(f"Usage lookup failed, recording anyway: {exc}")
         return True
 
