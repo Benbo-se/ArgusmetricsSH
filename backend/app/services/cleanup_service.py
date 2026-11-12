@@ -106,7 +106,9 @@ class CleanupService:
         - it is not an active member of anyone else's website. Owning nothing
           is the normal state of an invited colleague, and one who had not
           logged in for a month lost their account and their access with it.
-        - it has no session created inside the window.
+        - it has not logged in inside the window (`users.last_login_at`) and
+          has no session created inside it. Logging out deletes the session
+          row, so a session alone forgot every login that ended in a logout.
 
         Args:
             days: Number of days of inactivity after which empty accounts are deleted (default: 30)
@@ -138,6 +140,9 @@ class CleanupService:
             deleted_count = 0
 
             for user in users_with_no_websites:
+                if user.last_login_at and user.last_login_at >= cutoff_date:
+                    continue
+
                 # Check if user has any session activity in the last X days
                 recent_session = self.db.query(UserSession).filter(
                     and_(

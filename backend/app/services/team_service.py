@@ -47,7 +47,7 @@ from app.services.email_service import email_service
 from app.config import settings
 from app.services.website_lookup import resolve_invite_token
 
-from app.utils.security import mask_email  # addresses never go to the log in full (#144)
+from app.utils.security import mask_email, normalize_email  # addresses never go to the log in full (#144)
 
 logger = logging.getLogger(__name__)
 
@@ -226,6 +226,8 @@ class TeamService:
         Raises:
             ValueError: If permissions insufficient or invitation invalid
         """
+        invitee_email = normalize_email(invitee_email)
+
         # Verify inviter has permission (must be owner or admin)
         self.require_role(inviter_email, website_id, MemberRole.ADMIN)
 
@@ -483,6 +485,7 @@ class TeamService:
         Raises:
             ValueError: If invitation invalid or email mismatch
         """
+        accepter_email = normalize_email(accepter_email)
         try:
             member = self.db.query(WebsiteMember).filter(
                 WebsiteMember.invite_token == invite_token,

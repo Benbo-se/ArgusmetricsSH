@@ -327,6 +327,40 @@ class TestEmptyAccountCleanup:
 
         assert self._exists(db, email), "an active team member was deleted as an empty account"
 
+    def test_an_account_that_logged_out_recently_survives(self, db):
+        """Logging out deletes the session row, and the session row was the only
+        record of a login. An invited account with no website that logged in
+        and out last week was therefore deleted by the next nightly run."""
+        from app.models.user import User
+        from app.services.auth_service import AuthService
+        from app.services.cleanup_service import CleanupService
+
+        set_rls_context(db, context="job")
+        email = self._user(db, created_days_ago=60)
+        service = AuthService(db)
+        session = service.create_session(db.query(User).filter_by(email=email).one())
+        db.delete(session)  # what logout does
+        db.commit()
+
+        CleanupService(db).cleanup_empty_inactive_accounts(days=30)
+
+        assert self._exists(db, email), "an account that logged in and out was deleted as inactive"
+
+    def test_an_account_whose_last_login_is_old_is_deleted(self, db):
+        from app.services.cleanup_service import CleanupService
+
+        set_rls_context(db, context="job")
+        email = self._user(db, created_days_ago=90)
+        db.execute(
+            text("UPDATE users SET last_login_at = now() - interval '45 days' WHERE email = :e"),
+            {"e": email},
+        )
+        db.commit()
+
+        CleanupService(db).cleanup_empty_inactive_accounts(days=30)
+
+        assert not self._exists(db, email), "an old last login no longer counts as inactive"
+
     def test_an_old_account_with_nothing_is_deleted(self, db):
         from app.services.cleanup_service import CleanupService
 
@@ -430,6 +464,136 @@ class TestTrafficAlerts:
         # Returning None means no spike, which is the correct answer for a
         # website with no traffic. The assertion is that it does not raise.
         AlertService(db).check_traffic_spike(website["id"])
+
+    # The spike check compares the last hour with the same hour on the seven
+    # days before, and an alert is followed by a cooldown. Timestamps are
+    # written relative to now() so the windows line up with the code's.
+
+    def _enable(self, db, website):
+        db.execute(
+            text(
+                "INSERT INTO alert_settings "
+                "  (website_id, spike_threshold, email_enabled, alert_email) "
+                "VALUES (:w, 2.0, true, :e)"
+            ),
+            {"w": website["id"], "e": website["email"]},
+        )
+
+    def _views(self, db, website, count, days_ago=0, minutes_ago=30):
+        db.execute(
+            text(
+                "INSERT INTO pageviews (website_id, path, visitor_hash, timestamp) "
+                "SELECT :w, '/', md5(random()::text || g::text), "
+                "       now() - make_interval(days => :d, mins => :m) "
+                "  FROM generate_series(1, :n) g"
+            ),
+            {"w": website["id"], "d": days_ago, "m": minutes_ago, "n": count},
+        )
+
+    def test_a_busy_hour_that_is_busy_every_day_is_not_a_spike(self, db, website):
+        """A site with office-hours traffic is busy at 10:00 every day. Against
+        the mean of all 168 hours of the week that read as a spike every day."""
+        from app.services.alert_service import AlertService
+
+        set_rls_context(db, context="job")
+        self._enable(db, website)
+        self._views(db, website, 20)
+        for day in range(1, 8):
+            self._views(db, website, 20, days_ago=day)
+        db.commit()
+
+        assert AlertService(db).check_traffic_spike(website["id"]) is None
+
+    def test_a_hour_far_above_the_same_hour_on_other_days_is_a_spike(self, db, website):
+        """The other half, so the test above cannot pass by the check never
+        finding anything."""
+        from app.services.alert_service import AlertService
+
+        set_rls_context(db, context="job")
+        self._enable(db, website)
+        self._views(db, website, 100)
+        for day in range(1, 8):
+            self._views(db, website, 20, days_ago=day)
+        db.commit()
+
+        spike = AlertService(db).check_traffic_spike(website["id"])
+
+        assert spike is not None and spike["typical_hourly"] == 20
+
+    def _configured(self, monkeypatch, smtp):
+        """An email service with exactly one backend, recording what it sends."""
+        from app.services.email_service import email_service
+
+        sent = []
+        monkeypatch.setattr(email_service, "smtp_configured", smtp)
+        monkeypatch.setattr(email_service, "lettermint_configured", not smtp)
+        monkeypatch.setattr(email_service, "configured", True)
+        monkeypatch.setattr(
+            email_service, "_deliver", lambda to, subject, text, html: sent.append(to) or True
+        )
+        monkeypatch.setattr(email_service, "_log_email", lambda *a, **k: None)
+        return sent
+
+    def test_an_alert_is_sent_over_smtp(self, db, website, monkeypatch):
+        """Only the Lettermint API was recognised, so an instance with SMTP
+        never sent one."""
+        from app.services.alert_service import AlertService
+
+        sent = self._configured(monkeypatch, smtp=True)
+        set_rls_context(db, context="job")
+        self._enable(db, website)
+        db.commit()
+        spike = {"current_hour_views": 100, "typical_hourly": 20, "threshold": 2.0,
+                 "spike_percentage": 500.0}
+
+        ok = AlertService(db).send_spike_alert(website["id"], spike, website["email"], "Site")
+
+        assert ok and sent == [website["email"]]
+
+    def test_nothing_is_claimed_when_no_backend_is_configured(self, db, website, monkeypatch):
+        from app.services.alert_service import AlertService
+        from app.services.email_service import email_service
+
+        monkeypatch.setattr(email_service, "configured", False)
+        monkeypatch.setattr(email_service, "smtp_configured", False)
+        monkeypatch.setattr(email_service, "lettermint_configured", False)
+        set_rls_context(db, context="job")
+        self._enable(db, website)
+        db.commit()
+        spike = {"current_hour_views": 100, "typical_hourly": 20, "threshold": 2.0,
+                 "spike_percentage": 500.0}
+
+        assert AlertService(db).send_spike_alert(website["id"], spike, website["email"], "Site") is False
+        assert db.execute(
+            text("SELECT last_alerted_at FROM alert_settings WHERE website_id = :w"),
+            {"w": website["id"]},
+        ).scalar() is None, "a cooldown started for an alert that was never sent"
+
+    def test_a_second_spike_inside_the_cooldown_is_not_alerted(self, db, website, monkeypatch):
+        from app.services.alert_service import AlertService
+
+        self._configured(monkeypatch, smtp=True)
+        set_rls_context(db, context="job")
+        self._enable(db, website)
+        self._views(db, website, 100)
+        for day in range(1, 8):
+            self._views(db, website, 20, days_ago=day)
+        db.commit()
+        service = AlertService(db)
+
+        spike = service.check_traffic_spike(website["id"])
+        assert spike is not None
+        assert service.send_spike_alert(website["id"], spike, website["email"], "Site")
+
+        assert service.check_traffic_spike(website["id"]) is None, "alerted again straight away"
+
+        db.execute(
+            text("UPDATE alert_settings SET last_alerted_at = now() - interval '7 hours' "
+                 "WHERE website_id = :w"),
+            {"w": website["id"]},
+        )
+        db.commit()
+        assert service.check_traffic_spike(website["id"]) is not None, "the cooldown never ends"
 
 
 class TestDataMapCleanup:
