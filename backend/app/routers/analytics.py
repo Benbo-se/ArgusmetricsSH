@@ -12,7 +12,7 @@ from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException, status, Request, Header, Cookie
 
 from app.services.usage_service import LIMIT_MESSAGE
-from app.utils.date_helpers import parse_api_window, site_timezone
+from app.utils.date_helpers import as_utc, parse_api_window, site_timezone
 from app.utils.csv_safe import SafeWriter
 from sqlalchemy.orm import Session
 
@@ -516,18 +516,30 @@ async def track_pageview(
     return PageviewTrackResponse(success=True, message=message)
 
 
+#: The longest range the statistics API will cut into hours: a point per
+#: hour for a year is 8760 of them, most of which nobody asked for.
+MAX_HOURLY_DAYS = 31
+
+
 @router.get("/stats/{website_id}", response_model=DashboardStatsResponse)
 async def get_dashboard_stats(
     website_id: int,
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
+    interval: Optional[str] = None,
     authorization: Optional[str] = Header(None),
     x_api_token: Optional[str] = Header(None),
     current_user: User = Depends(get_current_user_or_token),
     analytics_service: AnalyticsService = Depends(get_analytics_service),
     website_service: WebsiteService = Depends(get_website_service)
 ) -> DashboardStatsResponse:
-    """Get dashboard statistics for a website (authentication required)."""
+    """Get dashboard statistics for a website (authentication required).
+
+    `interval` is the width of a point in the time series: `day` (the
+    default) or `hour`, which is offered for ranges of up to 31 days. An
+    hourly point's `date` is the start of the hour in the website's zone,
+    with its offset.
+    """
     logger.info(f"Dashboard stats request: website_id={website_id}, user={mask_email(current_user.email)}")
     
     # Verify website ownership
@@ -542,10 +554,21 @@ async def get_dashboard_stats(
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid date format. Use ISO format (YYYY-MM-DD)")
     
+    if interval not in (None, "day", "hour"):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="interval must be day or hour")
+    # An hour of slack: 31 calendar days are 31 times 24 hours and one more
+    # when the clocks go back inside them.
+    if interval == "hour" and as_utc(end) - as_utc(start) > timedelta(days=MAX_HOURLY_DAYS, hours=1):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"interval=hour takes a range of at most {MAX_HOURLY_DAYS} days",
+        )
+
     # Get dashboard stats
     try:
         stats = analytics_service.get_dashboard_stats(
-            website_id=website_id, start_date=start, end_date=end, tz=site_timezone(website))
+            website_id=website_id, start_date=start, end_date=end,
+            tz=site_timezone(website), bucket=interval or "day")
         return DashboardStatsResponse(**stats)
     except Exception as e:
         logger.error(f"Error getting dashboard stats: {e}", exc_info=True)

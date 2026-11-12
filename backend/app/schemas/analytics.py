@@ -306,10 +306,11 @@ class TimeseriesDataPoint(BaseModel):
     Schema for a timeseries data point.
 
     Attributes:
-        date: Date in ISO format
+        date: The day (YYYY-MM-DD) in the website's time zone, or with
+            interval=hour the start of the hour there, with its offset
         views: Number of pageviews on that date
     """
-    date: str = Field(..., description="Date in ISO format")
+    date: str = Field(..., description="Day, or start of the hour, in the website's time zone")
     views: int = Field(..., description="Number of pageviews")
 
 

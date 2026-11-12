@@ -590,19 +590,19 @@ document.addEventListener('alpine:init', () => {
         open: false,
         range: '',
 
-        init() { this.range = this.$el.dataset.range || '7d' },
+        label: '',
+
+        init() {
+            this.range = this.$el.dataset.range || '7d'
+            // The server names the range: it is the one that resolved it.
+            this.label = this.$el.dataset.label || 'Last 7 days'
+        },
 
         toggle() { this.open = !this.open },
         close() { this.open = false },
         get isOpen() { return this.open },
 
-        get rangeText() {
-            return {
-                '30d': 'Last 30 days',
-                '90d': 'Last 90 days',
-                '365d': 'Last 12 months',
-            }[this.range] || 'Last 7 days'
-        },
+        get rangeText() { return this.label },
     }))
 })
 
@@ -2007,17 +2007,27 @@ document.addEventListener('alpine:init', () => {
      * through a JavaScript string literal rendered by Jinja.
      */
     Alpine.data('websitePage', () => ({
-        state: { range: '7d', compare: false, filters: {} },
-        compareOn: false,
+        state: { range: '7d', compare: '', filters: {} },
+        // '' for no comparison, 'previous' or 'year'.
+        compareMode: '',
+        // The two date fields of a custom range, as YYYY-MM-DD.
+        customFrom: '',
+        customTo: '',
         dropdownOpen: false,
         pageTab: 'top',
 
-        get compareEnabled() { return modelFor(this, 'compareOn') },
+        get compareChoice() { return modelFor(this, 'compareMode') },
+        get customStart() { return modelFor(this, 'customFrom') },
+        get customEnd() { return modelFor(this, 'customTo') },
 
         init() {
             const el = document.getElementById('page-state-data')
             if (el) this.state = JSON.parse(el.textContent)
-            this.compareOn = !!this.state.compare
+            this.compareMode = this.state.compare || ''
+            // Start the fields on the days being shown, so that narrowing a
+            // preset is two small edits and not two dates typed from nothing.
+            this.customFrom = this.state.start_date || ''
+            this.customTo = this.state.end_date || ''
         },
 
         get range() { return this.state.range },
@@ -2032,12 +2042,17 @@ document.addEventListener('alpine:init', () => {
             }))
         },
 
-        get rangeText() {
-            return {
-                '30d': 'Last 30 days',
-                '90d': 'Last 90 days',
-                '365d': 'Last 12 months',
-            }[this.range] || 'Last 7 days'
+        // Named by the server, which is what resolved the range: it knows
+        // the website's time zone and what "custom" came out as.
+        get rangeText() { return this.state.range_label || 'Last 7 days' },
+
+        /** Today in the website's time zone: the last day that can be picked. */
+        get today() { return this.state.today || '' },
+        get customIncomplete() { return !this.customFrom || !this.customTo },
+        get customApplyClass() {
+            return this.customIncomplete
+                ? 'bg-gray-400 cursor-not-allowed'
+                : 'bg-blue-600 hover:bg-blue-700'
         },
 
         get isDropdownOpen() { return this.dropdownOpen },
@@ -2116,6 +2131,13 @@ document.addEventListener('alpine:init', () => {
             this.updateDashboard()
         },
 
+        applyCustomRange() {
+            if (this.customIncomplete) return
+            this.range = 'custom'
+            this.dropdownOpen = false
+            this.updateDashboard()
+        },
+
         /** Clears the filter named in the button's data-filter. */
         removeFilter(event) {
             this.filters[event.currentTarget.dataset.filter] = ''
@@ -2148,7 +2170,18 @@ document.addEventListener('alpine:init', () => {
         updateDashboard() {
             const url = new URL(window.location.href)
             url.searchParams.set('range', this.range)
-            url.searchParams.set('compare', this.compareOn ? 'true' : 'false')
+            if (this.range === 'custom') {
+                // YYYY-MM-DD sorts as text, so the earlier date goes first
+                // whichever field it was typed into.
+                const days = [this.customFrom, this.customTo].sort()
+                url.searchParams.set('start_date', days[0])
+                url.searchParams.set('end_date', days[1])
+            } else {
+                url.searchParams.delete('start_date')
+                url.searchParams.delete('end_date')
+            }
+            if (this.compareMode) url.searchParams.set('compare', this.compareMode)
+            else url.searchParams.delete('compare')
 
             for (const name of ['country', 'device', 'browser', 'page', 'referrer']) {
                 const value = this.filters[name]

@@ -6,7 +6,8 @@
    The order runs volume first, then quality: how many people came, then what
    they did once they were here. Online Now is not here because it refreshes on
    its own five-second cycle beside these. #}
-{% from "dashboard/_stat_tile.html" import stat_tile %}
+{# With context, so the tile can say which comparison its arrow is against. #}
+{% from "dashboard/_stat_tile.html" import stat_tile with context %}
 {% set c = stats.comparison %}
 
 {{ stat_tile("Unique Visitors",

@@ -1368,7 +1368,7 @@ GET /api/v1/analytics/export/{website_id}/csv
 GET /api/v1/analytics/export/{website_id}/json</code></pre>
                         </div>
                         <p class="text-gray-700 mb-4">
-                            <code>start_date</code> and <code>end_date</code> take a date (<code>2026-08-01</code>) or an ISO 8601 time. A date is a day in the website's time zone, which is UTC until you choose another under Settings, and the end date includes the whole day. A time with an offset is taken as given.
+                            <code>start_date</code> and <code>end_date</code> take a date (<code>2026-08-01</code>) or an ISO 8601 time. A date is a day in the website's time zone, which is UTC until you choose another under Settings, and the end date includes the whole day. A time with an offset is taken as given. The time series in <code>stats</code> has a point per day; add <code>interval=hour</code> for a point per hour, on ranges of up to 31 days.
                         </p>
 
                         <h3 class="text-xl font-semibold text-gray-900 mb-3 mt-6">Track Pageview</h3>

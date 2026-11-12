@@ -27,8 +27,8 @@ from app.services.site_activity import goal_activity, recent_activity
 from app.models.user import User
 from app.routers.auth import get_current_user
 from app.utils.date_helpers import (
-    DEFAULT_TIMEZONE, is_valid_timezone, local_date, parse_date_range,
-    site_timezone, timezone_choices,
+    DEFAULT_TIMEZONE, compare_mode, is_valid_timezone, local_date,
+    parse_date_range, resolve_range, site_timezone, timezone_choices,
 )
 from app.config import settings
 
@@ -208,6 +208,26 @@ def _public_timezone(db: Session, website_id: int) -> str:
     from app.models.website import Website
     name = db.query(Website.timezone).filter(Website.id == website_id).scalar()
     return name if is_valid_timezone(name) else DEFAULT_TIMEZONE
+
+
+def _range_context(window, mode: Optional[str] = None) -> dict:
+    """What a template needs to show a chosen range and to ask for it again."""
+    from urllib.parse import urlencode
+    return {
+        "selected_range": window.key,
+        "range_label": window.label,
+        # Ready for a URL, so a link or a refresh carries a custom range's
+        # dates and not only the word "custom".
+        "range_query": urlencode(window.params),
+        # The dates the range covers in the website's zone, which is what the
+        # two date fields start out showing.
+        "range_start": local_date(window.start, window.tz).isoformat(),
+        "range_end": local_date(window.end, window.tz).isoformat(),
+        "site_today": local_date(datetime.now(timezone.utc), window.tz).isoformat(),
+        "range_timezone": window.tz,
+        "compare_enabled": bool(mode),
+        "compare_mode": mode or "",
+    }
 
 
 def get_analytics_service(db: Session = Depends(get_db)) -> AnalyticsService:
@@ -689,7 +709,9 @@ async def website_dashboard(
     request: Request,
     website_id: int,
     range: Optional[str] = "7d",
-    compare: Optional[bool] = False,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    compare: Optional[str] = None,
     country: Optional[str] = None,
     device: Optional[str] = None,
     browser: Optional[str] = None,
@@ -717,8 +739,11 @@ async def website_dashboard(
             detail="Website not found or access denied"
         )
 
-    # Parse date range
-    start, end = parse_date_range(range)
+    # The range, in the website's zone, and what to compare it against
+    tz = site_timezone(website)
+    window = resolve_range(range, tz, start_date, end_date)
+    start, end = window.start, window.end
+    mode = compare_mode(compare)
 
     # Parse properties filter (JSON string to dict)
     filter_properties = None
@@ -734,14 +759,16 @@ async def website_dashboard(
             website_id=website_id,
             start_date=start,
             end_date=end,
-            compare=compare,
+            compare=bool(mode),
             filter_country=country,
             filter_device=device,
             filter_browser=browser,
             filter_page=page,
             filter_referrer=referrer,
             filter_properties=filter_properties,
-            tz=site_timezone(website)
+            tz=tz,
+            bucket=window.bucket,
+            previous=window.previous(mode) if mode else None
         )
 
         # Get live visitors count
@@ -815,8 +842,7 @@ async def website_dashboard(
         "live_visitors": live_visitors,
         "errors_404": errors_404,
         "custom_events": custom_events,
-        "selected_range": range,
-        "compare_enabled": compare,
+        **_range_context(window, mode),
         "active_filters": active_filters
     })
 
@@ -826,6 +852,8 @@ async def website_stats_partial(
     request: Request,
     website_id: int,
     range: Optional[str] = "7d",
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
     current_user: User = Depends(get_current_user),
     analytics_service: AnalyticsService = Depends(get_analytics_service),
     website_service: WebsiteService = Depends(get_website_service)
@@ -841,7 +869,8 @@ async def website_stats_partial(
         )
 
     # Parse date range
-    start, end = parse_date_range(range)
+    window = resolve_range(range, site_timezone(website), start_date, end_date)
+    start, end = window.start, window.end
 
     # Get stats
     try:
@@ -866,7 +895,9 @@ async def website_stats_basic_partial(
     request: Request,
     website_id: int,
     range: Optional[str] = "7d",
-    compare: Optional[bool] = False,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    compare: Optional[str] = None,
     country: Optional[str] = None,
     device: Optional[str] = None,
     browser: Optional[str] = None,
@@ -888,8 +919,11 @@ async def website_stats_basic_partial(
             detail="Website not found or access denied"
         )
 
-    # Parse date range
-    start, end = parse_date_range(range)
+    # The same range and comparison as the page this refreshes
+    tz = site_timezone(website)
+    window = resolve_range(range, tz, start_date, end_date)
+    start, end = window.start, window.end
+    mode = compare_mode(compare)
 
     # Parse properties filter (JSON string to dict)
     filter_properties = None
@@ -905,20 +939,23 @@ async def website_stats_basic_partial(
             website_id=website_id,
             start_date=start,
             end_date=end,
-            compare=compare,
+            compare=bool(mode),
             filter_country=country,
             filter_device=device,
             filter_browser=browser,
             filter_page=page,
             filter_referrer=referrer,
             filter_properties=filter_properties,
-            tz=site_timezone(website)
+            tz=tz,
+            bucket=window.bucket,
+            previous=window.previous(mode) if mode else None
         )
     except Exception:
         return _stats_unavailable()
 
     return templates.TemplateResponse(request, "dashboard/_stats_basic.html", {
-        "stats": stats
+        "stats": stats,
+        "compare_mode": mode or "",
     })
 
 
@@ -1158,6 +1195,8 @@ async def website_event_details(
     website_id: int,
     event_name: str,
     range: Optional[str] = "7d",
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
     current_user: User = Depends(get_current_user),
     analytics_service: AnalyticsService = Depends(get_analytics_service),
     website_service: WebsiteService = Depends(get_website_service)
@@ -1174,7 +1213,8 @@ async def website_event_details(
         )
 
     # Parse date range
-    start, end = parse_date_range(range)
+    window = resolve_range(range, site_timezone(website), start_date, end_date)
+    start, end = window.start, window.end
 
     # Get event details
     event_details = analytics_service.get_event_details(
@@ -1188,7 +1228,8 @@ async def website_event_details(
         "current_user": current_user,
         "website": website,
         "event_details": event_details,
-        "selected_range": range
+        "selected_range": window.key,
+        "range_label": window.label,
     })
 
 
@@ -1269,8 +1310,10 @@ async def public_dashboard(
 
         logger.info(f"Public dashboard accessed: {website.name} ({website.domain})")
 
-        # Parse date range
-        start, end = parse_date_range(range)
+        # The presets only: a shared link has no date fields
+        tz = _public_timezone(db, website.id)
+        window = resolve_range(range, tz)
+        start, end = window.start, window.end
 
         # Get dashboard stats (no filters for public view)
         stats = analytics_service.get_dashboard_stats(
@@ -1278,7 +1321,9 @@ async def public_dashboard(
             start_date=start,
             end_date=end,
             compare=True,
-            tz=_public_timezone(db, website.id)
+            tz=tz,
+            bucket=window.bucket,
+            previous=window.previous()
         )
 
         # Get live visitors count
@@ -1306,7 +1351,8 @@ async def public_dashboard(
             "live_visitors": live_visitors,
             "errors_404": errors_404,
             "custom_events": custom_events,
-            "selected_range": range,
+            "selected_range": window.key,
+            "range_label": window.label,
             "is_public_view": True
         })
 
@@ -1495,6 +1541,8 @@ async def website_revenue_dashboard(
 async def export_csv(
     website_id: int,
     range: str = "7d",
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -1518,17 +1566,19 @@ async def export_csv(
         raise HTTPException(status_code=404, detail="Website not found")
     
     # Calculate date range
-    start, end = parse_date_range(range)
+    tz = site_timezone(website)
+    window = resolve_range(range, tz, start_date, end_date)
+    start, end = window.start, window.end
 
     # Get analytics data
     analytics_service = AnalyticsService(db)
-    tz = site_timezone(website)
     stats = analytics_service.get_dashboard_stats(
         website_id=website.id,
         start_date=start,
         end_date=end,
         compare=False,
-        tz=tz
+        tz=tz,
+        bucket=window.bucket
     )
     
     # Create CSV in memory

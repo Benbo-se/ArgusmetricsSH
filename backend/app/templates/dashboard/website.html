@@ -18,7 +18,11 @@
      never interpolate into the x-data expression. -->
 <script type="application/json" id="page-state-data">{{ {
     'range': selected_range,
-    'compare': compare_enabled,
+    'range_label': range_label,
+    'start_date': range_start,
+    'end_date': range_end,
+    'today': site_today,
+    'compare': compare_mode,
     'filters': {
         'country': active_filters.country or '',
         'device': active_filters.device or '',
@@ -141,7 +145,7 @@
             <h1 class="text-3xl font-bold text-gray-900">{{ website.name }}</h1>
             <p class="mt-1 text-sm text-gray-500">{{ website.domain }}</p>
         </div>
-        <a href="/dashboard/website/{{ website.id }}/export-csv?range={{ selected_range }}"
+        <a href="/dashboard/website/{{ website.id }}/export-csv?{{ range_query }}"
            class="mt-4 md:mt-0 inline-flex items-center px-3 py-1.5 border border-blue-300 rounded-md text-sm font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 self-start"
            title="Download analytics data as CSV">
             <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -193,16 +197,38 @@
                      x-transition:leave="transition ease-in duration-75"
                      x-transition:leave-start="transform opacity-100 scale-100"
                      x-transition:leave-end="transform opacity-0 scale-95"
-                     class="origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black/5 z-10">
+                     class="origin-top-right absolute right-0 mt-2 w-80 rounded-md shadow-lg bg-white ring-1 ring-black/5 z-10">
+                    {# Today to year to date are whole days in the website's
+                       time zone. The "last N days" are the last N times 24
+                       hours, as they always were. #}
                     <div class="py-1">
-                        <button @click="chooseRange" data-value="7d"
-                                class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Last 7 days</button>
-                        <button @click="chooseRange" data-value="30d"
-                                class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Last 30 days</button>
-                        <button @click="chooseRange" data-value="90d"
-                                class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Last 90 days</button>
-                        <button @click="chooseRange" data-value="365d"
-                                class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Last 12 months</button>
+                        {% for value, label in [
+                            ('today', 'Today'), ('yesterday', 'Yesterday'),
+                            ('7d', 'Last 7 days'), ('30d', 'Last 30 days'), ('90d', 'Last 90 days'),
+                            ('mtd', 'Month to date'), ('last_month', 'Last month'),
+                            ('ytd', 'Year to date'), ('365d', 'Last 12 months'),
+                        ] %}
+                        <button @click="chooseRange" data-value="{{ value }}"
+                                class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">{{ label }}</button>
+                        {% endfor %}
+                    </div>
+                    <div class="border-t border-gray-200 px-4 py-3">
+                        <p class="text-xs font-medium text-gray-500 mb-2">Custom range</p>
+                        <div class="flex items-center gap-2">
+                            <input type="date" x-model="customStart" :max="today"
+                                   aria-label="First day"
+                                   class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm">
+                            <span class="text-sm text-gray-500">to</span>
+                            <input type="date" x-model="customEnd" :max="today"
+                                   aria-label="Last day"
+                                   class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm">
+                        </div>
+                        <button type="button" @click="applyCustomRange"
+                                :disabled="customIncomplete"
+                                :class="customApplyClass"
+                                class="mt-3 w-full px-3 py-2 text-sm font-medium rounded-md text-white">
+                            Apply
+                        </button>
                     </div>
                 </div>
                 </div>
@@ -212,12 +238,15 @@
 
     <!-- Comparison checkbox and Property filter -->
     <div class="mb-6 flex items-center gap-6">
-        <label class="inline-flex items-center cursor-pointer">
-            <input type="checkbox"
-                   x-model="compareEnabled"
-                   @change="updateDashboard"
-                   class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2">
-            <span class="ml-2 text-sm font-medium text-gray-700">Compare to previous period</span>
+        <label class="inline-flex items-center gap-2">
+            <span class="text-sm font-medium text-gray-700">Compare to</span>
+            <select x-model="compareChoice"
+                    @change="updateDashboard"
+                    class="rounded-md border-gray-300 shadow-sm text-sm text-gray-700 focus:border-blue-500 focus:ring-blue-500">
+                <option value=""{% if not compare_mode %} selected{% endif %}>Nothing</option>
+                <option value="previous"{% if compare_mode == 'previous' %} selected{% endif %}>Previous period</option>
+                <option value="year"{% if compare_mode == 'year' %} selected{% endif %}>Same period last year</option>
+            </select>
         </label>
 
         <!-- Property Filter Dropdown -->
@@ -271,7 +300,7 @@
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-8">
         <!-- The headline numbers -->
         <div id="stats-basic"
-             hx-get="/dashboard/website/{{ website.id }}/stats-basic?range={{ selected_range }}&compare={{ 'true' if compare_enabled else 'false' }}{% if active_filters.country %}&country={{ active_filters.country|urlencode }}{% endif %}{% if active_filters.device %}&device={{ active_filters.device|urlencode }}{% endif %}{% if active_filters.browser %}&browser={{ active_filters.browser|urlencode }}{% endif %}{% if active_filters.page %}&page={{ active_filters.page|urlencode }}{% endif %}{% if active_filters.referrer %}&referrer={{ active_filters.referrer|urlencode }}{% endif %}"
+             hx-get="/dashboard/website/{{ website.id }}/stats-basic?{{ range_query }}&compare={{ compare_mode or 'false' }}{% if active_filters.country %}&country={{ active_filters.country|urlencode }}{% endif %}{% if active_filters.device %}&device={{ active_filters.device|urlencode }}{% endif %}{% if active_filters.browser %}&browser={{ active_filters.browser|urlencode }}{% endif %}{% if active_filters.page %}&page={{ active_filters.page|urlencode }}{% endif %}{% if active_filters.referrer %}&referrer={{ active_filters.referrer|urlencode }}{% endif %}"
              hx-trigger="every 10s"
              hx-swap="innerHTML"
              class="contents">
@@ -382,7 +411,13 @@
     <!-- Main graph -->
     <div class="bg-white rounded-lg shadow p-6 mb-8">
         <div class="flex items-center justify-between gap-4 mb-4">
-            <h2 class="text-lg font-semibold text-gray-900">Over time</h2>
+            <div>
+                <h2 class="text-lg font-semibold text-gray-900">Over time</h2>
+                <p class="text-sm text-gray-500">
+                    {{ range_label }}, by {{ 'hour' if stats.timeseries_bucket == 'hour' else 'day' }}
+                    in {{ range_timezone }}
+                </p>
+            </div>
             <div class="seg" role="group" aria-label="Metric shown in the chart">
                 <button type="button" data-chart-metric="visitors" aria-pressed="true">Visitors</button>
                 <button type="button" data-chart-metric="views" aria-pressed="false">Pageviews</button>
@@ -866,7 +901,7 @@
                     {% for event in custom_events.events %}
                     <tr class="hover:bg-gray-50">
                         <td class="px-4 py-3 whitespace-nowrap">
-                            <a href="/dashboard/website/{{ website.id }}/events/{{ event.event_name }}"
+                            <a href="/dashboard/website/{{ website.id }}/events/{{ event.event_name }}?{{ range_query }}"
                                class="text-sm font-medium text-blue-600 hover:text-blue-800">
                                 {{ event.event_name }}
                             </a>
@@ -1136,7 +1171,10 @@ argus.trackEvent('button_click', {
         // Initialize pageviews chart
         const timeseriesData = {{ stats.timeseries | tojson | safe }};
         const previousPeriodData = {{ stats.timeseries_previous | tojson | safe if stats.timeseries_previous else 'null' }};
-        bindChartMetricSwitch(timeseriesData, previousPeriodData);
+        bindChartMetricSwitch(timeseriesData, previousPeriodData, {
+            bucket: {{ (stats.timeseries_bucket or 'day') | tojson }},
+            compareLabel: {{ ('Last year' if compare_mode == 'year' else 'Previous period') | tojson }}
+        });
 
     });
 

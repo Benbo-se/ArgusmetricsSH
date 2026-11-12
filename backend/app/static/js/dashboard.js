@@ -118,21 +118,48 @@ const CHART_METRICS = {
     views: { key: 'views', noun: 'pageviews' },
 };
 
+const CHART_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
 /**
- * The main chart: one metric over the period, and the previous period dashed
- * beside it when comparing. `metric` is 'visitors' or 'views'; series written
- * before visitors were counted per day fall back to views.
+ * The label of one point: 'Nov 12' for a day, '14:00' for an hour, and
+ * 'Nov 12, 14:00' for an hour when `withDay` is set.
+ *
+ * The point's date is 'YYYY-MM-DD', or for an hour 'YYYY-MM-DDTHH:MM+02:00',
+ * already in the website's time zone, and it is read as text. Handing it to
+ * Date would move it into the browser's zone, and a visitor west of UTC saw
+ * every day labelled as the day before.
  */
-function initPageviewsChart(timeseriesData, previousPeriodData = null, metric = 'views') {
+function chartPointLabel(value, withDay = false) {
+    const text = String(value);
+    const day = CHART_MONTHS[Number(text.slice(5, 7)) - 1] + ' ' + Number(text.slice(8, 10));
+    if (text.length <= 10) return day;
+    const hour = text.slice(11, 16);
+    return withDay ? day + ', ' + hour : hour;
+}
+
+/**
+ * The main chart: one metric over the period, and the period it is compared
+ * with dashed beside it. `metric` is 'visitors' or 'views'; series written
+ * before visitors were counted per day fall back to views.
+ *
+ * `options.bucket` is 'day' or 'hour', the width of a point.
+ * `options.compareLabel` names the dashed line: 'Previous period' unless the
+ * comparison is with last year.
+ */
+function initPageviewsChart(timeseriesData, previousPeriodData = null, metric = 'views', options = {}) {
     const ctx = document.getElementById('pageviews-chart');
     if (!ctx) return;
 
     const m = CHART_METRICS[metric] || CHART_METRICS.views;
     const pick = (d) => (d[m.key] !== undefined ? d[m.key] : d.views);
-    const labels = timeseriesData.map(d => {
-        const date = new Date(d.date);
-        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    });
+    const hourly = options.bucket === 'hour';
+    const compareLabel = options.compareLabel || 'Previous period';
+    const versus = 'vs ' + compareLabel.toLowerCase();
+    // An hourly axis reads '14:00'; the day goes on it too once the range
+    // covers more than one, and always into the tooltip.
+    const severalDays = new Set(timeseriesData.map(d => String(d.date).slice(0, 10))).size > 1;
+    const labels = timeseriesData.map(d => chartPointLabel(d.date, hourly && severalDays));
+    const titles = timeseriesData.map(d => chartPointLabel(d.date, true));
     const data = timeseriesData.map(pick);
     const brand = themeColor('--brand-500', '#4550c8');
 
@@ -159,7 +186,7 @@ function initPageviewsChart(timeseriesData, previousPeriodData = null, metric = 
     const comparing = previousPeriodData && previousPeriodData.length > 0;
     if (comparing) {
         datasets.push({
-            label: 'Previous period',
+            label: compareLabel,
             data: previousPeriodData.map(pick),
             borderColor: themeAlpha('--text-muted', 0.8, '#767ea0'),
             borderWidth: 1.5,
@@ -210,7 +237,7 @@ function initPageviewsChart(timeseriesData, previousPeriodData = null, metric = 
                     displayColors: comparing,
                     callbacks: {
                         title: function(tooltipItems) {
-                            return tooltipItems[0].label;
+                            return titles[tooltipItems[0].dataIndex] || tooltipItems[0].label;
                         },
                         label: function(context) {
                             const value = context.parsed.y.toLocaleString() + ' ' + m.noun;
@@ -222,9 +249,9 @@ function initPageviewsChart(timeseriesData, previousPeriodData = null, metric = 
                             const previousValue = tooltipItems[1].parsed.y;
                             const change = currentValue - previousValue;
                             const changePercent = previousValue > 0 ? ((change / previousValue) * 100).toFixed(1) : 0;
-                            if (change > 0) return '\n↑ +' + change.toLocaleString() + ' (+' + changePercent + '%) vs previous period';
-                            if (change < 0) return '\n↓ ' + change.toLocaleString() + ' (' + changePercent + '%) vs previous period';
-                            return '\n→ No change vs previous period';
+                            if (change > 0) return '\n↑ +' + change.toLocaleString() + ' (+' + changePercent + '%) ' + versus;
+                            if (change < 0) return '\n↓ ' + change.toLocaleString() + ' (' + changePercent + '%) ' + versus;
+                            return '\n→ No change ' + versus;
                         }
                     }
                 }
@@ -266,11 +293,11 @@ function initPageviewsChart(timeseriesData, previousPeriodData = null, metric = 
  * The Visitors / Pageviews switch above the main chart. Buttons carry
  * data-chart-metric; the one shown is marked aria-pressed.
  */
-function bindChartMetricSwitch(timeseriesData, previousPeriodData) {
+function bindChartMetricSwitch(timeseriesData, previousPeriodData, options = {}) {
     const buttons = document.querySelectorAll('[data-chart-metric]');
     const show = (metric) => {
         buttons.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.chartMetric === metric)));
-        initPageviewsChart(timeseriesData, previousPeriodData, metric);
+        initPageviewsChart(timeseriesData, previousPeriodData, metric, options);
     };
     buttons.forEach((b) => b.addEventListener('click', () => show(b.dataset.chartMetric)));
     show('visitors');
