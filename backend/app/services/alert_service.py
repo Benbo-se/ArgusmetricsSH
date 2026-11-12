@@ -6,9 +6,9 @@ Monitors traffic patterns and sends alerts when unusual activity is detected.
 import logging
 from html import escape
 from typing import Optional
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import and_, func, or_
 
 from app.models.pageview import Pageview
 from app.models.website import Website
@@ -18,6 +18,9 @@ from app.services.email_service import email_service
 from app.utils.security import mask_email  # addresses never go to the log in full (#144)
 
 logger = logging.getLogger(__name__)
+
+ALERT_COOLDOWN = timedelta(hours=6)
+BASELINE_DAYS = 7
 
 
 class AlertService:
@@ -43,7 +46,7 @@ class AlertService:
         """
         Check for traffic spikes on a website.
 
-        Compares current hour traffic to typical hourly average.
+        Compares the last hour with the same hour on the previous seven days.
 
         Args:
             website_id: Website ID
@@ -63,9 +66,16 @@ class AlertService:
                 logger.debug("Alert settings not found or disabled")
                 return None
 
-            now = datetime.utcnow()
+            now = datetime.now(timezone.utc)
+
+            # Quiet after an alert. The job runs hourly and a busy spell lasts
+            # longer than an hour, so without this the same spell mailed
+            # someone every hour it lasted.
+            if settings.last_alerted_at and settings.last_alerted_at > now - ALERT_COOLDOWN:
+                logger.debug(f"Spike check skipped: alerted at {settings.last_alerted_at}")
+                return None
+
             one_hour_ago = now - timedelta(hours=1)
-            one_week_ago = now - timedelta(days=7)
 
             # Get pageviews in last hour
             current_hour_views = self.db.query(
@@ -75,21 +85,29 @@ class AlertService:
                 Pageview.timestamp >= one_hour_ago
             ).scalar() or 0
 
-            # Get typical hourly average (last 7 days)
-            total_views_week = self.db.query(
+            # The baseline is the same clock hour on each of the previous seven
+            # days, not the mean of every hour of the week. A site with
+            # office-hours traffic is busy at 10:00 every day, and against a
+            # mean that includes the night that read as a spike daily.
+            same_hour_before = or_(*[
+                and_(
+                    Pageview.timestamp >= one_hour_ago - timedelta(days=d),
+                    Pageview.timestamp < now - timedelta(days=d),
+                )
+                for d in range(1, BASELINE_DAYS + 1)
+            ])
+            baseline_views = self.db.query(
                 func.count(Pageview.id)
             ).filter(
                 Pageview.website_id == website_id,
-                Pageview.timestamp >= one_week_ago
+                same_hour_before,
             ).scalar() or 0
 
-            # Exclude the current hour from the baseline (it IS the potential
-            # spike) and require real history — otherwise a new site's first
-            # traffic reads as a huge multiple of its own tiny average.
-            baseline_views = max(0, total_views_week - current_hour_views)
-            typical_hourly = baseline_views / (7 * 24)  # Average per hour
-            if baseline_views < 24:
-                logger.debug(f"Spike check skipped: insufficient history ({baseline_views} views/week)")
+            # Require real history, otherwise a new site's first traffic reads
+            # as a huge multiple of its own tiny average.
+            typical_hourly = baseline_views / BASELINE_DAYS
+            if baseline_views < BASELINE_DAYS:
+                logger.debug(f"Spike check skipped: insufficient history ({baseline_views} views in the same hour over {BASELINE_DAYS} days)")
                 return None
 
             # Check if spike detected
@@ -141,7 +159,7 @@ class AlertService:
 Traffic Spike Detected on {website_name}
 
 Current Hour: {spike_data['current_hour_views']} pageviews
-Typical Hour: {spike_data['typical_hourly']} pageviews (7-day average)
+Typical Hour: {spike_data['typical_hourly']} pageviews (same hour, previous 7 days)
 Spike: {spike_data['spike_percentage']}% of typical traffic
 
 This is {spike_data['spike_percentage'] / 100:.1f}x your normal traffic level.
@@ -151,8 +169,11 @@ View your dashboard for more details.
 Argusmetrics
             """
 
-            # Safe fallback when no real email backend is configured.
-            if not getattr(email_service, "lettermint_configured", False):
+            # Safe fallback when no real email backend is configured. Either
+            # SMTP or the Lettermint API will do; send_email is the same path
+            # the reports use. Without a backend send_email reports success
+            # for a mail that went nowhere, which must not start a cooldown.
+            if not email_service.configured:
                 logger.warning(
                     f"Email backend not configured - spike alert for website "
                     f"{website_id} to {user_email} not sent"
@@ -183,6 +204,7 @@ Argusmetrics
             )
 
             if success:
+                self._remember_alert(website_id)
                 logger.info(f"Spike alert sent to {mask_email(user_email)} for website {website_id}")
             else:
                 logger.error(f"Failed to send spike alert to {mask_email(user_email)} for website {website_id}")
@@ -193,6 +215,20 @@ Argusmetrics
             # Do NOT report success on failure
             logger.error(f"Error sending spike alert: {e}", exc_info=True)
             return False
+
+    def _remember_alert(self, website_id: int) -> None:
+        """Start the cooldown. A failure here must not turn a sent mail into a
+        reported failure, so it is logged and swallowed."""
+        try:
+            settings = self.db.query(AlertSettings).filter(
+                AlertSettings.website_id == website_id
+            ).first()
+            if settings:
+                settings.last_alerted_at = datetime.now(timezone.utc)
+                self.db.commit()
+        except Exception as e:
+            self.db.rollback()
+            logger.error(f"Could not record the alert for website {website_id}: {e}")
 
     def _create_default_settings(self, website_id: int) -> Optional[AlertSettings]:
         """Default alert settings for a website, addressed to its owner.

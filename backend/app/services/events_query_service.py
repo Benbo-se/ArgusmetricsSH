@@ -8,7 +8,7 @@ import logging
 from typing import Optional, Dict, List
 from datetime import datetime
 from sqlalchemy.orm import Session
-from sqlalchemy import func, and_, distinct
+from sqlalchemy import func, and_, or_, distinct
 
 from app.models.custom_event import CustomEvent
 
@@ -288,7 +288,13 @@ class EventsQueryService:
             events = self.db.query(CustomEvent).filter(
                 and_(
                     CustomEvent.website_id == website_id,
-                    CustomEvent.event_name.like('Outbound Link:%'),
+                    # The tracker sends the name alone with the address in
+                    # properties. The prefixed form is what older versions
+                    # of the report expected, kept so those rows still count.
+                    or_(
+                        CustomEvent.event_name == 'Outbound Link',
+                        CustomEvent.event_name.like('Outbound Link:%'),
+                    ),
                     CustomEvent.timestamp >= start_date,
                     CustomEvent.timestamp <= end_date
                 )
@@ -300,7 +306,10 @@ class EventsQueryService:
 
             url_stats = {}
             for event in events:
-                url = event.event_name.replace('Outbound Link: ', '')
+                props = event.properties if isinstance(event.properties, dict) else {}
+                url = props.get('url') or event.event_name.replace('Outbound Link:', '').strip()
+                if not url or url == 'Outbound Link':
+                    continue
 
                 if url not in url_stats:
                     url_stats[url] = {

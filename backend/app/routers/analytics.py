@@ -12,6 +12,8 @@ from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException, status, Request, Header, Cookie
 
 from app.services.usage_service import LIMIT_MESSAGE
+from app.utils.date_helpers import parse_api_window
+from app.utils.csv_safe import SafeWriter
 from sqlalchemy.orm import Session
 
 from app.database import get_db, set_rls_context
@@ -536,15 +538,7 @@ async def get_dashboard_stats(
     
     # Parse dates or use defaults (last 30 days)
     try:
-        if end_date:
-            end = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
-        else:
-            end = datetime.utcnow()
-        
-        if start_date:
-            start = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
-        else:
-            start = end - timedelta(days=30)
+        start, end = parse_api_window(start_date, end_date)
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid date format. Use ISO format (YYYY-MM-DD)")
     
@@ -722,21 +716,22 @@ async def track_event(
     properties = getattr(event_request, 'properties', None)
     recorded = []
 
-    if properties:
-        success, message = analytics_service.record_custom_event(
-            tracking_code=event_request.tracking_code,
-            event_name=event_request.event_name,
-            properties=properties,
-            ip_address=client_ip,
-            user_agent=user_agent
-        )
+    # Always stored: a goal is something the event may also convert, not a
+    # condition for keeping it. An event nobody made a goal for is still data.
+    success, message = analytics_service.record_custom_event(
+        tracking_code=event_request.tracking_code,
+        event_name=event_request.event_name,
+        properties=properties,
+        ip_address=client_ip,
+        user_agent=user_agent
+    )
 
-        # An explicit request to record a custom event, so a failure here is
-        # the caller's answer even if the goal below converts.
-        if not success:
-            raise HTTPException(status_code=_failure_status(message), detail=message)
+    # An explicit request to record a custom event, so a failure here is
+    # the caller's answer even if the goal below converts.
+    if not success:
+        raise HTTPException(status_code=_failure_status(message), detail=message)
 
-        recorded.append("custom event")
+    recorded.append("custom event")
 
     goal_success, goal_message = analytics_service.record_goal_conversion(
         tracking_code=event_request.tracking_code,
@@ -752,7 +747,12 @@ async def track_event(
         analytics_service.db, event_request.tracking_code, "event", None,
         client_ip, user_agent,
         "recorded" if recorded else "refused",
-        f"Recorded {' and '.join(recorded)}" if recorded else goal_message,
+        (
+            f"Recorded {' and '.join(recorded)}"
+            # The usual reason a goal stays at zero is a name that differs,
+            # so say that no goal matched rather than leave it implied.
+            + ("" if goal_success else f" (no goal matched: {goal_message})")
+        ) if recorded else goal_message,
         {"event_name": event_request.event_name},
     )
 
@@ -869,15 +869,7 @@ async def get_goal_stats(
 
     # Parse dates or use defaults (last 30 days)
     try:
-        if end_date:
-            end = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
-        else:
-            end = datetime.utcnow()
-
-        if start_date:
-            start = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
-        else:
-            start = end - timedelta(days=30)
+        start, end = parse_api_window(start_date, end_date)
     except ValueError:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid date format")
 
@@ -1001,15 +993,7 @@ async def export_csv(
 
     # Parse dates
     try:
-        if end_date:
-            end = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
-        else:
-            end = datetime.utcnow()
-
-        if start_date:
-            start = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
-        else:
-            start = end - timedelta(days=30)
+        start, end = parse_api_window(start_date, end_date)
     except ValueError:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid date format")
 
@@ -1025,7 +1009,7 @@ async def export_csv(
 
     # Create CSV
     output = io.StringIO()
-    writer = csv.writer(output)
+    writer = SafeWriter(output)
     writer.writerow(['Timestamp', 'Path', 'Referrer', 'Country', 'Device', 'Browser', 'Visitor Hash'])
 
     for pv in pageviews:
@@ -1075,15 +1059,7 @@ async def export_json(
 
     # Parse dates
     try:
-        if end_date:
-            end = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
-        else:
-            end = datetime.utcnow()
-
-        if start_date:
-            start = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
-        else:
-            start = end - timedelta(days=30)
+        start, end = parse_api_window(start_date, end_date)
     except ValueError:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid date format")
 
@@ -1284,15 +1260,7 @@ async def get_custom_events_summary(
 
     # Parse dates or use defaults (last 30 days)
     try:
-        if end_date:
-            end = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
-        else:
-            end = datetime.utcnow()
-
-        if start_date:
-            start = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
-        else:
-            start = end - timedelta(days=30)
+        start, end = parse_api_window(start_date, end_date)
     except ValueError:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid date format")
 
@@ -1322,15 +1290,7 @@ async def get_event_details(
 
     # Parse dates or use defaults (last 30 days)
     try:
-        if end_date:
-            end = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
-        else:
-            end = datetime.utcnow()
-
-        if start_date:
-            start = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
-        else:
-            start = end - timedelta(days=30)
+        start, end = parse_api_window(start_date, end_date)
     except ValueError:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid date format")
 
@@ -1363,15 +1323,7 @@ async def get_available_properties(
 
     # Parse dates or use defaults (last 30 days)
     try:
-        if end_date:
-            end = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
-        else:
-            end = datetime.utcnow()
-
-        if start_date:
-            start = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
-        else:
-            start = end - timedelta(days=30)
+        start, end = parse_api_window(start_date, end_date)
     except ValueError:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid date format")
 

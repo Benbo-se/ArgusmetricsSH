@@ -135,6 +135,13 @@ def email_reports_task():
             if acquired:
                 stats = EmailReportsService(db).send_scheduled_reports()
                 logger.info(f"[SCHEDULED] Email reports done: {stats}")
+                if stats.get("total_failures"):
+                    # Raised inside the runner so job_runs records a failure.
+                    # Reports are sent one at a time and the loop does not
+                    # stop at the first that fails; this only reports it after.
+                    raise RuntimeError(
+                        f"{stats['total_failures']} email report(s) failed to send ({stats})"
+                    )
     except Exception as e:
         logger.error(f"[SCHEDULED] Error sending email reports: {e}", exc_info=True)
     finally:
@@ -149,8 +156,8 @@ def traffic_alerts_task():
     with alerts enabled would never actually hear about a spike. This is the
     job that connects the two.
 
-    check_traffic_spike() compares the last hour against the weekly hourly
-    baseline and returns None unless the site has email alerts enabled, so
+    check_traffic_spike() compares the last hour against the same hour on the previous days
+    and returns None unless the site has email alerts enabled, so
     sites that never opted in cost one cheap query and nothing else.
     """
     from app.database import SessionLocal, set_rls_context
@@ -168,6 +175,7 @@ def traffic_alerts_task():
             alert_service = AlertService(db)
             websites = db.query(Website).filter(Website.is_active == True).all()
             sent = 0
+            errors = []
 
             for website in websites:
                 try:
@@ -182,13 +190,19 @@ def traffic_alerts_task():
                     ):
                         sent += 1
                 except Exception as e:
-                    # One bad site must not stop alerts for every other site.
+                    # One bad site must not stop alerts for every other site,
+                    # but the job still has to say that it failed.
+                    errors.append(f"website {website.id}: {e}")
                     logger.error(
                         f"[SCHEDULED] Error checking alerts for website {website.id}: {e}",
                         exc_info=True,
                     )
 
             logger.info(f"[SCHEDULED] Traffic-spike check done: {sent} alert(s) sent")
+            if errors:
+                raise RuntimeError(
+                    f"{len(errors)} website(s) failed the alert check: " + "; ".join(errors[:5])
+                )
     except Exception as e:
         logger.error(f"[SCHEDULED] Error running traffic-spike alerts: {e}", exc_info=True)
     finally:
