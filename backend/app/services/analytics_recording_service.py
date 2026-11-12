@@ -46,6 +46,11 @@ def sanitize_path(path: str) -> str:
     return base + '?' + urlencode(cleaned, doseq=True)
 
 
+def pathname(path: str) -> str:
+    """The path without its query string, which is what a page is."""
+    return (path or "").partition("?")[0]
+
+
 def _is_routable(ip_address: str) -> bool:
     """Whether an address is worth looking up at all.
 
@@ -406,10 +411,15 @@ class AnalyticsRecordingService:
                 Funnel.is_active == True
             ).all()
 
+            # Compared as pathnames: a visitor who lands on /pricing?fbclid=abc
+            # has reached the /pricing step. Events recorded before this
+            # compared the whole string stay as they are; a landing that was
+            # missed then is not recoverable from funnel_events.
+            page = pathname(path)
             for funnel in funnels:
                 steps = funnel.steps or []
                 for step in steps:
-                    if step.get("path") != path:
+                    if pathname(step.get("path")) != page:
                         continue
 
                     step_number = step.get("step")
@@ -426,7 +436,7 @@ class AnalyticsRecordingService:
                         visitor_id=visitor_hash,
                         step_number=step_number,
                         step_name=step.get("name") or f"Step {step_number}",
-                        path=path,
+                        path=page,
                         timestamp=datetime.now(timezone.utc),
                         # Last step reached = this visitor completed the funnel.
                         completed=step_number == max(

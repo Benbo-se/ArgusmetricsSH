@@ -20,6 +20,17 @@ logger = logging.getLogger(__name__)
 # window the scroll-depth completion already uses.
 VISIT_TIMEOUT_SECONDS = 1800
 
+# A page is its path. The tracker stores the query string too, so a campaign
+# click on /pricing is /pricing?fbclid=abc, and grouping on the raw column gives
+# every click its own row. Readers compare this instead; the stored path is left
+# as it was, which is why history needs no migration.
+#
+# Every dashboard query is bounded by website_id and a timestamp range, which
+# idx_pageviews_website_timestamp serves. The (website_id, path, timestamp)
+# index cannot serve an expression, and nothing here relied on it for more
+# than a narrower scan inside that range.
+PAGE_PATH = func.split_part(Pageview.path, "?", 1)
+
 
 class AnalyticsQueryService:
     """Service for querying analytics data."""
@@ -62,7 +73,7 @@ class AnalyticsQueryService:
         if filter_browser:
             conditions.append(Pageview.browser == filter_browser)
         if filter_page:
-            conditions.append(Pageview.path == filter_page)
+            conditions.append(PAGE_PATH == filter_page)
         if filter_referrer:
             conditions.append(Pageview.referrer == filter_referrer)
         if filter_properties:
@@ -236,12 +247,12 @@ class AnalyticsQueryService:
             # that have a value, since a visitor who leaves before the script
             # measures anything records NULL rather than nought.
             top_pages = self.db.query(
-                Pageview.path,
+                PAGE_PATH.label('path'),
                 func.count(Pageview.id).label('views'),
                 func.avg(Pageview.scroll_depth).label('avg_scroll')
             ).filter(
                 and_(*base_conditions)
-            ).group_by(Pageview.path)\
+            ).group_by(PAGE_PATH)\
              .order_by(func.count(Pageview.id).desc())\
              .limit(10)\
              .all()
@@ -255,7 +266,7 @@ class AnalyticsQueryService:
              .subquery()
 
             entry_pages = self.db.query(
-                Pageview.path,
+                PAGE_PATH.label('path'),
                 func.count(Pageview.id).label('entries')
             ).join(entry_pages_subquery,
                 and_(
@@ -263,7 +274,7 @@ class AnalyticsQueryService:
                     Pageview.timestamp == entry_pages_subquery.c.first_visit
                 )
             ).filter(and_(*base_conditions))\
-             .group_by(Pageview.path)\
+             .group_by(PAGE_PATH)\
              .order_by(func.count(Pageview.id).desc())\
              .limit(10).all()
 
@@ -276,7 +287,7 @@ class AnalyticsQueryService:
              .subquery()
 
             exit_pages = self.db.query(
-                Pageview.path,
+                PAGE_PATH.label('path'),
                 func.count(Pageview.id).label('exits')
             ).join(exit_pages_subquery,
                 and_(
@@ -284,7 +295,7 @@ class AnalyticsQueryService:
                     Pageview.timestamp == exit_pages_subquery.c.last_visit
                 )
             ).filter(and_(*base_conditions))\
-             .group_by(Pageview.path)\
+             .group_by(PAGE_PATH)\
              .order_by(func.count(Pageview.id).desc())\
              .limit(10).all()
 
@@ -533,7 +544,7 @@ class AnalyticsQueryService:
             if filter_browser:
                 conditions.append(Pageview.browser == filter_browser)
             if filter_page:
-                conditions.append(Pageview.path == filter_page)
+                conditions.append(PAGE_PATH == filter_page)
             if filter_referrer:
                 conditions.append(Pageview.referrer == filter_referrer)
             if filter_properties:
