@@ -93,7 +93,9 @@ class AnalyticsQueryService:
         )
         return conditions
 
-    def _get_visit_stats(self, conditions: List) -> Dict:
+    def _get_visit_stats(
+        self, conditions: List, range_conditions: Optional[List] = None
+    ) -> Dict:
         """Group pageviews into visits, and measure them.
 
         A visitor hash is not a visit. Someone who reads three pages this
@@ -118,44 +120,16 @@ class AnalyticsQueryService:
         and it is averaged in rather than excluded, which is what Plausible and
         GA both do; excluding them would make the number look better without
         meaning more.
+
+        `conditions` is what the screen is filtered on; `range_conditions` is
+        only the site and the time range. Visits are built from every pageview
+        in the range and the filter then picks which visits count, so a filter
+        on /pricing measures the whole visit of everyone who saw /pricing
+        rather than turning each of them into a one-page bounce. Without
+        `range_conditions` the two are the same, which is the unfiltered case.
         """
         try:
-            ordered = select(
-                Pageview.visitor_hash.label("visitor_hash"),
-                Pageview.timestamp.label("ts"),
-                func.lag(Pageview.timestamp).over(
-                    partition_by=Pageview.visitor_hash,
-                    order_by=Pageview.timestamp,
-                ).label("previous_ts"),
-            ).where(and_(*conditions)).subquery()
-
-            started = select(
-                ordered.c.visitor_hash,
-                ordered.c.ts,
-                case(
-                    # The visitor's first pageview in the range always starts
-                    # one. A visit running across the boundary is counted from
-                    # where the range begins, which is the same convention the
-                    # pageview count already uses.
-                    (ordered.c.previous_ts.is_(None), 1),
-                    (
-                        func.extract("epoch", ordered.c.ts - ordered.c.previous_ts)
-                        > VISIT_TIMEOUT_SECONDS,
-                        1,
-                    ),
-                    else_=0,
-                ).label("starts_a_visit"),
-            ).subquery()
-
-            numbered = select(
-                started.c.visitor_hash,
-                started.c.ts,
-                func.sum(started.c.starts_a_visit).over(
-                    partition_by=started.c.visitor_hash,
-                    order_by=started.c.ts,
-                    rows=(None, 0),
-                ).label("visit_number"),
-            ).subquery()
+            numbered = self._numbered_visits(range_conditions or conditions, conditions)
 
             visits = select(
                 func.count().label("views"),
@@ -164,6 +138,8 @@ class AnalyticsQueryService:
                 ).label("seconds"),
             ).group_by(
                 numbered.c.visitor_hash, numbered.c.visit_number
+            ).having(
+                func.max(numbered.c.matched) == 1
             ).subquery()
 
             row = self.db.execute(
@@ -200,6 +176,108 @@ class AnalyticsQueryService:
                 "bounce_rate": 0.0,
                 "avg_visit_seconds": 0,
             }
+
+    @staticmethod
+    def _range_conditions(
+        website_id: int, start_date: datetime, end_date: datetime
+    ) -> List:
+        """The site and the time range, and nothing a user can filter on."""
+        return [
+            Pageview.website_id == website_id,
+            Pageview.timestamp >= start_date,
+            Pageview.timestamp <= end_date,
+        ]
+
+    @staticmethod
+    def _numbered_visits(range_conditions: List, matching_conditions: List):
+        """Every pageview in the range, numbered into visits.
+
+        The single definition of a visit: a visitor's pageviews, split wherever
+        the gap to the previous one exceeds VISIT_TIMEOUT_SECONDS. Visit stats
+        and entry/exit pages both read it, so they cannot drift apart again.
+        `matched` is 1 on the rows the filter lets through; a visit is kept if
+        any of its rows matched.
+        """
+        ordered = select(
+            Pageview.id.label("id"),
+            Pageview.visitor_hash.label("visitor_hash"),
+            Pageview.timestamp.label("ts"),
+            Pageview.path.label("path"),
+            case((and_(*matching_conditions), 1), else_=0).label("matched"),
+            func.lag(Pageview.timestamp).over(
+                partition_by=Pageview.visitor_hash,
+                order_by=Pageview.timestamp,
+            ).label("previous_ts"),
+        ).where(and_(*range_conditions)).subquery()
+
+        started = select(
+            ordered.c.id,
+            ordered.c.visitor_hash,
+            ordered.c.ts,
+            ordered.c.path,
+            ordered.c.matched,
+            case(
+                # The visitor's first pageview in the range always starts
+                # one. A visit running across the boundary is counted from
+                # where the range begins, which is the same convention the
+                # pageview count already uses.
+                (ordered.c.previous_ts.is_(None), 1),
+                (
+                    func.extract("epoch", ordered.c.ts - ordered.c.previous_ts)
+                    > VISIT_TIMEOUT_SECONDS,
+                    1,
+                ),
+                else_=0,
+            ).label("starts_a_visit"),
+        ).subquery()
+
+        return select(
+            started.c.id,
+            started.c.visitor_hash,
+            started.c.ts,
+            started.c.path,
+            started.c.matched,
+            func.sum(started.c.starts_a_visit).over(
+                partition_by=started.c.visitor_hash,
+                order_by=started.c.ts,
+                rows=(None, 0),
+            ).label("visit_number"),
+        ).subquery()
+
+    def _entry_exit_pages(self, range_conditions: List, matching_conditions: List):
+        """Where visits began and where they ended, as (entries, exits) rows.
+
+        By visit, as the dashboard says: the first and last pageview of each
+        visit, using the same thirty minute definition as the visit numbers.
+        With a filter on, it is the visits that touched a matching page, and
+        the entry is where such a visit really began, not the matching page.
+        """
+        numbered = self._numbered_visits(range_conditions, matching_conditions)
+        visit = (numbered.c.visitor_hash, numbered.c.visit_number)
+        ranked = select(
+            numbered.c.path,
+            func.row_number().over(
+                partition_by=visit, order_by=(numbered.c.ts, numbered.c.id)
+            ).label("from_start"),
+            func.row_number().over(
+                partition_by=visit,
+                order_by=(numbered.c.ts.desc(), numbered.c.id.desc()),
+            ).label("from_end"),
+            func.max(numbered.c.matched).over(partition_by=visit).label("visit_matched"),
+        ).subquery()
+
+        page = func.split_part(ranked.c.path, "?", 1)
+
+        def top(rank_column, label):
+            return self.db.execute(
+                select(page.label("path"), func.count().label(label))
+                .where(rank_column == 1, ranked.c.visit_matched == 1)
+                .group_by(page)
+                .order_by(func.count().desc())
+                .limit(10)
+            ).all()
+
+        return top(ranked.c.from_start, "entries"), top(ranked.c.from_end, "exits")
 
     def get_dashboard_stats(
         self,
@@ -259,47 +337,11 @@ class AnalyticsQueryService:
              .limit(10)\
              .all()
 
-            # Entry pages
-            entry_pages_subquery = self.db.query(
-                Pageview.visitor_hash,
-                func.min(Pageview.timestamp).label('first_visit')
-            ).filter(and_(*base_conditions))\
-             .group_by(Pageview.visitor_hash, func.date(Pageview.timestamp))\
-             .subquery()
-
-            entry_pages = self.db.query(
-                PAGE_PATH.label('path'),
-                func.count(Pageview.id).label('entries')
-            ).join(entry_pages_subquery,
-                and_(
-                    Pageview.visitor_hash == entry_pages_subquery.c.visitor_hash,
-                    Pageview.timestamp == entry_pages_subquery.c.first_visit
-                )
-            ).filter(and_(*base_conditions))\
-             .group_by(PAGE_PATH)\
-             .order_by(func.count(Pageview.id).desc())\
-             .limit(10).all()
-
-            # Exit pages
-            exit_pages_subquery = self.db.query(
-                Pageview.visitor_hash,
-                func.max(Pageview.timestamp).label('last_visit')
-            ).filter(and_(*base_conditions))\
-             .group_by(Pageview.visitor_hash, func.date(Pageview.timestamp))\
-             .subquery()
-
-            exit_pages = self.db.query(
-                PAGE_PATH.label('path'),
-                func.count(Pageview.id).label('exits')
-            ).join(exit_pages_subquery,
-                and_(
-                    Pageview.visitor_hash == exit_pages_subquery.c.visitor_hash,
-                    Pageview.timestamp == exit_pages_subquery.c.last_visit
-                )
-            ).filter(and_(*base_conditions))\
-             .group_by(PAGE_PATH)\
-             .order_by(func.count(Pageview.id).desc())\
-             .limit(10).all()
+            # Entry and exit pages, by visit
+            range_conditions = self._range_conditions(website_id, start_date, end_date)
+            entry_pages, exit_pages = self._entry_exit_pages(
+                range_conditions, base_conditions
+            )
 
             # Top countries
             top_countries = self.db.query(
@@ -413,7 +455,7 @@ class AnalyticsQueryService:
                 filter_properties
             )
 
-            visit_stats = self._get_visit_stats(base_conditions)
+            visit_stats = self._get_visit_stats(base_conditions, range_conditions)
 
             # Site-wide engagement, from a column the tracker has always
             # written. Averaged over the pageviews that reported a depth: a
@@ -656,7 +698,10 @@ class AnalyticsQueryService:
                 func.count(distinct(Pageview.visitor_hash))
             ).filter(and_(*prev_conditions)).scalar() or 0
 
-            prev_visits = self._get_visit_stats(prev_conditions)
+            prev_visits = self._get_visit_stats(
+                prev_conditions,
+                self._range_conditions(website_id, prev_start_date, prev_end_date),
+            )
 
             def calculate_change(current: float, previous: float) -> Optional[float]:
                 if previous == 0:
