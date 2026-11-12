@@ -282,10 +282,10 @@ function crossDomainDashboard() {
             const ctx = document.getElementById('combined-traffic-chart');
             if (!ctx) return;
 
-            const labels = this.combinedTimeseries.map(d => {
-                const date = new Date(d.date);
-                return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-            });
+            // Read as text (chartPointLabel in dashboard.js): Date would move
+            // the day into the browser's zone and label it as the day before
+            // for a viewer west of UTC.
+            const labels = this.combinedTimeseries.map(d => chartPointLabel(d.date));
             const data = this.combinedTimeseries.map(d => d.views);
 
             if (window.combinedTrafficChart) {

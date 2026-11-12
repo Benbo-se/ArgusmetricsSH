@@ -789,10 +789,12 @@ argus.trackEvent('button_click', {
             {% if stats.top_browsers and stats.top_browsers|length > 0 %}
             <div class="space-y-3">
                 {% for browser in stats.top_browsers %}
+                {# A pageview without a browser is a row here too. `in` on None raises. #}
+                {% set browser_name = browser.browser or 'Unknown' %}
                 <div class="flex items-center justify-between py-2">
                     <div class="flex items-center gap-2">
-                        <span class="text-lg">{% if 'Chrome' in browser.browser %}🌐{% elif 'Firefox' in browser.browser %}🦊{% elif 'Safari' in browser.browser %}🧭{% elif 'Edge' in browser.browser %}ⓔ{% else %}🌐{% endif %}</span>
-                        <span class="text-sm text-gray-700">{{ browser.browser }}</span>
+                        <span class="text-lg">{% if 'Chrome' in browser_name %}🌐{% elif 'Firefox' in browser_name %}🦊{% elif 'Safari' in browser_name %}🧭{% elif 'Edge' in browser_name %}ⓔ{% else %}🌐{% endif %}</span>
+                        <span class="text-sm text-gray-700">{{ browser_name }}</span>
                     </div>
                     <span class="text-sm font-semibold text-gray-900">{{ browser.views }}</span>
                 </div>
