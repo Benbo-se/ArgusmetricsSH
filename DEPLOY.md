@@ -52,11 +52,17 @@ till backend-containern. En deploy släpper alltså sajt + app atomiskt ihop.
    Sätt `BASE_URL` till apex och låt värd-nginx 301:a `www` → apex, så är all
    trafik kanonisk och allowlistan behöver bara en post.
 2. **GHCR-pull**: paketen `argusmetrics-backend` och `argusmetrics-web` är
-   privata (orgens paketpolicy tillåter inte publika paket i nuläget), så
-   servern behöver en engångsinloggning: skapa en classic PAT med enbart
-   `read:packages`-scope och kör `docker login ghcr.io -u <användare>` med
-   PAT:en som lösenord (sparas i deploy-användarens `~/.docker/config.json`).
-   Görs paketen publika i framtiden kan inloggningen tas bort.
+   privata (orgens paketpolicy tillåter inte publika paket i nuläget). Servern
+   behöver ändå ingen egen inloggning: deployen loggar själv in mot `ghcr.io`
+   med jobbets `GITHUB_TOKEN` (`permissions: packages: read`) i en tillfällig
+   `DOCKER_CONFIG`-mapp som tas bort när skriptet slutar, även vid fel.
+   Orsaken är att servern delas med andra projekt vars runners skriver om
+   `~/.docker/config.json` (`docker/login-action` loggar ut i sitt post-steg),
+   så en inloggning sparad där försvann (2026-11-12) och deployen föll på
+   `unauthorized`. Kräver att repot har läsrätt till paketen (paketets
+   inställningar, "Manage Actions access"); saknas den faller `compose pull`
+   före `up` och inget ändras. Ingen PAT behövs och ingen inloggning ska
+   sparas på servern.
 3. **Första start**: `docker compose -f docker/docker-compose.prod.yml up -d`
    och verifiera hälsan. Host-headern behövs, annars avvisar TrustedHost
    anropet med 400 innan det når hälsokontrollen:

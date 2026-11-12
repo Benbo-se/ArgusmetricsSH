@@ -17,6 +17,53 @@ from app.services.usage_service import LIMIT_MESSAGE, may_record
 logger = logging.getLogger(__name__)
 
 
+def goal_conversion_stats(
+    db: Session,
+    website_id: int,
+    start_date: datetime,
+    end_date: Optional[datetime] = None,
+) -> Dict:
+    """Visitors, and per goal the conversions, converters and conversion rate.
+
+    The one definition behind every conversion rate shown: the share of the
+    period's unique visitors who converted at least once. That cannot pass
+    100%, where conversions divided by visitors can (one visitor ordering
+    twice is two conversions). end_date None means no upper bound.
+
+    Returns {"visitors": int, "goals": {goal_id: {"conversions", "converters",
+    "rate"}}} with a rate in percent to one decimal. Goals with no
+    conversions in the period are absent.
+    """
+    visitor_filters = [Pageview.website_id == website_id, Pageview.timestamp >= start_date]
+    conversion_filters = [
+        GoalConversion.website_id == website_id,
+        GoalConversion.timestamp >= start_date,
+    ]
+    if end_date is not None:
+        visitor_filters.append(Pageview.timestamp <= end_date)
+        conversion_filters.append(GoalConversion.timestamp <= end_date)
+
+    visitors = db.query(
+        func.count(distinct(Pageview.visitor_hash))
+    ).filter(and_(*visitor_filters)).scalar() or 0
+
+    rows = db.query(
+        GoalConversion.goal_id,
+        func.count(GoalConversion.id),
+        func.count(distinct(GoalConversion.visitor_hash)),
+    ).filter(and_(*conversion_filters)).group_by(GoalConversion.goal_id).all()
+
+    goals = {
+        goal_id: {
+            "conversions": conversions,
+            "converters": converters,
+            "rate": round(converters / visitors * 100, 1) if visitors else 0.0,
+        }
+        for goal_id, conversions, converters in rows
+    }
+    return {"visitors": visitors, "goals": goals}
+
+
 class GoalsService:
     """Service for goal CRUD and conversion tracking."""
 
@@ -142,39 +189,21 @@ class GoalsService:
                 Goal.website_id == website_id
             ).all()
 
-            total_visitors = self.db.query(
-                func.count(distinct(Pageview.visitor_hash))
-            ).filter(
-                and_(
-                    Pageview.website_id == website_id,
-                    Pageview.timestamp >= start_date,
-                    Pageview.timestamp <= end_date
-                )
-            ).scalar() or 0
+            shared = goal_conversion_stats(self.db, website_id, start_date, end_date)
+            total_visitors = shared["visitors"]
+            quiet = {"conversions": 0, "converters": 0, "rate": 0.0}
 
             goal_stats = []
 
             for goal in goals:
-                conversions = self.db.query(
-                    func.count(GoalConversion.id)
-                ).filter(
-                    and_(
-                        GoalConversion.goal_id == goal.id,
-                        GoalConversion.timestamp >= start_date,
-                        GoalConversion.timestamp <= end_date
-                    )
-                ).scalar() or 0
-
-                conversion_rate = 0.0
-                if total_visitors > 0:
-                    conversion_rate = (conversions / total_visitors) * 100
-
+                row = shared["goals"].get(goal.id, quiet)
                 goal_stats.append({
                     "goal_id": goal.id,
                     "name": goal.name,
                     "event_name": goal.event_name,
-                    "conversions": conversions,
-                    "conversion_rate": round(conversion_rate, 2)
+                    "conversions": row["conversions"],
+                    "converters": row["converters"],
+                    "conversion_rate": row["rate"],
                 })
 
             return {

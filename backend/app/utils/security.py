@@ -124,6 +124,16 @@ def generate_session_token(length: int = 32) -> str:
     return token
 
 
+def normalize_email(email: str) -> str:
+    """The one spelling an address is stored and compared in: trimmed, lowercase.
+
+    Every service that takes an address from outside goes through this before it
+    reads or writes one, so `Anna@x.com` and `anna@x.com` are the same account
+    and the same membership.
+    """
+    return (email or "").strip().lower()
+
+
 def validate_email(email: str) -> bool:
     """
     Validate email address format using regex pattern.

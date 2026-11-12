@@ -16,6 +16,7 @@ from sqlalchemy import func
 from app.models.website import Website
 from app.models.pageview import Pageview
 from app.config import settings
+from app.services.traffic_sources import own_referrer_regex
 
 logger = logging.getLogger(__name__)
 
@@ -73,6 +74,8 @@ class EmailReportsService:
         ).group_by(Pageview.path).order_by(func.count(Pageview.id).desc()).limit(10).all()
 
         # Get top referrers
+        own_domain = self.db.query(Website.domain).filter(Website.id == website_id).scalar()
+        own_regex = own_referrer_regex(own_domain)
         top_referrers = self.db.query(
             Pageview.referrer,
             func.count(Pageview.id).label('views')
@@ -80,7 +83,8 @@ class EmailReportsService:
             Pageview.website_id == website_id,
             Pageview.timestamp >= start_date,
             Pageview.referrer.isnot(None),
-            Pageview.referrer != ''
+            Pageview.referrer != '',
+            *([Pageview.referrer.op('!~*')(own_regex)] if own_regex else [])
         ).group_by(Pageview.referrer).order_by(func.count(Pageview.id).desc()).limit(10).all()
 
         # Get top countries
@@ -137,7 +141,7 @@ class EmailReportsService:
         Returns:
             str: HTML email content
         """
-        dashboard_url = f"{settings.BASE_URL}/dashboard/{website.id}"
+        dashboard_url = f"{settings.BASE_URL}/dashboard/website/{website.id}"
         website_name = html.escape(str(website.name))
         website_domain = html.escape(str(website.domain))
 
