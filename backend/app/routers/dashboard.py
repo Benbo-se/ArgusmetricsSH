@@ -1480,8 +1480,8 @@ async def export_csv(
     3. Contains: Date, Pageviews, Visitors, Bounce Rate, Top Pages, etc.
     """
     from fastapi.responses import StreamingResponse
-    import csv
     from io import StringIO
+    from app.utils.csv_safe import SafeWriter
     from datetime import datetime, timedelta, timezone
     
     # Get website
@@ -1504,7 +1504,7 @@ async def export_csv(
     
     # Create CSV in memory
     output = StringIO()
-    writer = csv.writer(output)
+    writer = SafeWriter(output)
     
     # Write header
     writer.writerow(['Argusmetrics - Analytics Export'])
@@ -1519,7 +1519,7 @@ async def export_csv(
     writer.writerow(['Total Pageviews', stats.get('total_pageviews', 0)])
     writer.writerow(['Unique Visitors', stats.get('unique_visitors', 0)])
     writer.writerow(['Bounce Rate', f"{stats.get('bounce_rate', 0):.1f}%"])
-    writer.writerow(['Avg. Visit Duration', f"{stats.get('avg_duration', 0):.0f}s"])
+    writer.writerow(['Avg. Visit Duration', f"{stats.get('avg_visit_seconds', 0):.0f}s"])
     writer.writerow([])
     
     # Pageviews over time
@@ -1539,18 +1539,18 @@ async def export_csv(
     
     # Referrers
     writer.writerow(['TOP REFERRERS'])
-    writer.writerow(['Referrer', 'Visitors', 'Percentage'])
-    for ref in stats.get('referrers', [])[:20]:
-        pct = (ref['visitors'] / stats.get('unique_visitors', 1)) * 100 if stats.get('unique_visitors', 0) > 0 else 0
-        writer.writerow([ref['referrer'] or 'Direct', ref['visitors'], f"{pct:.1f}%"])
+    writer.writerow(['Referrer', 'Views', 'Percentage'])
+    for ref in stats.get('top_referrers', [])[:20]:
+        pct = (ref['views'] / stats.get('total_pageviews', 1)) * 100 if stats.get('total_pageviews', 0) > 0 else 0
+        writer.writerow([ref['referrer'] or 'Direct', ref['views'], f"{pct:.1f}%"])
     writer.writerow([])
     
     # Countries
     writer.writerow(['TOP COUNTRIES'])
-    writer.writerow(['Country', 'Visitors', 'Percentage'])
-    for country in stats.get('countries', [])[:20]:
-        pct = (country['visitors'] / stats.get('unique_visitors', 1)) * 100 if stats.get('unique_visitors', 0) > 0 else 0
-        writer.writerow([country['country'], country['visitors'], f"{pct:.1f}%"])
+    writer.writerow(['Country', 'Views', 'Percentage'])
+    for country in stats.get('top_countries', [])[:20]:
+        pct = (country['views'] / stats.get('total_pageviews', 1)) * 100 if stats.get('total_pageviews', 0) > 0 else 0
+        writer.writerow([country['country'], country['views'], f"{pct:.1f}%"])
     writer.writerow([])
     
     # Devices
@@ -1562,9 +1562,9 @@ async def export_csv(
     
     # Browsers
     writer.writerow(['TOP BROWSERS'])
-    writer.writerow(['Browser', 'Visitors'])
-    for browser in stats.get('browsers', [])[:20]:
-        writer.writerow([browser['browser'], browser['visitors']])
+    writer.writerow(['Browser', 'Views'])
+    for browser in stats.get('top_browsers', [])[:20]:
+        writer.writerow([browser['browser'], browser['views']])
     
     # Prepare response
     output.seek(0)

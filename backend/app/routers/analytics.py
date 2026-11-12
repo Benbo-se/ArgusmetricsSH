@@ -12,6 +12,7 @@ from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException, status, Request, Header, Cookie
 
 from app.services.usage_service import LIMIT_MESSAGE
+from app.utils.csv_safe import SafeWriter
 from sqlalchemy.orm import Session
 
 from app.database import get_db, set_rls_context
@@ -1025,7 +1026,7 @@ async def export_csv(
 
     # Create CSV
     output = io.StringIO()
-    writer = csv.writer(output)
+    writer = SafeWriter(output)
     writer.writerow(['Timestamp', 'Path', 'Referrer', 'Country', 'Device', 'Browser', 'Visitor Hash'])
 
     for pv in pageviews:
