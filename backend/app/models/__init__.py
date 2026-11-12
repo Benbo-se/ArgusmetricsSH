@@ -25,6 +25,7 @@ from app.models.ip_country_range import IpCountryRange
 from app.models.waitlist import WaitlistEntry
 from app.models.account_invitation import AccountInvitation
 from app.models.account_usage import AccountUsage
+from app.models.annotation import Annotation
 
 __all__ = [
     "User",
@@ -33,6 +34,7 @@ __all__ = [
     "WaitlistEntry",
     "AccountInvitation",
     "AccountUsage",
+    "Annotation",
     "Session",
     "Website",
     "Pageview",

@@ -138,6 +138,106 @@ function chartPointLabel(value, withDay = false) {
 }
 
 /**
+ * The team's notes on the graph, as [{id, day: 'YYYY-MM-DD', note}], and the
+ * series they are drawn on. Kept outside the chart because the chart is
+ * rebuilt when the metric is switched, and a note added on the page has to
+ * survive that.
+ */
+let chartAnnotations = [];
+let chartAnnotationSeries = [];
+
+/**
+ * Which point each note sits on: a Map from a point's index to the notes on
+ * it.
+ *
+ * A note has a day, in the website's time zone, and so does every point: the
+ * first ten characters of its date, for a day and for an hour alike. The two
+ * are compared as text, for the reason chartPointLabel reads its date as
+ * text. In a daily graph that is the day's own point. In an hourly graph it
+ * is the first hour of that day, where the day begins, and only that one: a
+ * note on every hour of "today" would be twenty-four copies of it.
+ *
+ * A note whose day has no point (outside the range) is on no point.
+ */
+function annotationsByPoint(timeseriesData, annotations) {
+    const firstPointOfDay = new Map();
+    (timeseriesData || []).forEach((d, i) => {
+        const day = String(d.date).slice(0, 10);
+        if (!firstPointOfDay.has(day)) firstPointOfDay.set(day, i);
+    });
+    const byPoint = new Map();
+    (annotations || []).forEach((a) => {
+        const i = firstPointOfDay.get(String(a.day));
+        if (i === undefined) return;
+        if (!byPoint.has(i)) byPoint.set(i, []);
+        byPoint.get(i).push(String(a.note));
+    });
+    return byPoint;
+}
+
+/** Break a note into lines a tooltip can hold. A word longer than a line is cut. */
+function wrapNote(text, width = 44) {
+    const lines = [];
+    let line = '';
+    String(text).split(' ').forEach((word) => {
+        while (word.length > width) {
+            if (line) { lines.push(line); line = ''; }
+            lines.push(word.slice(0, width));
+            word = word.slice(width);
+        }
+        if (!line) line = word;
+        else if (line.length + 1 + word.length <= width) line += ' ' + word;
+        else { lines.push(line); line = word; }
+    });
+    if (line) lines.push(line);
+    return lines;
+}
+
+/**
+ * A line down through each day that has a note, with a dot at the top. The
+ * text is in the tooltip of that point and in the list under the graph.
+ *
+ * Positioned from the scale, not from the point elements: those are still
+ * flying in while the line draws itself.
+ */
+const annotationPlugin = {
+    id: 'argusAnnotations',
+    afterDatasetsDraw(chart) {
+        const marked = annotationsByPoint(chartAnnotationSeries, chartAnnotations);
+        if (!marked.size) return;
+        const { top, bottom } = chart.chartArea;
+        const color = themeColor('--warn', '#9a5b00');
+        const c = chart.ctx;
+        c.save();
+        marked.forEach((notes, index) => {
+            const x = chart.scales.x.getPixelForValue(index);
+            if (!Number.isFinite(x)) return;
+            c.beginPath();
+            c.moveTo(x, top);
+            c.lineTo(x, bottom);
+            c.lineWidth = 1;
+            c.strokeStyle = color;
+            c.stroke();
+            c.beginPath();
+            c.arc(x, top, 4, 0, Math.PI * 2);
+            c.fillStyle = color;
+            c.fill();
+        });
+        c.restore();
+    },
+};
+
+/**
+ * Replace the notes on the graph and redraw it. Called by the notes list
+ * (chartNotes in alpine-components.js) when the page loads and after every
+ * change, in whichever order the two scripts happen to start.
+ */
+function setChartAnnotations(annotations) {
+    chartAnnotations = Array.isArray(annotations) ? annotations : [];
+    if (pageviewsChart) pageviewsChart.update('none');
+}
+
+/**
  * The main chart: one metric over the period, and the period it is compared
  * with dashed beside it. `metric` is 'visitors' or 'views'; series written
  * before visitors were counted per day fall back to views.
@@ -162,6 +262,7 @@ function initPageviewsChart(timeseriesData, previousPeriodData = null, metric = 
     const titles = timeseriesData.map(d => chartPointLabel(d.date, true));
     const data = timeseriesData.map(pick);
     const brand = themeColor('--brand-500', '#4550c8');
+    chartAnnotationSeries = timeseriesData;
 
     if (pageviewsChart) {
         pageviewsChart.destroy();
@@ -205,7 +306,7 @@ function initPageviewsChart(timeseriesData, previousPeriodData = null, metric = 
             labels: labels,
             datasets: datasets
         },
-        plugins: [crosshairPlugin],
+        plugins: [crosshairPlugin, annotationPlugin],
         options: {
             responsive: true,
             maintainAspectRatio: false,
@@ -238,6 +339,13 @@ function initPageviewsChart(timeseriesData, previousPeriodData = null, metric = 
                     callbacks: {
                         title: function(tooltipItems) {
                             return titles[tooltipItems[0].dataIndex] || tooltipItems[0].label;
+                        },
+                        // The notes on this point. The tooltip is drawn on
+                        // the canvas, so the text is never parsed as markup.
+                        beforeBody: function(tooltipItems) {
+                            const notes = annotationsByPoint(chartAnnotationSeries, chartAnnotations)
+                                .get(tooltipItems[0].dataIndex) || [];
+                            return notes.flatMap((note) => wrapNote('Note: ' + note));
                         },
                         label: function(context) {
                             const value = context.parsed.y.toLocaleString() + ' ' + m.noun;
@@ -623,6 +731,7 @@ document.addEventListener('DOMContentLoaded', () => {
 window.formatNumber = formatNumber;
 window.initPageviewsChart = initPageviewsChart;
 window.bindChartMetricSwitch = bindChartMetricSwitch;
+window.setChartAnnotations = setChartAnnotations;
 window.initDevicesChart = initDevicesChart;
 window.copyTrackingCode = copyTrackingCode;
 window.showToast = showToast;

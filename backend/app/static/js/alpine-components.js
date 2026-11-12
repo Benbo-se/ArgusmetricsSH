@@ -2208,6 +2208,221 @@ document.addEventListener('alpine:init', () => {
         },
     }))
 
+    /**
+     * The notes under the main graph: the list, and for owner and admin the
+     * form that adds, changes and removes them.
+     *
+     * Lives inside websitePage, and Alpine merges the two scopes, so every
+     * name here starts with "note": websitePage already has a `today`, a
+     * `range` and a `state`, and a name shared with it would be read from
+     * the wrong one (see goalRow for what that cost once).
+     *
+     * The list is the notes in the period shown. The graph is told about
+     * every change through setChartAnnotations (dashboard.js), which is what
+     * draws the markers; nothing here touches the chart.
+     */
+    Alpine.data('chartNotes', () => ({
+        notes: [],
+        noteSiteId: null,
+        // The first and last day the graph shows, as YYYY-MM-DD.
+        noteFirstDay: '',
+        noteLastDay: '',
+        noteFormOpen: false,
+        // The note being changed, or null while adding one.
+        noteEditing: null,
+        // The id of the note being asked about, or null.
+        noteDeletingId: null,
+        noteDay: '',
+        noteText: '',
+        noteBusy: false,
+        noteError: null,
+
+        // x-model targets. See modelFor.
+        get noteDayField() { return modelFor(this, 'noteDay') },
+        get noteTextField() { return modelFor(this, 'noteText') },
+
+        init() {
+            const el = document.getElementById('chart-notes-data')
+            const data = el ? JSON.parse(el.textContent) : {}
+            this.notes = data.notes || []
+            this.noteSiteId = data.website_id
+            this.noteFirstDay = data.first_day || ''
+            this.noteLastDay = data.last_day || ''
+            this.noteDay = this.noteLastDay
+            this.noteDraw()
+        },
+
+        /** Hands the graph the notes as they now are. */
+        noteDraw() {
+            if (window.setChartAnnotations) {
+                // Plain copies: the chart has no business holding Alpine's proxies.
+                window.setChartAnnotations(this.notes.map((n) => ({ ...n })))
+            }
+        },
+
+        get hasNotes() { return this.notes.length > 0 },
+        get hasNoNotes() { return this.notes.length === 0 },
+        get noteFormClass() { return this.noteFormOpen ? '' : 'hidden' },
+        get noteAddClass() { return this.noteFormOpen ? 'hidden' : '' },
+        get hasNoteError() { return !!this.noteError },
+        get noteSubmitLabel() {
+            if (this.noteBusy) return 'Saving...'
+            return this.noteEditing ? 'Save note' : 'Add note'
+        },
+        get noteSaveClass() {
+            return this.noteBusy
+                ? 'bg-gray-400 cursor-not-allowed'
+                : 'bg-blue-600 hover:bg-blue-700'
+        },
+
+        noteFocus() {
+            const focus = () => {
+                const field = this.$refs.noteText
+                if (!field) return false
+                field.focus()
+                return document.activeElement === field
+            }
+            queueMicrotask(() => { if (!focus()) this.$nextTick(focus) })
+        },
+
+        openNoteForm() {
+            this.noteFormOpen = true
+            this.noteFocus()
+        },
+
+        openNoteEdit(note) {
+            this.noteEditing = note
+            this.noteDay = note.day
+            this.noteText = note.note
+            this.noteError = null
+            this.noteDeletingId = null
+            this.noteFormOpen = true
+            this.noteFocus()
+        },
+
+        closeNoteForm() {
+            this.noteFormOpen = false
+            this.noteEditing = null
+            this.noteDay = this.noteLastDay
+            this.noteText = ''
+            this.noteError = null
+        },
+
+        askNoteDelete(note) { this.noteDeletingId = note.id },
+        cancelNoteDelete() { this.noteDeletingId = null },
+
+        /** Whether a day is one the graph is showing. YYYY-MM-DD sorts as text. */
+        noteIsShown(day) {
+            return (!this.noteFirstDay || day >= this.noteFirstDay)
+                && (!this.noteLastDay || day <= this.noteLastDay)
+        },
+
+        noteToast(message, type) {
+            window.dispatchEvent(new CustomEvent('toast', {
+                detail: type ? { message, type } : { message },
+            }))
+        },
+
+        /** The server's reason for refusing, in a form a person can read. */
+        noteReason(data, fallback) {
+            const first = data && Array.isArray(data.details) ? data.details[0] : null
+            if (first && first.msg) return String(first.msg).replace(/^Value error, /, '')
+            if (data && typeof data.detail === 'string') return data.detail
+            if (data && typeof data.message === 'string') return data.message
+            return fallback
+        },
+
+        async saveNote() {
+            if (this.noteBusy) return
+            this.noteBusy = true
+            this.noteError = null
+            const editing = this.noteEditing
+            const base = '/api/v1/annotations'
+            const query = `?website_id=${encodeURIComponent(this.noteSiteId)}`
+
+            try {
+                const response = await fetch(
+                    editing ? `${base}/${editing.id}${query}` : `${base}${query}`,
+                    {
+                        method: editing ? 'PUT' : 'POST',
+                        credentials: 'same-origin',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ day: this.noteDay, note: this.noteText }),
+                    }
+                )
+                const data = await response.json().catch(() => ({}))
+                if (!response.ok) {
+                    this.noteError = this.noteReason(data, 'Could not save the note.')
+                    return
+                }
+
+                const saved = { id: data.id, day: data.day, note: data.note }
+                const others = this.notes.filter((n) => n.id !== saved.id)
+                const shown = this.noteIsShown(saved.day)
+                if (shown) others.push(saved)
+                others.sort((a, b) => (a.day < b.day ? -1 : a.day > b.day ? 1 : a.id - b.id))
+                this.notes = others
+                this.noteDraw()
+                this.closeNoteForm()
+                this.noteToast(shown
+                    ? 'Note saved'
+                    : 'Note saved. Its day is outside the period shown.')
+            } catch (error) {
+                console.error('Error saving note:', error)
+                this.noteError = 'Could not save the note. Please try again.'
+            } finally {
+                this.noteBusy = false
+            }
+        },
+
+        async deleteNote(note) {
+            if (this.noteBusy) return
+            this.noteBusy = true
+            try {
+                const response = await fetch(
+                    `/api/v1/annotations/${note.id}?website_id=${encodeURIComponent(this.noteSiteId)}`,
+                    { method: 'DELETE', credentials: 'same-origin' }
+                )
+                if (!response.ok) {
+                    const data = await response.json().catch(() => ({}))
+                    this.noteToast(this.noteReason(data, 'Could not delete the note.'), 'error')
+                    return
+                }
+                this.notes = this.notes.filter((n) => n.id !== note.id)
+                this.noteDeletingId = null
+                if (this.noteEditing && this.noteEditing.id === note.id) this.closeNoteForm()
+                this.noteDraw()
+                this.noteToast('Note deleted')
+            } catch (error) {
+                console.error('Error deleting note:', error)
+                this.noteToast('Could not delete the note. Please try again.', 'error')
+            } finally {
+                this.noteBusy = false
+            }
+        },
+    }))
+
+    /**
+     * One note in the list. The loop variable `note` is in scope, and the
+     * getters hand the template plain names, prefixed so that none of them
+     * shadows a field of chartNotes.
+     */
+    Alpine.data('chartNoteRow', () => ({
+        // 'Nov 12, 2026', read from the text. Through Date it would be the
+        // day before for anyone west of UTC.
+        get rowDay() {
+            const day = String(this.note.day)
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+            return `${months[Number(day.slice(5, 7)) - 1]} ${Number(day.slice(8, 10))}, ${day.slice(0, 4)}`
+        },
+        get rowNote() { return this.note.note },
+        get rowIsDeleting() { return this.noteDeletingId === this.note.id },
+        get rowIsNotDeleting() { return this.noteDeletingId !== this.note.id },
+        rowEdit() { this.openNoteEdit(this.note) },
+        rowAskDelete() { this.askNoteDelete(this.note) },
+        rowDelete() { this.deleteNote(this.note) },
+    }))
+
     /** One property filter chip. */
     Alpine.data('propertyChip', () => ({
         get key() { return this.chip.key },
