@@ -183,7 +183,15 @@ jobs:
           BEFORE_POLICIES=$(psql -h localhost -U argus -d argus_ci -tAc 'SELECT count(*) FROM pg_policies')
           echo "före: $BEFORE users, $BEFORE_PV pageviews, $BEFORE_CHUNKS chunkar, $BEFORE_POLICIES policyer, revision $REVISION"
 
-          pg_dump --clean --if-exists -h localhost -U argus argus_ci | gzip > /tmp/ci-backup.sql.gz
+          # Dumpen tas inifrån databasens egen container, som backup.sh och
+          # deployen gör. Runnerns egen pg_dump följer med runner-avbildningen
+          # och är nyare än servern (PostgreSQL 16): ubuntu-26.04 har klient 18,
+          # som skriver SET transaction_timeout, en parameter 16 inte känner
+          # till, så återställningen föll med "unrecognized configuration
+          # parameter" trots att inget i koden hade ändrats.
+          PG_CONTAINER=$(docker ps -q --filter publish=5432 | head -n 1)
+          [ -n "$PG_CONTAINER" ] || { echo "::error::Hittade inte databascontainern"; exit 1; }
+          docker exec "$PG_CONTAINER" pg_dump --clean --if-exists -U argus argus_ci | gzip > /tmp/ci-backup.sql.gz
           gzip -t /tmp/ci-backup.sql.gz
           echo "dump: $(stat -c %s /tmp/ci-backup.sql.gz) bytes"
 
