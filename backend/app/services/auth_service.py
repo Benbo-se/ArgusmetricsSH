@@ -654,6 +654,7 @@ class AuthService:
             )
 
             self.db.add(session)
+            user.last_login_at = datetime.now(timezone.utc)
             self.db.commit()
             self.db.refresh(session)
 
