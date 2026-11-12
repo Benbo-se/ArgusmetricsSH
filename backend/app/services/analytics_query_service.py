@@ -5,7 +5,9 @@ Handles dashboard stats, timeseries data, comparison calculations,
 and realtime analytics.
 """
 import logging
-from typing import Optional, Dict, List
+from bisect import bisect_right
+from typing import Optional, Dict, List, Tuple
+from zoneinfo import ZoneInfo
 from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session
 from sqlalchemy import func, and_, case, distinct, select
@@ -14,7 +16,9 @@ from app.models.pageview import Pageview
 from app.models.website import Website
 from app.services.traffic_sources import classify_channel, own_referrer_regex
 from app.services.visitor_dimensions import dimension_conditions, dimension_reports
-from app.utils.date_helpers import DEFAULT_TIMEZONE, local_date, sql_local_day
+from app.utils.date_helpers import (
+    DEFAULT_TIMEZONE, as_utc, hour_start, local_date, sql_local_day, sql_local_hour,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -292,12 +296,21 @@ class AnalyticsQueryService:
         filter_referrer: Optional[str] = None,
         filter_properties: Optional[Dict[str, str]] = None,
         filter_dimensions: Optional[Dict[str, str]] = None,
-        tz: str = DEFAULT_TIMEZONE
+        tz: str = DEFAULT_TIMEZONE,
+        bucket: str = "day",
+        previous: Optional[Tuple[datetime, datetime]] = None
     ) -> Dict:
         """Get dashboard statistics for a date range.
 
         `tz` is the website's time zone: the days of the time series are days
         in that zone. The range itself is two instants and is not affected.
+
+        `bucket` is 'day' or 'hour', the width of a point in the time series.
+
+        `previous` is the range to compare against when `compare` is set, as
+        two instants. Without it the comparison is the period just before, of
+        the same length in seconds, which is what a rolling range wants; a
+        calendar range or a comparison with last year passes its own.
         """
         logger.info(
             f"Getting dashboard stats: website_id={website_id}, "
@@ -461,7 +474,7 @@ class AnalyticsQueryService:
             timeseries = self._get_timeseries_data(
                 website_id, start_date, end_date,
                 filter_country, filter_device, filter_browser, filter_page, filter_referrer,
-                filter_properties, filter_dimensions, tz=tz
+                filter_properties, filter_dimensions, tz=tz, bucket=bucket
             )
 
             visit_stats = self._get_visit_stats(base_conditions, range_conditions)
@@ -525,6 +538,7 @@ class AnalyticsQueryService:
                 "dimensions": dimensions,
                 "traffic_channels": traffic_channels,
                 "timeseries": timeseries,
+                "timeseries_bucket": bucket,
                 "goals": goals_stats.get("goals", []),
                 "total_visitors": goals_stats.get("total_visitors", 0),
                 "outbound_links": outbound_links,
@@ -533,14 +547,16 @@ class AnalyticsQueryService:
 
             # Add comparison data if requested
             if compare:
-                period_length = end_date - start_date
-                prev_end_date = start_date - timedelta(seconds=1)
-                prev_start_date = prev_end_date - period_length
+                if previous is None:
+                    period_length = end_date - start_date
+                    prev_end_date = start_date - timedelta(seconds=1)
+                    previous = (prev_end_date - period_length, prev_end_date)
+                prev_start_date, prev_end_date = previous
 
                 timeseries_previous = self._get_timeseries_data(
                     website_id, prev_start_date, prev_end_date,
                     filter_country, filter_device, filter_browser, filter_page, filter_referrer,
-                    filter_properties, filter_dimensions, tz=tz
+                    filter_properties, filter_dimensions, tz=tz, bucket=bucket
                 )
                 stats['timeseries_previous'] = timeseries_previous
 
@@ -550,7 +566,8 @@ class AnalyticsQueryService:
                     visit_stats,
                     filter_country, filter_device, filter_browser,
                     filter_page, filter_referrer, filter_properties,
-                    filter_dimensions
+                    filter_dimensions,
+                    previous=previous
                 )
                 stats.update(comparison_data)
 
@@ -576,9 +593,11 @@ class AnalyticsQueryService:
         filter_referrer: Optional[str] = None,
         filter_properties: Optional[Dict[str, str]] = None,
         filter_dimensions: Optional[Dict[str, str]] = None,
-        tz: str = DEFAULT_TIMEZONE
+        tz: str = DEFAULT_TIMEZONE,
+        bucket: str = "day"
     ) -> List[Dict]:
-        """Get pageviews over time (for graph), one point per day in `tz`."""
+        """Get pageviews over time (for graph), one point per day in `tz`, or
+        per clock hour when `bucket` is 'hour'."""
         try:
             conditions = [
                 Pageview.website_id == website_id,
@@ -599,6 +618,9 @@ class AnalyticsQueryService:
             if filter_properties:
                 conditions.append(Pageview.properties.contains(filter_properties))
             conditions.extend(dimension_conditions(filter_dimensions))
+
+            if bucket == "hour":
+                return self._hourly_series(conditions, start_date, end_date, tz)
 
             # A day is a day in the website's zone, so a pageview at 23:30
             # UTC belongs to the next day for a site in Stockholm. Grouped in
@@ -639,6 +661,52 @@ class AnalyticsQueryService:
             self._abort("getting timeseries data")
             raise
 
+    def _hourly_series(
+        self, conditions: List, start_date: datetime, end_date: datetime, tz: str
+    ) -> List[Dict]:
+        """One point per clock hour in the zone, empty hours included.
+
+        `date` is the hour's start as wall-clock time with its offset, for
+        example 2026-10-25T02:00+02:00. The offset is what tells the two
+        02:00 hours apart on the day the clocks go back; that day has 25
+        points and the day they go forward has 23, with no 02:00 at all.
+        """
+        hour_of = sql_local_hour(Pageview.timestamp, tz)
+        results = self.db.query(
+            hour_of.label('hour'),
+            func.count(Pageview.id).label('views'),
+            func.count(func.distinct(Pageview.visitor_hash)).label('visitors')
+        ).filter(and_(*conditions)).group_by(hour_of).order_by(hour_of).all()
+
+        # Hours are an hour apart as instants, whatever the clock on the wall
+        # did in between.
+        axis = []
+        hour = hour_start(start_date, tz)
+        last_hour = hour_start(end_date, tz)
+        while hour <= last_hour:
+            axis.append(hour)
+            hour += timedelta(hours=1)
+
+        totals = [[0, 0] for _ in axis]
+        for r in results:
+            # Every row's hour is on the axis, except in the handful of zones
+            # that move the clock by half an hour, where an hour can start
+            # between two points. It is counted in the point before it rather
+            # than dropped.
+            i = max(bisect_right(axis, as_utc(r.hour)) - 1, 0)
+            totals[i][0] += r.views
+            totals[i][1] += r.visitors
+
+        zone = ZoneInfo(tz)
+        return [
+            {
+                "date": hour.astimezone(zone).isoformat(timespec="minutes"),
+                "views": views,
+                "visitors": visitors,
+            }
+            for hour, (views, visitors) in zip(axis, totals)
+        ]
+
     def _get_comparison_data(
         self,
         website_id: int,
@@ -653,9 +721,13 @@ class AnalyticsQueryService:
         filter_page: Optional[str] = None,
         filter_referrer: Optional[str] = None,
         filter_properties: Optional[Dict[str, str]] = None,
-        filter_dimensions: Optional[Dict[str, str]] = None
+        filter_dimensions: Optional[Dict[str, str]] = None,
+        previous: Optional[Tuple[datetime, datetime]] = None
     ) -> Dict:
         """Get comparison data for previous period.
+
+        `previous` is that period, as two instants; without it, the period
+        just before of the same length.
 
         The filters come along. Without them the previous period counted
         everything the current period had filtered out, so the arrow beside a
@@ -664,9 +736,11 @@ class AnalyticsQueryService:
         """
         try:
             current_visits = current_visits or {}
-            period_length = end_date - start_date
-            prev_end_date = start_date - timedelta(seconds=1)
-            prev_start_date = prev_end_date - period_length
+            if previous is None:
+                period_length = end_date - start_date
+                prev_end_date = start_date - timedelta(seconds=1)
+                previous = (prev_end_date - period_length, prev_end_date)
+            prev_start_date, prev_end_date = previous
 
             logger.debug(
                 f"Calculating comparison: current={start_date} to {end_date}, "

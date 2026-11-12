@@ -16,7 +16,7 @@
         {% if change is not none and change != 0 %}
             {% set improving = (change > 0) if higher_is_better else (change < 0) %}
             <span class="stat-delta {% if improving %}is-better{% else %}is-worse{% endif %}"
-                  title="Compared with the previous period of the same length">
+                  title="{% if compare_mode == 'year' %}Compared with the same period last year{% else %}Compared with the previous period of the same length{% endif %}">
                 {% if change > 0 %}▲{% else %}▼{% endif %}
                 {{ "%.1f"|format(change|abs) }}%
             </span>

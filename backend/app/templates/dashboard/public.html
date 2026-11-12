@@ -120,7 +120,7 @@
         </div>
 
         <!-- Date range selector -->
-        <div class="mt-4 md:mt-0" x-data="publicRangeMenu" data-range="{{ selected_range }}">
+        <div class="mt-4 md:mt-0" x-data="publicRangeMenu" data-range="{{ selected_range }}" data-label="{{ range_label }}">
             <div class="relative">
                 <button @click="toggle"
                         class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
@@ -141,10 +141,14 @@
                      x-transition:leave-end="transform opacity-0 scale-95"
                      class="origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black/5 z-10">
                     <div class="py-1">
-                        <a href="?range=7d" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Last 7 days</a>
-                        <a href="?range=30d" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Last 30 days</a>
-                        <a href="?range=90d" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Last 90 days</a>
-                        <a href="?range=365d" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Last 12 months</a>
+                        {% for value, label in [
+                            ('today', 'Today'), ('yesterday', 'Yesterday'),
+                            ('7d', 'Last 7 days'), ('30d', 'Last 30 days'), ('90d', 'Last 90 days'),
+                            ('mtd', 'Month to date'), ('last_month', 'Last month'),
+                            ('ytd', 'Year to date'), ('365d', 'Last 12 months'),
+                        ] %}
+                        <a href="?range={{ value }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">{{ label }}</a>
+                        {% endfor %}
                     </div>
                 </div>
             </div>
@@ -818,7 +822,9 @@ argus.trackEvent('button_click', {
     document.addEventListener('DOMContentLoaded', function() {
         // Initialize pageviews chart
         const timeseriesData = {{ stats.timeseries | tojson | safe }};
-        initPageviewsChart(timeseriesData);
+        initPageviewsChart(timeseriesData, null, 'views', {
+            bucket: {{ (stats.timeseries_bucket or 'day') | tojson }}
+        });
 
         // Initialize devices chart
         const devicesData = {{ stats.devices | tojson | safe }};
