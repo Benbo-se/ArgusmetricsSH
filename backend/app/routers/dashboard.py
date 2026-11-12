@@ -540,25 +540,19 @@ async def accept_invite_page(
             "error": str(e),
         })
 
-    # Get the invitee email from the pending member record
-    from app.models.website_member import WebsiteMember, MemberStatus
-    member = db.query(WebsiteMember).filter(
-        WebsiteMember.invite_token == token,
-        WebsiteMember.status == MemberStatus.PENDING
-    ).first()
-
-    if not member:
-        return templates.TemplateResponse(request, "auth/accept_invite.html", {
-            "current_user": user,
-            "error": "Invitation not found or already accepted.",
-        })
-
-    invitee_email = member.user_email
+    # The invitee's address comes from resolving the token, which works without
+    # a row-level security context. Reading website_members directly here found
+    # nothing as the production role: whoever opened the link was told the
+    # invitation did not exist.
+    invitee_email = details["invitee_email"]
 
     if user:
         # User is logged in
         if user.email.lower() == invitee_email.lower():
-            # Email matches — auto-accept
+            # Email matches, so accept. Accepting reads and updates
+            # website_members, whose policies match on the caller's address.
+            from app.database import set_rls_context
+            set_rls_context(db, context="user", user_email=user.email)
             try:
                 result = team_service.accept_invitation(token, user.email)
                 return templates.TemplateResponse(request, "auth/accept_invite.html", {
