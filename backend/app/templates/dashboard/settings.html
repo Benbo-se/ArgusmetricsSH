@@ -671,7 +671,7 @@ export default function Custom404() {
                 </label>
                 <select id="site-timezone"
                         x-model="timezone"
-                        class="block w-full sm:w-80 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                        class="block w-full max-w-sm rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
                     {% for zone in timezone_choices %}
                     <option value="{{ zone }}"{% if zone == site_timezone %} selected{% endif %}>{{ zone }}</option>
                     {% endfor %}
