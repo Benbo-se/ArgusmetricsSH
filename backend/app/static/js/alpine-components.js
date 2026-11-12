@@ -1393,6 +1393,77 @@ document.addEventListener('alpine:init', () => {
     }))
 
     /** Traffic spike alerts. */
+    /**
+     * The website's time zone: where a day starts in every statistic.
+     * The list comes from the server, which is also what validates the
+     * choice; the browser only suggests its own zone when the list has it.
+     */
+    Alpine.data('siteTimezone', () => ({
+        zone: 'UTC',
+        browserZone: '',
+        websiteId: '',
+        saving: false,
+        showSuccess: false,
+        errorMessage: '',
+
+        get timezone() { return modelFor(this, 'zone') },
+
+        init() {
+            this.websiteId = this.$el.dataset.websiteId
+            this.zone = this.$el.dataset.timezone || 'UTC'
+            let guess = ''
+            try {
+                guess = Intl.DateTimeFormat().resolvedOptions().timeZone || ''
+            } catch (error) {
+                guess = ''
+            }
+            const offered = Array.from(this.$el.querySelectorAll('option'))
+                .some((option) => option.value === guess)
+            this.browserZone = offered ? guess : ''
+        },
+
+        get canSuggest() { return !!this.browserZone && this.browserZone !== this.zone },
+        get isSaving() { return this.saving },
+        get isNotSaving() { return !this.saving },
+        get hasError() { return !!this.errorMessage },
+        get saved() { return this.showSuccess },
+        get saveClass() {
+            return this.saving
+                ? 'bg-gray-400 cursor-not-allowed'
+                : 'bg-blue-600 hover:bg-blue-700'
+        },
+
+        useBrowserZone() { this.zone = this.browserZone },
+
+        async saveTimezone() {
+            this.saving = true
+            this.errorMessage = ''
+            this.showSuccess = false
+            try {
+                const response = await fetch(`/api/v1/websites/${this.websiteId}`, {
+                    method: 'PUT',
+                    credentials: 'same-origin',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ timezone: this.zone }),
+                })
+                const data = await response.json()
+                if (!response.ok) {
+                    this.errorMessage =
+                        data.message || data.detail || 'Failed to save the time zone'
+                    return
+                }
+                this.zone = data.timezone
+                this.showSuccess = true
+                setTimeout(() => { this.showSuccess = false }, 3000)
+            } catch (error) {
+                console.error('Error saving time zone:', error)
+                this.errorMessage = 'Network error. Please try again.'
+            } finally {
+                this.saving = false
+            }
+        },
+    }))
+
     Alpine.data('trafficAlerts', () => ({
         alertsOn: false,
         spikeThreshold: 2.0,

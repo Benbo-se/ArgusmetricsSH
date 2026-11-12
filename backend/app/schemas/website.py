@@ -132,6 +132,11 @@ class WebsiteResponse(BaseModel):
         description="Whether tracking is active for this website",
         example=True
     )
+    timezone: str = Field(
+        "UTC",
+        description="IANA time zone the website counts its days in",
+        example="Europe/Stockholm"
+    )
     is_verified: bool = Field(
         ...,
         description="Whether domain ownership has been verified via DNS",
@@ -233,6 +238,7 @@ class WebsiteUpdate(BaseModel):
     Attributes:
         name: Website name/label (optional)
         is_active: Whether tracking is active (optional)
+        timezone: IANA time zone the website counts its days in (optional)
 
     Note: At least one field must be provided for update.
 
@@ -255,10 +261,26 @@ class WebsiteUpdate(BaseModel):
         example=False
     )
 
+    timezone: Optional[str] = Field(
+        None,
+        description="IANA time zone name, for example Europe/Stockholm",
+        max_length=64,
+        example="Europe/Stockholm"
+    )
+
     @field_validator('name', 'is_active')
     @classmethod
     def at_least_one_field(cls, v, info):
         """Ensure at least one field is provided for update."""
+        return v
+
+    @field_validator('timezone')
+    @classmethod
+    def known_timezone(cls, v):
+        """A name the zone database knows, spelled the way it spells it."""
+        from app.utils.date_helpers import is_valid_timezone
+        if v is not None and not is_valid_timezone(v):
+            raise ValueError('Unknown time zone. Use an IANA name such as Europe/Stockholm')
         return v
 
     class Config:

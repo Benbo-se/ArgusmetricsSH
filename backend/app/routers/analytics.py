@@ -13,7 +13,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Request, Header, 
 
 from app.services.usage_service import LIMIT_MESSAGE
 from app.services import visitor_dimensions
-from app.utils.date_helpers import parse_api_window
+from app.utils.date_helpers import parse_api_window, site_timezone
 from app.utils.csv_safe import SafeWriter
 from sqlalchemy.orm import Session
 
@@ -549,13 +549,14 @@ async def get_dashboard_stats(
     
     # Parse dates or use defaults (last 30 days)
     try:
-        start, end = parse_api_window(start_date, end_date)
+        start, end = parse_api_window(start_date, end_date, site_timezone(website))
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid date format. Use ISO format (YYYY-MM-DD)")
     
     # Get dashboard stats
     try:
-        stats = analytics_service.get_dashboard_stats(website_id=website_id, start_date=start, end_date=end)
+        stats = analytics_service.get_dashboard_stats(
+            website_id=website_id, start_date=start, end_date=end, tz=site_timezone(website))
         return DashboardStatsResponse(**stats)
     except Exception as e:
         logger.error(f"Error getting dashboard stats: {e}", exc_info=True)
@@ -880,7 +881,7 @@ async def get_goal_stats(
 
     # Parse dates or use defaults (last 30 days)
     try:
-        start, end = parse_api_window(start_date, end_date)
+        start, end = parse_api_window(start_date, end_date, site_timezone(website))
     except ValueError:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid date format")
 
@@ -1004,7 +1005,7 @@ async def export_csv(
 
     # Parse dates
     try:
-        start, end = parse_api_window(start_date, end_date)
+        start, end = parse_api_window(start_date, end_date, site_timezone(website))
     except ValueError:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid date format")
 
@@ -1080,7 +1081,7 @@ async def export_json(
 
     # Parse dates
     try:
-        start, end = parse_api_window(start_date, end_date)
+        start, end = parse_api_window(start_date, end_date, site_timezone(website))
     except ValueError:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid date format")
 
@@ -1286,7 +1287,7 @@ async def get_custom_events_summary(
 
     # Parse dates or use defaults (last 30 days)
     try:
-        start, end = parse_api_window(start_date, end_date)
+        start, end = parse_api_window(start_date, end_date, site_timezone(website))
     except ValueError:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid date format")
 
@@ -1316,7 +1317,7 @@ async def get_event_details(
 
     # Parse dates or use defaults (last 30 days)
     try:
-        start, end = parse_api_window(start_date, end_date)
+        start, end = parse_api_window(start_date, end_date, site_timezone(website))
     except ValueError:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid date format")
 
@@ -1349,7 +1350,7 @@ async def get_available_properties(
 
     # Parse dates or use defaults (last 30 days)
     try:
-        start, end = parse_api_window(start_date, end_date)
+        start, end = parse_api_window(start_date, end_date, site_timezone(website))
     except ValueError:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid date format")
 
