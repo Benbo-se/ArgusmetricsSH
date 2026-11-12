@@ -36,6 +36,11 @@ jobs:
       (github.event.workflow_run.conclusion == 'success' && vars.DEPLOY_ENABLED == 'true')
     runs-on: ubuntu-latest
     environment: production
+    # packages: read låter jobbets egen GITHUB_TOKEN hämta repots privata
+    # GHCR-images. Tokenen dör när jobbet är klart.
+    permissions:
+      contents: read
+      packages: read
     outputs:
       sha: ${{ steps.t.outputs.tag }}
     steps:
@@ -78,14 +83,29 @@ jobs:
         env:
           DEPLOY_TAG: ${{ steps.t.outputs.tag }}
           DEPLOY_KIND: ${{ steps.t.outputs.kind }}
+          GHCR_USER: ${{ github.actor }}
+          GHCR_TOKEN: ${{ github.token }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
-          envs: DEPLOY_TAG,DEPLOY_KIND
+          envs: DEPLOY_TAG,DEPLOY_KIND,GHCR_USER,GHCR_TOKEN
           script: |
             set -euo pipefail
             cd /opt/argusmetrics
+
+            # Egen, tillfällig docker-konfig för GHCR-inloggningen. Servern
+            # delas med andra projekt, och deras runners loggar in och ut i
+            # ~/.docker/config.json (docker/login-action loggar ut i sitt
+            # post-steg). En inloggning som sparas där överlever inte deras
+            # nästa deploy, och vi ska inte heller skriva i deras fil.
+            # compose/buildx ligger i /usr/libexec, så de påverkas inte.
+            DOCKER_CONFIG=$(mktemp -d)
+            export DOCKER_CONFIG
+            trap 'rm -rf "$DOCKER_CONFIG"' EXIT
+            printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin >/dev/null
+            unset GHCR_TOKEN
+
             COMPOSE="docker compose -f docker/docker-compose.prod.yml"
 
             # Skriv den tag som faktiskt kor till docker/.env, som compose

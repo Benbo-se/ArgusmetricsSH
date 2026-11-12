@@ -1,4 +1,6 @@
 import { readFileSync } from 'node:fs';
+import { createServer, type Server } from 'node:http';
+import type { AddressInfo } from 'node:net';
 import { test, expect } from '@playwright/test';
 
 /**
@@ -308,5 +310,146 @@ test.describe('The tracker is silent in the console', () => {
         await page.waitForTimeout(300);
 
         expect(depths.map(d => d.path), 'back button').toEqual(['/old', '/new']);
+    });
+});
+
+/**
+ * A customer's site and the instance are different origins, which is the only
+ * way the tracker is ever used and the one thing the tests above, served from
+ * the instance itself, never exercised (#166).
+ *
+ * Two real HTTP servers on two ports, because a page and an API on different
+ * ports are different origins and the browser applies its real CORS rules.
+ * Routed (stubbed) responses did not: Playwright's fulfilled preflight was let
+ * through for a credentialed beacon, and the test passed against the broken
+ * tracker. The "instance" answers as the real one does for these endpoints:
+ * Access-Control-Allow-Origin: * and no Allow-Credentials. A POST only counts
+ * as received if it got past the preflight, so a report that dies in the CORS
+ * check never lands in the lists below.
+ */
+test.describe('The tracker on a site that is not the instance', () => {
+    const CORS = {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': '*',
+        'Access-Control-Allow-Headers': '*',
+    };
+    const trackerJs = readFileSync('../backend/app/static/tracker.min.js', 'utf8');
+
+    let pageviews: any[] = [];
+    let depths: any[] = [];
+    let instance: Server;
+    let site: Server;
+    let instanceUrl = '';
+    let siteUrl = '';
+
+    function listen(server: Server): Promise<string> {
+        return new Promise(resolve => server.listen(0, '127.0.0.1', () =>
+            resolve(`http://127.0.0.1:${(server.address() as AddressInfo).port}`)));
+    }
+
+    test.beforeAll(async () => {
+        instance = createServer((req, res) => {
+            if (req.method === 'OPTIONS') {
+                res.writeHead(204, CORS).end();
+                return;
+            }
+            let raw = '';
+            req.on('data', chunk => raw += chunk);
+            req.on('end', () => {
+                const body = JSON.parse(raw || '{}');
+                if (req.url!.endsWith('/track')) pageviews.push(body);
+                if (req.url!.endsWith('/track-scroll')) depths.push(body);
+                res.writeHead(200, { ...CORS, 'Content-Type': 'application/json' }).end('{"success":true}');
+            });
+        });
+        instanceUrl = await listen(instance);
+
+        site = createServer((req, res) => {
+            if (req.url === '/tracker.min.js') {
+                res.writeHead(200, { 'Content-Type': 'application/javascript' }).end(trackerJs);
+                return;
+            }
+            res.writeHead(200, { 'Content-Type': 'text/html' }).end(`<!doctype html><html><body>
+                <div style="height: 4000px">Tall enough to scroll.</div>
+                <script>
+                    Object.defineProperty(navigator, 'webdriver', { get: () => false });
+                    Object.defineProperty(navigator, 'userAgent', { get: () => ${JSON.stringify(PERSON_UA)} });
+                </script>
+                <script src="/tracker.min.js" data-tracking-code="cors-check"
+                        data-api-endpoint="${instanceUrl}/api/v1/analytics/track" data-track-localhost="true"></script>
+            </body></html>`);
+        });
+        siteUrl = await listen(site);
+    });
+
+    test.afterAll(() => {
+        instance.close();
+        site.close();
+    });
+
+    test.beforeEach(() => {
+        pageviews = [];
+        depths = [];
+    });
+
+    async function open(page: import('@playwright/test').Page, referer?: string) {
+        await page.goto(`${siteUrl}/a`, referer ? { referer } : {});
+        await page.waitForTimeout(300);
+    }
+
+    async function leave(page: import('@playwright/test').Page) {
+        await page.evaluate(() => window.dispatchEvent(new Event('pagehide')));
+        await page.waitForTimeout(300);
+    }
+
+    test('the scroll depth arrives (#166)', async ({ page }) => {
+        await open(page);
+        await page.evaluate(() => window.scrollTo(0, 2000));
+        await page.waitForTimeout(400);
+        await leave(page);
+
+        expect(pageviews.length, 'the pageview, as a control that the servers are reachable').toBe(1);
+        expect(depths.length, 'no scroll report reached the server').toBe(1);
+        expect(depths[0].path).toBe('/a');
+        expect(depths[0].depth).toBeGreaterThan(0);
+    });
+
+    test('the depth is reported again once it has grown (#167)', async ({ page }) => {
+        await open(page);
+        await page.evaluate(() => window.scrollTo(0, 800));
+        await page.waitForTimeout(400);
+        await leave(page);
+        await leave(page); // nothing new since: must not send again
+        await page.evaluate(() => window.scrollTo(0, 3800));
+        await page.waitForTimeout(400);
+        await leave(page);
+
+        expect(depths.length, JSON.stringify(depths)).toBe(2);
+        expect(depths[1].depth).toBeGreaterThan(depths[0].depth);
+        expect(depths[1].depth).toBeGreaterThan(90);
+    });
+
+    test('replaceState on the same path is not a new pageview (#177)', async ({ page }) => {
+        await open(page);
+        expect(pageviews.length, 'the first pageview').toBe(1);
+
+        await page.evaluate(() => history.replaceState({ scrollY: 120 }, ''));
+        await page.waitForTimeout(300);
+        expect(pageviews.length, 'replaceState on the same path').toBe(1);
+
+        await page.evaluate(() => history.replaceState({}, '', '/c'));
+        await page.waitForTimeout(300);
+        expect(pageviews.map(p => p.path), 'replaceState to another path').toEqual(['/a', '/c']);
+    });
+
+    test('the referrer is sent on the first pageview only (#177)', async ({ page }) => {
+        await open(page, 'https://www.google.com/search?q=x');
+        await page.evaluate(() => history.pushState({}, '', '/b'));
+        await page.waitForTimeout(300);
+        await page.evaluate(() => history.pushState({}, '', '/c'));
+        await page.waitForTimeout(300);
+
+        expect(pageviews.map(p => p.path)).toEqual(['/a', '/b', '/c']);
+        expect(pageviews.map(p => p.referrer)).toEqual(['https://www.google.com/search', null, null]);
     });
 });

@@ -6,8 +6,8 @@
  * - Minimal data collection (path, referrer, screen width)
  * - No cookies
  * - Respects Do Not Track (DNT)
- * - Uses sendBeacon for reliability
- * - <2KB minified
+ * - fetch with keepalive, so reports survive the page being left
+ * - About 8 KB minified, 3 KB gzipped
  *
  * Usage:
  *   <script src="https://argusmetrics.io/static/tracker.min.js" data-tracking-code="YOUR_CODE" defer></script>
@@ -234,6 +234,9 @@
     };
   }
 
+  let pageviewsSent = 0;
+  let lastTrackedPath = null;
+
   /**
    * Track a pageview
    * @param {Object} properties - Optional custom properties (e.g., {userId: '123', plan: 'pro'})
@@ -241,7 +244,6 @@
   function trackPageview(properties = null) {
     // Check if DNT is enabled
     if (isDNTEnabled()) {
-      console.log('[Argusmetrics] Do Not Track enabled, skipping tracking');
       return;
     }
 
@@ -260,7 +262,10 @@
     const data = {
       tracking_code: trackingCode,
       path: getPath(),
-      referrer: getReferrer(),
+      // document.referrer is the page the visit came from and does not change
+      // in a single-page app, so only the first pageview carries it. Sent on
+      // every page it counted one referral per page read (#177).
+      referrer: pageviewsSent === 0 ? getReferrer() : null,
       screen_width: getScreenWidth(),
       ...utmParams
     };
@@ -269,6 +274,9 @@
     if (properties && typeof properties === 'object' && !Array.isArray(properties) && Object.keys(properties).length > 0) {
       data.properties = properties;
     }
+
+    pageviewsSent++;
+    lastTrackedPath = data.path;
 
     // Use fetch with keepalive instead of sendBeacon to avoid CORS credential issues
     // fetch with keepalive works even when page is unloading, just like sendBeacon
@@ -284,7 +292,6 @@
   function trackEvent(eventName, properties = {}) {
     // Check if DNT is enabled
     if (isDNTEnabled()) {
-      console.log('[Argusmetrics] Do Not Track enabled, skipping event tracking');
       return;
     }
 
@@ -336,13 +343,6 @@
       credentials: 'omit',  // Don't send cookies to avoid CORS issues
       mode: 'cors'  // Explicitly set CORS mode
     })
-    .then(response => {
-      if (properties && Object.keys(properties).length > 0) {
-        console.log(`[Argusmetrics] Event tracked: ${eventName} with properties`, properties);
-      } else {
-        console.log(`[Argusmetrics] Event tracked: ${eventName}`);
-      }
-    })
     .catch(error => {
       console.warn(`[Argusmetrics] Event sent: ${eventName} (response validation failed)`);
     });
@@ -355,7 +355,6 @@
    */
   function trackEcommerce(eventType, data = {}) {
     if (isDNTEnabled()) {
-      console.log('[Argusmetrics] Do Not Track enabled, skipping ecommerce tracking');
       return;
     }
 
@@ -405,9 +404,6 @@
       credentials: 'omit',
       mode: 'cors'
     })
-    .then(response => {
-      console.log(`[Argusmetrics] Ecommerce event tracked: ${eventType}`, data);
-    })
     .catch(error => {
       console.warn(`[Argusmetrics] Ecommerce event sent: ${eventType} (response validation failed)`);
     });
@@ -426,10 +422,6 @@
       keepalive: true,  // Keep request alive even if page is closed
       credentials: 'omit',  // Don't send cookies to avoid CORS issues
       mode: 'cors'  // Explicitly set CORS mode
-    })
-    .then(response => {
-      // Don't try to read response body to avoid CORS issues
-      console.log('[Argusmetrics] Pageview tracked');
     })
     .catch(error => {
       // Silently fail - tracking is fire-and-forget
@@ -776,17 +768,20 @@
   /**
    * Send the deepest point reached, once, as the visitor leaves.
    *
-   * Guarded so it cannot send twice: pagehide and visibilitychange both fire
-   * in some navigations, and a browser that discards the page after
-   * visibilitychange never reaches pagehide, so both are needed.
+   * Guarded so the same depth is not sent twice: pagehide and
+   * visibilitychange both fire in some navigations, and a browser that
+   * discards the page after visibilitychange never reaches pagehide, so both
+   * are needed.
    */
-  let scrollDepthReported = false;
+  let reportedScrollDepth = 0;
 
   function reportScrollDepth() {
-    if (scrollDepthReported) return;
-    if (maxScrollDepth <= 0) return;
+    // Only when the depth has grown since the last report. A visitor who
+    // switches tab at 20 per cent and then reads to the end reports again,
+    // and the server keeps the larger value (#167).
+    if (maxScrollDepth <= reportedScrollDepth) return;
 
-    scrollDepthReported = true;
+    reportedScrollDepth = maxScrollDepth;
     sendScrollDepth(maxScrollDepth);
   }
 
@@ -800,9 +795,12 @@
    * loaded, and a visitor who reads to the bottom should not cost more than
    * one who leaves at once.
    *
-   * sendBeacon, because this fires as the page is going away and a normal
-   * fetch is cancelled with it. keepalive fetch is the fallback for browsers
-   * without it.
+   * fetch with keepalive, because this fires as the page is going away and a
+   * normal fetch is cancelled with it. Not sendBeacon: with a JSON body it
+   * needs a CORS preflight and always sends credentials, which the server's
+   * wildcard origin refuses, and it still returns true. On any site on
+   * another origin than the instance the report was dropped silently (#166).
+   * The pageview uses the same call for the same reason.
    */
   function sendScrollDepth(depth) {
     // The same two refusals as a pageview. Without them a visitor with Do
@@ -821,20 +819,15 @@
     });
 
     try {
-      if (navigator.sendBeacon) {
-        navigator.sendBeacon(endpoint, new Blob([payload], { type: 'application/json' }));
-        return;
-      }
-    } catch (e) {
-      // Fall through to fetch below.
-    }
-
-    try {
       fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: payload,
-        keepalive: true
+        keepalive: true,
+        credentials: 'omit',
+        mode: 'cors'
+      }).catch(function() {
+        // Fire and forget, like the pageview.
       });
     } catch (e) {
       // A depth that never arrives is a missing value, not an error worth
@@ -862,7 +855,7 @@
     // without this the second page would inherit the first one's depth.
     maxScrollDepth = 0;
     scrollPath = getPath();
-    scrollDepthReported = false;
+    reportedScrollDepth = 0;
 
     // Add scroll listener
     window.addEventListener('scroll', handleScroll, { passive: true });
@@ -916,8 +909,12 @@
     const originalPushState = history.pushState;
     const originalReplaceState = history.replaceState;
 
-    history.pushState = function() {
-      originalPushState.apply(this, arguments);
+    // One place for what a single-page navigation does. Nothing happens if
+    // the path is the same: routers call replaceState to save a scroll
+    // position or tidy the URL, and that is not a new page (#177).
+    function onNavigate() {
+      if (getPath() === lastTrackedPath) return;
+
       trackPageview();
       // Re-setup outbound tracking for SPA page changes
       setupOutboundTracking();
@@ -927,33 +924,20 @@
       reportScrollDepth();
       cleanupScrollTracking();
       setupScrollTracking();
+    }
+
+    history.pushState = function() {
+      originalPushState.apply(this, arguments);
+      onNavigate();
     };
 
     history.replaceState = function() {
       originalReplaceState.apply(this, arguments);
-      trackPageview();
-      // Re-setup outbound tracking for SPA page changes
-      setupOutboundTracking();
-      // Re-setup download tracking for SPA page changes
-      setupDownloadTracking();
-      // Re-setup scroll tracking for new page
-      reportScrollDepth();
-      cleanupScrollTracking();
-      setupScrollTracking();
+      onNavigate();
     };
 
     // Track on popstate (back/forward buttons)
-    window.addEventListener('popstate', function() {
-      trackPageview();
-      // Re-setup outbound tracking for SPA page changes
-      setupOutboundTracking();
-      // Re-setup download tracking for SPA page changes
-      setupDownloadTracking();
-      // Re-setup scroll tracking for new page
-      reportScrollDepth();
-      cleanupScrollTracking();
-      setupScrollTracking();
-    });
+    window.addEventListener('popstate', onNavigate);
 
     // Report on the way out. visibilitychange covers the case a browser
     // discards the page without ever firing pagehide, which is most mobile
