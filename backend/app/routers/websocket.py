@@ -148,26 +148,26 @@ async def websocket_endpoint(
     Args:
         websocket: WebSocket connection
         website_id: Website ID
-        tracking_code: Website tracking code (for authentication)
+        tracking_code: Deprecated, no longer accepted for authentication
+        api_token: Website API token, an alternative to the session cookie
         db: Database session
 
-    Message Format (sent to client):
-        {
-            "type": "pageview",
-            "data": {
-                "path": "/blog/post-1",
-                "country": "SE",
-                "device": "desktop",
-                "timestamp": "2024-01-01T12:00:00Z"
-            }
-        }
+    Messages sent to the client, all as {"type": ..., "data": {...}}:
 
-        {
-            "type": "visitor_count",
-            "data": {
-                "current_visitors": 5
-            }
-        }
+        "connected" once, on accept:
+            {"website_id": 123, "message": "Real-time updates enabled"}
+
+        "pong" in answer to a client {"type": "ping"}; carries no data.
+
+        "pageview" when a pageview is recorded:
+            {"path": "/blog/post-1", "timestamp": "2024-01-01T12:00:00+00:00"}
+
+        "conversion" when an event converts a goal:
+            {"event_name": "signup", "goal_name": "Signed up",
+             "timestamp": "2024-01-01T12:00:00+00:00"}
+
+    No country, device or visitor count is sent: the pageview message carries
+    the path and the time only.
     """
     logger.info(f"WebSocket connection attempt: website_id={website_id}")
 
