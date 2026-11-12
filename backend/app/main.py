@@ -511,7 +511,7 @@ async def sitemap_xml():
 
 
 # Import and include routers
-from app.routers import waitlist, auth, websites, analytics, dashboard, websocket, dashboard_password, email_reports, revenue, funnels, anomaly, annotations
+from app.routers import waitlist, auth, websites, analytics, dashboard, websocket, dashboard_password, email_reports, revenue, funnels, anomaly, annotations, account
 
 app.include_router(
     auth.router,
@@ -587,6 +587,12 @@ app.include_router(
 app.include_router(
     dashboard.router,
     tags=["Dashboard"],
+)
+
+# The account page and the sign-in code page (HTML)
+app.include_router(
+    account.router,
+    tags=["Account"],
 )
 
 # Favicon route (browsers look for /favicon.ico first)

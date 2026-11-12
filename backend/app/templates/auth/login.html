@@ -132,7 +132,7 @@ async function handleLogin(event) {
         });
         if (r.ok) {
             const data = await r.json();
-            btn.textContent = 'Signed in! Redirecting...';
+            btn.textContent = data.two_factor_required ? 'One more step...' : 'Signed in! Redirecting...';
             window.location.href = data.redirect || '/dashboard';
         } else {
             const data = await r.json();

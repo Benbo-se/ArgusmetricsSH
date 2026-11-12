@@ -181,6 +181,35 @@ To get back into a brand new instance with no accounts at all:
 
 It refuses once any account exists.
 
+### Someone has lost their phone
+
+An account with two-factor authentication needs a code after the password.
+The way back in without the phone is one of the ten recovery codes shown when
+it was turned on, typed into the same field. With no phone and no codes,
+nothing in the application lets the account in, and that is deliberate: a
+password reset changes the password and does not sign in, because otherwise
+the inbox would be a way around the second factor.
+
+From the server:
+
+```bash
+./argus admin disable-2fa     # lists the accounts and asks which
+```
+
+It turns two-factor authentication off for that account, deletes the secret
+and the recovery codes, lifts a lock left by wrong codes, and signs the
+account out everywhere. The password is unchanged.
+
+Five wrong codes in a row close the code step for that account for 15
+minutes. That is a row in `users`, not a counter in the process, so a restart
+does not clear it. The same command does.
+
+**Changing `SECRET_KEY` makes the stored secrets unreadable**, since they are
+encrypted with a key derived from it. Authenticator codes then stop being
+accepted. Recovery codes still work, because they are stored as plain hashes,
+and so does `./argus admin disable-2fa`. Expect to set two-factor
+authentication up again after rotating the key.
+
 ## Rolling back a deployment
 
 Every deploy tags the commit `PROD-YYYY-MM-DD` and pushes images tagged with

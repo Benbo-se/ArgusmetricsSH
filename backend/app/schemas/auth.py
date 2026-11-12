@@ -55,6 +55,11 @@ class LoginRequest(BaseModel):
     password: str = Field(..., min_length=1, max_length=200)
 
 
+class SecondFactorRequest(BaseModel):
+    """The second step of signing in: an authenticator code or a recovery code."""
+    code: str = Field(..., min_length=1, max_length=64)
+
+
 class VerifyCodeRequest(BaseModel):
     """Verify email with the 6-digit code from the verification email."""
     email: EmailStr

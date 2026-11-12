@@ -21,6 +21,7 @@ Production, 2026-10-08: 1 user, 15 websites, 15 memberships, 30 sessions,
 | Data | Where | Why we have it | How long | Removed by |
 |---|---|---|---|---|
 | Account email, password hash, one-time login code (hashed) | `users` | login | until the account is deleted | `cleanup_service`: unverified after 7 days, verified with no site, no membership and no session after 30 days. On request: `./argus delete-user` |
+| Two-factor authentication: the TOTP secret (encrypted with a key derived from `SECRET_KEY`), when it was turned on, the last accepted time step, a count of wrong codes; recovery codes (SHA-256 only) and when each was used | `users.totp_*`, `two_factor_recovery_codes` | a second factor at sign-in, for accounts that turn it on | until turned off, or with the account | turning it off at `/dashboard/account`; `./argus admin disable-2fa`; cascades with the account |
 | Session tokens (hashed), with the account's email | `sessions` | stay logged in | `SESSION_EXPIRY_DAYS` (30) | `cleanup_expired_sessions`, nightly |
 | API tokens (hashed) | `api_tokens` | read-only API access to one site | until revoked | revoke in the dashboard; cascades with the website |
 | Website owner's email, report and alert recipient addresses | `websites.user_email`, `email_reports_recipient`, `alert_settings.alert_email` | ownership, sending reports and alerts | with the website | deleting the website (`DELETE /websites/{id}`); cascades |

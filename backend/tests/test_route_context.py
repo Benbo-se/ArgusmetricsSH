@@ -51,6 +51,11 @@ EXEMPT = {
     # Authentication itself, which runs before anyone has an identity. These
     # touch users and sessions, neither of which is policied.
     "POST /api/v1/auth/login": "establishes the identity a context would need",
+    "POST /api/v1/auth/login/2fa": (
+        "the second step of the same; users, sessions and "
+        "two_factor_recovery_codes are not policied"
+    ),
+    "GET /login/2fa": "page; reads users to check the pending sign-in is still good",
     "POST /api/v1/auth/signup": "creates the user",
     "GET /api/v1/auth/verify": "verifies by token, not by session",
     "POST /api/v1/auth/verify-code": "verifies by code",

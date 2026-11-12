@@ -26,6 +26,7 @@ from app.utils.security import (
 )
 from app.services.email_service import email_service
 from app.utils.password_rules import password_ok, failed_rules
+from app.services.two_factor import SecondFactorRequired
 from app.config import settings
 
 logger = logging.getLogger(__name__)
@@ -444,6 +445,10 @@ class AuthService:
         email, wrong password, unverified account) and a decoy bcrypt compare
         when the email is unknown, so failures are indistinguishable by
         response AND by timing.
+
+        For an account with two-factor authentication the password is only
+        half of it: create_session raises SecondFactorRequired, which is not
+        the generic error, and the route answers by asking for the code.
         """
         generic = ValueError("Invalid email or password")
         email = normalize_email(email)
@@ -494,12 +499,20 @@ class AuthService:
             return reset_url
         return None
 
-    def set_password_with_token(self, token: str, new_password: str) -> SessionModel:
+    def set_password_with_token(self, token: str, new_password: str) -> Optional[SessionModel]:
         """
         Complete a password reset: validate the token (single-use, purpose
         'reset'), enforce the password rules, revoke EVERY existing session,
         and sign the user in fresh. Also marks the account verified — the
         emailed link proves address ownership.
+
+        Returns None, having changed the password, for an account with
+        two-factor authentication. The reset link proves control of the
+        inbox and nothing else. Signing in from it would make the inbox a
+        way around the second factor, which is the one thing the second
+        factor is for: it replaces the password, not the code. Someone who
+        has lost both the password and the device has recovery codes, and
+        the operator has `./argus admin disable-2fa`.
         """
         try:
             payload = verify_magic_token(
@@ -539,6 +552,8 @@ class AuthService:
         self.db.commit()
         logger.info(f"Password reset completed for {_mask_email(email)}; all sessions revoked")
 
+        if user.two_factor_enabled:
+            return None
         return self.create_session(user)
 
 
@@ -623,15 +638,27 @@ class AuthService:
 
         return self.create_session(user)
 
-    def create_session(self, user: User) -> SessionModel:
+    def create_session(self, user: User, second_factor_passed: bool = False) -> SessionModel:
         """
         Create a new authentication session for a user.
 
         Generates a secure session token and stores it in the database
         with an expiration time based on settings.
 
+        Every way of signing in ends here, which is why the two-factor rule
+        lives here and not in the login route: an account that has it gets a
+        session only from a caller that says the second factor was passed.
+        The one caller that may say so is the code step. Anything else that
+        reaches this for such an account (a verification link, a new route
+        written next year) is refused instead of quietly signing in.
+
         Args:
             user: User object to create session for
+            second_factor_passed: True only where a code was just accepted
+
+        Raises:
+            SecondFactorRequired: the account has two-factor authentication
+                and second_factor_passed is not set
 
         Returns:
             SessionModel: Newly created session
@@ -645,6 +672,9 @@ class AuthService:
             print(f"Session token: {session.token}")
             print(f"Expires at: {session.expires_at}")
         """
+        if user.two_factor_enabled and not second_factor_passed:
+            raise SecondFactorRequired(user)
+
         logger.info(f"Creating session for user: {_mask_email(user.email)}")
 
         try:

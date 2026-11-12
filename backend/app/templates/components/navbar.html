@@ -27,7 +27,7 @@
                             <path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
                         </svg>
                     </button>
-                    <span class="text-sm text-gray-600">{{ current_user.email }}</span>
+                    <a href="/dashboard/account" title="Account and two-factor authentication" class="text-sm text-gray-600 hover:text-gray-900">{{ current_user.email }}</a>
                     <form method="post" action="/logout" class="inline"><button type="submit" class="text-sm text-gray-700 hover:text-gray-900">Logout</button></form>
                 </div>
             </div>
@@ -69,6 +69,10 @@
                 <div class="py-2 text-sm text-gray-600 font-medium">
                     {{ current_user.email }}
                 </div>
+                <a href="/dashboard/account"
+                   class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">
+                    Account
+                </a>
                 <form method="post" action="/logout">
                     <button type="submit" class="block w-full text-left px-3 py-2 text-base font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-md transition">
                         Logout
