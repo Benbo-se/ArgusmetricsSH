@@ -59,6 +59,12 @@ validate() {
                 [ "$args" = "http://127.0.0.1:8021" ] || die "statement $n: proxy_pass is the web container" ;;
             access_log)
                 [ "$args" = "off" ] || die "statement $n: access_log may only be off" ;;
+            error_log)
+                # One fixed file and one level. nginx opens this as root, so a
+                # free path would be a way to write anywhere; and below crit a
+                # line carries the client's address and the whole request.
+                [ "$args" = "/var/log/nginx/argusmetrics-error.log crit" ] \
+                    || die "statement $n: error_log is /var/log/nginx/argusmetrics-error.log crit" ;;
             return)
                 [[ "$args" =~ ^(301\ https://(argusmetrics\.io|\$host)\$request_uri|404)$ ]] \
                     || die "statement $n: return is a redirect to us or 404" ;;
