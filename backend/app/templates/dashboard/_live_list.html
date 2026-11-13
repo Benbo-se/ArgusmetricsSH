@@ -6,7 +6,7 @@
 <ul>
     {% for visitor in visitors %}
     <li class="flex items-center gap-3 py-2.5 border-b border-gray-100 last:border-0">
-        <span class="text-xl leading-none">{{ (visitor.country | country_flag) if visitor.country else "🌍" }}</span>
+        <span class="text-xl leading-none">{{ (visitor.country | country_flag) if visitor.country else "·" }}</span>
         <p class="flex-1 min-w-0 text-sm font-medium text-gray-900 truncate">{{ visitor.path }}</p>
         {# An unresolved country is None, and Jinja renders that as the
            word "None". The flag above already had a fallback; this one did

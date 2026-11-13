@@ -299,14 +299,14 @@ function crossDomainDashboard() {
                     datasets: [{
                         label: 'Combined Pageviews',
                         data: data,
-                        borderColor: 'rgb(59, 130, 246)',
-                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        borderColor: themeColor('--brand-500', '#0a6f69'),
+                        backgroundColor: themeAlpha('--brand-500', 0.12, '#0a6f69'),
                         borderWidth: 2,
                         fill: true,
                         tension: 0.4,
                         pointRadius: 3,
                         pointHoverRadius: 5,
-                        pointBackgroundColor: 'rgb(59, 130, 246)',
+                        pointBackgroundColor: themeColor('--brand-500', '#0a6f69'),
                         pointBorderColor: '#fff',
                         pointBorderWidth: 2,
                     }]
@@ -321,7 +321,7 @@ function crossDomainDashboard() {
                             backgroundColor: 'rgba(17, 24, 39, 0.95)',
                             titleColor: '#fff',
                             bodyColor: '#fff',
-                            borderColor: 'rgba(59, 130, 246, 0.3)',
+                            borderColor: themeAlpha('--brand-500', 0.3, '#0a6f69'),
                             borderWidth: 1,
                             padding: 16,
                             cornerRadius: 8,
@@ -383,18 +383,25 @@ function crossDomainDashboard() {
         },
 
         getReferrerIcon(referrer) {
-            const lower = referrer.toLowerCase();
-            if (lower.includes('google')) return '🔍';
-            if (lower.includes('facebook') || lower.includes('fb.com')) return '📘';
-            if (lower.includes('twitter') || lower.includes('t.co')) return '🐦';
-            if (lower.includes('linkedin')) return '💼';
-            if (lower.includes('github')) return '⚙️';
-            if (referrer === '(Direct)' || referrer === 'Direct') return '➡️';
-            return '🌐';
+            const icons = '/static/img/icons.svg#i-';
+            if (referrer === '(Direct)' || referrer === 'Direct') return icons + 'arrow';
+            // Matched on the host and its parent domains, never on a piece of
+            // the address: "fb.com" inside some other address is not Facebook.
+            let host = '';
+            try {
+                host = new URL(/^[a-z][a-z0-9+.-]*:\/\//i.test(referrer) ? referrer : 'https://' + referrer).hostname.toLowerCase();
+            } catch (e) {
+                return icons + 'globe';
+            }
+            const is = (...domains) => domains.some(d => host === d || host.endsWith('.' + d));
+            if (is('google.com', 'bing.com', 'duckduckgo.com') || /(^|\.)google\.[a-z.]{2,6}$/.test(host)) return icons + 'search';
+            if (is('facebook.com', 'fb.com', 'twitter.com', 'x.com', 't.co', 'linkedin.com', 'instagram.com', 'reddit.com')) return icons + 'share';
+            if (is('github.com')) return icons + 'code';
+            return icons + 'globe';
         },
 
         getCountryFlag(countryCode) {
-            if (!countryCode || countryCode.length !== 2) return '🌍';
+            if (!countryCode || countryCode.length !== 2) return '\u00b7';
             const codePoints = countryCode.toUpperCase().split('').map(char => 127397 + char.charCodeAt(0));
             return String.fromCodePoint(...codePoints);
         }

@@ -1,0 +1,303 @@
+{# The tables under the breakdown cards: outbound links, file downloads,
+   custom events and 404 errors. The owner's analytics page (website.html)
+   and the shared one (public.html) render the same four tables from here.
+
+   `owner` is what differs. The owner's page explains how each table is
+   fed and links on to pages behind the login. Somebody holding a share
+   link cannot act on any of that, so the shared page (owner=false) gets
+   the table and its heading and nothing else.
+
+   Each macro renders nothing when its list is empty. #}
+
+{% macro outbound_links_table(links, owner=true) %}
+{% if links and links|length > 0 %}
+<div class="bg-white rounded-lg shadow p-6 mb-6">
+    <div class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-semibold text-gray-900">Outbound Links</h2>
+        <span class="text-sm text-gray-500">Top 20 external destinations</span>
+    </div>
+    <div class="overflow-x-auto" x-data="sortableTable">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead>
+                <tr>
+                    <th @click="sortTable" data-column="0" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
+                        Destination URL <span data-column="0" x-text="sortIcon"></span>
+                    </th>
+                    <th @click="sortTable" data-column="1" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
+                        Link Text <span data-column="1" x-text="sortIcon"></span>
+                    </th>
+                    <th @click="sortTable" data-column="2" data-numeric="true" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
+                        Clicks <span data-column="2" x-text="sortIcon"></span>
+                    </th>
+                    <th @click="sortTable" data-column="3" data-numeric="true" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
+                        Percentage <span data-column="3" x-text="sortIcon"></span>
+                    </th>
+                    <th @click="sortTable" data-column="4" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
+                        From Page <span data-column="4" x-text="sortIcon"></span>
+                    </th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for link in links %}
+                <tr class="hover:bg-gray-50 transition-colors">
+                    <td class="px-4 py-3 text-sm text-gray-900 max-w-md">
+                        <a href="{{ link.url }}" target="_blank" rel="noopener noreferrer"
+                           class="text-blue-600 hover:text-blue-800 hover:underline truncate block"
+                           title="{{ link.url }}">
+                            {{ link.url }}
+                        </a>
+                    </td>
+                    <td class="px-4 py-3 text-sm text-gray-700 max-w-xs truncate" title="{{ link.text }}">
+                        {{ link.text }}
+                    </td>
+                    <td class="px-4 py-3 whitespace-nowrap text-sm font-semibold text-gray-900 text-right">
+                        {{ link.clicks }}
+                    </td>
+                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500 text-right">
+                        {{ link.percentage }}%
+                    </td>
+                    <td class="px-4 py-3 text-sm text-gray-700 max-w-xs truncate" title="{{ link.from_page }}">
+                        {{ link.from_page }}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% if owner %}
+    <div class="mt-4 text-xs text-gray-500">
+        <p>Automatically tracked external links clicked by your visitors. Includes links with different domains or target="_blank".</p>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+{% endmacro %}
+
+{% macro file_downloads_table(downloads, owner=true) %}
+{% if downloads and downloads|length > 0 %}
+<div class="bg-white rounded-lg shadow p-6 mb-6">
+    <div class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-semibold text-gray-900">File Downloads</h2>
+        <span class="text-sm text-gray-500">Top 50 downloaded files</span>
+    </div>
+    <div class="overflow-x-auto" x-data="sortableTable">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead>
+                <tr>
+                    <th @click="sortTable" data-column="0" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
+                        Filename <span data-column="0" x-text="sortIcon"></span>
+                    </th>
+                    <th @click="sortTable" data-column="1" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
+                        Type <span data-column="1" x-text="sortIcon"></span>
+                    </th>
+                    <th @click="sortTable" data-column="2" data-numeric="true" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
+                        Downloads <span data-column="2" x-text="sortIcon"></span>
+                    </th>
+                    <th @click="sortTable" data-column="3" data-numeric="true" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
+                        Unique Visitors <span data-column="3" x-text="sortIcon"></span>
+                    </th>
+                    <th @click="sortTable" data-column="4" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
+                        From Page <span data-column="4" x-text="sortIcon"></span>
+                    </th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for download in downloads %}
+                <tr class="hover:bg-gray-50 transition-colors">
+                    <td class="px-4 py-3 text-sm text-gray-900 max-w-md">
+                        <a href="{{ download.url }}" target="_blank" rel="noopener noreferrer"
+                           class="text-blue-600 hover:text-blue-800 hover:underline truncate block font-medium"
+                           title="{{ download.filename }}">
+                            {{ download.filename }}
+                        </a>
+                    </td>
+                    <td class="px-4 py-3 whitespace-nowrap">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                            .{{ download.file_type }}
+                        </span>
+                    </td>
+                    <td class="px-4 py-3 whitespace-nowrap text-sm font-semibold text-gray-900 text-right">
+                        {{ download.downloads }}
+                    </td>
+                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500 text-right">
+                        {{ download.unique_visitors }}
+                    </td>
+                    <td class="px-4 py-3 text-sm text-gray-700 max-w-xs truncate" title="{{ download.from_page }}">
+                        {{ download.from_page }}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% if owner %}
+    <div class="mt-4 text-xs text-gray-500">
+        <p>Automatically tracked file downloads (PDF, ZIP, DOC, XLS, etc). No setup required - just add download links to your site.</p>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+{% endmacro %}
+
+{# `event_href` is the address of an event's own page up to and excluding the
+   event name, and `event_query` what follows it. Without them the name is
+   plain text: the event pages are behind the login. #}
+{% macro custom_events_table(custom_events, owner=true, event_href=none, event_query='') %}
+{% if custom_events and custom_events.events and custom_events.events|length > 0 %}
+<div class="bg-white rounded-lg shadow p-6 mb-6">
+    <div class="flex items-center justify-between mb-4">
+        <div>
+            <h2 class="text-lg font-semibold text-gray-900">Custom Events</h2>
+            {% if owner %}
+            <p class="text-sm text-gray-600 mt-1">Track custom events with flexible properties</p>
+            {% endif %}
+        </div>
+        <span class="text-sm text-gray-500">{{ custom_events.total_events }} total events</span>
+    </div>
+    <div class="overflow-x-auto" x-data="sortableTable">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead>
+                <tr>
+                    <th @click="sortTable" data-column="0" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
+                        Event Name <span data-column="0" x-text="sortIcon"></span>
+                    </th>
+                    <th @click="sortTable" data-column="1" data-numeric="true" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
+                        Count <span data-column="1" x-text="sortIcon"></span>
+                    </th>
+                    <th @click="sortTable" data-column="2" data-numeric="true" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
+                        Unique Users <span data-column="2" x-text="sortIcon"></span>
+                    </th>
+                    <th @click="sortTable" data-column="3" data-numeric="true" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
+                        Avg/User <span data-column="3" x-text="sortIcon"></span>
+                    </th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Top Properties</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for event in custom_events.events %}
+                <tr class="hover:bg-gray-50">
+                    <td class="px-4 py-3 whitespace-nowrap">
+                        {% if event_href %}
+                        <a href="{{ event_href }}{{ event.event_name }}?{{ event_query }}"
+                           class="text-sm font-medium text-blue-600 hover:text-blue-800">
+                            {{ event.event_name }}
+                        </a>
+                        {% else %}
+                        <span class="text-sm font-medium text-gray-900">{{ event.event_name }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3 whitespace-nowrap text-sm font-semibold text-gray-900 text-right">
+                        {{ event.count }}
+                    </td>
+                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600 text-right">
+                        {{ event.unique_users }}
+                    </td>
+                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600 text-right">
+                        {{ event.avg_per_user }}
+                    </td>
+                    <td class="px-4 py-3 text-sm text-gray-600">
+                        {% if event.top_properties and event.top_properties|length > 0 %}
+                            <div class="flex flex-wrap gap-1">
+                                {% for prop in event.top_properties[:3] %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                                    {{ prop }}
+                                </span>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <span class="text-gray-400">No properties</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% if owner %}
+    <div class="mt-4 p-4 bg-blue-50 rounded-md">
+        <h3 class="text-sm font-medium text-gray-900 mb-2">Track Custom Events</h3>
+        <p class="text-sm text-gray-600 mb-2">
+            Track any event with custom properties using the JavaScript API:
+        </p>
+        <pre class="text-xs bg-gray-800 text-gray-100 p-3 rounded overflow-x-auto"><code>// Track a custom event with properties
+argus.trackEvent('button_click', {
+  button: 'signup',
+  variant: 'blue',
+  page: 'home'
+});</code></pre>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+{% endmacro %}
+
+{# `settings_href` is where the owner is sent for the setup instructions. #}
+{% macro errors_404_table(errors_404, owner=true, settings_href=none) %}
+{% if errors_404 and errors_404|length > 0 %}
+<div class="bg-white rounded-lg shadow p-6 mb-6">
+    <h2 class="text-lg font-semibold text-gray-900 mb-4">404 Errors</h2>
+    {% if owner %}
+    <p class="text-sm text-gray-600 mb-4">
+        Pages that returned 404 errors. Fix broken links to improve user experience.
+    </p>
+    {% endif %}
+    <div class="overflow-x-auto" x-data="sortableTable">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead>
+                <tr>
+                    <th @click="sortTable" data-column="0" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
+                        Path <span data-column="0" x-text="sortIcon"></span>
+                    </th>
+                    <th @click="sortTable" data-column="1" data-numeric="true" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
+                        Errors <span data-column="1" x-text="sortIcon"></span>
+                    </th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Referred From</th>
+                    <th @click="sortTable" data-column="3" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
+                        Last Seen <span data-column="3" x-text="sortIcon"></span>
+                    </th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for error in errors_404 %}
+                <tr class="{% if error.error_count > 10 %}bg-red-50{% elif error.error_count >= 5 %}bg-yellow-50{% endif %}">
+                    <td class="px-4 py-3 whitespace-nowrap">
+                        <div class="text-sm font-mono text-gray-900">{{ error.path }}</div>
+                    </td>
+                    <td class="px-4 py-3 whitespace-nowrap text-right">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if error.error_count > 10 %}bg-red-100 text-red-800{% elif error.error_count >= 5 %}bg-yellow-100 text-yellow-800{% else %}bg-gray-100 text-gray-800{% endif %}">
+                            {{ error.error_count }}
+                        </span>
+                    </td>
+                    <td class="px-4 py-3">
+                        {% if error.referrers and error.referrers|length > 0 %}
+                        <div class="text-xs text-gray-600 space-y-1">
+                            {% for referrer in error.referrers[:3] %}
+                            <div class="truncate max-w-xs">{{ referrer }}</div>
+                            {% endfor %}
+                            {% if error.referrers|length > 3 %}
+                            <div class="text-gray-400">+{{ error.referrers|length - 3 }} more</div>
+                            {% endif %}
+                        </div>
+                        {% else %}
+                        <span class="text-xs text-gray-400">Direct</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3 whitespace-nowrap text-right text-xs text-gray-500">
+                        {{ error.last_seen[:10] if error.last_seen else '-' }}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% if owner and settings_href %}
+    <div class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+        <p class="text-sm text-blue-800">
+            <strong>How to track 404 errors:</strong> Add the tracking code to your 404 error page template.
+            <a href="{{ settings_href }}" class="underline hover:text-blue-900">View setup instructions</a>
+        </p>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+{% endmacro %}

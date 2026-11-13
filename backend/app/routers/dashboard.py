@@ -12,6 +12,7 @@ Provides endpoints for:
 - GET /dashboard/website/{id}/live-list - Live visitors list (HTMX partial)
 """
 import logging
+import re
 from typing import Optional
 from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, Request, HTTPException, status, Form
@@ -24,6 +25,7 @@ from app.services.analytics_service import AnalyticsService
 from app.services.website_service import WebsiteService
 from app.services.usage_service import get_usage
 from app.services import visitor_dimensions
+from app.services.country_names import country_name
 from app.services.site_activity import goal_activity, recent_activity
 from app.services.annotations_service import annotations_in_window
 from app.models.annotation import MAX_NOTE_LENGTH
@@ -148,6 +150,26 @@ def format_duration(seconds):
 
 templates.env.filters['format_number'] = format_number
 templates.env.filters['country_flag'] = country_flag
+templates.env.filters['country_name'] = country_name
+
+
+def referrer_name(referrer):
+    """A referrer as host and path: "google.com", "reddit.com/r/coffee".
+
+    The same reading as referrerName in alpine-components.js, which names the
+    rows of the referrer list; this one names the chip of an active referrer
+    filter, which the server renders. Anything that is not a web address is
+    returned as it was stored.
+    """
+    raw = str(referrer or "").strip()
+    match = re.match(r"https?://([^/?#]+)([^?#]*)", raw, re.I)
+    if not match:
+        return raw
+    host = re.sub(r":\d+$", "", re.sub(r"^www\.", "", match.group(1).lower()))
+    return host + match.group(2).rstrip("/")
+
+
+templates.env.filters['referrer_name'] = referrer_name
 templates.env.filters['format_duration'] = format_duration
 
 
@@ -1401,6 +1423,76 @@ async def public_dashboard(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="An error occurred while loading the dashboard"
         )
+
+
+@router.get("/public/{share_token}/pulse.json")
+async def public_pulse(
+    request: Request,
+    share_token: str,
+    analytics_service: AnalyticsService = Depends(get_analytics_service),
+    db: Session = Depends(get_db)
+):
+    """A few numbers from a public dashboard, as JSON.
+
+    For a page that wants to show its own traffic, as the marketing site's
+    home page does. It answers with nothing the public dashboard at the same
+    token does not already print: thirty days by day, today by hour, the
+    people online and the five most read pages. A dashboard behind a password
+    answers 401 here, the same as the page would.
+    """
+    from fastapi.responses import JSONResponse
+
+    website = WebsiteService(db).get_public_website(share_token)
+    if not website:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found")
+    set_rls_context(db, context="public", website_id=website.id)
+    if website.public_password_enabled and website.public_password_hash:
+        if not _has_valid_public_cookie(request, website, share_token):
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Password required")
+
+    tz = _public_timezone(db, website.id)
+    month = resolve_range("30d", tz)
+    today = resolve_range("today", tz)
+    try:
+        by_day = analytics_service.get_dashboard_stats(
+            website_id=website.id, start_date=month.start, end_date=month.end,
+            tz=tz, bucket=month.bucket)
+        by_hour = analytics_service.get_dashboard_stats(
+            website_id=website.id, start_date=today.start, end_date=today.end,
+            tz=tz, bucket=today.bucket)
+        online = analytics_service.get_realtime_stats(website_id=website.id).get('current_visitors', 0)
+    except Exception as e:
+        logger.error(f"Error building public pulse: {e}", exc_info=True)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Unavailable")
+
+    def series(stats):
+        return [
+            {"at": point["date"], "visitors": point.get("visitors", 0), "views": point.get("views", 0)}
+            for point in stats.get("timeseries", [])
+        ]
+
+    body = {
+        "name": website.name,
+        "timezone": tz,
+        "online": online,
+        "month": {
+            "visitors": by_day.get("unique_visitors", 0),
+            "pageviews": by_day.get("total_pageviews", 0),
+            "days": series(by_day),
+        },
+        "today": {
+            "visitors": by_hour.get("unique_visitors", 0),
+            "pageviews": by_hour.get("total_pageviews", 0),
+            "hours": series(by_hour),
+        },
+        "top_pages": [
+            {"path": page["path"], "views": page["views"]}
+            for page in by_day.get("top_pages", [])[:5]
+        ],
+    }
+    # Short and public: the numbers move slowly and a page full of readers
+    # should not become a query per reader.
+    return JSONResponse(body, headers={"Cache-Control": "public, max-age=60"})
 
 
 @router.post("/public/{share_token}", response_class=HTMLResponse)

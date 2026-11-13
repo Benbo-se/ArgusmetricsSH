@@ -21,7 +21,7 @@ function themeAlpha(name, alpha, fallback) {
 }
 
 // Categorical series palette: distinct hues that stay legible on both themes.
-const SERIES_COLORS = ['#4550c8', '#06a9c9', '#7b4fd0', '#12855f', '#c2701a', '#b32739'];
+const SERIES_COLORS = ['#0a6f69', '#c8922a', '#4550c8', '#12855f', '#c2701a', '#b32739'];
 
 // Global chart instances
 let pageviewsChart = null;
@@ -588,7 +588,7 @@ function showToast(message) {
  * Get country flag emoji from country code
  */
 function getCountryFlag(countryCode) {
-    if (!countryCode || countryCode.length !== 2) return '🌍';
+    if (!countryCode || countryCode.length !== 2) return '\u00b7';
 
     const codePoints = countryCode
         .toUpperCase()
@@ -815,7 +815,9 @@ function sortableTable() {
         get sortIcon() {
             const columnIndex = Number(this.$el.dataset.column);
             if (this.sortColumn !== columnIndex) {
-                return '↕️'; // Both arrows when not sorted
+                // Both arrows when not sorted. U+FE0E asks for the text glyph:
+                // with the emoji selector it was a coloured tile in the header.
+                return '\u2195\uFE0E';
             }
             return this.sortDirection === 'asc' ? '↑' : '↓';
         }

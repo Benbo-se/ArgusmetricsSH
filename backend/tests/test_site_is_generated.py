@@ -95,10 +95,11 @@ class TestTheOutputMatchesTheTemplates:
 
 
 class TestTheLayoutIsShared:
-    # The site navigation, identified by the Alpine state only it uses. Not
-    # any <nav> element: the docs page has a sidebar table of contents, which
-    # is page content and belongs in its template.
-    SITE_NAV_MARKER = "mobileMenuOpen"
+    # The site navigation, identified by the class only it carries. Not any
+    # <nav> element: the docs page has a sidebar table of contents, which is
+    # page content and belongs in its template. The navigation itself lives
+    # in _nav.html, which the layout and the home page both include.
+    SITE_NAV_MARKER = 'class="site-nav"'
 
     def test_no_template_carries_its_own_navigation(self):
         """The thing this replaced. A page that inlines the site nav has
@@ -114,11 +115,15 @@ class TestTheLayoutIsShared:
 
     def test_the_marker_identifies_the_shared_navigation(self):
         """Guards the test above against keying on something that moved."""
-        layout = (SRC / "_layout.html").read_text()
-        assert self.SITE_NAV_MARKER in layout, (
-            "the layout no longer contains the marker the check looks for, so "
+        shared = (SRC / "_nav.html").read_text()
+        assert self.SITE_NAV_MARKER in shared, (
+            "_nav.html no longer contains the marker the check looks for, so "
             "the check passes for every template regardless"
         )
+        for name in ("_layout.html", "index.html"):
+            assert '{% include "_nav.html" %}' in (SRC / name).read_text(), (
+                f"{name} no longer includes the shared navigation"
+            )
 
     def test_no_template_carries_its_own_footer(self):
         offenders = [

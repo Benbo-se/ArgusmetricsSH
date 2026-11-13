@@ -16,8 +16,7 @@
     <div class="max-w-lg w-full space-y-8">
         <div class="text-center">
             <a href="/" class="inline-block">
-                <img src="{{ static_url('img/ArgusEyefavicon3.png') }}" alt="Argusmetrics"
-                     class="mx-auto h-20 w-20 mb-4 hover:opacity-80 transition-opacity">
+                {% with mark_class='mark-hero' %}{% include 'components/_mark.html' %}{% endwith %}
             </a>
             <h2 class="text-3xl font-extrabold text-gray-900">Hosted signup is not open yet</h2>
             <p class="mt-3 text-gray-600">

@@ -10,10 +10,11 @@
    be deleted. If a Tailwind class is simply absent, that is a different
    problem with a different fix: `npm run build:css`.
 
-   The identity is Argus Panoptes — the watchman who never fully sleeps. Deep
-   indigo "night" surfaces, a single awake cyan accent used sparingly for the
-   things that are actually live, and semantic colors kept separate from it so
-   "good/warning/critical" never competes with the brand hue.
+   The identity is Argus Panoptes, the watchman whose eyes ended up in the
+   peacock's tail. Vellum by day and night after dark, peacock green for what
+   is alive and what can be pressed, the gold of the iris for notes, and
+   semantic colours kept apart so "good/warning/critical" never competes with
+   the brand. The public site (site/static/css/argus.css) uses the same four.
    =========================================================================== */
 
 /* --- Inter, self-hosted (no CDN; tabular figures matter in analytics) ----- */
@@ -39,31 +40,48 @@
         U+A720-A7FF;
 }
 
+@font-face {
+    font-family: 'Familjen Grotesk';
+    font-style: normal;
+    font-weight: 400 700;
+    font-display: swap;
+    src: url('/static/webfonts/familjen-grotesk-latin-wght-normal.woff2') format('woff2');
+}
+@font-face {
+    font-family: 'JetBrains Mono';
+    font-style: normal;
+    font-weight: 400 700;
+    font-display: swap;
+    src: url('/static/webfonts/jetbrains-mono-latin-wght-normal.woff2') format('woff2');
+}
+
 /* --- Tokens -------------------------------------------------------------- */
 :root {
     /* Surfaces: neutrals carry a slight indigo bias so they read as chosen,
        not as the default grey every dashboard ships with. */
-    --surface-page: #f5f6fa;
-    --surface-card: #ffffff;
-    --surface-sunken: #eef0f6;
-    --surface-hover: #f8f9fc;
+    --surface-page: #f3efe6;
+    --surface-card: #fcfaf5;
+    --surface-sunken: #ebe6d9;
+    --surface-hover: #f7f4ec;
 
-    --border-subtle: #e3e6ef;
-    --border-strong: #cfd4e3;
+    --border-subtle: #e2dccd;
+    --border-strong: #cdc6b4;
 
-    --text-primary: #171b2e;
-    --text-secondary: #4d5473;
-    --text-muted: #767ea0;
+    --text-primary: #151826;
+    --text-secondary: #4b5063;
+    --text-muted: #7a7e8e;
 
-    /* Brand: deep watchman indigo + the awake accent */
-    --brand-900: #171b3d;
-    --brand-700: #2a3170;
-    --brand-500: #4550c8;
-    --brand-300: #97a0ee;
-    --brand-50: #eef0fe;
+    /* Brand: peacock, deep enough to carry white text */
+    --brand-900: #0a0d16;
+    --brand-700: #085a55;
+    --brand-500: #0a6f69;
+    --brand-300: #6fb9b0;
+    --brand-50: #e2efeb;
+    --on-brand: #ffffff;
 
-    --accent: #06a9c9;          /* "live / watching" — used sparingly */
-    --accent-soft: #e0f6fa;
+    --accent: #0f9c8d;          /* "live / watching": the bright end of the feather */
+    --accent-soft: #dcf1ed;
+    --iris: #9c6c12;
 
     /* Semantic, deliberately outside the brand ramp */
     --ok: #12855f;
@@ -82,24 +100,27 @@
 
 @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-        --surface-page: #0e1020;
-        --surface-card: #171a2e;
-        --surface-sunken: #1e2238;
-        --surface-hover: #1f2440;
+        --surface-page: #0a0d16;
+        --surface-card: #11151f;
+        --surface-sunken: #181d2b;
+        --surface-hover: #1a2030;
 
-        --border-subtle: #272c47;
-        --border-strong: #363d5e;
+        --border-subtle: #212738;
+        --border-strong: #303850;
 
-        --text-primary: #eef0f8;
-        --text-secondary: #b3b9d4;
-        --text-muted: #8189ab;
+        --text-primary: #e9ecf7;
+        --text-secondary: #a9b0c6;
+        --text-muted: #747b93;
 
-        --brand-500: #7c86e8;
-        --brand-300: #a7aef2;
-        --brand-50: #1d2144;
+        --brand-500: #1fc7b3;
+    --brand-700: #45dccb;
+    --on-brand: #04221f;
+    --iris: #e8b955;
+        --brand-300: #2b7f78;
+        --brand-50: #0f2a2a;
 
-        --accent: #35c6e2;
-        --accent-soft: #10303a;
+        --accent: #45dccb;
+        --accent-soft: #0f2a2a;
 
         --ok: #45c795;
         --ok-soft: #122c24;
@@ -115,20 +136,23 @@
 }
 
 :root[data-theme="dark"] {
-    --surface-page: #0e1020;
-    --surface-card: #171a2e;
-    --surface-sunken: #1e2238;
-    --surface-hover: #1f2440;
-    --border-subtle: #272c47;
-    --border-strong: #363d5e;
-    --text-primary: #eef0f8;
-    --text-secondary: #b3b9d4;
-    --text-muted: #8189ab;
-    --brand-500: #7c86e8;
-    --brand-300: #a7aef2;
-    --brand-50: #1d2144;
-    --accent: #35c6e2;
-    --accent-soft: #10303a;
+    --surface-page: #0a0d16;
+    --surface-card: #11151f;
+    --surface-sunken: #181d2b;
+    --surface-hover: #1a2030;
+    --border-subtle: #212738;
+    --border-strong: #303850;
+    --text-primary: #e9ecf7;
+    --text-secondary: #a9b0c6;
+    --text-muted: #747b93;
+    --brand-500: #1fc7b3;
+    --brand-700: #45dccb;
+    --on-brand: #04221f;
+    --iris: #e8b955;
+    --brand-300: #2b7f78;
+    --brand-50: #0f2a2a;
+    --accent: #45dccb;
+    --accent-soft: #0f2a2a;
     --ok: #45c795;
     --ok-soft: #122c24;
     --warn: #e0a44a;
@@ -168,6 +192,8 @@ body {
 
 .text-blue-600, .text-blue-700, .text-blue-800, .text-blue-900 { color: var(--brand-500) !important; }
 .bg-blue-600, .bg-blue-500 { background-color: var(--brand-500) !important; }
+.bg-blue-600.text-white, .bg-blue-500.text-white, .bg-indigo-600.text-white, .bg-purple-600.text-white,
+.bg-blue-600 .text-white, .bg-indigo-600 .text-white { color: var(--on-brand) !important; }
 .hover\:bg-blue-700:hover { background-color: var(--brand-700) !important; }
 .bg-blue-50, .bg-blue-100 { background-color: var(--brand-50) !important; }
 .border-blue-200, .border-blue-300, .border-blue-500, .border-blue-600 { border-color: var(--brand-300) !important; }
@@ -647,3 +673,446 @@ input::placeholder { color: var(--text-muted) !important; }
 }
 .stat-bump { animation: stat-bump .9s ease-out; }
 @media (prefers-reduced-motion: reduce) { .stat-bump { animation: none; } }
+
+/* === The analytics page (dashboard/website.html) ========================= */
+
+/* --- Head and toolbar ---------------------------------------------------- */
+.dash-head { min-width: 0; margin-bottom: 1rem; }
+
+/* One row holding everything that changes what the page shows. The children
+   are flat on purpose: on a phone they wrap into two tidy rows (quick ranges
+   and period, then comparison, filter and export), which nested groups
+   could not do without a row of their own each. */
+.dash-toolbar {
+    position: relative;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .5rem;
+    margin-bottom: 1.5rem;
+}
+.dash-toolbar .seg { height: 2.25rem; flex-shrink: 0; }
+.dash-toolbar .seg > button { padding: 0 .8rem; }
+.tool-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: .45rem;
+    height: 2.25rem;
+    min-width: 0;
+    padding: 0 .75rem;
+    border: 1px solid var(--border-strong);
+    border-radius: 9px;
+    background: var(--surface-card);
+    color: var(--text-secondary);
+    font-size: .8125rem;
+    font-weight: 600;
+    line-height: 1;
+    white-space: nowrap;
+    transition: background-color .15s ease, color .15s ease, border-color .15s ease;
+}
+.tool-btn:hover { background: var(--surface-hover); color: var(--text-primary); }
+.tool-btn > svg { color: var(--text-muted); }
+.tool-btn > .tool-caret { margin-left: auto; }
+/* The comparison is a real select, so a phone gets its own picker, dressed
+   as the buttons beside it: the label is the button and draws the caret,
+   and the select inside it is bare and reaches under the caret so that a
+   tap there opens it too. */
+.tool-compare { cursor: pointer; }
+.tool-compare > select {
+    appearance: none;
+    -webkit-appearance: none;
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 100%;
+    margin-right: -1.3rem;
+    padding: 0 1.3rem 0 0;
+    border: 0;
+    background: transparent !important;
+    background-image: none !important;
+    color: inherit !important;
+    font: inherit;
+    text-overflow: ellipsis;
+    cursor: pointer;
+}
+.tool-compare > select:focus { outline: none; box-shadow: none; }
+.tool-compare:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+.tool-compare > .tool-caret { pointer-events: none; }
+.tool-anchor { position: relative; min-width: 0; }
+.tool-end { margin-left: auto; }
+/* A panel that drops from a toolbar button. */
+.tool-pop {
+    position: absolute;
+    top: calc(100% + .5rem);
+    z-index: 50;
+    width: 20rem;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius);
+    background: var(--surface-card);
+    box-shadow: var(--shadow-lift);
+}
+.tool-pop.is-start { left: 0; }
+.tool-pop.is-end { right: 0; }
+@media (max-width: 639px) {
+    /* Row one: quick ranges and the period. Row two: the rest. The bases
+       are what forces the break: the comparison cannot fit beside the
+       period, so it starts the second row. */
+    .tool-range { flex: 1 1 8rem; }
+    .tool-range > .tool-btn { width: 100%; }
+    .tool-compare { flex: 1 1 9rem; }
+    .tool-compare > svg:first-child { display: none; }
+    .tool-end { margin-left: 0; }
+    .tool-wide { display: none; }
+    /* The panels hang from the toolbar, not from their button, so that
+       they are as wide as the screen allows and never off its edge. */
+    .tool-anchor { position: static; }
+    .tool-pop.is-start, .tool-pop.is-end { left: 0; right: 0; width: auto; }
+}
+
+/* --- Active filters ------------------------------------------------------ */
+.filter-chips {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .4rem;
+    margin: -.5rem 0 1.5rem;
+}
+.filter-chips-label {
+    margin-right: .15rem;
+    font-size: .72rem;
+    font-weight: 600;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+.chip {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    max-width: 100%;
+    height: 1.75rem;
+    padding: 0 .3rem 0 .7rem;
+    border-radius: 99px;
+    background: var(--brand-50);
+    font-size: .8125rem;
+}
+.chip-key { flex-shrink: 0; color: var(--text-muted); }
+.chip-value {
+    min-width: 0;
+    max-width: 16rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 600;
+    color: var(--brand-500);
+}
+.chip > button {
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    width: 1.25rem; height: 1.25rem;
+    border-radius: 50%;
+    color: var(--brand-500);
+    transition: background-color .15s ease, color .15s ease;
+}
+.chip > button:hover { background: var(--crit-soft); color: var(--crit); }
+.chip-clear {
+    padding: 0 .4rem;
+    font-size: .8125rem;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+.chip-clear:hover { color: var(--crit); }
+
+/* --- Breakdown cards ----------------------------------------------------- */
+.breakdown-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+.breakdown { min-width: 0; padding: 1.1rem 1.5rem 1.5rem; }
+.breakdown-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: .35rem 1.25rem;
+    margin-bottom: .9rem;
+}
+@media (min-width: 1024px) {
+    .breakdown-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .breakdown-grid > .is-full { grid-column: 1 / -1; }
+    /* Room for ten rows, so a card is the same height on every tab and
+       the page does not jump when one is chosen. */
+    .breakdown-body { min-height: 24rem; }
+}
+@media (max-width: 639px) {
+    .breakdown { padding: .9rem 1rem 1.1rem; }
+    /* The tabs always under the heading, so the four cards agree. */
+    .breakdown-head > .tab-strip { flex-basis: 100%; }
+}
+
+/* Tabs as words with a line under the chosen one. On a narrow card the
+   strip scrolls sideways, as the section row on the settings page does. */
+.tab-strip {
+    display: flex;
+    gap: 1.05rem;
+    max-width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+.tab-strip::-webkit-scrollbar { display: none; }
+.tab-strip > button {
+    position: relative;
+    flex-shrink: 0;
+    padding: .2rem 0 .4rem;
+    font-size: .8125rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    box-shadow: inset 0 -2px 0 transparent;
+    transition: color .15s ease, box-shadow .15s ease;
+}
+.tab-strip > button:hover { color: var(--text-primary); }
+.tab-strip > button[aria-selected="true"] {
+    color: var(--brand-500);
+    box-shadow: inset 0 -2px 0 var(--brand-500);
+}
+.tab-strip > button:focus-visible { outline-offset: -2px; }
+/* A tab whose list the page is filtered by carries a dot, so the filter can
+   be found again when another tab is in front. */
+.tab-strip > button.has-filter { padding-right: .55rem; }
+.tab-strip > button.has-filter::after {
+    content: "";
+    position: absolute;
+    top: .3rem; right: 0;
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: var(--brand-500);
+}
+
+/* --- Ranked lists -------------------------------------------------------- */
+/* What the columns are, in the voice of the stat labels. */
+.rank-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-bottom: .4rem;
+    font-size: .68rem;
+    font-weight: 600;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+.rank-head-pct { display: inline-block; width: 3.25rem; text-align: right; }
+.rank-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: 2px; }
+.rank-list > .rank-row {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    min-height: 2.125rem;
+    margin: 0 -.5rem;
+    padding: .3rem .5rem;
+    border-radius: 6px;
+    font-size: .875rem;
+}
+.rank-label {
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: .55rem;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+.rank-text {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.rank-icon {
+    flex: none;
+    display: inline-grid;
+    place-items: center;
+    width: 1.125rem;
+    font-size: .9rem;
+    color: var(--text-muted);
+}
+.rank-flag { flex: none; width: 1.125rem; font-size: 1.05rem; line-height: 1; text-align: center; }
+.rank-sub {
+    flex: none;
+    font-size: .75rem;
+    font-weight: 400;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+.rank-tag + .rank-tag { margin-left: .75rem; }
+.rank-count {
+    flex: none;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-primary);
+}
+.rank-pct {
+    flex: none;
+    width: 2.25rem;
+    text-align: right;
+    font-size: .75rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-muted);
+}
+.rank-pct.is-wide { width: 3.25rem; }
+.rank-row.is-unknown .rank-text { font-style: italic; font-weight: 400; color: var(--text-muted); }
+/* The row the page is filtered by. */
+.rank-row.is-active::after { background: color-mix(in srgb, var(--brand-500) 24%, var(--surface-card)); }
+.rank-row.is-active .rank-text { font-weight: 600; color: var(--brand-500); }
+.rank-empty {
+    padding: 2.5rem 1rem;
+    text-align: center;
+    font-size: .875rem;
+    color: var(--text-muted);
+}
+.rank-empty > span {
+    display: block;
+    max-width: 26rem;
+    margin: .5rem auto 0;
+    font-size: .8125rem;
+}
+
+/* === The shared dashboard (dashboard/public.html) ======================== */
+/* The owner's analytics page without the sidebar and without anything that
+   changes data. It is built from the same classes; only these are its own. */
+
+/* A period on the shared page is a link, not a button: there is nothing to
+   set, only another address to load. It reads as the same segment. */
+.seg > a {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 7px;
+    padding: .3rem .8rem;
+    font-size: .8rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    transition: background-color .15s ease, color .15s ease, box-shadow .15s ease;
+}
+.seg > a:hover { color: var(--text-primary); }
+.seg > a[aria-current="true"] {
+    background: var(--surface-card);
+    color: var(--text-primary);
+    box-shadow: var(--shadow-card);
+}
+.dash-toolbar .seg > a { padding: 0 .8rem; }
+
+/* The bar across the top: the mark and name as in the sidebar, and what
+   kind of page this is. */
+.share-bar {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    border-bottom: 1px solid var(--border-subtle);
+    background: var(--surface-card);
+}
+.share-bar-inner {
+    display: flex;
+    align-items: center;
+    gap: .9rem;
+    height: 3.5rem;
+}
+.share-brand {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    flex-shrink: 0;
+}
+.share-bar-end {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    margin-left: auto;
+}
+.share-bar-btn {
+    display: grid;
+    place-items: center;
+    width: 2.25rem; height: 2.25rem;
+    border-radius: 9px;
+    color: var(--text-muted);
+    transition: background-color .15s ease, color .15s ease;
+}
+.share-bar-btn:hover { background: var(--surface-hover); color: var(--text-primary); }
+.share-bar-link {
+    padding: 0 .35rem;
+    font-size: .8125rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+.share-bar-link:hover { color: var(--text-primary); }
+/* The pill says the same thing in fewer words on a phone, so the name
+   beside it is never cut. */
+.share-narrow { display: none; }
+@media (max-width: 479px) {
+    .share-wide { display: none; }
+    .share-narrow { display: inline; }
+}
+
+/* Whose product this is, said once and quietly at the foot. */
+.share-foot {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: .3rem;
+    margin-top: 2.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border-subtle);
+    font-size: .8125rem;
+    color: var(--text-muted);
+}
+.share-foot > a {
+    display: inline-flex;
+    align-items: center;
+    gap: .45rem;
+    color: var(--text-secondary);
+}
+.share-foot > a:hover { color: var(--text-primary); }
+.share-foot strong { font-weight: 600; color: var(--text-primary); }
+.share-foot > p { font-size: .75rem; }
+
+/* The password prompt in front of a protected share. */
+.share-gate-brand {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: .5rem;
+    margin-bottom: 1.25rem;
+}
+
+
+/* --- The identity shared with the public site ----------------------------- */
+h1, h2, .text-2xl.font-bold, .text-3xl.font-bold, .text-3xl.font-extrabold, .text-xl.font-bold {
+    font-family: 'Familjen Grotesk', 'Inter', ui-sans-serif, system-ui, sans-serif;
+    letter-spacing: -.022em;
+}
+code, pre, kbd, .font-mono { font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace !important; }
+
+.argus-mark { display: block; overflow: visible; color: var(--text-primary); flex-shrink: 0; }
+.argus-mark.mark-nav { width: 42px; height: 26px; }
+.argus-mark.mark-foot { width: 30px; height: 19px; }
+.argus-mark.mark-hero { width: 150px; height: 94px; margin: 0 auto 18px; }
+.argus-mark .mark-lid { fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linejoin: round; }
+.argus-mark .mark-bar { stroke: var(--accent); stroke-width: 1.7; stroke-linecap: round; }
+.argus-mark .mark-bar.is-now { stroke: var(--iris); }
+.argus-mark .mark-bar.is-ahead { stroke: currentColor; opacity: .28; }
+.argus-mark .mark-pupil { fill: var(--iris); }
+.argus-mark.mark-hero .mark-lid { stroke-width: 1.2; }
+.argus-mark.mark-hero .mark-bar { stroke-width: 1.3; }
+
+/* The pages before the login (sign in, sign up, reset, invitations) stood on a
+   blue gradient of their own. They stand on the same page as everything else,
+   with the feather's green coming down from the top. */
+.bg-gradient-to-br.from-blue-50, .bg-gradient-to-br.from-indigo-50, .bg-gradient-to-br.from-gray-50 {
+    background-image: radial-gradient(70% 46% at 50% 0%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 72%) !important;
+    background-color: var(--surface-page) !important;
+}
+
+/* The icon set (static/img/icons.svg): one stroke, round ends, sized by the text around it. */
+.ico { display: inline-block; width: 1.15em; height: 1.15em; vertical-align: -.2em; flex-shrink: 0; fill: none; stroke: currentColor; }

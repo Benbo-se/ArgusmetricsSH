@@ -4,7 +4,7 @@
             <!-- Logo and brand -->
             <div class="flex items-center">
                 <a href="/dashboard" class="flex items-center space-x-2">
-                    <img src="/static/img/ArgusEyefavicon3.png" alt="Argusmetrics" class="h-8 w-8">
+                    {% with mark_class='mark-nav' %}{% include 'components/_mark.html' %}{% endwith %}
                     <span class="text-xl font-bold text-gray-900">Argusmetrics</span>
                 </a>
             </div>

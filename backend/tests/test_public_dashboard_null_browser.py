@@ -21,4 +21,7 @@ def test_a_pageview_without_a_browser_does_not_break_the_public_page(
 
     page = client.get(f"/public/{shared_website['share_token']}?range=7d")
     assert page.status_code == 200
-    assert '<span class="text-sm text-gray-700">Unknown</span>' in page.text
+    # The browser list is the owner's ranked list now: the row without a
+    # browser is named Unknown and marked as such.
+    assert '<span class="rank-text">Unknown</span>' in page.text
+    assert 'is-unknown' in page.text
