@@ -78,7 +78,7 @@ class RequestResetRequest(BaseModel):
 
 class SetPasswordRequest(BaseModel):
     """Complete a password reset with the emailed token."""
-    token: str = Field(..., min_length=1)
+    token: str = Field(..., min_length=1, max_length=2048)
     password: str = Field(..., min_length=1, max_length=200)
 
 
@@ -134,7 +134,8 @@ class VerifyRequest(BaseModel):
     token: str = Field(
         ...,
         description="Magic link token from verification email",
-        min_length=10
+        min_length=10,
+        max_length=2048
     )
 
     class Config:
@@ -263,5 +264,5 @@ class AcceptInviteRequest(BaseModel):
     account for an address of their choosing.
     """
 
-    token: str = Field(..., description="The invitation token from the email")
-    password: str = Field(..., description="A password for the new account")
+    token: str = Field(..., min_length=1, max_length=128, description="The invitation token from the email")
+    password: str = Field(..., min_length=1, max_length=200, description="A password for the new account")

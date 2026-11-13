@@ -534,6 +534,56 @@ def _set_session_cookie(response, session) -> None:
         secure=settings.is_production,
         samesite="lax",
     )
+    # And mark this browser as one that has signed in to this account. It
+    # outlives the session on purpose: see _is_known_device.
+    response.set_cookie(
+        key=KNOWN_DEVICE_COOKIE,
+        value=_known_device_serializer().dumps(_account_tag(session.user_email)),
+        max_age=KNOWN_DEVICE_DAYS * 24 * 60 * 60,
+        httponly=True,
+        secure=settings.is_production,
+        samesite="lax",
+    )
+
+
+KNOWN_DEVICE_COOKIE = "known_device"
+KNOWN_DEVICE_DAYS = 180
+
+
+def _known_device_serializer():
+    from itsdangerous import URLSafeTimedSerializer
+    return URLSafeTimedSerializer(settings.SECRET_KEY, salt="known-device")
+
+
+def _account_tag(email: str) -> str:
+    """Which account a known-device cookie is for, without the address in it."""
+    import hashlib
+    return hashlib.sha256(email.strip().lower().encode("utf-8")).hexdigest()[:32]
+
+
+def _is_known_device(request: Request, email: str) -> bool:
+    """Whether this browser has signed in to this account before.
+
+    The password attempts for an account are counted per account, so that
+    guesses cannot be spread over many addresses. Counted that way alone,
+    anyone who knows an address can spend its attempts and keep its owner
+    out. A browser that has signed in to the account before carries a signed
+    cookie saying so, and its attempts are counted apart from everyone
+    else's: a stranger can exhaust the stranger's allowance, not the owner's.
+
+    The cookie proves nothing else. It signs nobody in and is not a second
+    factor; it only decides which counter an attempt lands in.
+    """
+    from itsdangerous import BadSignature
+    raw = request.cookies.get(KNOWN_DEVICE_COOKIE)
+    if not raw or len(raw) > 512:
+        return False
+    try:
+        tag = _known_device_serializer().loads(raw, max_age=KNOWN_DEVICE_DAYS * 24 * 60 * 60)
+    except BadSignature:
+        return False
+    import hmac
+    return isinstance(tag, str) and hmac.compare_digest(tag, _account_tag(email))
 
 
 def _dual_rate_limit(request: Request, email: str, scope: str,
@@ -568,7 +618,10 @@ async def login(
     from fastapi.responses import JSONResponse
     from app.services import two_factor
 
-    _dual_rate_limit(request, body.email, "login", per_email=10, per_ip=50, window_seconds=900)
+    # Two counters per account: one for browsers that have signed in to it
+    # before, one for everybody else (see _is_known_device).
+    scope = "login-known" if _is_known_device(request, body.email) else "login"
+    _dual_rate_limit(request, body.email, scope, per_email=10, per_ip=50, window_seconds=900)
 
     try:
         session = auth_service.login_user(email=body.email, password=body.password)

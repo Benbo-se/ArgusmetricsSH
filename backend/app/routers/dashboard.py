@@ -153,6 +153,19 @@ templates.env.filters['country_flag'] = country_flag
 templates.env.filters['country_name'] = country_name
 
 
+def _is_web_address(value) -> bool:
+    """Whether a value from a visitor's browser may become a link.
+
+    Outbound links and downloads are reported by the tracker, so the address
+    is whatever was sent. Only http and https are addresses to follow; any
+    other scheme is shown as text.
+    """
+    return isinstance(value, str) and value[:8].lower().startswith(("http://", "https://"))
+
+
+templates.env.tests['web_address'] = _is_web_address
+
+
 def referrer_name(referrer):
     """A referrer as host and path: "google.com", "reddit.com/r/coffee".
 

@@ -603,6 +603,10 @@ class AuthService:
                 "and the invitation will be accepted."
             )
 
+        if email in settings.admin_emails:
+            from app.services.team_service import ADMIN_ADDRESS_NOT_BY_INVITATION
+            raise ValueError(ADMIN_ADDRESS_NOT_BY_INVITATION)
+
         user = User(
             email=email,
             is_verified=True,

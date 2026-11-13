@@ -47,6 +47,13 @@ from app.services.email_service import email_service
 from app.config import settings
 from app.services.website_lookup import resolve_invite_token
 
+#: An administrator's account is made on the server, never from an invitation:
+#: an invitation is something any website owner can send.
+ADMIN_ADDRESS_NOT_BY_INVITATION = (
+    "This address belongs to an administrator of this instance. That account "
+    "is created on the server, not from an invitation."
+)
+
 from app.utils.security import mask_email, normalize_email  # addresses never go to the log in full (#144)
 
 logger = logging.getLogger(__name__)
@@ -312,9 +319,21 @@ class TeamService:
                 "email_sent": email_sent,
             }
 
-            # Include invite URL if email failed or in dev/debug mode
-            if not email_sent or settings.DEBUG or not email_service.configured:
+            # The link itself goes back to the inviter only where it has no
+            # other way to travel: an instance with no mail configured, or a
+            # debug build. Where mail is configured and one send failed, only
+            # an administrator of the instance is handed the link; anyone else
+            # is told it was not sent and can invite again. An invitation is
+            # meant to reach its address, and the address is what makes the
+            # account that comes out of it that person's.
+            inviter_is_operator = normalize_email(inviter_email) in settings.admin_emails
+            if settings.DEBUG or not email_service.configured or (not email_sent and inviter_is_operator):
                 response["invite_url"] = invite_url
+            if not email_sent and "invite_url" not in response:
+                response["message"] = (
+                    f"The invitation to {invitee_email} could not be sent. "
+                    "Try again in a moment."
+                )
 
             return response
 
@@ -506,6 +525,8 @@ class TeamService:
             # Ensure user exists (create if doesn't)
             user = self.db.query(User).filter(User.email == accepter_email).first()
             if not user:
+                if accepter_email in settings.admin_emails:
+                    raise ValueError(ADMIN_ADDRESS_NOT_BY_INVITATION)
                 # Create user account
                 user = User(email=accepter_email, is_verified=True)
                 self.db.add(user)

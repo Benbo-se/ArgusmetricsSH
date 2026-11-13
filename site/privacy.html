@@ -136,7 +136,9 @@
                         <li><strong>Your email address</strong>, used to sign in, to verify the account, to send password resets, and
                             to send the email reports you opt into</li>
                         <li><strong>A hash of your password</strong>, never the password itself</li>
-                        <li><strong>Login sessions</strong>, so you stay signed in, and short-lived verification codes</li>
+                        <li><strong>Login sessions</strong>, so you stay signed in, and short-lived verification codes. Signing in
+                            sets two cookies in your browser: the session itself, and a marker that this browser has signed in to
+                            your account before, so that somebody guessing at your password from elsewhere cannot lock you out</li>
                         <li><strong>A log of emails we sent you</strong>: the address, the type, the subject and whether delivery
                             succeeded, so we can debug failures</li>
                     </ul>
