@@ -1,16 +1,52 @@
 /*
- * The home page: the field of eyes, the live panel, the visit reduction, the
- * tour tabs and the arrivals. No library and no request to anywhere.
+ * The home page. The data is the ornament here: the iris of every mark is a
+ * 24-hour chart, the edge between two bands is a traffic curve, and the panel
+ * in the hero shows this site's own numbers, read from its own public
+ * dashboard (data-pulse on the panel). Nothing is requested from another
+ * origin.
  *
- * With prefers-reduced-motion everything is drawn once, in its finished state,
- * and nothing moves. Without JavaScript the page is complete apart from the
- * panel's numbers and the eyes, which are decoration.
+ * If the numbers cannot be read (no network, a local build, a browser that
+ * refuses), everything is drawn from the invented series below and the panel
+ * says so. With prefers-reduced-motion everything is drawn once, finished.
  */
 (function () {
   'use strict';
 
   var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var SVG = 'http://www.w3.org/2000/svg';
   var $ = function (id) { return document.getElementById(id); };
+  var all = function (sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); };
+  var el = function (name, attrs) {
+    var node = document.createElementNS(SVG, name);
+    for (var k in attrs) node.setAttribute(k, attrs[k]);
+    return node;
+  };
+  var fmt = function (n) { return Math.round(n).toLocaleString('en-US'); };
+
+  /* ---------------------------------------------------------------- data */
+  /* Invented, and labelled as such wherever it is shown. */
+  var DEMO_HOURS = [9, 7, 5, 4, 5, 9, 18, 34, 52, 61, 118, 96, 84, 79, 88, 71];
+  var DEMO_DAYS = [212, 248, 236, 254, 201, 143, 151, 262, 281, 270, 296, 240, 162, 158, 301, 322, 310, 334, 288, 176, 181, 344, 590, 402, 371, 329, 204, 199, 362, 381];
+  var state = {
+    real: false,
+    hours: DEMO_HOURS.slice(),        /* today so far, one value per hour */
+    days: DEMO_DAYS,                  /* thirty days of visitors */
+    views: DEMO_DAYS.map(function (v, i) { return Math.round(v * (2.6 + (i % 5) * .12)); }),
+    hourNow: DEMO_HOURS.length - 1
+  };
+
+  /* A smooth line through evenly spaced values, in a box w by h. */
+  function curve(values, w, h, top) {
+    var max = Math.max.apply(null, values.concat([1]));
+    var n = values.length, pts = [];
+    for (var i = 0; i < n; i++) pts.push([n === 1 ? w : i / (n - 1) * w, h - (values[i] / max) * (h - top)]);
+    var d = 'M' + pts[0][0].toFixed(1) + ' ' + pts[0][1].toFixed(1);
+    for (var k = 1; k < n; k++) {
+      var a = pts[k - 1], b = pts[k], mx = (a[0] + b[0]) / 2;
+      d += ' C' + mx.toFixed(1) + ' ' + a[1].toFixed(1) + ' ' + mx.toFixed(1) + ' ' + b[1].toFixed(1) + ' ' + b[0].toFixed(1) + ' ' + b[1].toFixed(1);
+    }
+    return { line: d, pts: pts };
+  }
 
   /* ---------------------------------------------------------------- nav */
   var nav = $('site-nav'), toggle = $('nav-toggle'), sheet = $('nav-sheet');
@@ -25,8 +61,8 @@
   }
 
   /* ------------------------------------------------------------ arrivals */
-  var seen = function (el) { el.classList.add('is-seen'); };
-  var rises = document.querySelectorAll('.rise');
+  var seen = function (node) { node.classList.add('is-seen'); };
+  var rises = all('.rise');
   if (reduced || !('IntersectionObserver' in window)) {
     rises.forEach(seen);
   } else {
@@ -35,8 +71,98 @@
         if (entry.isIntersecting) { seen(entry.target); io.unobserve(entry.target); }
       });
     }, { rootMargin: '0px 0px -8% 0px', threshold: 0.08 });
-    rises.forEach(function (el) { io.observe(el); });
+    rises.forEach(function (node) { io.observe(node); });
   }
+
+  /* ------------------------------------------------------------ the mark */
+  /* An eye whose iris is the day: twenty-four bars, midnight at the top,
+     the hour that is still filling in gold. */
+  var CX = 32, CY = 20, R0 = 5.6, RMIN = 2.6, RMAX = 7.6;
+  function buildMark(host) {
+    host.textContent = '';
+    var svg = el('svg', { viewBox: '0 0 64 40', 'aria-hidden': 'true' });
+    svg.appendChild(el('path', { 'class': 'mark-lid', d: 'M3 20Q32-8 61 20Q32 48 3 20Z' }));
+    var bars = [];
+    for (var i = 0; i < 24; i++) {
+      var bar = el('line', { 'class': 'mark-bar' });
+      svg.appendChild(bar);
+      bars.push(bar);
+    }
+    svg.appendChild(el('circle', { 'class': 'mark-pupil', cx: CX, cy: CY, r: 3.4 }));
+    host.appendChild(svg);
+    host._bars = bars;
+  }
+  function paintMark(host, grow) {
+    var bars = host._bars;
+    if (!bars) return;
+    var hours = state.hours, max = Math.max.apply(null, hours.concat([1]));
+    for (var i = 0; i < 24; i++) {
+      var has = i < hours.length;
+      /* Square root, so one busy hour does not flatten the rest of the day. */
+      var len = has ? RMIN + Math.sqrt(hours[i] / max) * (RMAX - RMIN) : 1.3;
+      len *= grow;
+      var a = (i / 24) * Math.PI * 2 - Math.PI / 2;
+      var cos = Math.cos(a), sin = Math.sin(a);
+      bars[i].setAttribute('x1', (CX + cos * R0).toFixed(2));
+      bars[i].setAttribute('y1', (CY + sin * R0).toFixed(2));
+      bars[i].setAttribute('x2', (CX + cos * (R0 + len)).toFixed(2));
+      bars[i].setAttribute('y2', (CY + sin * (R0 + len)).toFixed(2));
+      bars[i].setAttribute('class', 'mark-bar' + (!has ? ' is-ahead' : i === state.hourNow ? ' is-now' : ''));
+    }
+  }
+  var marks = all('[data-mark]');
+  marks.forEach(buildMark);
+  function paintMarks(animate) {
+    if (!animate || reduced) { marks.forEach(function (m) { paintMark(m, 1); }); return; }
+    var start = null;
+    requestAnimationFrame(function frame(t) {
+      if (start === null) start = t;
+      var p = Math.min(1, (t - start) / 900), eased = 1 - Math.pow(1 - p, 3);
+      marks.forEach(function (m) { paintMark(m, eased); });
+      if (p < 1) requestAnimationFrame(frame);
+    });
+  }
+
+  /* ----------------------------------------------------------- the seams */
+  /* The edge between two bands is the traffic curve itself: the band below
+     rises into the one above by as much as that day had visitors. */
+  var seams = all('.seam');
+  function paintSeams() {
+    seams.forEach(function (seam, index) {
+      var band = seam.parentNode;
+      var fill = getComputedStyle(band).backgroundColor;
+      var source = index % 2 ? state.views : state.days;
+      /* Each seam reads the month from a different day, so no two match. */
+      var shift = (index * 7) % source.length;
+      var values = source.slice(shift).concat(source.slice(0, shift));
+      var c = curve(values, 1000, 60, 6);
+      seam.textContent = '';
+      var svg = el('svg', { viewBox: '0 0 1000 60', preserveAspectRatio: 'none', 'aria-hidden': 'true' });
+      svg.appendChild(el('path', { d: c.line + ' L1000 61 L0 61 Z', fill: fill }));
+      svg.appendChild(el('path', { 'class': 'seam-line', d: c.line, 'vector-effect': 'non-scaling-stroke' }));
+      seam.appendChild(svg);
+    });
+  }
+
+  /* ----------------------------------------------- the reading, as a curve */
+  var progress = $('progress');
+  function paintProgress() {
+    if (!progress) return;
+    var c = curve(state.days, 1000, 14, 2);
+    progress.textContent = '';
+    progress.appendChild(el('path', { 'class': 'progress-rail', d: c.line, 'vector-effect': 'non-scaling-stroke' }));
+    progress.appendChild(el('path', { 'class': 'progress-done', id: 'progress-done', d: c.line, pathLength: '1', 'vector-effect': 'non-scaling-stroke' }));
+    onScroll();
+  }
+  function onScroll() {
+    var done = $('progress-done');
+    if (!done) return;
+    var room = document.documentElement.scrollHeight - window.innerHeight;
+    var f = room > 0 ? Math.min(1, Math.max(0, window.scrollY / room)) : 0;
+    done.style.strokeDasharray = '1';
+    done.style.strokeDashoffset = String(1 - f);
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
 
   /* ---------------------------------------------------------- eye field */
   /* The eyes watch the traffic, which is the panel. Wherever the pointer is,
@@ -45,7 +171,6 @@
   var eyes = [];
   var EYE = '<g class="lids"><path class="eye-lid" d="M2 12Q20-5 38 12Q20 29 2 12Z"/></g>' +
             '<g class="ball"><circle class="eye-iris" cx="20" cy="12" r="6.2"/><circle class="eye-pupil" cx="20" cy="12" r="2.6"/></g>';
-
   function buildEyes() {
     if (!field) return;
     field.textContent = '';
@@ -60,7 +185,7 @@
     for (var r = 0; r < rows; r++) {
       for (var c = 0; c < cols; c++) {
         var x = c * stepX + (r % 2 ? stepX / 2 : 0) - 10, y = r * stepY + 6;
-        var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        var svg = document.createElementNS(SVG, 'svg');
         svg.setAttribute('viewBox', '0 0 40 24');
         svg.innerHTML = EYE;
         svg.style.left = x + 'px';
@@ -74,7 +199,6 @@
     }
     field.appendChild(frag);
   }
-
   var pointer = null, queued = false;
   function lookAway() {
     queued = false;
@@ -89,8 +213,6 @@
   }
   if (field) {
     buildEyes();
-    var resizeTimer;
-    window.addEventListener('resize', function () { clearTimeout(resizeTimer); resizeTimer = setTimeout(buildEyes, 180); });
     if (!reduced) {
       var hero = field.parentNode;
       hero.addEventListener('pointermove', function (ev) {
@@ -109,66 +231,63 @@
       }, 520);
     }
   }
+  var resizeTimer, lastWidth = window.innerWidth;
+  window.addEventListener('resize', function () {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(function () {
+      if (window.innerWidth !== lastWidth) { lastWidth = window.innerWidth; buildEyes(); }
+      onScroll();
+    }, 180);
+  });
 
-  /* --------------------------------------------------------- live panel */
-  var HOURS = [9, 7, 5, 4, 5, 9, 18, 34, 52, 61, 118, 96, 84, 79, 88, 71, 0, 0, 0, 0, 0, 0, 0, 0];
-  var NOW = 15;            /* the hour that is still filling */
-  var NOTE_AT = 10;        /* the hour the newsletter went out */
+  /* ---------------------------------------------------------- the panel */
   var PAGES = [['/', 1204], ['/pricing', 866], ['/blog/cookieless', 512], ['/docs/install', 377], ['/checkout', 148]];
   var ARRIVALS = [
     ['SE', '/'], ['NO', '/pricing'], ['DE', '/blog/cookieless'], ['SE', '/checkout'], ['US', '/'],
     ['FI', '/docs/install'], ['DK', '/pricing'], ['SE', '/blog/cookieless'], ['GB', '/'], ['NL', '/pricing'],
     ['SE', '/docs/install'], ['DE', '/'], ['FR', '/pricing'], ['SE', '/']
   ];
-  var W = 400, H = 132, TOP = 10, BASE = 131;
-
-  function chartPath() {
-    var max = 130, pts = [];
-    for (var i = 0; i <= NOW; i++) pts.push([i / 23 * W, BASE - (HOURS[i] / max) * (BASE - TOP)]);
-    var d = 'M' + pts[0][0].toFixed(1) + ' ' + pts[0][1].toFixed(1);
-    for (var k = 1; k < pts.length; k++) {
-      var p0 = pts[k - 1], p1 = pts[k], mx = (p0[0] + p1[0]) / 2;
-      d += ' C' + mx.toFixed(1) + ' ' + p0[1].toFixed(1) + ' ' + mx.toFixed(1) + ' ' + p1[1].toFixed(1) + ' ' + p1[0].toFixed(1) + ' ' + p1[1].toFixed(1);
-    }
-    return { line: d, area: d + ' L' + pts[pts.length - 1][0].toFixed(1) + ' ' + BASE + ' L0 ' + BASE + ' Z', last: pts[pts.length - 1] };
-  }
+  var W = 400, BASE = 131, NOTE_AT = 10;
 
   function drawChart() {
     var line = $('p-line'), area = $('p-area');
     if (!line) return;
-    var p = chartPath();
-    line.setAttribute('d', p.line);
-    area.setAttribute('d', p.area);
-    var nx = NOTE_AT / 23 * W;
-    $('p-note').setAttribute('x1', nx); $('p-note').setAttribute('x2', nx);
-    $('p-note-dot').setAttribute('cx', nx);
-    $('p-note-label').style.left = 'calc(18px + (100% - 36px) * ' + (nx / W).toFixed(4) + ')';
-    var dot = $('p-now');
-    if (!dot) {
-      dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-      dot.setAttribute('id', 'p-now'); dot.setAttribute('class', 'now'); dot.setAttribute('r', '3.6');
-      line.parentNode.appendChild(dot);
+    var values = state.real ? state.days : state.hours;
+    var span = state.real ? W : (state.hours.length - 1) / 23 * W;
+    var c = curve(values, span, BASE, 10);
+    var last = c.pts[c.pts.length - 1];
+    line.setAttribute('d', c.line);
+    area.setAttribute('d', c.line + ' L' + last[0].toFixed(1) + ' ' + BASE + ' L0 ' + BASE + ' Z');
+    var note = $('p-note'), dot = $('p-note-dot'), label = $('p-note-label');
+    var showNote = !state.real;
+    note.style.display = dot.style.display = label.style.display = showNote ? '' : 'none';
+    if (showNote) {
+      var nx = NOTE_AT / 23 * W;
+      note.setAttribute('x1', nx); note.setAttribute('x2', nx);
+      dot.setAttribute('cx', nx);
+      label.style.left = 'calc(18px + (100% - 36px) * ' + (nx / W).toFixed(4) + ')';
     }
-    dot.setAttribute('cx', p.last[0]); dot.setAttribute('cy', p.last[1]);
+    var now = $('p-now');
+    if (!now) {
+      now = el('circle', { id: 'p-now', 'class': 'now', r: '3.6' });
+      line.parentNode.appendChild(now);
+    }
+    now.setAttribute('cx', last[0]); now.setAttribute('cy', last[1]);
   }
 
   function drawPages() {
     var box = $('p-pages');
     if (!box) return;
-    var top = PAGES[0][1];
-    if (!box.children.length) {
-      PAGES.forEach(function () {
-        var row = document.createElement('div');
-        row.className = 'rowbar';
-        row.innerHTML = '<span></span><b></b>';
-        box.appendChild(row);
-      });
-    }
-    PAGES.forEach(function (page, i) {
-      var row = box.children[i];
+    box.textContent = '';
+    var top = PAGES.length ? PAGES[0][1] : 1;
+    PAGES.forEach(function (page) {
+      var row = document.createElement('div');
+      row.className = 'rowbar';
+      row.innerHTML = '<span></span><b></b>';
       row.firstChild.textContent = page[0];
-      row.lastChild.textContent = page[1].toLocaleString('en-US');
+      row.lastChild.textContent = fmt(page[1]);
       row.style.setProperty('--w', Math.max(6, page[1] / top * 100) + '%');
+      box.appendChild(row);
     });
   }
 
@@ -190,32 +309,77 @@
     feed.insertBefore(li, feed.firstChild);
     while (feed.children.length > 5) feed.removeChild(feed.lastChild);
   }
+  function setText(id, text) { var node = $(id); if (node) node.textContent = text; }
 
-  var visitors = 1284, views = 3902, step = 0;
-  function setNumber(id, n) { var el = $(id); if (el) el.textContent = n.toLocaleString('en-US'); }
-
-  if (panel) {
+  var visitors = 1284, views = 3902, step = 0, demoTimer = null;
+  function startDemo() {
     drawChart();
     drawPages();
     for (var a = 4; a >= 0; a--) arrive(ARRIVALS[a], true);
     step = 5;
-    if (!reduced) {
-      setInterval(function () {
-        if (document.hidden) return;
-        var entry = ARRIVALS[step % ARRIVALS.length];
-        step++;
-        arrive(entry);
-        views += 1;
-        if (step % 3 !== 0) visitors += 1;
-        setNumber('p-views', views);
-        setNumber('p-visitors', visitors);
-        setNumber('p-online', 10 + ((step * 7) % 6));
-        for (var i = 0; i < PAGES.length; i++) if (PAGES[i][0] === entry[1]) PAGES[i][1] += 1;
-        drawPages();
-        HOURS[NOW] += 1;
-        drawChart();
-      }, 2100);
+    if (reduced) return;
+    demoTimer = setInterval(function () {
+      if (document.hidden) return;
+      var entry = ARRIVALS[step % ARRIVALS.length];
+      step++;
+      arrive(entry);
+      views += 1;
+      if (step % 3 !== 0) visitors += 1;
+      setText('p-views', fmt(views));
+      setText('p-visitors', fmt(visitors));
+      setText('p-online', String(10 + ((step * 7) % 6)));
+      for (var i = 0; i < PAGES.length; i++) if (PAGES[i][0] === entry[1]) PAGES[i][1] += 1;
+      drawPages();
+      state.hours[state.hours.length - 1] += 1;
+      drawChart();
+      marks.forEach(function (m) { paintMark(m, 1); });
+    }, 2100);
+  }
+
+  /* This site's own numbers, from its own public dashboard. */
+  function showPulse(pulse) {
+    var days = pulse.month.days, hours = pulse.today.hours;
+    if (!days.length) return false;
+    state.real = true;
+    state.days = days.map(function (d) { return d.visitors; });
+    state.views = days.map(function (d) { return d.views; });
+    state.hours = hours.map(function (h) { return h.views; });
+    state.hourNow = Math.max(0, hours.length - 1);
+    if (demoTimer) { clearInterval(demoTimer); demoTimer = null; }
+    if (panel) {
+      panel.classList.add('is-real');
+      setText('p-title', 'This site · last 30 days');
+      setText('p-visitors', fmt(pulse.month.visitors));
+      setText('p-views', fmt(pulse.month.pageviews));
+      setText('p-online', fmt(pulse.online));
+      setText('p-chart-sub', 'visitors by day, ' + pulse.timezone);
+      setText('p-foot', 'Live, from this site’s own public dashboard.');
+      setText('p-foot-link', 'Open it →');
+      PAGES = pulse.top_pages.map(function (p) { return [p.path, p.views]; });
+      drawPages();
+      drawChart();
     }
+    paintMarks(false);
+    paintSeams();
+    paintProgress();
+    return true;
+  }
+  function readPulse() {
+    var url = panel && panel.getAttribute('data-pulse');
+    if (!url || !window.fetch) return;
+    fetch(url, { credentials: 'omit' })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (pulse) { if (pulse && pulse.month && pulse.today) showPulse(pulse); })
+      .catch(function () { /* the invented series stays, and says what it is */ });
+  }
+
+  paintMarks(true);
+  paintSeams();
+  paintProgress();
+  if (panel) {
+    startDemo();
+    readPulse();
+    if (!reduced) setInterval(function () { if (!document.hidden) readPulse(); }, 60000);
   }
 
   /* ------------------------------------------------- the visit, reduced */
@@ -244,7 +408,7 @@
   function show(who) {
     var w = WHO[who];
     if (!w || !xout) return;
-    document.querySelectorAll('[data-who]').forEach(function (b) { b.setAttribute('aria-pressed', b.getAttribute('data-who') === who ? 'true' : 'false'); });
+    all('[data-who]').forEach(function (b) { b.setAttribute('aria-pressed', b.getAttribute('data-who') === who ? 'true' : 'false'); });
     $('x-when').textContent = w.when;
     $('x-ip').innerHTML = w.ip;
     $('x-cut').textContent = w.empty ? 'read to answer the request, and never written down' : 'cut to 81.224.17.0/24, hashed, then thrown away';
@@ -264,7 +428,7 @@
       setTimeout(function () { code.classList.remove('flash'); }, changed ? 900 : 500);
     }
   }
-  document.querySelectorAll('[data-who]').forEach(function (b) {
+  all('[data-who]').forEach(function (b) {
     b.addEventListener('click', function () { show(b.getAttribute('data-who')); });
   });
 
@@ -275,8 +439,10 @@
       var tab = ev.target.closest('[role="tab"]');
       if (!tab) return;
       var name = tab.getAttribute('data-pane');
-      tour.querySelectorAll('[role="tab"]').forEach(function (t) { t.setAttribute('aria-pressed', t === tab ? 'true' : 'false'); });
-      tour.querySelectorAll('.tour-pane').forEach(function (p) { p.hidden = p.getAttribute('data-pane') !== name; });
+      all('[role="tab"]', tour).forEach(function (t) { t.setAttribute('aria-pressed', t === tab ? 'true' : 'false'); });
+      all('.tour-pane', tour).forEach(function (p) { p.hidden = p.getAttribute('data-pane') !== name; });
+      /* The scene engine sizes a scene when it can see it. */
+      window.dispatchEvent(new Event('resize'));
     });
   }
 

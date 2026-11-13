@@ -119,13 +119,22 @@ body.argus {
     background: rgba(10, 13, 22, .82);
     -webkit-backdrop-filter: saturate(140%) blur(14px);
     backdrop-filter: saturate(140%) blur(14px);
-    border-bottom: 1px solid var(--night-line);
     color: var(--night-text);
     font-family: var(--f-body);
 }
 .site-nav .wrap { height: 100%; display: flex; align-items: center; gap: 28px; }
 .brand { display: inline-flex; align-items: center; gap: 10px; font-family: var(--f-display); font-weight: 700; font-size: 19px; letter-spacing: -.01em; color: var(--night-text); }
-.brand img { width: 34px; height: 34px; border-radius: 50%; }
+.brand .mark { display: block; width: 46px; height: 29px; color: var(--night-text); }
+.brand .mark img { width: 29px; height: 29px; border-radius: 50%; }
+.mark svg, .big-mark svg { width: 100%; height: 100%; overflow: visible; }
+.mark-lid { fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linejoin: round; }
+.mark-bar { stroke: var(--peacock); stroke-width: 1.7; stroke-linecap: round; }
+.mark-bar.is-now { stroke: var(--iris); }
+.mark-bar.is-ahead { stroke: currentColor; opacity: .28; }
+.mark-pupil { fill: var(--iris); }
+.progress { position: absolute; left: 0; right: 0; bottom: -8px; width: 100%; height: 14px; pointer-events: none; overflow: visible; }
+.progress-rail { fill: none; stroke: rgba(233, 236, 247, .14); stroke-width: 1; }
+.progress-done { fill: none; stroke: var(--peacock); stroke-width: 1.6; stroke-dasharray: 1; stroke-dashoffset: 1; }
 .brand b { font-weight: 700; color: var(--peacock); }
 .nav-links { display: flex; align-items: center; gap: 4px; margin-left: auto; }
 .nav-item { position: relative; }
@@ -195,15 +204,18 @@ body.argus {
 .band-vellum { background: var(--vellum); color: var(--ink); }
 .band-vellum-2 { background: var(--vellum-2); color: var(--ink); }
 
-/* The seam between two bands is a ruler: this is a product that measures.
-   It sits at the top of a band, in that band's own ink. */
-.seam { position: absolute; inset: 0 0 auto 0; height: 16px; pointer-events: none; color: var(--tick);
-    background-image:
-        repeating-linear-gradient(90deg, currentColor 0 1px, transparent 1px 60px),
-        repeating-linear-gradient(90deg, currentColor 0 1px, transparent 1px 12px);
-    background-size: 100% 16px, 100% 7px; background-repeat: no-repeat; background-position: 0 0, 0 0; }
-.band-night > .seam { --tick: rgba(232, 185, 85, .55); }
-.band-vellum > .seam, .band-vellum-2 > .seam { --tick: rgba(21, 24, 38, .32); }
+/* The seam between two bands is the traffic curve: the band below rises into
+   the one above by as much as each day had visitors (drawn by js/home.js). */
+.seam { position: absolute; left: 0; right: 0; top: -59px; height: 60px; pointer-events: none; z-index: 1; }
+.seam svg { width: 100%; height: 100%; display: block; overflow: visible; }
+.seam-line { fill: none; stroke: var(--tick); stroke-width: 1.5; }
+.band-night > .seam { --tick: var(--peacock); }
+.band-vellum > .seam, .band-vellum-2 > .seam { --tick: var(--peacock-deep); }
+
+/* Sections are numbered like the ticks on an axis. */
+main { counter-reset: band; }
+main > section { counter-increment: band; }
+.rise > .eyebrow-m::after, .with-bignum .eyebrow-m::after { content: "/ " counter(band, decimal-leading-zero); opacity: .55; }
 
 .eyebrow-m {
     display: inline-flex; align-items: center; gap: 10px;
@@ -313,6 +325,14 @@ body.argus {
 .panel-foot a { color: var(--peacock); }
 .panel-foot a:hover { text-decoration: underline; }
 
+.panel-you { display: none; }
+.panel.is-real .panel-you { display: block; }
+.panel.is-real .panel-demo { display: none; }
+.panel-you p { margin: 0 0 10px; font-size: 12.5px; line-height: 1.55; color: var(--night-dim); }
+.panel-you p b { color: var(--night-text); font-weight: 600; }
+.panel-you p.dim { color: var(--night-faint); margin: 0; }
+.panel-you code { font-family: var(--f-mono); font-size: 11.5px; color: var(--peacock); }
+
 /* --- Ticker -------------------------------------------------------------- */
 .ticker { position: relative; overflow: hidden; background: var(--night-2); border-top: 1px solid var(--night-line); border-bottom: 1px solid var(--night-line); padding: 13px 0; }
 .ticker-track { display: flex; width: max-content; animation: ticker 48s linear infinite; }
@@ -361,6 +381,13 @@ body.argus {
 .fineprint { margin: 22px 0 0; font-size: 13px; color: var(--ink-faint); max-width: 78ch; }
 .band-night .fineprint { color: var(--night-faint); }
 .fineprint a { text-decoration: underline; text-underline-offset: 3px; }
+
+.with-bignum { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 40px; align-items: end; }
+.bignum { text-align: right; }
+.bignum b { display: block; font-family: var(--f-display); font-weight: 700; font-size: clamp(110px, 15vw, 210px); line-height: .8; letter-spacing: -.06em; color: transparent; -webkit-text-stroke: 1.5px var(--peacock); font-variant-numeric: tabular-nums; }
+.bignum b i { font-family: var(--f-serif); font-style: italic; font-weight: 400; letter-spacing: 0; -webkit-text-stroke: 0; color: var(--iris); font-size: .62em; margin-left: .04em; }
+.bignum span { display: block; margin-top: 16px; font-family: var(--f-mono); font-size: 11.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--night-dim); }
+@media (max-width: 760px) { .with-bignum { grid-template-columns: 1fr; gap: 28px; } .bignum { text-align: left; } }
 
 /* --- Weight -------------------------------------------------------------- */
 .weigh { margin-top: 56px; display: grid; gap: 26px; }
@@ -453,12 +480,11 @@ body.argus {
 .term.is-seen .line { opacity: 1; transition-delay: calc(var(--i) * .42s); }
 
 /* --- Closing ------------------------------------------------------------- */
-.closing { position: relative; overflow: hidden; text-align: center; padding: 120px 0 112px; }
-.closing .big-logo { position: relative; width: 132px; height: 132px; margin: 0 auto 36px; }
-.closing .big-logo img { position: relative; width: 132px; height: 132px; border-radius: 50%; }
-.closing .big-logo::before, .closing .big-logo::after { content: ""; position: absolute; inset: -18px; border-radius: 50%; border: 1px solid rgba(31, 199, 179, .35); animation: ring 4.5s ease-out infinite; }
-.closing .big-logo::after { animation-delay: 2.25s; }
-@keyframes ring { 0% { transform: scale(.82); opacity: .9; } 100% { transform: scale(1.5); opacity: 0; } }
+.closing { position: relative; text-align: center; padding: 120px 0 112px; }
+.closing .big-mark { position: relative; width: 250px; height: 156px; margin: 0 auto 30px; color: var(--night-text); }
+.closing .big-mark .mark-lid { stroke-width: 1; }
+.closing .big-mark .mark-bar { stroke-width: 1.15; }
+.closing .big-mark { width: 300px; height: 188px; }
 .closing .h-section { margin-left: auto; margin-right: auto; max-width: 18ch; }
 .closing .lead { margin-left: auto; margin-right: auto; }
 .closing .hero-cta { justify-content: center; }
@@ -520,7 +546,7 @@ body.argus {
 
 @media (prefers-reduced-motion: reduce) {
     html { scroll-behavior: auto; }
-    .ticker-track, .closing .big-logo::before, .closing .big-logo::after, .panel-bar .live i { animation: none; }
+    .ticker-track, .panel-bar .live i { animation: none; }
     .rise { opacity: 1; transform: none; transition: none; }
     .eyefield .lids, .eyefield .ball, .weigh-row .bar, .term .line { transition: none; }
 }
