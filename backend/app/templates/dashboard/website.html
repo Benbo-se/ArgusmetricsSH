@@ -281,7 +281,7 @@
                     <div class="flex items-start justify-between">
                         <div class="flex-1">
                             <div class="flex items-center gap-2 mb-2">
-                                <span x-text="severityIcon" class="text-xl"></span>
+                                <svg class="ico text-xl" aria-hidden="true"><use :href="severityIcon"></use></svg>
                                 <span :class="severityBadgeClasses"
                                       class="px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase"
                                       x-text="typeLabel">

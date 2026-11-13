@@ -226,7 +226,7 @@
                 <template x-for="(row, index) in sourceRows" :key="index">
                     <div x-data="crossRow" class="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
                         <div class="flex-1 min-w-0 flex items-center gap-2">
-                            <span class="text-lg flex-shrink-0" x-text="icon"></span>
+                            <svg class="ico text-lg flex-shrink-0" aria-hidden="true"><use :href="icon"></use></svg>
                             <p class="text-sm font-medium text-gray-900 truncate" x-text="referrer"></p>
                         </div>
                         <div class="ml-4 flex items-center">

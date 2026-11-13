@@ -113,6 +113,18 @@ body.argus {
 .eye-iris { fill: none; stroke: currentColor; stroke-width: 1.6; }
 .eye-pupil { fill: currentColor; }
 
+/* The icon set (static/img/icons.svg): one stroke, round ends, sized by the text around it. */
+.ico { display: inline-block; width: 1.15em; height: 1.15em; vertical-align: -.2em; flex-shrink: 0; fill: none; stroke: currentColor; }
+.text-3xl > .ico, .text-5xl > .ico, .text-6xl > .ico { color: var(--peacock-deep); }
+.mark.mark-inline { display: inline-block; width: 58px; height: 36px; color: var(--ink); vertical-align: middle; }
+.mark.mark-inline svg { width: 100%; height: 100%; overflow: visible; }
+.legacy .mark-bar { stroke: var(--peacock-deep); }
+.legacy .argus .mark-bar { stroke: var(--peacock); }
+.legacy .mark-bar.is-now, .legacy .mark-pupil { stroke: none; }
+.legacy .mark-inline .mark-pupil { fill: var(--iris-deep); }
+.legacy .mark-inline .mark-bar.is-now { stroke: var(--iris-deep); }
+.legacy .argus .mark-bar.is-now { stroke: var(--iris); }
+
 /* --- Navigation ---------------------------------------------------------- */
 .site-nav {
     position: fixed; inset: 0 0 auto 0; z-index: 50; height: var(--nav-h);
@@ -594,3 +606,5 @@ body.legacy .shadow-sm, body.legacy .shadow, body.legacy .shadow-md, body.legacy
 body.legacy .rounded-lg, body.legacy .rounded-xl { border-radius: 12px; }
 body.legacy .argus { font-family: var(--f-body); line-height: 1.55; }
 body.legacy .site-foot { margin-top: 0; }
+/* Over paper the translucent bar turned grey; here it is simply night. */
+body.legacy .site-nav { background: rgba(10, 13, 22, .97); }

@@ -62,7 +62,7 @@
                 </p>
                 {% else %}
                 <p class="mt-2 text-sm text-gray-600">
-                    ⚠️ You must verify domain ownership before tracking will work.
+                    <svg class="ico" aria-hidden="true"><use href="{{ static_url('img/icons.svg') }}#i-warn"></use></svg> You must verify domain ownership before tracking will work.
                     <span class="font-medium text-yellow-700">Tracking is currently blocked.</span>
                 </p>
                 <button @click="toggleInstructions"
@@ -115,7 +115,7 @@
                     </div>
 
                     <div class="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
-                        <h4 class="text-sm font-medium text-blue-900 mb-2">📝 Step-by-step guide:</h4>
+                        <h4 class="text-sm font-medium text-blue-900 mb-2"><svg class="ico" aria-hidden="true"><use href="{{ static_url('img/icons.svg') }}#i-steps"></use></svg> Step-by-step guide:</h4>
                         <ol class="text-sm text-blue-800 space-y-1 list-decimal list-inside">
                             <li>Log in to your DNS provider (e.g., DigitalOcean, Cloudflare, GoDaddy)</li>
                             <li>Go to DNS management for <span class="font-mono" x-text="bareDomain"></span></li>
@@ -133,8 +133,8 @@
                                 :disabled="isVerifying"
                                 :class="verifyClass"
                                 class="w-full px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
-                            <span x-show="isNotVerifying">🔍 Verify Domain Now</span>
-                            <span x-show="isVerifying">⏳ Checking DNS...</span>
+                            <span x-show="isNotVerifying"><svg class="ico" aria-hidden="true"><use href="{{ static_url('img/icons.svg') }}#i-search"></use></svg> Verify Domain Now</span>
+                            <span x-show="isVerifying"><svg class="ico" aria-hidden="true"><use href="{{ static_url('img/icons.svg') }}#i-wait"></use></svg> Checking DNS...</span>
                         </button>
                     </div>
                 </div>

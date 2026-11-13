@@ -588,7 +588,7 @@ function showToast(message) {
  * Get country flag emoji from country code
  */
 function getCountryFlag(countryCode) {
-    if (!countryCode || countryCode.length !== 2) return '🌍';
+    if (!countryCode || countryCode.length !== 2) return '\u00b7';
 
     const codePoints = countryCode
         .toUpperCase()

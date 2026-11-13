@@ -7,7 +7,7 @@
     <div class="max-w-md w-full space-y-8">
         <div class="text-center">
             <a href="/" class="inline-block">
-                <img src="/static/img/ArgusEyefavicon3.png" alt="Argusmetrics" class="mx-auto h-24 w-24 mb-4 hover:opacity-80 transition-opacity cursor-pointer">
+                {% with mark_class='mark-hero' %}{% include 'components/_mark.html' %}{% endwith %}
             </a>
             <h2 class="text-3xl font-extrabold text-gray-900">Argusmetrics</h2>
             <p class="mt-2 text-sm text-gray-600">Simple, privacy-focused analytics</p>
@@ -33,7 +33,7 @@
                                data-on-input="updateChecklist"
                                class="appearance-none block w-full px-3 py-2 pr-10 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
                         <button type="button" data-on-click="togglePw" data-target="password" aria-label="Show password"
-                                class="absolute inset-y-0 right-0 flex items-center px-3 text-gray-400 hover:text-gray-600">👁</button>
+                                class="absolute inset-y-0 right-0 flex items-center px-3 text-gray-400 hover:text-gray-600"><svg class="ico" aria-hidden="true"><use href="{{ static_url('img/icons.svg') }}#i-eye"></use></svg></button>
                     </div>
                     <!-- Live checklist: UX only, the server always re-validates -->
                     <ul class="mt-2 space-y-1 text-xs" id="pw-checklist">
@@ -143,19 +143,19 @@ async function handleSignup(event) {
             if (data.verify_url) {
                 // DEV MODE: email not configured, show link directly
                 successMsg.innerHTML = `
-                    <p class="font-bold mb-2">⚠️ Development Mode</p>
+                    <p class="font-bold mb-2"><svg class="ico" aria-hidden="true"><use href="{{ static_url('img/icons.svg') }}#i-warn"></use></svg> Development Mode</p>
                     <p class="text-sm mb-3">Email is not configured. Click the button below to verify your account:</p>
                     <a href="${data.verify_url}"
                        class="inline-block px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors">
                         Click Here to Verify Account
                     </a>
                     <p class="text-xs mt-4 text-yellow-700 bg-yellow-50 p-2 rounded border border-yellow-200">
-                        🚫 This will NOT work in production! Configure email (SMTP) before deploying.
+                        <svg class="ico" aria-hidden="true"><use href="{{ static_url('img/icons.svg') }}#i-ban"></use></svg> This will NOT work in production! Configure email (SMTP) before deploying.
                     </p>
                 `;
             } else {
                 successMsg.innerHTML = `
-                    <p class="font-bold mb-2">✅ Check your email!</p>
+                    <p class="font-bold mb-2"><svg class="ico" aria-hidden="true"><use href="{{ static_url('img/icons.svg') }}#i-check"></use></svg> Check your email!</p>
                     <p class="text-sm mb-3">We've sent a verification link and a 6-digit code to <span class="font-semibold">${email}</span>.</p>
                     <a href="/verify?email=${encodeURIComponent(email)}"
                        class="inline-block px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors">

@@ -1113,3 +1113,6 @@ code, pre, kbd, .font-mono { font-family: 'JetBrains Mono', ui-monospace, SFMono
     background-image: radial-gradient(70% 46% at 50% 0%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 72%) !important;
     background-color: var(--surface-page) !important;
 }
+
+/* The icon set (static/img/icons.svg): one stroke, round ends, sized by the text around it. */
+.ico { display: inline-block; width: 1.15em; height: 1.15em; vertical-align: -.2em; flex-shrink: 0; fill: none; stroke: currentColor; }

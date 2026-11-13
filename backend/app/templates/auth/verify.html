@@ -88,14 +88,14 @@
             </script>
 
             {% elif success %}
-            <div class="text-6xl mb-4">✅</div>
+            <div class="text-6xl mb-4"><svg class="ico" aria-hidden="true"><use href="{{ static_url('img/icons.svg') }}#i-check"></use></svg></div>
             <h2 class="text-2xl font-bold text-gray-900 mb-4">Email Verified!</h2>
             <p class="text-gray-600 mb-6">Your email has been successfully verified.</p>
             <a href="/dashboard" class="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
                 Go to Dashboard
             </a>
             {% else %}
-            <div class="text-6xl mb-4">❌</div>
+            <div class="text-6xl mb-4"><svg class="ico" aria-hidden="true"><use href="{{ static_url('img/icons.svg') }}#i-cross"></use></svg></div>
             <h2 class="text-2xl font-bold text-gray-900 mb-4">Verification Failed</h2>
             <p class="text-gray-600 mb-6">{{ error_message | default("The verification link is invalid or has expired.") }}</p>
             <div class="space-y-3">

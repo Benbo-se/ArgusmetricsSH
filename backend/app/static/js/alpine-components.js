@@ -1132,7 +1132,7 @@ document.addEventListener('alpine:init', () => {
                 if (message.type !== 'conversion' || !message.data) return
                 const name = message.data.goal_name || message.data.event_name
                 window.dispatchEvent(new CustomEvent('toast', {
-                    detail: { message: `🎯 ${name} just converted` },
+                    detail: { message: `${name} just converted` },
                 }))
                 window.dispatchEvent(new CustomEvent('goal-converted', {
                     detail: { eventName: message.data.event_name },
@@ -2615,9 +2615,9 @@ document.addEventListener('alpine:init', () => {
             return 'bg-blue-100 text-blue-800'
         },
         get severityIcon() {
-            if (this.severity === 'high') return '⚠️'
-            if (this.severity === 'medium') return '⚡'
-            return 'ℹ️'
+            if (this.severity === 'high') return '/static/img/icons.svg#i-warn'
+            if (this.severity === 'medium') return '/static/img/icons.svg#i-bolt'
+            return '/static/img/icons.svg#i-info'
         },
         get typeLabel() {
             return {
