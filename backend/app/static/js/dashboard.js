@@ -815,7 +815,9 @@ function sortableTable() {
         get sortIcon() {
             const columnIndex = Number(this.$el.dataset.column);
             if (this.sortColumn !== columnIndex) {
-                return '↕️'; // Both arrows when not sorted
+                // Both arrows when not sorted. U+FE0E asks for the text glyph:
+                // with the emoji selector it was a coloured tile in the header.
+                return '\u2195\uFE0E';
             }
             return this.sortDirection === 'asc' ? '↑' : '↓';
         }

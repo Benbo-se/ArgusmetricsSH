@@ -952,3 +952,110 @@ input::placeholder { color: var(--text-muted) !important; }
     margin: .5rem auto 0;
     font-size: .8125rem;
 }
+
+/* === The shared dashboard (dashboard/public.html) ======================== */
+/* The owner's analytics page without the sidebar and without anything that
+   changes data. It is built from the same classes; only these are its own. */
+
+/* A period on the shared page is a link, not a button: there is nothing to
+   set, only another address to load. It reads as the same segment. */
+.seg > a {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 7px;
+    padding: .3rem .8rem;
+    font-size: .8rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    transition: background-color .15s ease, color .15s ease, box-shadow .15s ease;
+}
+.seg > a:hover { color: var(--text-primary); }
+.seg > a[aria-current="true"] {
+    background: var(--surface-card);
+    color: var(--text-primary);
+    box-shadow: var(--shadow-card);
+}
+.dash-toolbar .seg > a { padding: 0 .8rem; }
+
+/* The bar across the top: the mark and name as in the sidebar, and what
+   kind of page this is. */
+.share-bar {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    border-bottom: 1px solid var(--border-subtle);
+    background: var(--surface-card);
+}
+.share-bar-inner {
+    display: flex;
+    align-items: center;
+    gap: .9rem;
+    height: 3.5rem;
+}
+.share-brand {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    flex-shrink: 0;
+}
+.share-bar-end {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    margin-left: auto;
+}
+.share-bar-btn {
+    display: grid;
+    place-items: center;
+    width: 2.25rem; height: 2.25rem;
+    border-radius: 9px;
+    color: var(--text-muted);
+    transition: background-color .15s ease, color .15s ease;
+}
+.share-bar-btn:hover { background: var(--surface-hover); color: var(--text-primary); }
+.share-bar-link {
+    padding: 0 .35rem;
+    font-size: .8125rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+.share-bar-link:hover { color: var(--text-primary); }
+/* The pill says the same thing in fewer words on a phone, so the name
+   beside it is never cut. */
+.share-narrow { display: none; }
+@media (max-width: 479px) {
+    .share-wide { display: none; }
+    .share-narrow { display: inline; }
+}
+
+/* Whose product this is, said once and quietly at the foot. */
+.share-foot {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: .3rem;
+    margin-top: 2.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border-subtle);
+    font-size: .8125rem;
+    color: var(--text-muted);
+}
+.share-foot > a {
+    display: inline-flex;
+    align-items: center;
+    gap: .45rem;
+    color: var(--text-secondary);
+}
+.share-foot > a:hover { color: var(--text-primary); }
+.share-foot strong { font-weight: 600; color: var(--text-primary); }
+.share-foot > p { font-size: .75rem; }
+
+/* The password prompt in front of a protected share. */
+.share-gate-brand {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: .5rem;
+    margin-bottom: 1.25rem;
+}

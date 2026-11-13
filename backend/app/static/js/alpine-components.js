@@ -148,6 +148,78 @@ function referrerIcon(referrer) {
     return NEUTRAL_REFERRER_ICON
 }
 
+/**
+ * A component made of a shared part and its own.
+ *
+ * Not an object spread: a spread reads every getter once and copies the
+ * answer, and these components are mostly getters that have to be asked
+ * again for each element. The property descriptors are copied instead.
+ */
+function composed(...parts) {
+    const component = {}
+    parts.forEach((part) => {
+        Object.defineProperties(component, Object.getOwnPropertyDescriptors(part))
+    })
+    return component
+}
+
+/**
+ * The tabs of the breakdown cards, on the owner's analytics page and on the
+ * shared one. A tab is a button naming its card and itself (data-card,
+ * data-tab), and a panel carries the same two attributes.
+ */
+function breakdownTabs() {
+    return {
+        // The tab shown in each breakdown card, by the card's name. Filled
+        // by restoreTabs() from the markup, which is where the cards are listed.
+        cardTabs: {},
+
+        /**
+         * Every card starts on the tab the markup marks as selected, unless
+         * this browser remembers another one for it. A filter reloads the
+         * page, and a card that jumped back to its first tab on every click
+         * in it would be unusable, so the choice has to outlive the page.
+         *
+         * A remembered tab that the page no longer has (a renamed tab, a
+         * list that is not rendered) is ignored, or the card would show
+         * nothing at all.
+         */
+        restoreTabs() {
+            let stored = {}
+            try {
+                stored = JSON.parse(window.localStorage.getItem(TAB_STORAGE_KEY) || '{}') || {}
+            } catch (error) {
+                stored = {}
+            }
+            const tabs = {}
+            const all = [...this.$el.querySelectorAll('[role="tab"][data-card]')]
+            all.forEach((tab) => {
+                if (tab.getAttribute('aria-selected') === 'true') tabs[tab.dataset.card] = tab.dataset.tab
+            })
+            all.forEach((tab) => {
+                if (stored[tab.dataset.card] === tab.dataset.tab) tabs[tab.dataset.card] = tab.dataset.tab
+            })
+            this.cardTabs = tabs
+        },
+
+        get isTabActive() {
+            const data = this.$el.dataset
+            return this.cardTabs[data.card] === data.tab
+        },
+        /** aria-selected for a tab; .tab-strip styles the selected one. */
+        get tabSelected() { return this.isTabActive ? 'true' : 'false' },
+        selectTab(event) {
+            const data = event.currentTarget.dataset
+            this.cardTabs = { ...this.cardTabs, [data.card]: data.tab }
+            // Private mode and a full or blocked store all throw here. The
+            // tab still changes; it is only not remembered.
+            try {
+                window.localStorage.setItem(TAB_STORAGE_KEY, JSON.stringify(this.cardTabs))
+            } catch (error) { /* not remembered */ }
+        },
+    }
+}
+
 document.addEventListener('alpine:init', () => {
 
     /**
@@ -633,55 +705,22 @@ document.addEventListener('alpine:init', () => {
 document.addEventListener('alpine:init', () => {
 
     /**
-     * A group of tabs, generic enough for every tab strip in the product.
-     *
-     * The trick that makes one component enough: Alpine injects $el per
-     * element, so a getter can read the data attribute of whichever button or
-     * panel is asking. `isActive` therefore answers differently for each
-     * element while being defined once.
-     *
-     *   <div x-data="tabs" data-default="top">
-     *     <button data-tab="top" @click="select" :class="tabClass">Top</button>
-     *     <div data-tab="top" x-show="isActive"> ... </div>
+     * The public (shared link) dashboard: the period menu and the tabs of
+     * the breakdown cards. Nothing here filters or changes anything; a
+     * period is a link, and the page is read-only.
      */
-    Alpine.data('tabs', () => ({
-        active: '',
-
-        init() { this.active = this.$el.dataset.default || '' },
-
-        select(event) { this.active = event.currentTarget.dataset.tab },
-
-        get isActive() { return this.$el.dataset.tab === this.active },
-
-        get tabClass() {
-            return this.$el.dataset.tab === this.active
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-        },
-    }))
-
-    /**
-     * The date-range menu on the public (shared link) dashboard.
-     *
-     * The label for the current range is computed here rather than rendered
-     * by Jinja into an Alpine string, which is what it used to be: a template
-     * literal holding a Jinja if/elif chain, quoted inside an HTML attribute.
-     */
-    Alpine.data('publicRangeMenu', () => ({
-        open: false,
-        range: '',
-
+    Alpine.data('publicPage', () => composed(breakdownTabs(), {
+        dropdownOpen: false,
         label: '',
 
         init() {
-            this.range = this.$el.dataset.range || '7d'
             // The server names the range: it is the one that resolved it.
             this.label = this.$el.dataset.label || 'Last 7 days'
+            this.restoreTabs()
         },
 
-        toggle() { this.open = !this.open },
-        close() { this.open = false },
-        get isOpen() { return this.open },
+        toggleDropdown() { this.dropdownOpen = !this.dropdownOpen },
+        closeDropdown() { this.dropdownOpen = false },
 
         get rangeText() { return this.label },
     }))
@@ -2094,7 +2133,7 @@ document.addEventListener('alpine:init', () => {
         'os', 'os_version', 'browser_version', 'language', 'hostname', 'screen',
     ]
 
-    Alpine.data('websitePage', () => ({
+    Alpine.data('websitePage', () => composed(breakdownTabs(), {
         state: { range: '7d', compare: '', filters: {} },
         // '' for no comparison, 'previous' or 'year'.
         compareMode: '',
@@ -2102,9 +2141,6 @@ document.addEventListener('alpine:init', () => {
         customFrom: '',
         customTo: '',
         dropdownOpen: false,
-        // The tab shown in each breakdown card, by the card's name. Filled
-        // in init() from the markup, which is where the cards are listed.
-        cardTabs: {},
 
         get compareChoice() { return modelFor(this, 'compareMode') },
         get customStart() { return modelFor(this, 'customFrom') },
@@ -2119,34 +2155,6 @@ document.addEventListener('alpine:init', () => {
             this.customFrom = this.state.start_date || ''
             this.customTo = this.state.end_date || ''
             this.restoreTabs()
-        },
-
-        /**
-         * Every card starts on the tab the markup marks as selected, unless
-         * this browser remembers another one for it. A filter reloads the
-         * page, and a card that jumped back to its first tab on every click
-         * in it would be unusable, so the choice has to outlive the page.
-         *
-         * A remembered tab that the page no longer has (a renamed tab, a
-         * list that is not rendered) is ignored, or the card would show
-         * nothing at all.
-         */
-        restoreTabs() {
-            let stored = {}
-            try {
-                stored = JSON.parse(window.localStorage.getItem(TAB_STORAGE_KEY) || '{}') || {}
-            } catch (error) {
-                stored = {}
-            }
-            const tabs = {}
-            const all = [...this.$el.querySelectorAll('[role="tab"][data-card]')]
-            all.forEach((tab) => {
-                if (tab.getAttribute('aria-selected') === 'true') tabs[tab.dataset.card] = tab.dataset.tab
-            })
-            all.forEach((tab) => {
-                if (stored[tab.dataset.card] === tab.dataset.tab) tabs[tab.dataset.card] = tab.dataset.tab
-            })
-            this.cardTabs = tabs
         },
 
         get range() { return this.state.range },
@@ -2181,22 +2189,6 @@ document.addEventListener('alpine:init', () => {
         /** aria-pressed for a quick range button; .seg styles the pressed one. */
         get rangePressed() {
             return this.$el.dataset.value === this.range ? 'true' : 'false'
-        },
-
-        get isTabActive() {
-            const data = this.$el.dataset
-            return this.cardTabs[data.card] === data.tab
-        },
-        /** aria-selected for a tab; .tab-strip styles the selected one. */
-        get tabSelected() { return this.isTabActive ? 'true' : 'false' },
-        selectTab(event) {
-            const data = event.currentTarget.dataset
-            this.cardTabs = { ...this.cardTabs, [data.card]: data.tab }
-            // Private mode and a full or blocked store all throw here. The
-            // tab still changes; it is only not remembered.
-            try {
-                window.localStorage.setItem(TAB_STORAGE_KEY, JSON.stringify(this.cardTabs))
-            } catch (error) { /* not remembered */ }
         },
 
         /** Whether any filter is active at all, for the filter bar. */
@@ -2706,9 +2698,22 @@ document.addEventListener('alpine:init', () => {
         },
     }))
 
-    /** A row in either of those two lists. */
-    Alpine.data('listRow', () => ({
-        /** Clicking a row filters the dashboard by it. */
+    /** What a row in either of those two lists shows. */
+    const rowFields = () => ({
+        get hasScroll() { return !!this.row.scroll },
+        get path() { return this.row.path },
+        get referrer() { return this.row.referrer },
+        get name() { return this.row.name },
+        get icon() { return this.row.icon },
+        get views() { return this.row.views.toLocaleString('en-US') },
+        get scroll() { return this.row.scroll },
+        get share() { return this.row.share },
+        /** The share bar behind the row (.rank-row in theme.css). */
+        get barStyle() { return { '--share': `${Math.min(100, this.row.pct || 0)}%` } },
+    })
+
+    /** A row on the owner's page: clicking it filters the dashboard by it. */
+    Alpine.data('listRow', () => composed(rowFields(), {
         applyFilter() {
             const filters = this.filters
             if (this.row.path !== undefined) filters.page = this.row.path
@@ -2721,15 +2726,8 @@ document.addEventListener('alpine:init', () => {
                 : this.filters.referrer === this.row.referrer
             return active ? 'is-active' : ''
         },
-        get hasScroll() { return !!this.row.scroll },
-        get path() { return this.row.path },
-        get referrer() { return this.row.referrer },
-        get name() { return this.row.name },
-        get icon() { return this.row.icon },
-        get views() { return this.row.views.toLocaleString('en-US') },
-        get scroll() { return this.row.scroll },
-        get share() { return this.row.share },
-        /** The share bar behind the row (.rank-row in theme.css). */
-        get barStyle() { return { '--share': `${Math.min(100, this.row.pct || 0)}%` } },
     }))
+
+    /** The same row on the shared dashboard, where nothing filters. */
+    Alpine.data('plainRow', rowFields)
 })

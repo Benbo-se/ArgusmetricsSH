@@ -30,6 +30,61 @@ test.describe('Public Dashboard', () => {
     expect(response?.status()).toBe(200);
   });
 
+  // The shared page is the owner's page without anything that acts. Its
+  // controls are Alpine's too, and Alpine's CSP build fails in silence, so
+  // this reads the console as csp.spec.ts does for the pages behind the login.
+  test('the cards switch tabs, the rows do nothing, and the console stays clean', async ({ request, page }) => {
+    const { sessionToken, websiteId, trackingCode } = await createUserWithWebsite(request);
+    const api = new ApiHelper(request);
+    await api.track(trackingCode, '/', 'https://www.google.com/');
+    await api.track(trackingCode, '/pricing', 'https://www.reddit.com/r/coffee');
+    await request.put(`/api/v1/websites/${websiteId}/public-access`, {
+      headers: { Authorization: `Bearer ${sessionToken}` },
+      data: { is_public: true },
+    });
+    const shareToken = (await api.getWebsite(sessionToken, websiteId)).body.public_share_token;
+
+    const complaints: string[] = [];
+    page.on('console', (message) => {
+      if (['warning', 'error'].includes(message.type())) complaints.push(message.text());
+    });
+    page.on('pageerror', (error) => complaints.push(error.message));
+
+    await page.goto(`/public/${shareToken}?range=30d`);
+    const url = page.url();
+
+    const tab = (name: string) => page.getByRole('tab', { name, exact: true });
+    const panel = (card: string, name: string) =>
+      page.locator(`[role="tabpanel"][data-card="${card}"][data-tab="${name}"]`);
+
+    // Referrers by name and mark, as on the owner's page.
+    const referrers = panel('sources', 'referrer').locator('.rank-row');
+    await expect(referrers).toHaveCount(2);
+    const reddit = referrers.filter({ hasText: 'reddit.com/r/coffee' });
+    await expect(reddit.locator('.rank-icon')).toHaveClass(/fa-reddit-alien/);
+
+    // A row is not a control here: no pointer, and a click loads nothing.
+    await expect(reddit).toHaveCSS('cursor', 'auto');
+    await reddit.click();
+    await panel('pages', 'page').locator('.rank-row').first().click();
+    expect(page.url()).toBe(url);
+
+    await expect(panel('devices', 'browser')).toBeHidden();
+    await tab('Browser').click();
+    await expect(tab('Browser')).toHaveAttribute('aria-selected', 'true');
+    await expect(panel('devices', 'browser')).toBeVisible();
+    await expect(panel('devices', 'device')).toBeHidden();
+    await expect(panel('devices', 'browser').locator('.rank-row')).toContainText('Chrome');
+
+    // The period menu opens, and a period is a link to the same page.
+    await page.locator('.tool-range > button').click();
+    await page.locator('.tool-pop a', { hasText: 'Last month' }).click();
+    await expect(page).toHaveURL(/range=last_month/);
+    await expect(page.locator('.tool-range > button')).toContainText('Last month');
+
+    expect(complaints, complaints.join('\n')).toEqual([]);
+  });
+
   test('invalid share token returns 404', async ({ page }) => {
     const response = await page.goto('/public/invalid-token-12345678');
     expect(response?.status()).toBe(404);

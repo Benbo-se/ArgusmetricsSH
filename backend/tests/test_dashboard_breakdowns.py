@@ -150,3 +150,73 @@ class TestThePage:
         ).group(0)
         assert "newsletter" in campaigns and "email" in campaigns
         assert "<table" not in campaigns
+
+
+# The lists the shared page has always shown. The visitor dimensions are the
+# owner's: they were never on a share link, and the redesign must not be how
+# they got there.
+PUBLIC_CARDS = {
+    "sources": ["referrer", "channels", "campaigns"],
+    "pages": ["page", "entry", "exit"],
+    "locations": ["country"],
+    "devices": ["device", "browser"],
+}
+
+
+class TestTheSharedPage:
+    """The public dashboard is built from the same macros as the owner's.
+
+    What it must not inherit is everything that acts: a row that filters, a
+    link to a page behind the login, a list it did not show before.
+    """
+
+    def test_it_has_the_owners_cards_and_only_its_own_lists(self, client, db, shared_website):
+        _pageview(db, shared_website["id"], country="SE", referrer="https://www.google.com/",
+                  browser="Chrome", device_type="desktop", os="Linux", language="sv-SE",
+                  hostname="butik.example.com", utm_source="newsletter")
+
+        response = client.get(f"/public/{shared_website['share_token']}")
+
+        assert response.status_code == 200, response.text[:500]
+        body = response.text
+        for card, tabs in PUBLIC_CARDS.items():
+            for tab in tabs:
+                marker = f'data-card="{card}" data-tab="{tab}"'
+                assert body.count(marker) == 2, (card, tab, body.count(marker))
+            chosen = re.findall(
+                rf'data-card="{card}" data-tab="[a-z_]+"\s+aria-selected="true"', body
+            )
+            assert len(chosen) == 1, (card, chosen)
+        for name in vd.DIMENSION_NAMES:
+            assert f'data-tab="{name}"' not in body, (
+                f"the {name} list is on the shared dashboard; it was the owner's only"
+            )
+        assert "butik.example.com" not in body
+        assert "sv-SE" not in body
+
+        # Named as on the owner's page, and without the emoji it used to have.
+        assert "Sweden" in body
+        assert '"referrer": "https://www.google.com/"' in body, "the referrer island is gone"
+        assert 'x-data="plainRow"' in body
+        for emoji in "👀🔍📘🐦💼⚙➡📱📧💰🤖🔗🌐🦊🧭ⓔ":
+            assert emoji not in body, f"{emoji} is back on the shared page"
+
+    def test_nothing_on_it_filters_or_leads_behind_the_login(self, client, db, shared_website):
+        _pageview(db, shared_website["id"], country="SE", referrer="https://www.google.com/",
+                  browser="Chrome", device_type="desktop")
+        db.execute(
+            text(
+                "INSERT INTO custom_events (website_id, event_name, visitor_hash, timestamp) "
+                "VALUES (:w, 'signup', 'v', now() - interval '1 hour')"
+            ),
+            {"w": shared_website["id"]},
+        )
+        db.commit()
+
+        body = client.get(f"/public/{shared_website['share_token']}").text
+
+        assert "signup" in body, "the event table is not there; nothing below is tested"
+        for acting in ('data-filter=', "applyFilter", "rank-row cursor-pointer", 'x-data="listRow"',
+                       "/dashboard/website/", "export-csv", "Manage goals",
+                       "page-state-data", "propertyFilterDialog"):
+            assert acting not in body, f"{acting} is on a page that is read-only"

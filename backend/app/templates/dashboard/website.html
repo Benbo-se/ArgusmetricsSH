@@ -44,10 +44,10 @@
 <div class="dash-page max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" x-data="websitePage">
     {% if never_recorded %}{% include "dashboard/_first_visit.html" %}{% endif %}
     <div x-data="liveConversions" data-website-id="{{ website.id }}" hidden></div>
-    {# One path, in the icon family the sidebar uses: outline, 24 box, stroke 2. #}
-    {% macro icon(d, cls='w-4 h-4') -%}
-    <svg class="{{ cls }} flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ d }}"/></svg>
-    {%- endmacro %}
+    {# The tab, the ranked row and the lists both dashboards share. #}
+    {% from "dashboard/_breakdowns.html" import icon, tab, row, referrer_list, channel_list,
+       campaign_list, visit_page_list, country_list, device_list, browser_list, goal_list with context %}
+    {% import "dashboard/_event_tables.html" as tables %}
     {% set icon_close = 'M6 18L18 6M6 6l12 12' %}
 
     <!-- Header -->
@@ -456,32 +456,10 @@
        question. They were fifteen cards of equal weight down a page five
        screens long. Nothing was removed, only grouped.
 
-       A tab is a button that names its card and itself; websitePage holds
-       which one each card shows and remembers it in the browser, because a
-       click on a row reloads the page and the card must not jump back. #}
-    {% macro tab(card, name, label, selected=false, title=none) -%}
-    <button type="button" role="tab" @click="selectTab" :aria-selected="tabSelected"
-            data-card="{{ card }}" data-tab="{{ name }}"
-            aria-selected="{{ 'true' if selected else 'false' }}"
-            {%- if title %} title="{{ title }}"{% endif %}
-            {%- if active_filters[name] %} class="has-filter"{% endif %}>{{ label }}</button>
-    {%- endmacro %}
-
-    {# One row of a ranked list: label, bar behind it, count, share. With a
-       filter name it is clickable and filters the page by its value. The
-       value is read from the data attribute (autoescaped), never placed in
-       an Alpine expression. #}
-    {% macro row(views, total, filter=none, value=none, title=none, unknown=false) -%}
-    {%- set pct = (views / total * 100) if total else 0 -%}
-    <div class="rank-row{{ ' cursor-pointer' if filter }}{{ ' is-unknown' if unknown }}"
-         {%- if filter %} @click="applyFilterFromData" data-filter="{{ filter }}" data-value="{{ value }}" :class="serverRowClass"{% endif %}
-         {%- if title %} title="{{ title }}"{% endif %}
-         data-share="{{ pct }}">
-        <span class="rank-label">{{ caller() }}</span>
-        <span class="rank-count">{{ views | format_number }}</span>
-        <span class="rank-pct">{{ "%.0f" | format(pct) }}%</span>
-    </div>
-    {%- endmacro %}
+       The tab, the row and the lists the shared dashboard also shows are
+       macros in _breakdowns.html. websitePage holds which tab each card
+       shows and remembers it in the browser, because a click on a row
+       reloads the page and the card must not jump back. #}
 
     {# The six visitor dimensions (#204) differ only in name. Pageviews
        recorded before these were collected have no value and are listed as
@@ -505,26 +483,6 @@
     </div>
     {% endmacro %}
 
-    {% set channel_icons = {
-        'Organic Search': 'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z',
-        'Social': 'M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z',
-        'Direct': 'M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1',
-        'Email': 'M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z',
-        'Paid': 'M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z',
-        'AI Assistants': 'M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z',
-        'Referral': 'M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1',
-    } %}
-    {% set channel_notes = {
-        'Organic Search': 'From search engines (Google, Bing and so on)',
-        'Social': 'From social media (Facebook, X, LinkedIn and so on)',
-        'Direct': 'Direct visits, with no referrer',
-        'Email': 'From email campaigns (utm_medium=email)',
-        'Paid': 'From paid advertising (utm_medium=cpc or ppc)',
-        'AI Assistants': 'From AI assistants (ChatGPT, Claude, Perplexity, Gemini)',
-        'Referral': 'From other websites',
-    } %}
-    {% set icon_globe = 'M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9' %}
-
     <div class="breakdown-grid">
         <!-- Sources: where visitors came from -->
         <section class="breakdown bg-white rounded-lg shadow" aria-labelledby="card-sources">
@@ -539,32 +497,7 @@
             <div class="breakdown-body">
                 <div role="tabpanel" x-show="isTabActive" data-card="sources" data-tab="referrer">
                     {% if stats.top_referrers and stats.top_referrers|length > 0 %}
-                    <!-- Visitor-controlled values go through a JSON script island:
-                         |tojson does NOT escape double quotes, so putting it inside a
-                         double-quoted attribute lets a crafted value terminate the
-                         attribute and inject a native event handler (stored XSS).
-                         Script context is safe (tojson escapes </script>). -->
-                    {{ '' }}<script type="application/json" id="top-referrers-data">{{ stats.top_referrers|tojson }}</script>
-                    <div class="rank-head"><span>Referrer</span><span>Views</span></div>
-                    <div class="rank-list" x-data="topReferrersList" data-total-pageviews="{{ stats.total_pageviews }}">
-                        <template x-for="(row, index) in referrerRows" :key="index">
-                            {# The name is the host and path; the stored address
-                               is the tooltip and the filter value. It is not a
-                               link: a referrer is whatever a visitor's browser
-                               sent, and an href bound to that is a place for a
-                               javascript: address to end up. #}
-                            <div x-data="listRow" @click="applyFilter"
-                                 class="rank-row cursor-pointer"
-                                 :class="activeClass" :style="barStyle" :title="referrer">
-                                <span class="rank-label">
-                                    <i class="rank-icon" :class="icon" aria-hidden="true"></i>
-                                    <span class="rank-text" x-text="name"></span>
-                                </span>
-                                <span class="rank-count" x-text="views"></span>
-                                <span class="rank-pct" x-text="share"></span>
-                            </div>
-                        </template>
-                    </div>
+                    {{ referrer_list(stats.top_referrers, stats.total_pageviews) }}
                     {% else %}
                     <p class="rank-empty">No referrer data yet</p>
                     {% endif %}
@@ -572,15 +505,7 @@
 
                 <div role="tabpanel" x-show="isTabActive" data-card="sources" data-tab="channels" x-cloak>
                     {% if stats.traffic_channels and stats.traffic_channels|length > 0 %}
-                    <div class="rank-head"><span>Channel</span><span>Views</span></div>
-                    <div class="rank-list">
-                        {% for channel in stats.traffic_channels %}
-                        {% call row(channel.views, stats.total_pageviews, title=channel_notes.get(channel.channel)) %}
-                        <span class="rank-icon">{{ icon(channel_icons.get(channel.channel, icon_globe)) }}</span>
-                        <span class="rank-text">{{ channel.channel }}</span>
-                        {% endcall %}
-                        {% endfor %}
-                    </div>
+                    {{ channel_list(stats.traffic_channels, stats.total_pageviews) }}
                     {% else %}
                     <p class="rank-empty">No channel data yet</p>
                     {% endif %}
@@ -588,23 +513,7 @@
 
                 <div role="tabpanel" x-show="isTabActive" data-card="sources" data-tab="campaigns" x-cloak>
                     {% if stats.utm_campaigns and stats.utm_campaigns|length > 0 %}
-                    <div class="rank-head"><span>Campaign tags</span><span>Views</span></div>
-                    <div class="rank-list">
-                        {# A row is one combination of the three tags. Only
-                           the tags a link carried are printed, each with its
-                           name, where the table printed a dash for the rest. #}
-                        {% for campaign in stats.utm_campaigns %}
-                        {% call row(campaign.views, stats.total_pageviews) %}
-                        <span class="rank-text">
-                            {%- for key, value in [('source', campaign.utm_source), ('medium', campaign.utm_medium), ('campaign', campaign.utm_campaign)] if value -%}
-                            <span class="rank-tag"><span class="rank-sub">{{ key }}</span> {{ value }}</span>
-                            {%- else -%}
-                            <span class="rank-sub">untagged</span>
-                            {%- endfor -%}
-                        </span>
-                        {% endcall %}
-                        {% endfor %}
-                    </div>
+                    {{ campaign_list(stats.utm_campaigns, stats.total_pageviews) }}
                     {% else %}
                     <p class="rank-empty">
                         No campaign data yet
@@ -659,14 +568,7 @@
 
                 <div role="tabpanel" x-show="isTabActive" data-card="pages" data-tab="entry" x-cloak>
                     {% if stats.entry_pages and stats.entry_pages|length > 0 %}
-                    <div class="rank-head"><span>The first page of a visit</span><span>Visits</span></div>
-                    <div class="rank-list">
-                        {% for page in stats.entry_pages %}
-                        {% call row(page.entries, stats.total_visits) %}
-                        <span class="rank-text">{{ page.path }}</span>
-                        {% endcall %}
-                        {% endfor %}
-                    </div>
+                    {{ visit_page_list(stats.entry_pages, 'entries', stats.total_visits, 'The first page of a visit') }}
                     {% else %}
                     <p class="rank-empty">No entry page data yet</p>
                     {% endif %}
@@ -674,14 +576,7 @@
 
                 <div role="tabpanel" x-show="isTabActive" data-card="pages" data-tab="exit" x-cloak>
                     {% if stats.exit_pages and stats.exit_pages|length > 0 %}
-                    <div class="rank-head"><span>The last page before leaving</span><span>Visits</span></div>
-                    <div class="rank-list">
-                        {% for page in stats.exit_pages %}
-                        {% call row(page.exits, stats.total_visits) %}
-                        <span class="rank-text">{{ page.path }}</span>
-                        {% endcall %}
-                        {% endfor %}
-                    </div>
+                    {{ visit_page_list(stats.exit_pages, 'exits', stats.total_visits, 'The last page before leaving') }}
                     {% else %}
                     <p class="rank-empty">No exit page data yet</p>
                     {% endif %}
@@ -703,17 +598,7 @@
             <div class="breakdown-body">
                 <div role="tabpanel" x-show="isTabActive" data-card="locations" data-tab="country">
                     {% if stats.top_countries and stats.top_countries|length > 0 %}
-                    <div class="rank-head"><span>Country</span><span>Views</span></div>
-                    <div class="rank-list">
-                        {# The name is for reading; the code stays the filter
-                           value and the tooltip. #}
-                        {% for country in stats.top_countries %}
-                        {% call row(country.views, stats.total_pageviews, 'country', country.country, title=country.country) %}
-                        <span class="rank-flag" aria-hidden="true">{{ country.country | country_flag }}</span>
-                        <span class="rank-text">{{ country.country | country_name }}</span>
-                        {% endcall %}
-                        {% endfor %}
-                    </div>
+                    {{ country_list(stats.top_countries, stats.total_pageviews) }}
                     {% else %}
                     {% if geoip_available() %}
                     <p class="rank-empty">No country data yet</p>
@@ -755,17 +640,7 @@
             <div class="breakdown-body">
                 <div role="tabpanel" x-show="isTabActive" data-card="devices" data-tab="device">
                     {% if stats.devices %}
-                    {% set device_total = stats.devices.values() | sum %}
-                    {% set device_icons = {'desktop': 'fa-desktop', 'mobile': 'fa-mobile-alt', 'tablet': 'fa-tablet-alt'} %}
-                    <div class="rank-head"><span>Device type</span><span>Views</span></div>
-                    <div class="rank-list">
-                        {% for device, count in stats.devices.items() | sort(attribute='1', reverse=True) %}
-                        {% call row(count, device_total, 'device', device) %}
-                        <i class="rank-icon fas {{ device_icons.get(device, 'fa-question') }}" aria-hidden="true"></i>
-                        <span class="rank-text capitalize">{{ device }}</span>
-                        {% endcall %}
-                        {% endfor %}
-                    </div>
+                    {{ device_list(stats.devices) }}
                     {% else %}
                     <p class="rank-empty">No device data yet</p>
                     {% endif %}
@@ -773,44 +648,7 @@
 
                 <div role="tabpanel" x-show="isTabActive" data-card="devices" data-tab="browser" x-cloak>
                     {% if stats.top_browsers and stats.top_browsers|length > 0 %}
-                    <div class="rank-head"><span>Browser</span><span>Views</span></div>
-                    <div class="rank-list">
-                        {% for browser in stats.top_browsers %}
-                        {#- browser can be NULL for rows recorded without a
-                            parseable User-Agent; 'x' in None raises, and one
-                            such row would 500 the whole page. The name comes
-                            from the visitor's User-Agent, so it reaches the
-                            filter through the data attribute like every
-                            other row here. -#}
-                        {%- set b = browser.browser or '' -%}
-                        {% call row(browser.views, stats.total_pageviews, 'browser', browser.browser or 'Unknown', unknown=(not browser.browser)) %}
-                        {%- if 'Chrome' in b and 'Chromium' not in b -%}
-                            <i class="rank-icon fab fa-chrome icon-chrome" aria-hidden="true"></i>
-                        {%- elif 'Firefox' in b -%}
-                            <i class="rank-icon fab fa-firefox-browser icon-firefox" aria-hidden="true"></i>
-                        {%- elif 'Safari' in b -%}
-                            <i class="rank-icon fab fa-safari icon-safari" aria-hidden="true"></i>
-                        {%- elif 'Edge' in b -%}
-                            <i class="rank-icon fab fa-edge icon-edge" aria-hidden="true"></i>
-                        {%- elif 'Opera' in b -%}
-                            <i class="rank-icon fab fa-opera icon-opera" aria-hidden="true"></i>
-                        {%- elif 'Brave' in b -%}
-                            <i class="rank-icon fab fa-brave icon-brave" aria-hidden="true"></i>
-                        {%- elif 'Chromium' in b -%}
-                            <i class="rank-icon fas fa-circle-notch icon-chromium" aria-hidden="true"></i>
-                        {%- elif 'IE' in b or 'Internet Explorer' in b -%}
-                            <i class="rank-icon fab fa-internet-explorer icon-ie" aria-hidden="true"></i>
-                        {%- elif 'Android' in b -%}
-                            <i class="rank-icon fab fa-android icon-android" aria-hidden="true"></i>
-                        {%- elif 'Samsung' in b -%}
-                            <i class="rank-icon fas fa-mobile-alt icon-samsung" aria-hidden="true"></i>
-                        {%- else -%}
-                            <i class="rank-icon fas fa-globe" aria-hidden="true"></i>
-                        {%- endif -%}
-                        <span class="rank-text">{{ browser.browser or 'Unknown' }}</span>
-                        {% endcall %}
-                        {% endfor %}
-                    </div>
+                    {{ browser_list(stats.top_browsers, stats.total_pageviews) }}
                     {% else %}
                     <p class="rank-empty">No browser data yet</p>
                     {% endif %}
@@ -834,27 +672,7 @@
                 <a href="/dashboard/website/{{ website.id }}/goals"
                    class="text-sm text-blue-600 hover:text-blue-800 font-medium">Manage goals</a>
             </div>
-            <div class="rank-head">
-                <span>Goal</span>
-                <span>Conversions <span class="rank-head-pct" title="The share of visitors who converted at least once">Rate</span></span>
-            </div>
-            <div class="rank-list">
-                {% for goal in stats.goals %}
-                <div class="rank-row" data-share="{{ goal.conversions }}">
-                    <span class="rank-label">
-                        <span class="rank-text">{{ goal.name }}</span>
-                        <span class="rank-sub font-mono">{{ goal.event_name }}</span>
-                    </span>
-                    <span class="rank-count">{{ goal.conversions | format_number }}</span>
-                    <span class="rank-pct is-wide">{{ goal.conversion_rate }}%</span>
-                </div>
-                {% endfor %}
-            </div>
-            {% if stats.total_visitors > 0 %}
-            <p class="mt-4 text-xs text-gray-500">
-                Based on {{ stats.total_visitors | format_number }} unique visitors in this period. The rate is the share of them who converted at least once.
-            </p>
-            {% endif %}
+            {{ goal_list(stats.goals, stats.total_visitors) }}
         </section>
         {% elif stats.goals is defined %}
         <!-- Empty state for goals -->
@@ -891,274 +709,14 @@
         </section>
     </div>
 
-    <!-- Outbound Links Section -->
-    {% if stats.outbound_links and stats.outbound_links|length > 0 %}
-    <div class="bg-white rounded-lg shadow p-6 mb-6">
-        <div class="flex items-center justify-between mb-4">
-            <h2 class="text-lg font-semibold text-gray-900">Outbound Links</h2>
-            <span class="text-sm text-gray-500">Top 20 external destinations</span>
-        </div>
-        <div class="overflow-x-auto" x-data="sortableTable">
-            <table class="min-w-full divide-y divide-gray-200">
-                <thead>
-                    <tr>
-                        <th @click="sortTable" data-column="0" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
-                            Destination URL <span data-column="0" x-text="sortIcon"></span>
-                        </th>
-                        <th @click="sortTable" data-column="1" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
-                            Link Text <span data-column="1" x-text="sortIcon"></span>
-                        </th>
-                        <th @click="sortTable" data-column="2" data-numeric="true" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
-                            Clicks <span data-column="2" x-text="sortIcon"></span>
-                        </th>
-                        <th @click="sortTable" data-column="3" data-numeric="true" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
-                            Percentage <span data-column="3" x-text="sortIcon"></span>
-                        </th>
-                        <th @click="sortTable" data-column="4" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
-                            From Page <span data-column="4" x-text="sortIcon"></span>
-                        </th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
-                    {% for link in stats.outbound_links %}
-                    <tr class="hover:bg-gray-50 transition-colors">
-                        <td class="px-4 py-3 text-sm text-gray-900 max-w-md">
-                            <a href="{{ link.url }}" target="_blank" rel="noopener noreferrer"
-                               class="text-blue-600 hover:text-blue-800 hover:underline truncate block"
-                               title="{{ link.url }}">
-                                {{ link.url }}
-                            </a>
-                        </td>
-                        <td class="px-4 py-3 text-sm text-gray-700 max-w-xs truncate" title="{{ link.text }}">
-                            {{ link.text }}
-                        </td>
-                        <td class="px-4 py-3 whitespace-nowrap text-sm font-semibold text-gray-900 text-right">
-                            {{ link.clicks }}
-                        </td>
-                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500 text-right">
-                            {{ link.percentage }}%
-                        </td>
-                        <td class="px-4 py-3 text-sm text-gray-700 max-w-xs truncate" title="{{ link.from_page }}">
-                            {{ link.from_page }}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-        <div class="mt-4 text-xs text-gray-500">
-            <p>Automatically tracked external links clicked by your visitors. Includes links with different domains or target="_blank".</p>
-        </div>
-    </div>
-    {% endif %}
-
-    <!-- File Downloads Section -->
-    {% if stats.file_downloads and stats.file_downloads|length > 0 %}
-    <div class="bg-white rounded-lg shadow p-6 mb-6">
-        <div class="flex items-center justify-between mb-4">
-            <h2 class="text-lg font-semibold text-gray-900">File Downloads</h2>
-            <span class="text-sm text-gray-500">Top 50 downloaded files</span>
-        </div>
-        <div class="overflow-x-auto" x-data="sortableTable">
-            <table class="min-w-full divide-y divide-gray-200">
-                <thead>
-                    <tr>
-                        <th @click="sortTable" data-column="0" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
-                            Filename <span data-column="0" x-text="sortIcon"></span>
-                        </th>
-                        <th @click="sortTable" data-column="1" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
-                            Type <span data-column="1" x-text="sortIcon"></span>
-                        </th>
-                        <th @click="sortTable" data-column="2" data-numeric="true" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
-                            Downloads <span data-column="2" x-text="sortIcon"></span>
-                        </th>
-                        <th @click="sortTable" data-column="3" data-numeric="true" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
-                            Unique Visitors <span data-column="3" x-text="sortIcon"></span>
-                        </th>
-                        <th @click="sortTable" data-column="4" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
-                            From Page <span data-column="4" x-text="sortIcon"></span>
-                        </th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
-                    {% for download in stats.file_downloads %}
-                    <tr class="hover:bg-gray-50 transition-colors">
-                        <td class="px-4 py-3 text-sm text-gray-900 max-w-md">
-                            <a href="{{ download.url }}" target="_blank" rel="noopener noreferrer"
-                               class="text-blue-600 hover:text-blue-800 hover:underline truncate block font-medium"
-                               title="{{ download.filename }}">
-                                {{ download.filename }}
-                            </a>
-                        </td>
-                        <td class="px-4 py-3 whitespace-nowrap">
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
-                                .{{ download.file_type }}
-                            </span>
-                        </td>
-                        <td class="px-4 py-3 whitespace-nowrap text-sm font-semibold text-gray-900 text-right">
-                            {{ download.downloads }}
-                        </td>
-                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500 text-right">
-                            {{ download.unique_visitors }}
-                        </td>
-                        <td class="px-4 py-3 text-sm text-gray-700 max-w-xs truncate" title="{{ download.from_page }}">
-                            {{ download.from_page }}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-        <div class="mt-4 text-xs text-gray-500">
-            <p>Automatically tracked file downloads (PDF, ZIP, DOC, XLS, etc). No setup required - just add download links to your site.</p>
-        </div>
-    </div>
-    {% endif %}
-
-    <!-- Custom Events Section -->
-    {% if custom_events and custom_events.events and custom_events.events|length > 0 %}
-    <div class="bg-white rounded-lg shadow p-6 mb-6">
-        <div class="flex items-center justify-between mb-4">
-            <div>
-                <h2 class="text-lg font-semibold text-gray-900">Custom Events</h2>
-                <p class="text-sm text-gray-600 mt-1">Track custom events with flexible properties</p>
-            </div>
-            <span class="text-sm text-gray-500">{{ custom_events.total_events }} total events</span>
-        </div>
-        <div class="overflow-x-auto" x-data="sortableTable">
-            <table class="min-w-full divide-y divide-gray-200">
-                <thead>
-                    <tr>
-                        <th @click="sortTable" data-column="0" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
-                            Event Name <span data-column="0" x-text="sortIcon"></span>
-                        </th>
-                        <th @click="sortTable" data-column="1" data-numeric="true" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
-                            Count <span data-column="1" x-text="sortIcon"></span>
-                        </th>
-                        <th @click="sortTable" data-column="2" data-numeric="true" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
-                            Unique Users <span data-column="2" x-text="sortIcon"></span>
-                        </th>
-                        <th @click="sortTable" data-column="3" data-numeric="true" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
-                            Avg/User <span data-column="3" x-text="sortIcon"></span>
-                        </th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Top Properties</th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
-                    {% for event in custom_events.events %}
-                    <tr class="hover:bg-gray-50">
-                        <td class="px-4 py-3 whitespace-nowrap">
-                            <a href="/dashboard/website/{{ website.id }}/events/{{ event.event_name }}?{{ range_query }}"
-                               class="text-sm font-medium text-blue-600 hover:text-blue-800">
-                                {{ event.event_name }}
-                            </a>
-                        </td>
-                        <td class="px-4 py-3 whitespace-nowrap text-sm font-semibold text-gray-900 text-right">
-                            {{ event.count }}
-                        </td>
-                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600 text-right">
-                            {{ event.unique_users }}
-                        </td>
-                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600 text-right">
-                            {{ event.avg_per_user }}
-                        </td>
-                        <td class="px-4 py-3 text-sm text-gray-600">
-                            {% if event.top_properties and event.top_properties|length > 0 %}
-                                <div class="flex flex-wrap gap-1">
-                                    {% for prop in event.top_properties[:3] %}
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
-                                        {{ prop }}
-                                    </span>
-                                    {% endfor %}
-                                </div>
-                            {% else %}
-                                <span class="text-gray-400">No properties</span>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-        <div class="mt-4 p-4 bg-blue-50 rounded-md">
-            <h3 class="text-sm font-medium text-gray-900 mb-2">Track Custom Events</h3>
-            <p class="text-sm text-gray-600 mb-2">
-                Track any event with custom properties using the JavaScript API:
-            </p>
-            <pre class="text-xs bg-gray-800 text-gray-100 p-3 rounded overflow-x-auto"><code>// Track a custom event with properties
-argus.trackEvent('button_click', {
-  button: 'signup',
-  variant: 'blue',
-  page: 'home'
-});</code></pre>
-        </div>
-    </div>
-    {% endif %}
-
-    <!-- 404 Errors Section -->
-    {% if errors_404 and errors_404|length > 0 %}
-    <div class="bg-white rounded-lg shadow p-6 mb-6">
-        <h2 class="text-lg font-semibold text-gray-900 mb-4">404 Errors</h2>
-        <p class="text-sm text-gray-600 mb-4">
-            Pages that returned 404 errors. Fix broken links to improve user experience.
-        </p>
-        <div class="overflow-x-auto" x-data="sortableTable">
-            <table class="min-w-full divide-y divide-gray-200">
-                <thead>
-                    <tr>
-                        <th @click="sortTable" data-column="0" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
-                            Path <span data-column="0" x-text="sortIcon"></span>
-                        </th>
-                        <th @click="sortTable" data-column="1" data-numeric="true" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
-                            Errors <span data-column="1" x-text="sortIcon"></span>
-                        </th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Referred From</th>
-                        <th @click="sortTable" data-column="3" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
-                            Last Seen <span data-column="3" x-text="sortIcon"></span>
-                        </th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
-                    {% for error in errors_404 %}
-                    <tr class="{% if error.error_count > 10 %}bg-red-50{% elif error.error_count >= 5 %}bg-yellow-50{% endif %}">
-                        <td class="px-4 py-3 whitespace-nowrap">
-                            <div class="text-sm font-mono text-gray-900">{{ error.path }}</div>
-                        </td>
-                        <td class="px-4 py-3 whitespace-nowrap text-right">
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if error.error_count > 10 %}bg-red-100 text-red-800{% elif error.error_count >= 5 %}bg-yellow-100 text-yellow-800{% else %}bg-gray-100 text-gray-800{% endif %}">
-                                {{ error.error_count }}
-                            </span>
-                        </td>
-                        <td class="px-4 py-3">
-                            {% if error.referrers and error.referrers|length > 0 %}
-                            <div class="text-xs text-gray-600 space-y-1">
-                                {% for referrer in error.referrers[:3] %}
-                                <div class="truncate max-w-xs">{{ referrer }}</div>
-                                {% endfor %}
-                                {% if error.referrers|length > 3 %}
-                                <div class="text-gray-400">+{{ error.referrers|length - 3 }} more</div>
-                                {% endif %}
-                            </div>
-                            {% else %}
-                            <span class="text-xs text-gray-400">Direct</span>
-                            {% endif %}
-                        </td>
-                        <td class="px-4 py-3 whitespace-nowrap text-right text-xs text-gray-500">
-                            {{ error.last_seen[:10] if error.last_seen else '-' }}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-        <div class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-            <p class="text-sm text-blue-800">
-                <strong>How to track 404 errors:</strong> Add the tracking code to your 404 error page template.
-                <a href="/dashboard/website/{{ website.id }}/settings" class="underline hover:text-blue-900">View setup instructions</a>
-            </p>
-        </div>
-    </div>
-    {% endif %}
+    {# Outbound links, file downloads, custom events and 404 errors: the
+       four tables in _event_tables.html, each rendered only when it has rows. #}
+    {{ tables.outbound_links_table(stats.outbound_links) }}
+    {{ tables.file_downloads_table(stats.file_downloads) }}
+    {{ tables.custom_events_table(custom_events,
+                                  event_href='/dashboard/website/' ~ website.id ~ '/events/',
+                                  event_query=range_query) }}
+    {{ tables.errors_404_table(errors_404, settings_href='/dashboard/website/' ~ website.id ~ '/settings') }}
     </div>
 </div>
 </div>
