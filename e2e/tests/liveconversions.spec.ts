@@ -25,7 +25,7 @@ test('a conversion shows up as a toast, and the goal card rings and counts it', 
     headers: { 'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) Chrome/141.0 Safari/537.36' },
   });
 
-  await expect(page.getByText('🎯 Order placed just converted')).toBeVisible({ timeout: 5000 });
+  await expect(page.getByText('Order placed just converted')).toBeVisible({ timeout: 5000 });
   await expect(page.locator('.goal-card').first()).toHaveClass(/goal-pulse/);
   await expect(page.locator('.goal-count')).toHaveText('1');
 });

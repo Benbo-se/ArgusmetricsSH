@@ -8,7 +8,7 @@ import { test, expect, Page } from '@playwright/test';
  * the part a seek cannot prove: that the clock actually runs.
  */
 
-const SCENES = 6;  // snippet, size, goal, banner, ip, terminal
+const SCENES = 4;  // snippet, goal (in the tour, behind its tab), banner, ip
 
 async function scenes(page: Page) {
   return page.locator('.an-wrap');
@@ -84,41 +84,45 @@ test('a phone gets the phone layout', async ({ page }) => {
 });
 
 
-test('the size scene ends on the measured numbers, to scale', async ({ page }) => {
+test('the weight bars carry the measured numbers, to scale', async ({ page }) => {
   await page.goto('/');
-  const size = page.locator('.ax-wrap');
-  await size.evaluate((w: any) => w.__anRender(6));
-  await expect(size.locator('.ax-r1 .ax-num b')).toHaveText('155');
-  await expect(size.locator('.ax-us')).toHaveClass(/an-on/);
-  const widths = await size.evaluate((w) => ['.ax-ga', '.ax-us'].map(
-    (s) => (w.querySelector(s) as HTMLElement).style.width));
-  expect(widths).toEqual(['100%', '1.85%'])
+  const rows = page.locator('#weight .weigh-row');
+  await expect(rows).toHaveCount(3);
+  await expect(rows.nth(0).locator('.num')).toContainText('155');
+  await expect(rows.nth(1).locator('.num')).toContainText('2.9');
+  await expect(rows.nth(1)).toHaveClass(/is-us/);
+  const widths = await rows.evaluateAll((els) => els.map((el) => (el as HTMLElement).style.getPropertyValue('--w')));
+  expect(widths.slice(0, 2)).toEqual(['100%', '1.85%']);
+  // The bar itself is as wide as it says once the section has been seen.
+  await rows.nth(0).scrollIntoViewIfNeeded();
+  await expect(page.locator('#weight .weigh')).toHaveClass(/is-seen/);
 });
 
 test('the terminal ends healthy, and its copy button has the real commands', async ({ page, context }) => {
   await context.grantPermissions(['clipboard-read', 'clipboard-write']);
   await page.goto('/');
-  const term = page.locator('.at-wrap');
-  await term.evaluate((w: any) => w.__anRender(13));
+  const term = page.locator('#term');
+  await term.scrollIntoViewIfNeeded();
   await expect(term).toContainText('"healthy"');
   await expect(term).toContainText('SECRET_KEY');
 
-  await page.getByRole('button', { name: /Copy these commands/ }).click();
+  await term.getByRole('button', { name: 'Copy' }).click();
   const copied = await page.evaluate(() => navigator.clipboard.readText());
   expect(copied).toContain('cp .env.example .env');
   expect(copied).toContain('docker compose up -d postgres backend');
 });
 
-test('feature cards rise into view, and are all there without motion', async ({ page }) => {
+test('sections rise into view, and are all there without motion', async ({ page }) => {
   await page.goto('/');
-  const card = page.locator('#features [data-reveal]').first();
-  await card.scrollIntoViewIfNeeded();
-  await expect(card).toHaveClass(/rv-in/);
+  const block = page.locator('#visit .rise').first();
+  await block.scrollIntoViewIfNeeded();
+  await expect(block).toHaveClass(/is-seen/);
 
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/');
-  // Nothing hidden: the page never opted in to hiding them.
-  expect(await page.evaluate(() => document.documentElement.classList.contains('rv-on'))).toBe(false);
+  // Nothing waits to be scrolled to: every block is marked seen at once.
+  const unseen = await page.locator('.rise:not(.is-seen)').count();
+  expect(unseen).toBe(0);
 });
 
 test('the docs build a snippet from what you type', async ({ page }) => {
