@@ -355,6 +355,10 @@
   function readPulse() {
     var url = panel && panel.getAttribute('data-pulse');
     if (!url || !window.fetch) return;
+    /* A local build has no dashboard behind it, and a request that fails is a
+       line in the console. The tracker skips localhost for the same reason.
+       Add ?live to the address to read the numbers anyway. */
+    if (/^(localhost|127\.|\[::1\])/.test(location.hostname) && !/[?&]live\b/.test(location.search)) return;
     fetch(url, { credentials: 'omit' })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (pulse) { if (pulse && pulse.month && pulse.today) showPulse(pulse); })
