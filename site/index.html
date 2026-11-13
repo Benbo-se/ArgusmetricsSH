@@ -1,11 +1,14 @@
 
+
+
+
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="no-js">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Argusmetrics - Privacy-First Web Analytics</title>
-    <meta name="theme-color" content="#2563eb">
+    <meta name="theme-color" content="#0a0d16">
     <link rel="canonical" href="https://argusmetrics.io/">
     <meta name="description" content="Simple, privacy-focused web analytics. No cookies, no device identifiers, and no IP address stored. GDPR-friendly alternative to Google Analytics.">
     <meta property="og:site_name" content="Argusmetrics">
@@ -24,16 +27,12 @@
     <link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png">
     <link rel="apple-touch-icon" sizes="180x180" href="/static/img/icon-180.png">
     <link rel="manifest" href="/static/manifest.json">
-    <link rel="stylesheet" href="/static/css/tailwind.min.css?v=da3483d8">
-    <link rel="stylesheet" href="/static/css/site.css?v=38a0f0ff">
-    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.5/dist/cdn.min.js"></script>
-    <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
+    <link rel="preload" as="font" type="font/woff2" crossorigin href="/static/webfonts/familjen-grotesk-latin-wght-normal.woff2">
+    <link rel="preload" as="font" type="font/woff2" crossorigin href="/static/webfonts/inter-latin.woff2">
+    <link rel="stylesheet" href="/static/css/argus.css?v=b8377515">
+    <script>document.documentElement.classList.remove('no-js');</script>
     
     <script src="/static/tracker.min.js" data-tracking-code="9pyqskf7" defer></script>
-
 <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -68,1069 +67,458 @@
     }
     </script>
 <link rel="stylesheet" href="/static/css/anim.css?v=3a0500ec">
-
 </head>
-<body class="bg-gray-50 text-gray-900 antialiased">
+<body class="argus">
 
-    <nav class="bg-white shadow-sm fixed top-0 left-0 right-0 z-10" x-data="{ mobileMenuOpen: false, productOpen: false, compareOpen: false, resourcesOpen: false }">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center h-16">
-                <!-- Logo -->
-                <div class="flex items-center">
-                    <a href="/" class="flex items-center space-x-2">
-                        <img src="/static/img/logo-96.png" alt="Argusmetrics" width="40" height="40" class="h-10 w-10">
-                        <span class="text-xl font-bold text-gray-900">Argusmetrics</span>
-                    </a>
+
+
+
+<nav class="site-nav" id="site-nav" aria-label="Main">
+    <div class="wrap">
+        <a class="brand" href="/" aria-label="Argusmetrics, home"><svg class="" viewBox="0 0 40 24" aria-hidden="true"><g class="lids"><path class="eye-lid" d="M2 12Q20-5 38 12Q20 29 2 12Z"/></g><g class="ball"><circle class="eye-iris" cx="20" cy="12" r="6.2"/><circle class="eye-pupil" cx="20" cy="12" r="2.6"/></g></svg><span>Argus<b>metrics</b></span></a>
+        <div class="nav-links">
+            <div class="nav-item">
+                <button class="nav-link" type="button" aria-haspopup="true">Product <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M1.5 3.5 5 7l3.5-3.5"/></svg></button>
+                <div class="nav-menu">
+                    <a href="#product">The dashboard <small>What it answers, with real screenshots</small></a>
+                    <a href="#visit">Privacy by design <small>What a visit is reduced to</small></a>
+                    <a href="#self-host">Self-host <small>Docker, one secret, a few minutes</small></a>
+                    <a href="/changelog">Changelog <small>What changed and when</small></a>
                 </div>
-
-                <!-- Desktop navigation -->
-                <div class="hidden md:flex md:items-center md:space-x-1">
-
-                    <!-- Product dropdown -->
-                    <div class="relative" @mouseenter="productOpen = true" @mouseleave="productOpen = false">
-                        <button class="flex items-center gap-1 text-gray-600 hover:text-gray-900 text-sm font-medium px-3 py-2 rounded-md hover:bg-gray-50 transition-colors">
-                            Product
-                            <svg class="w-3.5 h-3.5 transition-transform duration-150" :class="productOpen ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
-                        </button>
-                        <div x-show="productOpen"
-                             x-transition:enter="transition ease-out duration-100"
-                             x-transition:enter-start="opacity-0 translate-y-1"
-                             x-transition:enter-end="opacity-100 translate-y-0"
-                             x-transition:leave="transition ease-in duration-75"
-                             x-transition:leave-start="opacity-100 translate-y-0"
-                             x-transition:leave-end="opacity-0 translate-y-1"
-                             class="absolute top-full left-0 mt-1 w-56 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50">
-                            <a href="/#features" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
-                                <i class="fas fa-bolt w-4 text-blue-500 text-xs"></i> Features
-                            </a>
-                            <a href="/data" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
-                                <i class="fas fa-shield-alt w-4 text-green-500 text-xs"></i> Privacy by Design
-                            </a>
-                            <a href="/about" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
-                                <i class="fas fa-info-circle w-4 text-purple-500 text-xs"></i> About Us
-                            </a>
-                        </div>
-                    </div>
-
-                    <!-- Compare dropdown -->
-                    <div class="relative" @mouseenter="compareOpen = true" @mouseleave="compareOpen = false">
-                        <button class="flex items-center gap-1 text-gray-600 hover:text-gray-900 text-sm font-medium px-3 py-2 rounded-md hover:bg-gray-50 transition-colors">
-                            Compare
-                            <svg class="w-3.5 h-3.5 transition-transform duration-150" :class="compareOpen ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
-                        </button>
-                        <div x-show="compareOpen"
-                             x-transition:enter="transition ease-out duration-100"
-                             x-transition:enter-start="opacity-0 translate-y-1"
-                             x-transition:enter-end="opacity-100 translate-y-0"
-                             x-transition:leave="transition ease-in duration-75"
-                             x-transition:leave-start="opacity-100 translate-y-0"
-                             x-transition:leave-end="opacity-0 translate-y-1"
-                             class="absolute top-full left-0 mt-1 w-64 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50">
-                            <div class="px-4 py-1.5 text-xs font-semibold text-gray-400 uppercase tracking-wider">Argusmetrics vs</div>
-                            <a href="/compare/google-analytics" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
-                                <i class="fab fa-google w-4 text-red-500 text-xs"></i> Google Analytics
-                            </a>
-                            <a href="/compare/plausible" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
-                                <i class="fas fa-chart-bar w-4 text-purple-500 text-xs"></i> Plausible
-                            </a>
-                            <a href="/compare/matomo" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
-                                <i class="fas fa-chart-pie w-4 text-orange-500 text-xs"></i> Matomo
-                            </a>
-                        </div>
-                    </div>
-
-                    <!-- Resources dropdown -->
-                    <div class="relative" @mouseenter="resourcesOpen = true" @mouseleave="resourcesOpen = false">
-                        <button class="flex items-center gap-1 text-gray-600 hover:text-gray-900 text-sm font-medium px-3 py-2 rounded-md hover:bg-gray-50 transition-colors">
-                            Resources
-                            <svg class="w-3.5 h-3.5 transition-transform duration-150" :class="resourcesOpen ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
-                        </button>
-                        <div x-show="resourcesOpen"
-                             x-transition:enter="transition ease-out duration-100"
-                             x-transition:enter-start="opacity-0 translate-y-1"
-                             x-transition:enter-end="opacity-100 translate-y-0"
-                             x-transition:leave="transition ease-in duration-75"
-                             x-transition:leave-start="opacity-100 translate-y-0"
-                             x-transition:leave-end="opacity-0 translate-y-1"
-                             class="absolute top-full left-0 mt-1 w-56 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50">
-                            <a href="/docs/" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
-                                <i class="fas fa-book w-4 text-blue-500 text-xs"></i> Documentation
-                            </a>
-                            <a href="/changelog" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
-                                <i class="fas fa-list-ul w-4 text-green-500 text-xs"></i> Changelog
-                            </a>
-                            <a href="https://github.com/Benbo-se/ArgusmetricsSH" target="_blank" rel="noopener noreferrer" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
-                                <i class="fab fa-github w-4 text-gray-700 text-xs"></i> GitHub
-                            </a>
-                        </div>
-                    </div>
-
-                    <a href="https://github.com/Benbo-se/ArgusmetricsSH" target="_blank" rel="noopener noreferrer" class="flex items-center gap-1.5 text-gray-600 hover:text-gray-900 text-sm font-medium px-3 py-2 rounded-md hover:bg-gray-50 transition-colors"><i class="fab fa-github"></i> GitHub</a>
-
-                    <div class="w-px h-5 bg-gray-200 mx-1"></div>
-
-                    <a href="/login" class="text-gray-600 hover:text-gray-900 text-sm font-medium px-3 py-2 rounded-md hover:bg-gray-50 transition-colors">Log in</a>
-                    <a href="/signup" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors">Get started</a>
+            </div>
+            <div class="nav-item">
+                <button class="nav-link" type="button" aria-haspopup="true">Compare <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M1.5 3.5 5 7l3.5-3.5"/></svg></button>
+                <div class="nav-menu">
+                    <a href="/compare/google-analytics">vs Google Analytics</a>
+                    <a href="/compare/plausible">vs Plausible</a>
+                    <a href="/compare/matomo">vs Matomo</a>
                 </div>
+            </div>
+            <a class="nav-link" href="/docs/">Docs</a>
+            <a class="nav-link" href="https://github.com/Benbo-se/ArgusmetricsSH" rel="noopener noreferrer">GitHub</a>
+            <a class="nav-link" href="/login">Log in</a>
+            <a class="btn btn-go btn-sm nav-cta" href="#self-host">Run it yourself <span class="arr" aria-hidden="true">&rarr;</span></a>
+        </div>
+        <button class="nav-toggle" type="button" id="nav-toggle" aria-label="Menu" aria-expanded="false" aria-controls="nav-sheet">
+            <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M2 5h14M2 9h14M2 13h14"/></svg>
+        </button>
+    </div>
+</nav>
+<div class="nav-sheet" id="nav-sheet">
+    <h4>Product</h4>
+    <a href="#product">The dashboard</a>
+    <a href="#visit">Privacy by design</a>
+    <a href="#self-host">Self-host</a>
+    <a href="/docs/">Documentation</a>
+    <a href="/changelog">Changelog</a>
+    <h4>Compare</h4>
+    <a href="/compare/google-analytics">vs Google Analytics</a>
+    <a href="/compare/plausible">vs Plausible</a>
+    <a href="/compare/matomo">vs Matomo</a>
+    <h4>Account</h4>
+    <a href="/login">Log in</a>
+    <a class="btn btn-go" href="#self-host">Run it yourself <span class="arr" aria-hidden="true">&rarr;</span></a>
+</div>
 
-                <!-- Mobile menu button -->
-                <div class="flex items-center md:hidden">
-                    <button @click="mobileMenuOpen = !mobileMenuOpen"
-                            class="text-gray-600 hover:text-gray-900 p-2 rounded-md hover:bg-gray-100 transition"
-                            aria-label="Toggle menu">
-                        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path x-show="!mobileMenuOpen" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
-                            <path x-show="mobileMenuOpen" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                        </svg>
-                    </button>
+<main>
+
+    
+    <header class="hero" id="top">
+        <div class="eyefield" id="eyefield" aria-hidden="true"></div>
+        <div class="hero-fade" aria-hidden="true"></div>
+        <div class="wrap hero-grid">
+            <div class="hero-copy">
+                <span class="eyebrow-m">Open-source web analytics &middot; made in Sweden</span>
+                <h1 class="h-display" style="margin-top:22px">All eyes on your traffic. <em>None on your visitors.</em></h1>
+                <p class="lead">Argusmetrics shows where people come from, what they read and what makes them convert, without a cookie, without a consent banner, and without storing a single IP address.</p>
+                <div class="hero-cta">
+                    <a class="btn btn-go" href="#self-host">Run it on your server <span class="arr" aria-hidden="true">&rarr;</span></a>
+                    <a class="btn btn-ghost" href="https://argusmetrics.io/public/ACzDK1ugMdKNufktjLSp5Fhk0Ppq3b5D">See this site's own stats, live</a>
                 </div>
+                <ul class="hero-proof">
+                    <li><b>0</b><span>cookies set, so no consent banner</span></li>
+                    <li><b>0</b><span>IP addresses stored, anywhere</span></li>
+                    <li><b>2.9 KB</b><span>the whole tracking script, gzipped</span></li>
+                </ul>
+            </div>
+
+            <div class="panel" id="live-panel" role="img" aria-label="A demonstration of the Argusmetrics dashboard: visitor counts, a traffic graph with a note on it, top pages, and a live list of pageviews identified only by country and a daily hash.">
+                <div class="panel-bar"><span>shop.example &middot; today</span><span class="live"><i></i>Live</span></div>
+                <div class="panel-tiles">
+                    <div><small>Visitors</small><b id="p-visitors">1,284</b></div>
+                    <div><small>Pageviews</small><b id="p-views">3,902</b></div>
+                    <div class="is-live"><small>Online now</small><b id="p-online">12</b></div>
+                </div>
+                <div class="panel-chart">
+                    <header><b>Over time</b><span>by hour, Europe/Stockholm</span></header>
+                    <svg id="p-chart" viewBox="0 0 400 132" preserveAspectRatio="none" aria-hidden="true">
+                        <defs><linearGradient id="pc-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7c86e8" stop-opacity=".42"/><stop offset="1" stop-color="#7c86e8" stop-opacity="0"/></linearGradient></defs>
+                        <line class="grid" x1="0" x2="400" y1="33" y2="33"/><line class="grid" x1="0" x2="400" y1="66" y2="66"/><line class="grid" x1="0" x2="400" y1="99" y2="99"/><line class="grid" x1="0" x2="400" y1="131" y2="131"/>
+                        <path class="area" id="p-area" d=""/><path class="line" id="p-line" d=""/>
+                        <line class="note" id="p-note" x1="0" x2="0" y1="6" y2="131"/><circle class="note-dot" id="p-note-dot" r="3.2" cx="0" cy="6"/>
+                    </svg>
+                    <span class="note-label" id="p-note-label">Newsletter sent</span>
+                </div>
+                <div class="panel-cols">
+                    <div class="panel-list">
+                        <h5><span>Top pages</span><span>Views</span></h5>
+                        <div id="p-pages"></div>
+                    </div>
+                    <div class="panel-list">
+                        <h5><span>Arriving now</span><span>Daily hash</span></h5>
+                        <ul class="feed" id="p-feed"></ul>
+                    </div>
+                </div>
+                <div class="panel-foot"><span>A demonstration with invented numbers.</span><a href="https://argusmetrics.io/public/ACzDK1ugMdKNufktjLSp5Fhk0Ppq3b5D">The real thing &rarr;</a></div>
             </div>
         </div>
+    </header>
 
-        <!-- Mobile menu -->
-        <div x-show="mobileMenuOpen"
-             @click.away="mobileMenuOpen = false"
-             @keydown.escape.window="mobileMenuOpen = false"
-             x-transition:enter="transition ease-out duration-200"
-             x-transition:enter-start="opacity-0 transform -translate-y-2"
-             x-transition:enter-end="opacity-100 transform translate-y-0"
-             x-transition:leave="transition ease-in duration-150"
-             x-transition:leave-start="opacity-100"
-             x-transition:leave-end="opacity-0"
-             class="md:hidden border-t border-gray-200 bg-white shadow-lg">
-            <div class="px-2 pt-2 pb-3 space-y-1">
-                <div class="px-3 py-1 text-xs font-semibold text-gray-400 uppercase tracking-wider">Product</div>
-                <a href="/#features" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">Features</a>
-                <a href="/data" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">Privacy by Design</a>
-                <a href="/about" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">About Us</a>
-                <div class="px-3 py-1 mt-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">Compare</div>
-                <a href="/compare/google-analytics" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">vs Google Analytics</a>
-                <a href="/compare/plausible" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">vs Plausible</a>
-                <a href="/compare/matomo" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">vs Matomo</a>
-                <div class="px-3 py-1 mt-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">Resources</div>
-                <a href="/docs/" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">Documentation</a>
-                <a href="/changelog" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">Changelog</a>
-                <a href="https://github.com/Benbo-se/ArgusmetricsSH" target="_blank" rel="noopener noreferrer" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">GitHub</a>
-                <div class="border-t border-gray-100 mt-2 pt-2">
-                    <a href="/#self-host" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">Self-host</a>
-                    <a href="/login" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md">Log in</a>
-                    <a href="/signup" @click="mobileMenuOpen = false" class="block px-3 py-2 text-base font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md text-center">Get started</a>
-                </div>
-            </div>
-        </div>
-    </nav>
-
-
-    <!-- Hero Section -->
-    <section class="pt-32 pb-12 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-blue-50 via-white to-indigo-50">
-        <div class="max-w-7xl mx-auto">
-            <div class="text-center max-w-4xl mx-auto">
-                <h1 class="text-5xl md:text-6xl font-extrabold text-gray-900 mb-4">
-                    Privacy-First Analytics
-                </h1>
-                <p class="text-2xl md:text-3xl font-bold text-blue-600 mb-6">
-                    All eyes on your traffic. None on your visitors.
-                </p>
-                <p class="text-xl md:text-2xl text-gray-600 mb-6">
-                    Free, open-source analytics that respects user privacy.
-                    <span class="text-blue-600 font-semibold">GDPR-friendly by default.</span>
-                    No cookies, no tracking pixels, no compromises.
-                </p>
-
-                <!-- Trust Badges -->
-                <div class="flex items-center justify-center gap-8 mb-8">
-                    <div class="flex items-center gap-2 text-gray-700">
-                        <i class="fab fa-osi text-blue-600 text-lg"></i>
-                        <span class="text-sm font-medium">Open Source (AGPL-3.0)</span>
-                    </div>
-                    <div class="flex items-center gap-2 text-gray-700">
-                        <i class="fas fa-server text-blue-600 text-lg"></i>
-                        <span class="text-sm font-medium">GDPR-friendly</span>
-                    </div>
-                    <div class="flex items-center gap-2 text-gray-700">
-                        <i class="fas fa-cookie-bite text-blue-600 text-lg"></i>
-                        <span class="text-sm font-medium">No Cookies</span>
-                    </div>
-                </div>
-
-                <div class="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-                    <a href="/signup" class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-lg text-lg font-semibold transition-all transform hover:scale-105 shadow-lg">
-                        Get started free
-                    </a>
-                    <a href="https://github.com/Benbo-se/ArgusmetricsSH" target="_blank" rel="noopener noreferrer" class="bg-white hover:bg-gray-50 text-blue-600 px-8 py-4 rounded-lg text-lg font-semibold border-2 border-blue-600 transition-all hover:border-blue-700">
-                        <i class="fab fa-github mr-2"></i>View the source
-                    </a>
-                </div>
-                <p class="text-sm text-gray-500">
-                    <i class="fas fa-check text-green-500"></i> No credit card
-                    <span class="mx-2">&bull;</span>
-                    <i class="fas fa-check text-green-500"></i> No cookie banner
-                    <span class="mx-2">&bull;</span>
-                    <i class="fas fa-check text-green-500"></i> Open source
-                </p>
-            </div>
-
+    <div class="ticker" aria-hidden="true">
+        <div class="ticker-track">
             
-            <!-- This site's own numbers, counted by itself and public -->
-            <p class="mt-10 text-center">
-                <a href="https://argusmetrics.io/public/ACzDK1ugMdKNufktjLSp5Fhk0Ppq3b5D" class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-blue-200 text-blue-700 font-semibold shadow-sm hover:shadow-md hover:border-blue-300 transition">
-                    <span class="w-2 h-2 rounded-full bg-green-500"></span> See this site's own stats, live and public
-                </a>
-            </p>
+            <ul>
+                <li><b>Cookies</b>0</li>
+                <li><b>IP addresses stored</b>0</li>
+                <li><b>Script</b>2.9 KB gzipped</li>
+                <li><b>Licence</b>AGPL-3.0</li>
+                <li><b>Do Not Track</b>honoured, nothing written</li>
+                <li><b>Visitor hash</b>new every midnight</li>
+                <li><b>Third-party scripts</b>0</li>
+                <li><b>Consent banner</b>not needed</li>
+            </ul>
             
+            <ul>
+                <li><b>Cookies</b>0</li>
+                <li><b>IP addresses stored</b>0</li>
+                <li><b>Script</b>2.9 KB gzipped</li>
+                <li><b>Licence</b>AGPL-3.0</li>
+                <li><b>Do Not Track</b>honoured, nothing written</li>
+                <li><b>Visitor hash</b>new every midnight</li>
+                <li><b>Third-party scripts</b>0</li>
+                <li><b>Consent banner</b>not needed</li>
+            </ul>
+            
+        </div>
+    </div>
 
-            <!-- Stats -->
-            <div class="mt-16 grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto">
-                <div class="text-center">
-                    <div class="text-3xl font-bold text-blue-600">&lt;3KB gzip</div>
-                    <div class="text-sm text-gray-600 mt-1">Script Size</div>
+    
+    <section class="band-vellum on-vellum" id="visit">
+        <div class="wrap">
+            <div class="rise">
+                <span class="eyebrow-m">What a visit becomes</span>
+                <h2 class="h-section">We see the visit. <em>Not the visitor.</em></h2>
+                <p class="lead">Every analytics product says it respects privacy. Here is the actual reduction: what a browser sends, and the few words of it that are still there a second later. Change who is visiting and watch what happens to the hash.</p>
+            </div>
+
+            <div class="xray-who rise" role="group" aria-label="Who is visiting">
+                <span>Visitor</span>
+                <button class="chip" type="button" data-who="anna" aria-pressed="true">Anna, in Stockholm</button>
+                <button class="chip" type="button" data-who="tomorrow" aria-pressed="false">Anna again, tomorrow</button>
+                <button class="chip" type="button" data-who="colleague" aria-pressed="false">Her colleague, same office</button>
+                <button class="chip" type="button" data-who="dnt" aria-pressed="false">Someone with Do Not Track on</button>
+            </div>
+
+            <div class="xray rise" id="xray">
+                <div class="xray-card xray-in">
+                    <h3><span>What arrives</span><small id="x-when">today, 14:02</small></h3>
+                    <dl>
+                        <dt>IP address</dt>
+                        <dd class="big" id="x-ip">81.224.17.<s>42</s></dd>
+                        <dd><span class="gone" id="x-cut">cut to 81.224.17.0/24, hashed, then thrown away</span></dd>
+                        <dt>User-Agent</dt>
+                        <dd>Mozilla/5.0 (<mark>Windows NT 10.0</mark>; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) <mark>Chrome/126</mark>.0.0.0 Safari/537.36 <span class="gone">family and major version kept, the string is not</span></dd>
+                        <dt>Accept-Language</dt>
+                        <dd><mark>sv-SE</mark>,sv;q=0.9,en-US;q=0.8,en;q=0.7 <span class="gone">first language kept, the list is not</span></dd>
+                        <dt id="x-extra-k">Cookie</dt>
+                        <dd id="x-extra-v">none sent, none set</dd>
+                    </dl>
                 </div>
-                <div class="text-center">
-                    <div class="text-3xl font-bold text-blue-600">0</div>
-                    <div class="text-sm text-gray-600 mt-1">IP Addresses Stored</div>
+                <div class="xray-arrow" aria-hidden="true">
+                    <svg viewBox="0 0 26 26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 13h18M15 6l7 7-7 7"/></svg>
+                    <span>kept</span>
                 </div>
-                <div class="text-center">
-                    <div class="text-3xl font-bold text-blue-600">&lt;1ms</div>
-                    <div class="text-sm text-gray-600 mt-1">Impact on Load</div>
+                <div class="xray-card xray-out" id="x-out" aria-live="polite">
+                    <h3><span>What is stored</span><small>one row</small></h3>
+                    <div class="kvs">
+                        <div class="kv"><span>Country</span><b>Sweden</b></div>
+                        <div class="kv"><span>Browser</span><b>Chrome 126</b></div>
+                        <div class="kv"><span>System</span><b>Windows 10</b></div>
+                        <div class="kv"><span>Language</span><b>sv-SE</b></div>
+                        <div class="kv"><span>Visitor</span><b><code id="x-hash">7c1e&hellip;a94f</code><em id="x-hash-note">a hash that is only good until midnight</em></b></div>
+                    </div>
+                    <p class="xray-verdict" id="x-verdict">The address is cut down, hashed together with the browser, your domain and today's salt, and discarded. There is no column to keep it in.</p>
+                    <div class="xray-nothing">
+                        <svg viewBox="0 0 40 24" aria-hidden="true"><path class="eye-lid" d="M2 12Q20 23 38 12"/><path class="eye-lid" d="M8 17l-2 3M14 19.5l-1 3.5M20 20.5v3.5M26 19.5l1 3.5M32 17l2 3"/></svg>
+                        <b>Nothing is written.</b>
+                        <span>Not anonymised, not counted separately. The request is answered and forgotten.</span>
+                    </div>
                 </div>
-                <div class="text-center">
-                    <div class="text-3xl font-bold text-blue-600">0</div>
-                    <div class="text-sm text-gray-600 mt-1">Cookies Used</div>
+            </div>
+            <p class="fineprint">The hashes shown are illustrations; the mechanism is not. It is in the source, with the tests that check it: <a href="https://github.com/Benbo-se/ArgusmetricsSH" rel="noopener noreferrer">read the code</a>, or the plain-language version in <a href="/data">Privacy by design</a>.</p>
+        </div>
+    </section>
+
+    
+    <section class="band-night" id="weight">
+        <div class="feather from-vellum" aria-hidden="true"></div>
+        <div class="wrap">
+            <div class="rise">
+                <span class="eyebrow-m">What your visitors download</span>
+                <h2 class="h-section">The watchman weighs <em>2.9 kilobytes.</em></h2>
+                <p class="lead">Analytics should not be the heaviest thing on the page. These bars are to scale: the script each product asks you to embed, gzipped, over the wire.</p>
+            </div>
+            <div class="weigh rise" role="img" aria-label="Bar chart, to scale: the Google tag is 155 KB over the wire, Argusmetrics 2.9 KB, Plausible 1.3 KB, gzipped, measured on 7 October 2026.">
+                <div class="weigh-row" style="--w:100%">
+                    <div class="name">Google tag<small>gtag.js</small></div>
+                    <div class="track"><div class="bar"></div></div>
+                    <div class="num">155<small>KB</small></div>
                 </div>
+                <div class="weigh-row is-us" style="--w:1.85%">
+                    <div class="name">Argusmetrics<small>tracker.min.js</small></div>
+                    <div class="track"><div class="bar"></div></div>
+                    <div class="num">2.9<small>KB</small></div>
+                </div>
+                <div class="weigh-row" style="--w:.83%">
+                    <div class="name">Plausible<small>script.js</small></div>
+                    <div class="track"><div class="bar"></div></div>
+                    <div class="num">1.3<small>KB</small></div>
+                </div>
+            </div>
+            <p class="fineprint">Measured 7 October 2026. About 54 times smaller than the Google tag, and yes, Plausible's is smaller still.</p>
+        </div>
+    </section>
+
+    
+    <section class="band-vellum-2 on-vellum" id="product">
+        <div class="feather from-night" aria-hidden="true"></div>
+        <div class="wrap">
+            <div class="rise">
+                <span class="eyebrow-m">The dashboard</span>
+                <h2 class="h-section">One page that answers <em>the actual questions.</em></h2>
+                <p class="lead">Where did they come from, what did they read, did they do the thing. Real screenshots, running on demo data.</p>
+            </div>
+
+            <div class="tour rise" id="tour">
+                <div class="tour-tabs" role="tablist" aria-label="Parts of the dashboard">
+                    <button class="chip" type="button" role="tab" aria-pressed="true" data-pane="overview">The overview</button>
+                    <button class="chip" type="button" role="tab" aria-pressed="false" data-pane="breakdowns">Sources, pages, places, devices</button>
+                    <button class="chip" type="button" role="tab" aria-pressed="false" data-pane="filter">Filter by anything</button>
+                </div>
+
+                <div class="tour-stage tour-pane" data-pane="overview">
+                    <div class="tour-text">
+                        <span class="eyebrow-m">01</span>
+                        <h3>The day, the month, or the hour it happened.</h3>
+                        <p>Visitors, visits, bounce rate and time on site, with the graph in your own time zone and a note on the day you sent the newsletter.</p>
+                        <ul>
+                            <li>Any date range, by day or by hour</li>
+                            <li>Compare with the previous period or last year</li>
+                            <li>Notes on the timeline, for your team</li>
+                            <li>Anomaly detection against your own baseline</li>
+                        </ul>
+                    </div>
+                    <div class="shot"><img src="/static/img/tour-overview.webp?v=8ee48896" width="1600" height="1806" loading="lazy" alt="The Argusmetrics overview: eight stat tiles, and a 30-day visitor graph with two notes marked on it."></div>
+                </div>
+
+                <div class="tour-stage tour-pane" data-pane="breakdowns" hidden>
+                    <div class="tour-text">
+                        <span class="eyebrow-m">02</span>
+                        <h3>Four cards instead of fifteen.</h3>
+                        <p>Referrers, channels and campaigns. Top, entry and exit pages. Countries and languages. Browsers, systems and screens. Each one a tab away.</p>
+                        <ul>
+                            <li>UTM campaigns parsed automatically</li>
+                            <li>Outbound links, downloads and 404s</li>
+                            <li>Custom events, goals and funnels</li>
+                            <li>Revenue per product, in any currency</li>
+                        </ul>
+                    </div>
+                    <div class="shot"><img src="/static/img/tour-breakdowns.webp?v=b567a7ad" width="1600" height="1728" loading="lazy" alt="Four tabbed cards: Sources with referrers by name, Pages, Locations with countries, and Devices."></div>
+                </div>
+
+                <div class="tour-stage tour-pane" data-pane="filter" hidden>
+                    <div class="tour-text">
+                        <span class="eyebrow-m">03</span>
+                        <h3>Click a row. The whole page follows.</h3>
+                        <p>Swedish visitors on iOS who landed on the subscription page: three clicks, and every number, graph and list is about them.</p>
+                        <ul>
+                            <li>Filter by country, page, source, device or system</li>
+                            <li>Dark mode that follows your system</li>
+                            <li>Export what you see as CSV</li>
+                            <li>Share it publicly, with or without a password</li>
+                        </ul>
+                    </div>
+                    <div class="shot is-dark"><img src="/static/img/tour-filter.webp?v=dca04c93" width="1600" height="1879" loading="lazy" alt="The dashboard in dark mode, filtered to Sweden, the subscription page and iOS, with the filters shown as chips."></div>
+                </div>
+            </div>
+
+            <div class="also rise">
+                <h3>Also in the box, at no extra charge because there is no charge.</h3>
+                <ul>
+                    <li><b>Goals and funnels</b><span>where visitors drop off, step by step</span></li>
+                    <li><b>Revenue and e-commerce</b><span>purchases and refunds beside the traffic</span></li>
+                    <li><b>Team roles</b><span>owners, admins and viewers</span></li>
+                    <li><b>Two-factor sign-in</b><span>with recovery codes</span></li>
+                    <li><b>Email reports</b><span>weekly or monthly, no login to read</span></li>
+                    <li><b>Traffic alerts</b><span>when something moves against your baseline</span></li>
+                    <li><b>All your sites at once</b><span>one combined view</span></li>
+                    <li><b>A plain REST API</b><span>export, integrate, automate</span></li>
+                    <li><b>WordPress and Tag Manager</b><span>published integrations</span></li>
+                </ul>
             </div>
         </div>
     </section>
 
-    <!-- Dashboard Showcase - IMMEDIATELY after hero, minimal spacing -->
-    <section id="dashboard-showcase" class="pt-8 pb-12 px-4 sm:px-6 lg:px-8 bg-white">
-        <div class="max-w-5xl mx-auto text-center">
-            <!-- Section Title -->
-            <h2 class="text-2xl md:text-3xl font-extrabold text-gray-900 mb-6">
-                See your traffic come to life in seconds
-            </h2>
-
-            <!-- Scene 1: snippet to first visit. The real dashboard is in
-                 "See it working" further down; this shows how a visit gets there. -->
-            <div class="an-wrap" data-loop="16" data-still="12">
-  <div class="an-canvas" role="img" aria-label="Animation: one script tag is pasted into a page. A visit sends four fields, sets no cookie, and appears on the live dashboard.">
-
-    <div class="an-card as-code">
-      <div class="an-head"><span class="an-dots"></span><span class="an-mono">index.html</span></div>
-<pre class="an-mono">&lt;<span class="k">head</span>&gt;
-  &lt;<span class="k">title</span>&gt;Shop&lt;/<span class="k">title</span>&gt;
-<span class="new">  <span data-type="1,.5">&lt;script defer</span>
-    <span data-type="1.5,1.4">src="https://argusmetrics.io/static/tracker.min.js"</span>
-    <span data-type="2.9,.9">data-tracking-code="k3x9q2ab"&gt;&lt;/script&gt;</span></span>&lt;/<span class="k">head</span>&gt;</pre>
-    </div>
-
-    <div class="an-card as-req an-r" data-t="4.4">
-      <div class="an-head"><span class="an-mono">POST /api/v1/analytics/track</span><span class="an-pill an-ok" style="background:#dcfce7;margin-left:auto">200</span></div>
-      <div class="lines an-mono">
-        <div data-t="4.8" class="an-fade">{</div>
-        <div data-t="5.0" class="an-fade">&nbsp;&nbsp;<span class="kk">"tracking_code"</span>: <span class="vv">"k3x9q2ab"</span>,</div>
-        <div data-t="5.2" class="an-fade">&nbsp;&nbsp;<span class="kk">"path"</span>: <span class="vv">"/pricing"</span>,</div>
-        <div data-t="5.4" class="an-fade">&nbsp;&nbsp;<span class="kk">"referrer"</span>: <span class="vv">"https://google.com/"</span>,</div>
-        <div data-t="5.6" class="an-fade">&nbsp;&nbsp;<span class="kk">"screen_width"</span>: <span class="vv">390</span></div>
-        <div data-t="5.6" class="an-fade">}</div>
-      </div>
-      <div class="foot" data-t="6.2"><span>Cookies set: <b>0</b></span><span class="an-muted">Stored in the browser: nothing</span></div>
-    </div>
-
-    <div class="an-card as-dash">
-      <div class="an-head"><span>shop.example</span><span class="an-live" style="margin-left:auto">Live</span></div>
-      <div class="as-tiles">
-        <div class="as-tile"><div class="l">Visitors now</div><div class="v" data-count="6.8,.5,0,1; 10,.9,1,3">3</div></div>
-        <div class="as-tile"><div class="l">Pageviews today</div><div class="v" data-count="6.8,.5,127,128; 10,.9,128,131">131</div></div>
-      </div>
-      <div class="as-chart">
-        <i style="height:38%"></i><i style="height:52%"></i><i style="height:44%"></i><i style="height:61%"></i>
-        <i style="height:57%"></i><i style="height:70%"></i><i style="height:64%"></i><i style="height:78%"></i>
-        <i style="height:72%"></i><i style="height:66%"></i><i style="height:81%"></i>
-        <i class="now" style="height:24%"><span class="as-grow an-fade" data-t="6.8" style="height:220%"></span><span class="as-grow an-fade" data-t="10" style="height:330%"></span></i>
-      </div>
-      <div class="as-pages">
-        <div class="h">Top pages</div>
-        <div class="as-row"><span>/</span><b data-count="10.2,.5,88,89">89</b></div>
-        <div class="as-row hot"><span>/pricing</span><b data-count="6.9,.4,41,42; 10,.6,42,43">43</b></div>
-        <div class="as-row"><span>/blog/cookieless</span><b data-count="10.4,.5,17,18">18</b></div>
-      </div>
-    </div>
-
-    <div class="an-cap" data-t=".4,4.3">Paste one script tag into your page</div>
-    <div class="an-cap" data-t="4.5,6.7">A visit sends four fields, and sets no cookie</div>
-    <div class="an-cap" data-t="6.8,15.4">It shows up on your dashboard, live</div>
-  </div>
-</div>
-
-
-            <!-- Subtitle with Trust Element -->
-            <p class="mt-6 text-lg text-gray-600">
-                Tracks visitors in real-time, without cookies.
-            </p>
-            <p class="mt-2 text-sm text-gray-500 italic">
-                An animation of what happens. Real screenshots are further down.
-            </p>
-        </div>
-    </section>
-
-    <!-- Features Section -->
-    <section id="features" class="py-20 px-4 sm:px-6 lg:px-8 bg-white">
-        <div class="max-w-7xl mx-auto">
-            <div class="text-center mb-16">
-                <h2 class="text-4xl font-bold text-gray-900 mb-4">Everything You Need</h2>
-                <p class="text-xl text-gray-600">Powerful analytics without the privacy concerns</p>
+    
+    <section class="band-vellum on-vellum" id="compare">
+        <div class="feather from-vellum-2" aria-hidden="true"></div>
+        <div class="wrap">
+            <div class="rise">
+                <span class="eyebrow-m">Side by side</span>
+                <h2 class="h-section">The honest table, <em>including where we lose.</em></h2>
             </div>
-
-            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-                <!-- Feature 1 -->
-                <div class="p-6 bg-white rounded-xl border-2 border-gray-100 hover:border-blue-200 hover:shadow-lg transition-all" data-reveal data-reveal-delay="0">
-                    <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
-                        <i class="fas fa-shield-alt text-blue-600 text-xl"></i>
-                    </div>
-                    <h3 class="text-xl font-semibold text-gray-900 mb-2">Privacy-First</h3>
-                    <p class="text-gray-600">No cookies, no device identifiers, and the visitor's IP address is never stored. Only a hash that changes daily.</p>
-                </div>
-
-                <!-- Feature 2 -->
-                <div class="p-6 bg-white rounded-xl border-2 border-gray-100 hover:border-blue-200 hover:shadow-lg transition-all" data-reveal data-reveal-delay="90">
-                    <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-4">
-                        <i class="fas fa-chart-line text-green-600 text-xl"></i>
-                    </div>
-                    <h3 class="text-xl font-semibold text-gray-900 mb-2">Real-Time Dashboard</h3>
-                    <p class="text-gray-600">See visitor activity as it happens. Beautiful, simple dashboard with all the metrics that matter.</p>
-                </div>
-
-                <!-- Feature 3 -->
-                <div class="p-6 bg-white rounded-xl border-2 border-gray-100 hover:border-blue-200 hover:shadow-lg transition-all" data-reveal data-reveal-delay="180">
-                    <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4">
-                        <i class="fas fa-bolt text-purple-600 text-xl"></i>
-                    </div>
-                    <h3 class="text-xl font-semibold text-gray-900 mb-2">Lightweight Script</h3>
-                    <p class="text-gray-600">Under 3KB over the wire (gzipped). Won't slow down your site. Zero impact on page load performance.</p>
-                </div>
-
-                <!-- Feature 4 -->
-                <div class="p-6 bg-white rounded-xl border-2 border-gray-100 hover:border-blue-200 hover:shadow-lg transition-all" data-reveal data-reveal-delay="0">
-                    <div class="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center mb-4">
-                        <i class="fas fa-bullseye text-yellow-600 text-xl"></i>
-                    </div>
-                    <h3 class="text-xl font-semibold text-gray-900 mb-2">Custom Events & Goals</h3>
-                    <p class="text-gray-600">Track signups, purchases, downloads. Set conversion goals and measure what matters to your business.</p>
-                </div>
-
-                <!-- Feature 5 -->
-                <div class="p-6 bg-white rounded-xl border-2 border-gray-100 hover:border-blue-200 hover:shadow-lg transition-all" data-reveal data-reveal-delay="90">
-                    <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center mb-4">
-                        <i class="fas fa-external-link-alt text-red-600 text-xl"></i>
-                    </div>
-                    <h3 class="text-xl font-semibold text-gray-900 mb-2">Outbound Link Tracking</h3>
-                    <p class="text-gray-600">Automatic tracking of external links. See which affiliate links, CTAs, and resources get clicked.</p>
-                </div>
-
-                <!-- Feature 6 -->
-                <div class="p-6 bg-white rounded-xl border-2 border-gray-100 hover:border-blue-200 hover:shadow-lg transition-all" data-reveal data-reveal-delay="180">
-                    <div class="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mb-4">
-                        <i class="fas fa-users text-indigo-600 text-xl"></i>
-                    </div>
-                    <h3 class="text-xl font-semibold text-gray-900 mb-2">Team Collaboration</h3>
-                    <p class="text-gray-600">Invite team members with role-based access. Owners, admins, and viewers with granular permissions.</p>
-                </div>
-
-                <!-- Feature 7 -->
-                <div class="p-6 bg-white rounded-xl border-2 border-gray-100 hover:border-blue-200 hover:shadow-lg transition-all" data-reveal data-reveal-delay="0">
-                    <div class="w-12 h-12 bg-pink-100 rounded-lg flex items-center justify-center mb-4">
-                        <i class="fas fa-exclamation-triangle text-pink-600 text-xl"></i>
-                    </div>
-                    <h3 class="text-xl font-semibold text-gray-900 mb-2">404 Error Tracking</h3>
-                    <p class="text-gray-600">Find broken links automatically. See which pages visitors tried to access and fix issues fast.</p>
-                </div>
-
-                <!-- Feature 8 -->
-                <div class="p-6 bg-white rounded-xl border-2 border-gray-100 hover:border-blue-200 hover:shadow-lg transition-all" data-reveal data-reveal-delay="90">
-                    <div class="w-12 h-12 bg-teal-100 rounded-lg flex items-center justify-center mb-4">
-                        <i class="fas fa-share-alt text-teal-600 text-xl"></i>
-                    </div>
-                    <h3 class="text-xl font-semibold text-gray-900 mb-2">Public Dashboards</h3>
-                    <p class="text-gray-600">Share analytics publicly with a secret link. Perfect for transparency and stakeholder reporting.</p>
-                </div>
-
-                <!-- Feature 9 -->
-                <div class="p-6 bg-white rounded-xl border-2 border-gray-100 hover:border-blue-200 hover:shadow-lg transition-all" data-reveal data-reveal-delay="180">
-                    <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center mb-4">
-                        <i class="fas fa-code text-orange-600 text-xl"></i>
-                    </div>
-                    <h3 class="text-xl font-semibold text-gray-900 mb-2">Simple API</h3>
-                    <p class="text-gray-600">RESTful API for custom integrations. Export data, build dashboards, automate reporting.</p>
-                </div>
-                <div class="p-6 bg-white rounded-xl border-2 border-gray-100 hover:border-blue-200 hover:shadow-lg transition-all" data-reveal data-reveal-delay="0">
-                    <div class="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mb-4">
-                        <i class="fas fa-filter text-indigo-600 text-xl"></i>
-                    </div>
-                    <h3 class="text-xl font-semibold text-gray-900 mb-2">Conversion Funnels</h3>
-                    <p class="text-gray-600">Define the steps as URL paths and see how many visitors reach each one, and exactly where they drop off.</p>
-                </div>
-                <div class="p-6 bg-white rounded-xl border-2 border-gray-100 hover:border-blue-200 hover:shadow-lg transition-all" data-reveal data-reveal-delay="90">
-                    <div class="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center mb-4">
-                        <i class="fas fa-coins text-yellow-600 text-xl"></i>
-                    </div>
-                    <h3 class="text-xl font-semibold text-gray-900 mb-2">Revenue &amp; E-commerce</h3>
-                    <p class="text-gray-600">Track purchases, refunds and per-product revenue in any currency, alongside the traffic that produced them.</p>
-                </div>
-                <div class="p-6 bg-white rounded-xl border-2 border-gray-100 hover:border-blue-200 hover:shadow-lg transition-all" data-reveal data-reveal-delay="180">
-                    <div class="w-12 h-12 bg-teal-100 rounded-lg flex items-center justify-center mb-4">
-                        <i class="fas fa-layer-group text-teal-600 text-xl"></i>
-                    </div>
-                    <h3 class="text-xl font-semibold text-gray-900 mb-2">All Your Sites at Once</h3>
-                    <p class="text-gray-600">A combined view across every website you track, so you can compare them without switching dashboards.</p>
-                </div>
-                <div class="p-6 bg-white rounded-xl border-2 border-gray-100 hover:border-blue-200 hover:shadow-lg transition-all" data-reveal data-reveal-delay="0">
-                    <div class="w-12 h-12 bg-slate-100 rounded-lg flex items-center justify-center mb-4">
-                        <i class="fas fa-hand text-slate-600 text-xl"></i>
-                    </div>
-                    <h3 class="text-xl font-semibold text-gray-900 mb-2">Do Not Track Is Honoured</h3>
-                    <p class="text-gray-600">A visitor whose browser sends Do Not Track is not recorded at all. Not anonymised, not counted separately. Nothing is written.</p>
-                </div>
-                <div class="p-6 bg-white rounded-xl border-2 border-gray-100 hover:border-blue-200 hover:shadow-lg transition-all" data-reveal data-reveal-delay="90">
-                    <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center mb-4">
-                        <i class="fas fa-lock text-orange-600 text-xl"></i>
-                    </div>
-                    <h3 class="text-xl font-semibold text-gray-900 mb-2">Password-Protected Sharing</h3>
-                    <p class="text-gray-600">Put a password on a shared dashboard, so the link alone is not enough. Change or remove it and everyone who unlocked it is signed out.</p>
-                </div>
-                <div class="p-6 bg-white rounded-xl border-2 border-gray-100 hover:border-blue-200 hover:shadow-lg transition-all" data-reveal data-reveal-delay="180">
-                    <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center mb-4">
-                        <i class="fas fa-triangle-exclamation text-red-600 text-xl"></i>
-                    </div>
-                    <h3 class="text-xl font-semibold text-gray-900 mb-2">Anomaly Detection</h3>
-                    <p class="text-gray-600">Spots traffic spikes, bot floods and referrer spam against your own baseline, and can email you when something moves.</p>
-                </div>
-                <div class="p-6 bg-white rounded-xl border-2 border-gray-100 hover:border-blue-200 hover:shadow-lg transition-all" data-reveal data-reveal-delay="0">
-                    <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4">
-                        <i class="fas fa-bullhorn text-purple-600 text-xl"></i>
-                    </div>
-                    <h3 class="text-xl font-semibold text-gray-900 mb-2">Campaign Tracking</h3>
-                    <p class="text-gray-600">UTM source, medium and campaign are parsed automatically, so you can see which links actually brought people in.</p>
-                </div>
-                <div class="p-6 bg-white rounded-xl border-2 border-gray-100 hover:border-blue-200 hover:shadow-lg transition-all" data-reveal data-reveal-delay="90">
-                    <div class="w-12 h-12 bg-teal-100 rounded-lg flex items-center justify-center mb-4">
-                        <i class="fas fa-envelope-open-text text-teal-600 text-xl"></i>
-                    </div>
-                    <h3 class="text-xl font-semibold text-gray-900 mb-2">Email Reports</h3>
-                    <p class="text-gray-600">Opt into a weekly or monthly summary of your numbers, delivered to your inbox. No login required to read it.</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Script sizes, measured and to scale -->
-    <section class="pb-20 px-4 sm:px-6 lg:px-8 bg-white">
-        <div class="max-w-5xl mx-auto">
-            <div class="an-wrap ax-wrap" data-loop="9" data-still="6">
-  <div class="an-canvas" role="img" aria-label="Bar chart, to scale: the Google tag is 155 KB over the wire, Argusmetrics 2.9 KB, Plausible 1.3 KB, gzipped, measured on 7 October 2026.">
-    <div class="ax-title">What a visitor downloads before your analytics runs</div>
-
-    <div class="ax-row ax-r1">
-      <div class="ax-name">Google tag <span class="an-muted">gtag.js</span></div>
-      <div class="ax-track"><div class="ax-bar ax-ga" data-t=".6" style="width:100%"></div></div>
-      <div class="ax-num"><b data-count=".6,2.4,0,155">155</b> KB</div>
-    </div>
-
-    <div class="ax-row ax-r2">
-      <div class="ax-name">Argusmetrics <span class="an-muted">tracker.min.js</span></div>
-      <div class="ax-track"><div class="ax-bar ax-us" data-t="3.2" style="width:1.85%"></div></div>
-      <div class="ax-num"><b>2.9</b> KB</div>
-    </div>
-
-    <div class="ax-row ax-r3">
-      <div class="ax-name">Plausible <span class="an-muted">script.js</span></div>
-      <div class="ax-track"><div class="ax-bar ax-pl" data-t="3.6" style="width:0.83%"></div></div>
-      <div class="ax-num"><b>1.3</b> KB</div>
-    </div>
-
-    <div class="ax-note an-muted">Gzipped, over the wire, measured 7 October 2026. Bars to scale.</div>
-    <div class="an-cap" data-t="4.4,8.6">About 54 times smaller than the Google tag</div>
-  </div>
-</div>
-
-        </div>
-    </section>
-
-    <!-- Scene 3: a goal, from click to count -->
-    <section class="py-20 px-4 sm:px-6 lg:px-8 bg-gray-50 border-t border-gray-100">
-        <div class="max-w-5xl mx-auto">
-            <div class="text-center mb-10">
-                <h2 class="text-4xl font-bold text-gray-900 mb-4">From a click to a conversion</h2>
-                <p class="text-xl text-gray-600">Goals are one line of code, and they count the moment it runs</p>
-            </div>
-            <div class="an-wrap" data-loop="16" data-still="11">
-  <div class="an-canvas" role="img" aria-label="Animation: a visitor clicks Place order. One line of code sends an order_placed event, the server answers that it recorded a goal conversion, and the Order placed goal counts up from 41 to 42 conversions.">
-
-    <div class="an-card ag-shop">
-      <div class="an-head"><span class="an-dots"></span><span>shop.example/checkout</span></div>
-      <div class="body">
-        <h4 class="an-hide-m">Your order</h4>
-        <div class="ag-line"><span>Oat latte × 2</span><span>89 kr</span></div>
-        <div class="ag-line"><span>Cinnamon bun</span><span>42 kr</span></div>
-        <div class="ag-line tot"><span>Total</span><span>131 kr</span></div>
-      </div>
-      <span class="an-btn ag-order">Place order</span>
-      <div class="ag-thanks an-fade" data-t="4.2,15.2"><div><div class="chk"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M5 13l4 4L19 7"/></svg></div><b>Thank you, order placed</b></div></div>
-    </div>
-
-    <div class="an-card ag-code an-mono">&lt;<span class="k">button</span>
-  <span data-type=".8,1.6">onclick="argus.trackEvent('order_placed')"</span>&gt;
-  Place order
-&lt;/<span class="k">button</span>&gt;</div>
-
-    <div class="an-card ag-dbg">
-      <div class="an-head"><span class="an-mono">POST /api/v1/analytics/track-event</span><span class="an-pill an-ok an-fade" style="background:#14532d;color:#86efac;margin-left:auto" data-t="5.4">200</span></div>
-      <div class="lines an-mono">
-        <div data-t="4.5" class="an-fade">{ <span class="ev">"tracking_code"</span>: "k3x9q2ab",</div>
-        <div data-t="4.7" class="an-fade">&nbsp;&nbsp;<span class="ev">"event_name"</span>: "order_placed" }</div>
-        <div data-t="5.4" class="an-fade"><span class="t">←</span>{ "success": true,</div>
-        <div data-t="5.6" class="an-fade">&nbsp;&nbsp;"message": <span class="ok">"Recorded goal conversion"</span> }</div>
-      </div>
-    </div>
-
-    <div class="an-card ag-goals">
-      <div class="an-head"><span>Goals</span><span class="an-muted" style="margin-left:auto;font-weight:500">Last 30 days</span></div>
-      <table>
-        <tr><th>Goal</th><th class="an-hide-m">Event</th><th style="text-align:right">Conversions</th><th style="text-align:right">Rate</th></tr>
-        <tr class="hot"><td><b>Order placed</b></td><td class="an-mono an-hide-m">order_placed</td>
-          <td class="num" data-count="6.2,.6,41,42">42</td>
-          <td class="num"><span class="ag-swap"><span data-t="0,6.6" class="an-fade">3.1%</span><span data-t="6.6" class="an-fade">3.2%</span></span></td></tr>
-        <tr><td>Newsletter signup</td><td class="an-mono an-hide-m">newsletter_signup</td><td class="num">17</td><td class="num">1.3%</td></tr>
-      </table>
-    </div>
-
-    <div class="an-cursor" data-path="0:300,500; 3.2:239,302c; 6:239,302; 7.2:700,330; 15.2:700,330; 15.8:300,500"
-         data-path-m="0:260,620; 3.2:260,193c; 6:260,193; 7.2:400,540; 15.2:400,540; 15.8:260,620"><svg viewBox="0 0 24 24"><path d="M4 2l16 9-7 2-3 7z" fill="#fff" stroke="#111827" stroke-width="1.6" stroke-linejoin="round"/></svg></div>
-
-    <div class="an-cap" data-t=".4,4.1">One line of code on the button</div>
-    <div class="an-cap" data-t="4.3,6.1">Two fields go out with the click</div>
-    <div class="an-cap" data-t="6.2,15.3">And counts toward the goal straight away</div>
-  </div>
-</div>
-
-        </div>
-    </section>
-
-    <!-- See It Section: the feature grid above is all prose, so show two of
-         the claims actually working instead of only asserting them. -->
-    <section class="py-20 px-4 sm:px-6 lg:px-8 bg-white border-t border-gray-100">
-        <div class="max-w-6xl mx-auto">
-            <div class="text-center mb-12">
-                <h2 class="text-4xl font-bold text-gray-900 mb-4">See it working</h2>
-                <p class="text-xl text-gray-600">Real screenshots, running on demo data</p>
-            </div>
-
-            <!-- Widths in proportion to the two screenshots' aspect ratios
-                 (896x625 is 1.43, 1568x652 is 2.40), so both come out exactly
-                 the same height with nothing cropped. Flex rather than grid
-                 columns: flex takes the gap off first and shares out the rest,
-                 so the proportion holds exactly. In two equal columns the wide
-                 dark-mode one was half the height of the other. Stacked on a
-                 phone, where the flex values do nothing. -->
-            <div class="grid gap-8 md:flex md:items-start">
-                <figure style="flex: 143 1 0%">
-                    <div class="rounded-lg border border-gray-200 overflow-hidden shadow-lg bg-white">
-                        <img src="/static/img/dashboard-funnel.png"
-                             alt="A three-step conversion funnel: 40 visitors on the homepage, 24 reaching pricing, 11 reaching checkout, 27.5% overall conversion"
-                             width="896" height="625" loading="lazy" class="w-full">
-                    </div>
-                    <figcaption class="mt-4 text-sm text-gray-600">
-                        <span class="font-semibold text-gray-900">Conversion funnels.</span>
-                        Define the steps as URL paths and see exactly where visitors drop off.
-                    </figcaption>
-                </figure>
-
-                <figure style="flex: 240 1 0%">
-                    <div class="rounded-lg border border-gray-200 overflow-hidden shadow-lg bg-white">
-                        <img src="/static/img/dashboard-dark.png"
-                             alt="The same analytics dashboard in dark mode"
-                             width="1568" height="652" loading="lazy" class="w-full">
-                    </div>
-                    <figcaption class="mt-4 text-sm text-gray-600">
-                        <span class="font-semibold text-gray-900">Dark mode included.</span>
-                        Follows your system theme, or pick one and it sticks.
-                    </figcaption>
-                </figure>
-            </div>
-        </div>
-    </section>
-
-    <!-- Comparison Section -->
-    <section class="py-20 px-4 sm:px-6 lg:px-8 bg-gray-50">
-        <div class="max-w-5xl mx-auto">
-            <div class="text-center mb-12">
-                <h2 class="text-4xl font-bold text-gray-900 mb-4">Why Switch to Argusmetrics?</h2>
-                <p class="text-xl text-gray-600">Simple, ethical analytics without the complexity</p>
-            </div>
-
-            <div class="mb-12">
-                <div class="an-wrap" data-loop="14" data-still="9">
-  <div class="an-canvas" role="img" aria-label="Animation: the same page twice. With Google Analytics a cookie banner slides up and has to be answered, because it sets the _ga cookies. With Argusmetrics no banner appears, the visit is counted, and nothing is stored on the device.">
-
-    <div class="an-card ab-side ab-l">
-      <div class="an-head"><span class="an-dots"></span><span>shop.example</span></div>
-      <span class="ab-tag">With Google Analytics</span>
-      <div class="ab-page">
-        <div class="hero"></div>
-        <span class="an-bar" style="width:72%"></span><span class="an-bar" style="width:88%"></span>
-        <span class="an-bar" style="width:64%"></span><span class="an-bar an-hide-m" style="width:80%"></span>
-      </div>
-      <div class="ab-banner" data-t="1.4,4">
-        <b>We value your privacy</b><br>
-        <span class="an-muted">We use cookies to analyse our traffic. You can accept or reject them.</span>
-        <div class="btns"><span class="rej">Reject all</span><span class="acc">Accept all</span></div>
-      </div>
-      <div class="ab-res" data-t="4.4">
-        <b>The visitor had to answer first</b>
-        <div class="ab-cookies">Its cookies: <code>_ga</code><code>_ga_&lt;ID&gt;</code></div>
-      </div>
-    </div>
-
-    <div class="an-card ab-side ab-r">
-      <div class="an-head"><span class="an-dots"></span><span>shop.example</span></div>
-      <span class="ab-tag">With Argusmetrics</span>
-      <div class="ab-page">
-        <div class="hero"></div>
-        <span class="an-bar" style="width:72%"></span><span class="an-bar" style="width:88%"></span>
-        <span class="an-bar" style="width:64%"></span><span class="an-bar an-hide-m" style="width:80%"></span>
-      </div>
-      <div class="ab-res" data-t="2">
-        <b>No banner, and the visit is counted</b>
-        <div class="ab-cookies">Cookies: <b style="display:inline">0</b> · Stored on the device: nothing</div>
-      </div>
-    </div>
-
-    <div class="an-cursor" data-path="0:240,520; 3.2:132,398c; 6:132,398; 7:240,520"
-         data-path-m="0:260,640; 3.2:130,250c; 6:130,250; 7:260,640"><svg viewBox="0 0 24 24"><path d="M4 2l16 9-7 2-3 7z" fill="#fff" stroke="#111827" stroke-width="1.6" stroke-linejoin="round"/></svg></div>
-
-    <div class="an-cap" data-t=".4,4.2">Cookies mean asking first</div>
-    <div class="an-cap" data-t="4.4,13.4">No cookies, nothing to ask about</div>
-  </div>
-</div>
-
-            </div>
-
-            <div class="bg-white rounded-2xl shadow-xl overflow-x-auto">
-                <table class="w-full">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Feature</th>
-                            <th class="px-6 py-4 text-center text-sm font-semibold text-blue-600">Argusmetrics</th>
-                            <th class="px-6 py-4 text-center text-sm font-semibold text-gray-600">Google Analytics</th>
-                            <th class="px-6 py-4 text-center text-sm font-semibold text-gray-600">Plausible</th>
-                        </tr>
+            <div class="rise" style="overflow-x:auto">
+                <table class="ledger">
+                    <thead>
+                        <tr><th scope="col">&nbsp;</th><th scope="col" class="us">Argusmetrics</th><th scope="col">Google Analytics</th><th scope="col">Plausible</th></tr>
                     </thead>
-                    <tbody class="divide-y divide-gray-200">
-                        <tr>
-                            <td class="px-6 py-4 text-sm text-gray-900">No cookies</td>
-                            <td class="px-6 py-4 text-center"><i class="fas fa-check text-green-600 text-xl"></i></td>
-                            <td class="px-6 py-4 text-center"><i class="fas fa-times text-red-500 text-xl"></i></td>
-                            <td class="px-6 py-4 text-center"><i class="fas fa-check text-green-600 text-xl"></i></td>
-                        </tr>
-                        <tr class="bg-gray-50">
-                            <td class="px-6 py-4 text-sm text-gray-900">No IP addresses stored</td>
-                            <td class="px-6 py-4 text-center"><i class="fas fa-check text-green-600 text-xl"></i></td>
-                            <td class="px-6 py-4 text-center"><i class="fas fa-times text-red-500 text-xl"></i></td>
-                            <td class="px-6 py-4 text-center"><i class="fas fa-check text-green-600 text-xl"></i></td>
-                        </tr>
-                        <tr>
-                            <td class="px-6 py-4 text-sm text-gray-900">Lightweight (&lt;3KB gzip)</td>
-                            <td class="px-6 py-4 text-center"><i class="fas fa-check text-green-600 text-xl"></i></td>
-                            <td class="px-6 py-4 text-center text-gray-500">~150KB</td>
-                            <td class="px-6 py-4 text-center text-gray-500">~1KB</td>
-                        </tr>
-                        <tr class="bg-gray-50">
-                            <td class="px-6 py-4 text-sm text-gray-900">Custom events</td>
-                            <td class="px-6 py-4 text-center"><i class="fas fa-check text-green-600 text-xl"></i></td>
-                            <td class="px-6 py-4 text-center"><i class="fas fa-check text-green-600 text-xl"></i></td>
-                            <td class="px-6 py-4 text-center"><i class="fas fa-check text-green-600 text-xl"></i></td>
-                        </tr>
-                        <tr>
-                            <td class="px-6 py-4 text-sm text-gray-900">Team collaboration</td>
-                            <td class="px-6 py-4 text-center"><i class="fas fa-check text-green-600 text-xl"></i></td>
-                            <td class="px-6 py-4 text-center"><i class="fas fa-check text-green-600 text-xl"></i></td>
-                            <td class="px-6 py-4 text-center text-gray-500">Paid only</td>
-                        </tr>
-                        <tr class="bg-gray-50">
-                            <td class="px-6 py-4 text-sm text-gray-900">Free to use</td>
-                            <td class="px-6 py-4 text-center text-blue-600 font-semibold">Unlimited</td>
-                            <td class="px-6 py-4 text-center"><i class="fas fa-times text-red-500 text-xl"></i></td>
-                            <td class="px-6 py-4 text-center text-gray-500">Self-host (CE)</td>
-                        </tr>
-                        <tr>
-                            <td class="px-6 py-4 text-sm text-gray-900">Open source</td>
-                            <td class="px-6 py-4 text-center"><i class="fas fa-check text-green-600 text-xl"></i></td>
-                            <td class="px-6 py-4 text-center"><i class="fas fa-times text-red-500 text-xl"></i></td>
-                            <td class="px-6 py-4 text-center"><i class="fas fa-check text-green-600 text-xl"></i></td>
-                        </tr>
+                    <tbody>
+                        <tr><th scope="row">No cookies</th><td class="us"><span class="yes">Yes</span></td><td><span class="no">No</span></td><td><span class="yes">Yes</span></td></tr>
+                        <tr><th scope="row">No IP addresses stored</th><td class="us"><span class="yes">Yes</span></td><td><span class="no">No</span></td><td><span class="yes">Yes</span></td></tr>
+                        <tr><th scope="row">Script size, gzipped</th><td class="us mono">2.9 KB</td><td class="mono">~155 KB</td><td class="mono">1.3 KB</td></tr>
+                        <tr><th scope="row">Custom events</th><td class="us"><span class="yes">Yes</span></td><td><span class="yes">Yes</span></td><td><span class="yes">Yes</span></td></tr>
+                        <tr><th scope="row">Team collaboration</th><td class="us"><span class="yes">Yes</span></td><td><span class="yes">Yes</span></td><td>Paid only</td></tr>
+                        <tr><th scope="row">Open source</th><td class="us"><span class="yes">Yes</span></td><td><span class="no">No</span></td><td><span class="yes">Yes</span></td></tr>
+                        <tr><th scope="row">Run it on your own server</th><td class="us"><span class="yes">Yes</span></td><td><span class="no">No</span></td><td>Community Edition</td></tr>
                     </tbody>
                 </table>
             </div>
-        </div>
-    </section>
-
-    <!-- How it is built -->
-    <!-- The technical substance is the product here, and every claim below is
-         checkable in the repository. Nothing goes in this section that cannot
-         be pointed at in code or in a test. -->
-    <section class="py-24 px-4 sm:px-6 lg:px-8 bg-gray-900">
-        <div class="max-w-6xl mx-auto">
-            <div class="text-center mb-16">
-                <span class="eyebrow text-blue-400">Open source, so you can check</span>
-                <h2 class="text-4xl sm:text-5xl font-bold text-white mb-5 mt-3">How it is actually built</h2>
-                <p class="text-lg text-gray-400 max-w-2xl mx-auto">
-                    Every analytics product says it respects privacy. Here is what that means
-                    here, specifically enough that you can go and verify it.
-                </p>
-            </div>
-
-            <div class="max-w-5xl mx-auto mb-12">
-                <div class="an-wrap" data-loop="19" data-still="13.5">
-  <div class="an-canvas" role="img" aria-label="Animation: a visitor's IP address 81.224.17.42 is used to look up the country on the server, truncated to 81.224.17.0, hashed together with a salt that changes daily, and discarded. Only the hash is stored, and the next day the same visitor gets a different hash.">
-
-    <div class="an-card ai-in">
-      <div><div class="an-muted" style="font-size:11.5px;font-weight:600;text-transform:uppercase;letter-spacing:.03em">A visit arrives from</div>
-        <div class="ip an-mono">81.224.17.42</div></div>
-      <div class="ua an-mono an-muted an-hide-m">Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X)<br>AppleWebKit/605.1.15 Version/26.6 Mobile Safari · shop.example</div>
-      <div class="ua an-mono an-muted an-show-m">iPhone, Mobile Safari · shop.example</div>
-    </div>
-
-    <div class="an-card ai-stage ai-s1 an-pop" data-t="1.4">
-      <div class="n">1</div><h5>Country, looked up on this server</h5>
-      <div class="big">SE</div>
-      <div class="note">From a table built from the five regional internet registries. No lookup service is called.</div>
-    </div>
-    <div class="ai-arrow ai-a1" data-t="3.6">→</div>
-
-    <div class="an-card ai-stage ai-s2 an-pop" data-t="3.8">
-      <div class="n">2</div><h5>Truncated to its network</h5>
-      <div class="big an-mono">81.224.17.<span class="ai-strike">42</span></div>
-      <div class="big an-mono" data-t="5" style="color:#1d4ed8">81.224.17.0</div>
-      <div class="note">The last part goes. IPv6 keeps only the first /48. The full address is never written anywhere.</div>
-    </div>
-    <div class="ai-arrow ai-a2" data-t="6.2">→</div>
-
-    <div class="an-card ai-stage ai-s3 an-pop" data-t="6.4">
-      <div class="n">3</div><h5>Hashed with today's salt</h5>
-      <div class="ai-in-hash an-mono">
-        <div data-t="6.8" class="an-fade">2026-10-07 + secret</div>
-        <div data-t="7.1" class="an-fade">shop.example</div>
-        <div data-t="7.4" class="an-fade">81.224.17.0</div>
-        <div data-t="7.7" class="an-fade">Mozilla/5.0 (iPhone…</div>
-      </div>
-      <div class="ai-hash an-mono"><span data-type="8.3,1.2">sha256 → 9f3c2a71…d84be1a7</span></div>
-    </div>
-    <div class="ai-arrow ai-a3" data-t="9.8">→</div>
-
-    <div class="an-card ai-stage ai-s4 an-pop" data-t="10">
-      <div class="n">4</div><h5>What is stored</h5>
-      <div class="ai-row an-mono">
-        <div><span>visitor</span><span>9f3c…e1a7</span></div>
-        <div><span>path</span><span>/pricing</span></div>
-        <div><span>country</span><span>SE</span></div>
-        <div><span>device</span><span>mobile</span></div>
-        <div data-t="10.8" class="an-fade"><span>ip</span><span class="nope">not stored</span></div>
-      </div>
-    </div>
-
-    <div class="an-card ai-night" data-t="13">
-      <div class="clock an-mono">00:00 UTC</div>
-      <div>The salt changes at midnight UTC. Tomorrow the same visitor is <span class="h an-mono">b72d0e9f…5a3c04c9</span><span class="an-hide-m">, and nothing links it to today's.</span></div>
-    </div>
-
-    <div class="an-cap" data-t=".4,6.2">The address is only ever held in memory</div>
-    <div class="an-cap" data-t="6.4,12.8">Only a hash is kept, never the address</div>
-    <div class="an-cap" data-t="13,18.4">A day later, it cannot even be matched</div>
-  </div>
-</div>
-
-            </div>
-
-            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-                <div class="p-6 bg-gray-800 rounded-xl border border-gray-700" data-reveal data-reveal-delay="0">
-                    <i class="fas fa-database text-blue-400 text-2xl mb-4 block"></i>
-                    <h3 class="text-lg font-semibold text-white mb-2">The database enforces the separation</h3>
-                    <p class="text-gray-400 text-sm">
-                        Every table holding your data has row-level security policies, and the
-                        application connects as a role those policies apply to. A bug in our
-                        code cannot show your data to someone else, because the database
-                        refuses independently.
-                    </p>
-                </div>
-
-                <div class="p-6 bg-gray-800 rounded-xl border border-gray-700" data-reveal data-reveal-delay="90">
-                    <i class="fas fa-fingerprint text-green-400 text-2xl mb-4 block"></i>
-                    <h3 class="text-lg font-semibold text-white mb-2">The visitor hash changes daily</h3>
-                    <p class="text-gray-400 text-sm">
-                        We truncate the address first, IPv4 to a /24 and IPv6 to a /48, then
-                        hash it with the browser, your domain and a salt that changes every
-                        day. The same visitor tomorrow is a different hash, and everyone on
-                        the same network is the same one.
-                    </p>
-                </div>
-
-                <div class="p-6 bg-gray-800 rounded-xl border border-gray-700" data-reveal data-reveal-delay="180">
-                    <i class="fas fa-ban text-purple-400 text-2xl mb-4 block"></i>
-                    <h3 class="text-lg font-semibold text-white mb-2">No IP address is ever stored</h3>
-                    <p class="text-gray-400 text-sm">
-                        Not truncated, not encrypted, not anywhere. There is no column for it,
-                        and none for the user agent either. Country comes from a database on
-                        our own server, so your visitors' addresses are never sent to a
-                        third party.
-                    </p>
-                </div>
-
-                <div class="p-6 bg-gray-800 rounded-xl border border-gray-700" data-reveal data-reveal-delay="0">
-                    <i class="fas fa-cookie-bite text-cyan-400 text-2xl mb-4 block"></i>
-                    <h3 class="text-lg font-semibold text-white mb-2">Nothing is written to the visitor's browser</h3>
-                    <p class="text-gray-400 text-sm">
-                        No cookie, no localStorage, no fingerprint. The script sends an event
-                        and forgets. That is why no consent banner is needed, rather than a
-                        banner being technically avoidable.
-                    </p>
-                </div>
-
-                <div class="p-6 bg-gray-800 rounded-xl border border-gray-700" data-reveal data-reveal-delay="90">
-                    <i class="fas fa-key text-amber-400 text-2xl mb-4 block"></i>
-                    <h3 class="text-lg font-semibold text-white mb-2">Credentials are never stored usably</h3>
-                    <p class="text-gray-400 text-sm">
-                        Passwords, session tokens and API tokens are all hashed. A copy of our
-                        database grants access to nothing. Sessions are Secure, HttpOnly and
-                        SameSite, and the dashboard loads no third-party scripts at all.
-                    </p>
-                </div>
-
-                <div class="p-6 bg-gray-800 rounded-xl border border-gray-700" data-reveal data-reveal-delay="180">
-                    <i class="fas fa-server text-rose-400 text-2xl mb-4 block"></i>
-                    <h3 class="text-lg font-semibold text-white mb-2">One server, in Sweden</h3>
-                    <p class="text-gray-400 text-sm">
-                        Hosted with Bahnhof. Your data stays there, is not replicated to other
-                        regions, and is deleted automatically after 24 months. Our only other
-                        supplier is the one that sends the emails, in the Netherlands.
-                    </p>
-                </div>
-            </div>
-
-            <div class="bg-gray-800 rounded-xl border border-gray-700 p-8">
-                <div class="grid sm:grid-cols-3 gap-8 text-center">
-                    <div>
-                        <div class="text-3xl font-bold text-white mb-1">2.9<span class="text-lg text-gray-400">KB</span></div>
-                        <p class="text-sm text-gray-400">the tracking script, gzipped</p>
-                    </div>
-                    <div>
-                        <div class="text-3xl font-bold text-white mb-1">873</div>
-                        <p class="text-sm text-gray-400">automated tests, run on every change</p>
-                    </div>
-                    <div>
-                        <div class="text-3xl font-bold text-white mb-1">0</div>
-                        <p class="text-sm text-gray-400">third-party scripts, on your site or ours</p>
-                    </div>
-                </div>
-                <p class="text-center text-sm text-gray-500 mt-8">
-                    None of this has to be taken on trust.
-                    <a href="https://github.com/Benbo-se/ArgusmetricsSH" target="_blank" rel="noopener noreferrer"
-                       class="text-blue-400 hover:text-blue-300 underline">The code is public</a>,
-                    including the tests that check the claims on this page.
-                </p>
+            <div class="ledger-more rise">
+                <span>The long versions:</span>
+                <a href="/compare/google-analytics">vs Google Analytics</a>
+                <a href="/compare/plausible">vs Plausible</a>
+                <a href="/compare/matomo">vs Matomo</a>
             </div>
         </div>
     </section>
 
-    <!-- Self-host Section -->
-    <!-- Photo band intro: the image is literally the subject here, a server you run
-         yourself. Dense content stays on the light background below it. -->
-    <section class="band band-server py-24 px-4 sm:px-6 lg:px-8">
-        <div class="max-w-3xl mx-auto text-center">
-            <span class="eyebrow text-blue-300">Self-host edition: coming soon</span>
-            <h2 class="text-4xl sm:text-5xl font-bold text-white mb-5 mt-3">Or run it on your own server</h2>
-            <p class="text-xl text-gray-300">
-                Argusmetrics is <strong class="text-white">AGPL-3.0</strong> and the source is public today. A packaged
-                self-host release is still being finished. Until then, the hosted version above is the
-                supported way to use it.
-            </p>
-        </div>
-    </section>
-
-    <section id="self-host" class="py-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-white via-gray-50 to-white">
-        <div class="max-w-6xl mx-auto">
-
-            <!-- min-w-0 on the columns: a grid item will not shrink below its
-                 content's minimum width unless told to, so the terminal block's
-                 long clone URL made the track 502px wide and pushed the whole
-                 page sideways on a phone. The pre already scrolls; the track
-                 above it did not know that was allowed. -->
-            <div class="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
-                <!-- Left: what you get -->
-                <div class="min-w-0">
-                    <h3 class="text-2xl font-bold text-gray-900 mb-6">Everything included. Nothing locked away.</h3>
-                    <ul class="space-y-4">
-                        <li class="flex items-start gap-3">
-                            <i class="fas fa-circle-check text-green-500 text-lg mt-0.5"></i>
-                            <span class="text-gray-700"><strong>Unlimited</strong> sites, pageviews &amp; team members, no usage caps</span>
-                        </li>
-                        <li class="flex items-start gap-3">
-                            <i class="fas fa-circle-check text-green-500 text-lg mt-0.5"></i>
-                            <span class="text-gray-700"><strong>Privacy isn't a banner, it's how we're built</strong>, cookieless &amp; GDPR-friendly by default</span>
-                        </li>
-                        <li class="flex items-start gap-3">
-                            <i class="fas fa-circle-check text-green-500 text-lg mt-0.5"></i>
-                            <span class="text-gray-700"><strong>&lt;3KB gzip script</strong>, real-time dashboards &amp; live visitors</span>
-                        </li>
-                        <li class="flex items-start gap-3">
-                            <i class="fas fa-circle-check text-green-500 text-lg mt-0.5"></i>
-                            <span class="text-gray-700"><strong>Goals, funnels &amp; e-commerce</strong> revenue tracking built in</span>
-                        </li>
-                        <li class="flex items-start gap-3">
-                            <i class="fas fa-circle-check text-green-500 text-lg mt-0.5"></i>
-                            <span class="text-gray-700"><strong>Your data never leaves your server</strong>, zero third parties</span>
-                        </li>
-                        <li class="flex items-start gap-3">
-                            <i class="fas fa-circle-check text-green-500 text-lg mt-0.5"></i>
-                            <span class="text-gray-700"><strong>Fully open source</strong>, read it, fork it, contribute back</span>
-                        </li>
-                    </ul>
-
-                    <div class="flex flex-wrap gap-4 mt-8">
-                        <a href="https://github.com/Benbo-se/ArgusmetricsSH" target="_blank" rel="noopener noreferrer" class="inline-flex items-center bg-gray-900 hover:bg-gray-800 text-white px-6 py-3 rounded-lg font-semibold transition-all transform hover:scale-105 shadow-lg">
-                            <i class="fab fa-github mr-2"></i>View on GitHub
-                        </a>
-                        <a href="/docs/" class="inline-flex items-center bg-white hover:bg-gray-50 text-gray-900 px-6 py-3 rounded-lg font-semibold border border-gray-300 transition-colors">
-                            <i class="fas fa-book-open mr-2 text-gray-500"></i>Read the docs
-                        </a>
-                    </div>
-                </div>
-
-                <!-- Right: terminal + steps -->
-                <!-- The quickstart, animated, then the same commands to copy. The
-                     static block that was here said "docker compose up -d" and
-                     skipped the .env step, which fails on the missing SECRET_KEY. -->
-                <div class="min-w-0"><div x-data="{ copied: false, cmd: 'git clone https://github.com/Benbo-se/ArgusmetricsSH\ncd ArgusmetricsSH/docker\ncp .env.example .env   # then set SECRET_KEY\ndocker compose up -d postgres backend' }">
-                    <div class="an-wrap at-wrap" data-loop="17" data-still="13">
-  <div class="an-canvas" role="img" aria-label="Animation: a terminal clones the repository, copies the example configuration, starts the stack with docker compose, and the health check answers healthy.">
-    <div class="at-term an-mono">
-      <div class="at-bar"><span class="an-dots"></span><span>~/argusmetrics</span></div>
-      <div class="at-body">
-        <div><span class="at-p">$</span> <span data-type=".4,1.6">git clone https://github.com/Benbo-se/ArgusmetricsSH</span></div>
-        <div data-t="2.2" class="an-fade at-out">Cloning into 'ArgusmetricsSH'... done.</div>
-        <div data-t="2.6" class="an-fade"><span class="at-p">$</span> <span data-type="2.7,1">cd ArgusmetricsSH/docker</span></div>
-        <div data-t="3.9" class="an-fade"><span class="at-p">$</span> <span data-type="4,1">cp .env.example .env</span></div>
-        <div data-t="4.8" class="an-fade at-cmt"># then set SECRET_KEY in .env, the one required value</div>
-        <div data-t="5.6" class="an-fade"><span class="at-p">$</span> <span data-type="5.7,1.4">docker compose up -d postgres backend</span></div>
-        <div data-t="7" class="an-fade at-out"><span class="at-ok">✔</span> Container argusmetrics-postgres  <span class="at-ok">Healthy</span></div>
-        <div data-t="7.8" class="an-fade at-out"><span class="at-ok">✔</span> Container argusmetrics-backend   <span class="at-ok">Started</span></div>
-        <div data-t="8.6" class="an-fade"><span class="at-p">$</span> <span data-type="8.7,1.2">curl -s localhost:8020/health</span></div>
-        <div data-t="10.2" class="an-fade at-out">{"status": <span class="at-ok">"healthy"</span>, "database": "connected", "jobs": {…}}</div>
-      </div>
-    </div>
-    <div class="an-cap" data-t=".3,5.5">Clone it and set one secret</div>
-    <div class="an-cap" data-t="5.6,10.1">Start it. It sets up its own database</div>
-    <div class="an-cap" data-t="10.2,16.4">Running, on your server, in a few minutes</div>
-  </div>
-</div>
-
-                    <button @click="navigator.clipboard.writeText(cmd); copied = true; setTimeout(() => copied = false, 1500)"
-                            class="mt-3 inline-flex items-center text-sm font-semibold text-gray-700 hover:text-blue-700">
-                        <span x-show="!copied"><i class="far fa-copy mr-1"></i>Copy these commands</span>
-                        <span x-show="copied" style="display:none" class="text-green-600"><i class="fas fa-check mr-1"></i>Copied!</span>
-                    </button>
-
-                    <div class="mt-5 flex items-start gap-3 bg-blue-50 border border-blue-100 rounded-xl px-5 py-4">
-                        <i class="fas fa-circle-info text-blue-500 mt-0.5"></i>
-                        <p class="text-sm text-gray-600">
-                            Needs only <strong>Docker</strong>. Your dashboard is live on
-                            <code class="text-blue-700 bg-blue-100 px-1.5 py-0.5 rounded text-xs">localhost:8020</code>, add the tracking snippet to any site and you're done.
-                        </p>
-                    </div>
-                </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- CTA Section -->
-    <section class="band band-aurora py-28 px-4 sm:px-6 lg:px-8">
-        <div class="max-w-4xl mx-auto text-center">
-            <span class="eyebrow text-blue-300">Made in Sweden</span>
-            <h2 class="text-4xl font-bold text-white mb-6 mt-3">Ready to get started?</h2>
-            <p class="text-xl text-blue-100 mb-8">Add one small script and watch your traffic arrive. No cookie banner required.</p>
-            <a href="/signup" class="inline-block bg-white text-blue-600 hover:bg-gray-100 px-8 py-4 rounded-lg text-lg font-semibold transition-all transform hover:scale-105 shadow-xl">
-                Get started free
-            </a>
-            <p class="text-blue-100 mt-6 text-sm">
-                No credit card &bull; No cookie banner &bull; Open source
-            </p>
-        </div>
-    </section>
-
-    <!-- Footer -->
     
-
-
-    <footer class="bg-gray-900 text-gray-300 py-12 px-4 sm:px-6 lg:px-8">
-        <div class="max-w-7xl mx-auto">
-            <div class="grid md:grid-cols-4 gap-8 mb-8">
+    <section class="band-night" id="built">
+        <div class="feather from-vellum" aria-hidden="true"></div>
+        <div class="wrap">
+            <div class="rise">
+                <span class="eyebrow-m">Open source, so you can check</span>
+                <h2 class="h-section">How it is <em>actually built.</em></h2>
+                <p class="lead">Six things that are true of the code, written specifically enough that you can go and verify each one.</p>
+            </div>
+            <div class="built rise">
+                <div class="built-row"><span class="n">01</span><h3>No IP address is ever stored</h3><p>Not truncated, not encrypted, not anywhere. There is no column for it, and none for the user agent either. Country comes from a database on the server itself, so your visitors' addresses are never sent to a third party.</p></div>
+                <div class="built-row"><span class="n">02</span><h3>The visitor hash changes daily</h3><p>The address is truncated first, IPv4 to a /24 and IPv6 to a /48, then hashed with the browser, your domain and a salt that changes every day. The same visitor tomorrow is a different hash, and everyone on the same network is the same one.</p></div>
+                <div class="built-row"><span class="n">03</span><h3>Nothing is written to the visitor's browser</h3><p>No cookie, no localStorage, no fingerprint. The script sends an event and forgets. That is why no consent banner is needed, rather than a banner being technically avoidable.</p></div>
+                <div class="built-row"><span class="n">04</span><h3>The database enforces the separation</h3><p>Every table holding your data has row-level security policies, and the application connects as a role those policies apply to. A bug in the code cannot show your data to someone else, because the database refuses independently.</p></div>
+                <div class="built-row"><span class="n">05</span><h3>Credentials are never stored usably</h3><p>Passwords, session tokens and API tokens are all hashed. A copy of the database grants access to nothing. Sessions are Secure, HttpOnly and SameSite, and the dashboard loads no third-party scripts at all.</p></div>
+                <div class="built-row"><span class="n">06</span><h3>Do Not Track is honoured</h3><p>A visitor whose browser sends Do Not Track is not recorded at all. Not anonymised, not counted separately. Nothing is written.</p></div>
+            </div>
+            <div class="figures rise">
                 <div>
-                    <div class="flex items-center space-x-3 mb-4">
-                        <img src="/static/img/logo-96.png" alt="Argusmetrics" width="48" height="48" class="h-12 w-12">
-                        <h3 class="text-white font-bold text-lg">Argusmetrics</h3>
-                    </div>
-                    <p class="text-sm text-gray-400">Free, open-source, privacy-first web analytics.</p>
+                    <div class="fig">2.9<small>KB</small></div>
+                    <p>the tracking script, gzipped</p>
                 </div>
                 <div>
-                    <h4 class="text-white font-semibold mb-4">Product</h4>
-                    <ul class="space-y-2 text-sm">
-                        <li><a href="/#features" class="hover:text-white transition-colors">Features</a></li>
-                        <li><a href="/#self-host" class="hover:text-white transition-colors">Self-host</a></li>
-                        <li><a href="/data" class="hover:text-white transition-colors">Privacy by Design</a></li>
-                        <li><a href="/changelog" class="hover:text-white transition-colors">Changelog</a></li>
-                        <li><a href="/docs/" class="hover:text-white transition-colors">Documentation</a></li>
-                    </ul>
+                    <div class="fig">873</div>
+                    <p>automated tests, run on every change</p>
                 </div>
                 <div>
-                    <h4 class="text-white font-semibold mb-4">Compare</h4>
-                    <ul class="space-y-2 text-sm">
-                        <li><a href="/compare/google-analytics" class="hover:text-white transition-colors">vs Google Analytics</a></li>
-                        <li><a href="/compare/plausible" class="hover:text-white transition-colors">vs Plausible</a></li>
-                        <li><a href="/compare/matomo" class="hover:text-white transition-colors">vs Matomo</a></li>
-                    </ul>
-                </div>
-                <div>
-                    <h4 class="text-white font-semibold mb-4">Company</h4>
-                    <ul class="space-y-2 text-sm">
-                        <li><a href="/about" class="hover:text-white transition-colors">About</a></li>
-                        <li><a href="/contact" class="hover:text-white transition-colors">Contact</a></li>
-                        <li><a href="/privacy" class="hover:text-white transition-colors">Privacy Policy</a></li>
-                        <li><a href="/terms" class="hover:text-white transition-colors">Terms of Service</a></li>
-                        <li><a href="mailto:reda@argusmetrics.io" class="hover:text-white transition-colors">Email Support</a></li>
-                    </ul>
-                </div>
-                <div>
-                    <h4 class="text-white font-semibold mb-4">Resources</h4>
-                    <ul class="space-y-2 text-sm">
-                        <li><a href="https://github.com/Benbo-se/ArgusmetricsSH" target="_blank" rel="noopener noreferrer" class="hover:text-white transition-colors">GitHub</a></li>
-                        <li><a href="/docs/" class="hover:text-white transition-colors">Documentation</a></li>
-                    </ul>
-                    <div class="flex space-x-4 mt-4">
-                        <a href="https://github.com/Benbo-se/ArgusmetricsSH" target="_blank" rel="noopener noreferrer" class="hover:text-white transition-colors" aria-label="GitHub">
-                            <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
-                        </a>
-                        <a href="https://www.linkedin.com/company/argusmetrics" target="_blank" rel="noopener noreferrer" class="hover:text-white transition-colors" aria-label="LinkedIn">
-                            <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
-                        </a>
-                    </div>
+                    <div class="fig">0</div>
+                    <p>third-party scripts, on your site or on this page</p>
                 </div>
             </div>
-            <div class="border-t border-gray-800 pt-8 text-center text-sm text-gray-400">
-                <p>&copy; 2026 Argusmetrics. All rights reserved.</p>
+            <p class="trust rise">None of this has to be taken on trust. <a href="https://github.com/Benbo-se/ArgusmetricsSH" rel="noopener noreferrer">The code is public</a>, including the tests that check the claims on this page.</p>
+        </div>
+    </section>
+
+    
+    <section class="band-vellum on-vellum" id="self-host">
+        <div class="feather from-night" aria-hidden="true"></div>
+        <div class="wrap">
+            <div class="host">
+                <div class="rise">
+                    <span class="eyebrow-m">AGPL-3.0 &middot; your server</span>
+                    <h2 class="h-section">Clone it, set one secret, <em>keep everything.</em></h2>
+                    <p class="lead">Argusmetrics runs on a machine you control. It needs Docker and nothing else, and the data never leaves the box it is on.</p>
+                    <ul class="host-list">
+                        <li><b>Unlimited</b> sites, pageviews and team members. No usage caps, no tiers.</li>
+                        <li><b>Sets up its own database</b> and migrates itself on every upgrade.</li>
+                        <li><b>Backups and a health endpoint</b> are part of it, not a wiki page.</li>
+                    </ul>
+                    <div class="host-cta">
+                        <a class="btn btn-go" href="/docs/#installation">Read the install guide <span class="arr" aria-hidden="true">&rarr;</span></a>
+                        <a class="btn btn-ghost" href="https://github.com/Benbo-se/ArgusmetricsSH" rel="noopener noreferrer">View on GitHub</a>
+                    </div>
+                </div>
+                <div class="term rise" id="term">
+                    <div class="term-bar"><span>~/argusmetrics</span><button type="button" id="term-copy">Copy</button></div>
+<pre aria-label="Terminal: clone the repository, copy the example configuration, start the stack, and the health check answers healthy."><span class="line" style="--i:0"><span class="p">$ </span>git clone https://github.com/Benbo-se/ArgusmetricsSH</span><span class="line o" style="--i:1">Cloning into 'ArgusmetricsSH'... done.</span><span class="line" style="--i:2"><span class="p">$ </span>cd ArgusmetricsSH/docker</span><span class="line" style="--i:3"><span class="p">$ </span>cp .env.example .env</span><span class="line c" style="--i:4"># then set SECRET_KEY in .env, the one required value</span><span class="line" style="--i:5"><span class="p">$ </span>docker compose up -d postgres backend</span><span class="line o" style="--i:6"><span class="ok">&#10004;</span> Container argusmetrics-postgres  <span class="ok">Healthy</span></span><span class="line o" style="--i:7"><span class="ok">&#10004;</span> Container argusmetrics-backend   <span class="ok">Started</span></span><span class="line" style="--i:8"><span class="p">$ </span>curl -s localhost:8020/health</span><span class="line o" style="--i:9">{"status": <span class="ok">"healthy"</span>, "database": "connected", "jobs": {&hellip;}}</span></pre>
+                </div>
             </div>
         </div>
-    </footer>
+    </section>
 
-<script defer src="/static/js/anim.js?v=89dc2ae0"></script>
+    
+    <section class="band-night closing">
+        <div class="feather from-vellum" aria-hidden="true"></div>
+        <div class="wrap">
+            <div class="big-eye rise"><svg class="" viewBox="0 0 40 24" aria-hidden="true"><g class="lids"><path class="eye-lid" d="M2 12Q20-5 38 12Q20 29 2 12Z"/></g><g class="ball"><circle class="eye-iris" cx="20" cy="12" r="6.2"/><circle class="eye-pupil" cx="20" cy="12" r="2.6"/></g></svg></div>
+            <h2 class="h-section rise">Keep watch. <em>Keep nothing else.</em></h2>
+            <p class="lead rise">Add one small script and watch your traffic arrive. No cookie banner required.</p>
+            <div class="hero-cta rise">
+                <a class="btn btn-go" href="#self-host">Run it on your server <span class="arr" aria-hidden="true">&rarr;</span></a>
+                <a class="btn btn-ghost" href="https://argusmetrics.io/public/ACzDK1ugMdKNufktjLSp5Fhk0Ppq3b5D">See live stats</a>
+            </div>
+        </div>
+    </section>
+</main>
 
+<footer class="site-foot">
+    <div class="wrap">
+        <div class="foot-grid">
+            <div>
+                <a class="brand" href="/"><svg class="" viewBox="0 0 40 24" aria-hidden="true"><g class="lids"><path class="eye-lid" d="M2 12Q20-5 38 12Q20 29 2 12Z"/></g><g class="ball"><circle class="eye-iris" cx="20" cy="12" r="6.2"/><circle class="eye-pupil" cx="20" cy="12" r="2.6"/></g></svg><span>Argus<b>metrics</b></span></a>
+                <p>Simple, open-source, privacy-first web analytics. Made in Sweden.</p>
+            </div>
+            <div>
+                <h4>Product</h4>
+                <ul>
+                    <li><a href="#product">The dashboard</a></li>
+                    <li><a href="#self-host">Self-host</a></li>
+                    <li><a href="/data">Privacy by Design</a></li>
+                    <li><a href="/changelog">Changelog</a></li>
+                    <li><a href="/docs/">Documentation</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4>Compare</h4>
+                <ul>
+                    <li><a href="/compare/google-analytics">vs Google Analytics</a></li>
+                    <li><a href="/compare/plausible">vs Plausible</a></li>
+                    <li><a href="/compare/matomo">vs Matomo</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4>Company</h4>
+                <ul>
+                    <li><a href="/about">About</a></li>
+                    <li><a href="/contact">Contact</a></li>
+                    <li><a href="/privacy">Privacy Policy</a></li>
+                    <li><a href="/terms">Terms of Service</a></li>
+                    <li><a href="https://github.com/Benbo-se/ArgusmetricsSH" rel="noopener noreferrer">GitHub</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="foot-base"><span>&copy; 2026 Argusmetrics</span><span>No cookies were set in the making of this page.</span></div>
+    </div>
+</footer>
+
+<script src="/static/js/home.js?v=e838c9f4" defer></script>
 </body>
 </html>
