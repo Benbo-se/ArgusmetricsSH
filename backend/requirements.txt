@@ -26,6 +26,13 @@ alembic==1.20.1
 # Security & Authentication
 itsdangerous==2.2.0
 passlib[bcrypt]==1.7.4
+# Two-factor authentication. cryptography seals the TOTP secret at rest
+# (Fernet, key derived from SECRET_KEY: app/utils/secret_box.py). segno draws
+# the enrolment QR code in this process, pure Python with no dependencies, so
+# the secret is never put in a URL to somebody's chart API. The TOTP algorithm
+# itself is standard library (app/utils/totp.py).
+cryptography==50.0.2
+segno==1.6.6
 
 # Email
 aiosmtplib==5.1.3

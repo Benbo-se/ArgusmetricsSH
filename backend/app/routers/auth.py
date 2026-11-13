@@ -38,6 +38,7 @@ from app.schemas.auth import (
     LogoutResponse,
     ErrorResponse,
     LoginRequest,
+    SecondFactorRequest,
     VerifyCodeRequest,
     ResendVerificationRequest,
     RequestResetRequest,
@@ -558,27 +559,127 @@ async def login(
     request: Request,
     auth_service: AuthService = Depends(get_auth_service),
 ):
-    """Password login. Generic error for every failure mode."""
+    """Password login. Generic error for every failure mode.
+
+    An account with two-factor authentication is not signed in here. A
+    correct password is answered with a short-lived cookie that only the code
+    step below reads, and no session cookie at all.
+    """
     from fastapi.responses import JSONResponse
+    from app.services import two_factor
 
     _dual_rate_limit(request, body.email, "login", per_email=10, per_ip=50, window_seconds=900)
 
     try:
         session = auth_service.login_user(email=body.email, password=body.password)
+    except two_factor.SecondFactorRequired as pending:
+        response = JSONResponse({
+            "message": "Enter the code from your authenticator app",
+            "two_factor_required": True,
+            # The page follows `redirect`, so a login page cached from before
+            # this existed still ends up at the code step.
+            "redirect": "/login/2fa",
+        })
+        response.set_cookie(
+            key=two_factor.PENDING_LOGIN_COOKIE,
+            value=two_factor.issue_pending_login(pending.user),
+            max_age=two_factor.PENDING_LOGIN_SECONDS,
+            httponly=True,
+            secure=settings.is_production,
+            samesite="lax",
+        )
+        return response
     except ValueError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password",
         )
 
+    return _signed_in_response(request, session, {"message": "Logged in", "email": body.email})
+
+
+def _signed_in_response(request: Request, session, payload: dict):
+    """The answer to a completed sign-in: the session cookie and where to go."""
+    from fastapi.responses import JSONResponse
+
     # A pending team invite takes precedence over the dashboard
     pending_invite = request.cookies.get("pending_invite")
-    redirect = f"/accept-invite?token={pending_invite}" if pending_invite else "/dashboard"
+    if pending_invite:
+        redirect = f"/accept-invite?token={pending_invite}"
+    else:
+        redirect = payload.get("redirect") or "/dashboard"
 
-    response = JSONResponse({"message": "Logged in", "email": body.email, "redirect": redirect})
+    response = JSONResponse({**payload, "redirect": redirect})
     _set_session_cookie(response, session)
     if pending_invite:
         response.delete_cookie("pending_invite")
+    return response
+
+
+@router.post("/login/2fa")
+async def login_second_factor(
+    body: SecondFactorRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+    auth_service: AuthService = Depends(get_auth_service),
+):
+    """The second step: a code, for whoever just gave the right password.
+
+    Who that is comes from the signed cookie the first step set, never from
+    the request body, so this cannot be pointed at an account whose password
+    the caller did not have.
+
+    Limited twice. Per client address in the process, like the other auth
+    routes, and per account in the database (services/two_factor.py), which
+    is the one that holds across workers and restarts.
+    """
+    from app.middleware.rate_limit import rate_limiter
+    from app.services import two_factor
+
+    ip = get_client_ip(request)
+    if rate_limiter.is_rate_limited(f"login-2fa:ip:{ip}", limit=30, window_seconds=900):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many attempts. Please try again later.",
+        )
+
+    expired = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Your sign-in has expired. Please sign in again.",
+    )
+    pending = two_factor.resolve_pending_login(
+        db, request.cookies.get(two_factor.PENDING_LOGIN_COOKIE)
+    )
+    if pending is None:
+        raise expired
+    user, jti = pending
+
+    try:
+        kind = two_factor.check_code(db, user, body.code)
+    except two_factor.SecondFactorLocked:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=(
+                "Too many wrong codes. Wait "
+                f"{two_factor.LOCK_MINUTES} minutes and sign in again."
+            ),
+        )
+    if kind is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="That code is not valid.",
+        )
+    if not two_factor.consume_pending_login(db, jti):
+        raise expired
+
+    session = auth_service.create_session(user, second_factor_passed=True)
+
+    payload = {"message": "Logged in", "email": user.email}
+    if kind == "recovery":
+        # Straight to the page that says how many are left and can make more.
+        payload["redirect"] = "/dashboard/account?recovery=used"
+    response = _signed_in_response(request, session, payload)
+    response.delete_cookie(two_factor.PENDING_LOGIN_COOKIE)
     return response
 
 
@@ -740,6 +841,15 @@ async def set_password(
         session = auth_service.set_password_with_token(token=body.token, new_password=body.password)
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+    if session is None:
+        # Two-factor authentication: the password is changed, and the reset
+        # link does not sign in. See AuthService.set_password_with_token.
+        return JSONResponse({
+            "message": "Password updated. Sign in with it and your sign-in code.",
+            "two_factor_required": True,
+            "redirect": "/login",
+        })
 
     response = JSONResponse({"message": "Password updated", "redirect": "/dashboard"})
     _set_session_cookie(response, session)

@@ -36,8 +36,9 @@ Pageviews, unique visitors, real-time, top pages with scroll depth, referrers,
 countries, devices, browsers and operating systems with their major versions,
 languages, hostnames, screen sizes, UTM campaigns, custom events with properties,
 goals, funnels, ecommerce and revenue, cross-domain reporting, public share
-links (optionally password-protected), team members with roles, scheduled email
-reports, traffic-spike alerts, an API with tokens, and a live debug console.
+links (optionally password-protected), team members with roles, two-factor
+authentication, scheduled email reports, traffic-spike alerts, an API with
+tokens, and a live debug console.
 
 None of it needs an external service.
 
@@ -91,6 +92,7 @@ so nothing here needs a path or a container name typed at it.
 ./argus health              # alive, and are the scheduled jobs current
 ./argus logs backend
 ./argus admin add you@example.com   # who may open /dashboard/admin
+./argus admin disable-2fa   # asks which account; for a lost phone with no recovery codes
 ./argus waitlist list       # the hosted-signup waiting list
 ./argus country refresh     # rebuild the IP-to-country table
 ./argus backup              # take a dump now
@@ -169,7 +171,10 @@ Postgres refuses independently. `backend/tests/test_tenant_isolation.py`
 connects as an unprivileged role and proves it.
 
 **Credentials are never stored in a usable form.** Passwords, session tokens
-and API tokens are all hashed. A copy of the database grants access to nothing.
+and API tokens are all hashed, and so are two-factor recovery codes. The
+two-factor secret is the one thing the server must be able to read back, so it
+is encrypted with a key derived from `SECRET_KEY`, which is not in the
+database. A copy of the database grants access to nothing.
 
 **No third-party scripts.** The dashboard loads no external script, font or
 tracker, and the tracking script loads nothing beyond itself.
@@ -199,7 +204,7 @@ because the refusal guards only the order in which things are created.
 cd e2e && npx playwright test
 ```
 
-787 backend tests and 168 end-to-end tests. They run against a real Postgres
+873 backend tests and 168 end-to-end tests. They run against a real Postgres
 and a real browser; nothing important is mocked.
 
 Some of them are unusual and deliberate:

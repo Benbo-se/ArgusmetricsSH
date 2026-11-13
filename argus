@@ -60,6 +60,9 @@ argus - run this Argusmetrics instance
   admin list                who may open /dashboard/admin
   admin add                 let an account in (asks which)
   admin remove              take one out (asks which)
+  admin disable-2fa         turn two-factor authentication off for an account
+                            that has lost its phone and its recovery codes
+                            (asks which)
 
   waitlist ...              the hosted-signup waiting list
                             (count, list, export, remove, mark-notified)
@@ -173,7 +176,9 @@ PY
 # went into a live instance's ADMIN_EMAILS verbatim, and the script cheerfully
 # said to sign in as it. app.bootstrap already prompts for what matters
 # instead of accepting it as an argument; this is the same reasoning.
+# The question is the caller's: "$1" is how the prompt reads.
 choose_account() {
+    local question="${1:-Which one should be able to open /dashboard/admin?}"
     local list chosen count
     list="$(accounts || true)"
 
@@ -187,8 +192,7 @@ choose_account() {
     echo "Accounts on this instance:" >&2
     echo "$list" | nl -w4 -s'  ' >&2
     echo >&2
-    printf 'Which one should be able to open /dashboard/admin? [1-%s]: ' \
-        "$count" >&2
+    printf '%s [1-%s]: ' "$question" "$count" >&2
     read -r chosen || return 1
 
     case "$chosen" in
@@ -268,8 +272,19 @@ admin() {
             echo "Removed $email"
             restart_backend
             ;;
+        disable-2fa)
+            # For the account whose owner cannot produce a code any more: the
+            # phone is gone and so are the recovery codes. Nothing in the
+            # application can let them in, on purpose, so this is the way.
+            # Picked from the list like `admin add`, and for the same reason:
+            # an address typed from memory is how the wrong account loses its
+            # second factor.
+            local email
+            email="$(choose_account 'Which one should have two-factor authentication turned off?')" || exit 1
+            in_backend app.disable_2fa --email "$email"
+            ;;
         *)
-            die "admin what? list, add or remove"
+            die "admin what? list, add, remove or disable-2fa"
             ;;
     esac
 }

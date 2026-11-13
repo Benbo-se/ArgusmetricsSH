@@ -26,6 +26,7 @@ from app.models.waitlist import WaitlistEntry
 from app.models.account_invitation import AccountInvitation
 from app.models.account_usage import AccountUsage
 from app.models.annotation import Annotation
+from app.models.two_factor_recovery_code import TwoFactorRecoveryCode
 
 __all__ = [
     "User",
@@ -35,6 +36,7 @@ __all__ = [
     "AccountInvitation",
     "AccountUsage",
     "Annotation",
+    "TwoFactorRecoveryCode",
     "Session",
     "Website",
     "Pageview",

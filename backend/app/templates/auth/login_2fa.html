@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block title %}Sign-in code{% endblock %}
+
+{# The second step of signing in, for an account with two-factor
+   authentication. Reached only with the short-lived cookie a correct
+   password earns; without it the route redirects to /login. Nobody is
+   signed in on this page. #}
+{% block content %}
+<div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-md w-full space-y-8">
+        <div class="text-center">
+            <a href="/" class="inline-block">
+                <img src="/static/img/ArgusEyefavicon3.png" alt="Argusmetrics" class="mx-auto h-24 w-24 mb-4 hover:opacity-80 transition-opacity cursor-pointer">
+            </a>
+            <h2 class="text-3xl font-extrabold text-gray-900">Argusmetrics</h2>
+            <p class="mt-2 text-sm text-gray-600">Simple, privacy-focused analytics</p>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-xl p-8">
+            <h3 class="text-xl font-semibold text-gray-900 mb-2">Enter your sign-in code</h3>
+            <p class="text-sm text-gray-600 mb-6">
+                Open your authenticator app and enter the six-digit code it
+                shows for Argusmetrics.
+            </p>
+
+            <div id="code-error" class="hidden mb-4 p-3 bg-red-50 border-l-4 border-red-400 text-red-700 text-sm"></div>
+
+            <form class="space-y-6" data-on-submit="handleCode" autocomplete="off">
+                <div>
+                    <label for="code" class="block text-sm font-medium text-gray-700 mb-2">Code</label>
+                    <input id="code" name="code" type="text" required autofocus maxlength="64"
+                           autocomplete="one-time-code" placeholder="123456"
+                           class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                </div>
+                <button type="submit" id="code-btn"
+                        class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
+                    Sign in
+                </button>
+            </form>
+
+            <details class="mt-4 text-center">
+                <summary class="text-xs text-gray-500 cursor-pointer">Lost your phone?</summary>
+                <p class="text-xs text-gray-500 mt-2">
+                    Enter one of your recovery codes in the same field. Each
+                    works once. With no codes left, the person who runs this
+                    instance can turn two-factor authentication off for your
+                    account from the server.
+                </p>
+            </details>
+
+            <div class="mt-6 text-center">
+                <a href="/login" class="text-sm text-blue-600 hover:text-blue-800">← Back to sign in</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script nonce="{{ request.state.csp_nonce }}">
+async function handleCode(event) {
+    event.preventDefault();
+    const btn = document.getElementById('code-btn');
+    const err = document.getElementById('code-error');
+    err.classList.add('hidden');
+    btn.disabled = true; btn.textContent = 'Checking...';
+    try {
+        const r = await fetch('/api/v1/auth/login/2fa', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ code: document.getElementById('code').value })
+        });
+        const data = await r.json();
+        if (r.ok) {
+            btn.textContent = 'Signed in! Redirecting...';
+            window.location.href = data.redirect || '/dashboard';
+            return;
+        }
+        err.textContent = data.message || data.detail || 'That code is not valid.';
+        err.classList.remove('hidden');
+        document.getElementById('code').value = '';
+        document.getElementById('code').focus();
+    } catch (e) {
+        err.textContent = 'Network error. Please try again.';
+        err.classList.remove('hidden');
+    }
+    btn.disabled = false; btn.textContent = 'Sign in';
+}
+</script>
+{% endblock %}

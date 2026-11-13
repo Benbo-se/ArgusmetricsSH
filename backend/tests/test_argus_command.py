@@ -253,3 +253,39 @@ class TestTheHelpIsUsable:
         missing = sorted(c for c in commands if c not in usage)
 
         assert not missing, f"not in the help text: {missing}"
+
+
+class TestTurningOffTwoFactorFromTheServer:
+    """`admin disable-2fa`, the way back in for an owner with no phone and no
+    recovery codes. What it does to the account is tested where the database
+    is (test_two_factor.py); this is the part that is shell."""
+
+    def test_it_asks_which_account_and_takes_no_address(self, instance):
+        source = ARGUS.read_text()
+        block = source.split("        disable-2fa)")[1].split("        *)")[0]
+
+        assert "choose_account" in block, (
+            "disable-2fa no longer picks from the accounts that exist"
+        )
+        assert '"${1:-}"' not in block and '"$1"' not in block, (
+            "disable-2fa reads an address from the command line"
+        )
+        assert "app.disable_2fa" in block
+        # It shares the account list with `admin add`, whose question is about
+        # the admin page. Asking that one here would be an invitation to
+        # answer without reading.
+        assert "two-factor authentication turned off" in block
+        assert "Which one should be able to open /dashboard/admin?" in source
+
+        code, output = run(instance)
+        assert code == 0 and "admin disable-2fa" in output, "not in the help"
+
+        # No container here, so there is nothing to choose from: it refuses,
+        # and it never writes to the file that holds the instance's secrets.
+        before = env_text(instance)
+
+        code, output = run(instance, "admin", "disable-2fa", answer="1\n")
+
+        assert code != 0
+        assert "No accounts" in output
+        assert env_text(instance) == before

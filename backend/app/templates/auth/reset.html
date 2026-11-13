@@ -92,7 +92,9 @@ async function handleSetPassword(event) {
         });
         const data = await r.json();
         if (r.ok) {
-            btn.textContent = 'Saved! Signing in...';
+            // With two-factor authentication the reset link does not sign
+            // in: the next stop is the sign-in page, password and code.
+            btn.textContent = data.two_factor_required ? 'Saved! Now sign in...' : 'Saved! Signing in...';
             window.location.href = data.redirect || '/dashboard';
         } else {
             err.textContent = data.message || data.detail || 'The reset link is invalid or has expired.';

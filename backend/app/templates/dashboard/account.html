@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+
+{% block title %}Account{% endblock %}
+
+{# The account, rather than one website in it. So far that is two-factor
+   authentication (routers/account.py, services/two_factor.py).
+
+   Plain forms on purpose. The secret and the recovery codes are rendered by
+   the server in answer to the request that created them and are not
+   reachable any other way: reloading this page does not show them again. #}
+{% block content %}
+<div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900">Account</h1>
+        <p class="mt-1 text-sm text-gray-600">Signed in as {{ current_user.email }}.</p>
+    </div>
+
+    {% if recovery_codes %}
+    {# Shown once. Only their hashes are stored, so there is nothing to show
+       a second time. #}
+    <div class="bg-white rounded-lg shadow mb-8">
+        <div class="px-6 py-4 border-b border-gray-100">
+            <h2 class="text-lg font-semibold text-gray-900">
+                {% if just_enabled %}Two-factor authentication is on. Save your recovery codes{% else %}Your new recovery codes{% endif %}
+            </h2>
+            <p class="text-sm text-gray-500 mt-0.5">
+                Each code signs you in once if you do not have your phone.
+                They are shown only now: store them somewhere that is not
+                your phone, such as a password manager or a printout.
+                {% if not just_enabled %}The previous codes no longer work.{% endif %}
+            </p>
+        </div>
+        <div class="px-6 py-5" x-data="copyButton">
+            <pre id="recovery-codes" class="bg-gray-50 border border-gray-200 rounded-md p-4 text-sm font-mono text-gray-900">{% for code in recovery_codes %}{{ code }}
+{% endfor %}</pre>
+            <div class="mt-3 flex items-center gap-3">
+                <button type="button" @click="copy" data-copy-from="recovery-codes"
+                        class="px-3 py-1 text-xs font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700">
+                    <span x-show="isNotCopied">Copy</span>
+                    <span x-show="isCopied">Copied!</span>
+                </button>
+                {% if just_enabled and signed_out %}
+                <p class="text-xs text-gray-500">{{ signed_out }} other session{{ '' if signed_out == 1 else 's' }} signed out.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if just_disabled %}
+    <p class="mb-8 p-3 rounded-md bg-green-50 border border-green-200 text-sm text-green-800">
+        Two-factor authentication is off. Signing in needs only your password again.
+        {% if signed_out %}{{ signed_out }} other session{{ '' if signed_out == 1 else 's' }} signed out.{% endif %}
+    </p>
+    {% endif %}
+
+    {% if signed_in_with_recovery_code %}
+    <p class="mb-8 p-3 rounded-md bg-red-50 border border-red-200 text-sm text-red-700">
+        You signed in with a recovery code, and that code is now spent.
+        {{ codes_left }} of {{ codes_total }} remain. If you no longer have
+        your authenticator, turn two-factor authentication off below and set
+        it up again on a new device.
+    </p>
+    {% endif %}
+
+    <div class="bg-white rounded-lg shadow">
+        <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between gap-4">
+            <div>
+                <h2 class="text-lg font-semibold text-gray-900">Two-factor authentication</h2>
+                <p class="text-sm text-gray-500 mt-0.5">
+                    A six-digit code from an authenticator app, asked for
+                    after your password each time you sign in.
+                </p>
+            </div>
+            {% if enabled %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-50 text-green-700">On</span>
+            {% else %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">Off</span>
+            {% endif %}
+        </div>
+
+        {% if setup_secret %}
+        {# Step two of turning it on. Nothing has changed about signing in
+           yet, and nothing will unless the form below is sent with a code
+           that matches. #}
+        <div class="px-6 py-5">
+            <ol class="space-y-6 text-sm text-gray-700">
+                <li>
+                    <p class="font-medium text-gray-900">1. Scan this with your authenticator app</p>
+                    <p class="mt-1 text-gray-500">
+                        Any app that does time-based codes works: Aegis, 2FAS,
+                        Google Authenticator, a password manager. The code is
+                        drawn by this server and is not sent anywhere else.
+                    </p>
+                    <img src="{{ setup_qr }}" alt="QR code for your authenticator app" width="220" height="220"
+                         class="mt-3 border border-gray-200 rounded-md bg-white">
+                    <p class="mt-3 text-gray-500">Or type this key into the app:</p>
+                    <code id="setup-secret" class="mt-1 inline-block bg-gray-100 px-2 py-1 rounded text-sm font-mono text-gray-900">{{ setup_secret }}</code>
+                </li>
+                <li>
+                    <p class="font-medium text-gray-900">2. Prove it works</p>
+                    <p class="mt-1 text-gray-500">
+                        Two-factor authentication turns on only when a code
+                        from the app is accepted here. Leaving this page
+                        changes nothing.
+                    </p>
+                    {% if setup_error %}
+                    <p class="mt-3 p-3 rounded-md bg-red-50 border border-red-200 text-sm text-red-700">{{ setup_error }}</p>
+                    {% endif %}
+                    <form method="post" action="/dashboard/account/2fa/enable" class="mt-3 space-y-4" autocomplete="off">
+                        <div>
+                            <label for="enable-code" class="block text-sm font-medium text-gray-700 mb-2">Code from the app</label>
+                            <input id="enable-code" name="code" type="text" inputmode="numeric" maxlength="6" required
+                                   autocomplete="one-time-code" placeholder="123456"
+                                   class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                        </div>
+                        <div>
+                            <label for="enable-password" class="block text-sm font-medium text-gray-700 mb-2">Your password</label>
+                            <input id="enable-password" name="password" type="password" required autocomplete="current-password"
+                                   class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <button type="submit"
+                                    class="px-4 py-2 rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
+                                Turn on
+                            </button>
+                            <a href="/dashboard/account" class="text-sm text-gray-600 hover:text-gray-900">Cancel</a>
+                        </div>
+                    </form>
+                </li>
+            </ol>
+        </div>
+
+        {% elif enabled %}
+        <div class="px-6 py-5 text-sm text-gray-700">
+            <p>
+                On since {{ enabled_at.strftime('%Y-%m-%d') }}.
+                {{ codes_left }} of {{ codes_total }} recovery codes unused.
+            </p>
+            <p class="mt-2 text-gray-500">
+                API tokens are not affected: a token is its own credential for
+                one website and is never asked for a code.
+            </p>
+        </div>
+
+        <div class="px-6 py-5 border-t border-gray-100">
+            <h3 class="text-sm font-semibold text-gray-900">New recovery codes</h3>
+            <p class="text-sm text-gray-500 mt-0.5">
+                Makes {{ codes_total }} new codes and cancels every earlier one.
+            </p>
+            {% if codes_error %}
+            <p class="mt-3 p-3 rounded-md bg-red-50 border border-red-200 text-sm text-red-700">{{ codes_error }}</p>
+            {% endif %}
+            <form method="post" action="/dashboard/account/2fa/recovery-codes" class="mt-3 flex flex-col sm:flex-row gap-3" autocomplete="off">
+                <input name="password" type="password" required autocomplete="current-password"
+                       placeholder="Your password" aria-label="Your password"
+                       class="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                <input name="code" type="text" required autocomplete="one-time-code"
+                       placeholder="Current code" aria-label="Code from your authenticator app, or a recovery code"
+                       class="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                <button type="submit"
+                        class="px-4 py-2 rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
+                    Make new codes
+                </button>
+            </form>
+        </div>
+
+        <div class="px-6 py-5 border-t border-gray-100">
+            <h3 class="text-sm font-semibold text-gray-900">Turn off</h3>
+            <p class="text-sm text-gray-500 mt-0.5">
+                Needs your password and a code: one from the app, or a
+                recovery code if the app is gone. Every other session is
+                signed out.
+            </p>
+            {% if disable_error %}
+            <p class="mt-3 p-3 rounded-md bg-red-50 border border-red-200 text-sm text-red-700">{{ disable_error }}</p>
+            {% endif %}
+            <form method="post" action="/dashboard/account/2fa/disable" class="mt-3 flex flex-col sm:flex-row gap-3" autocomplete="off">
+                <input name="password" type="password" required autocomplete="current-password"
+                       placeholder="Your password" aria-label="Your password"
+                       class="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                <input name="code" type="text" required autocomplete="one-time-code"
+                       placeholder="Current code" aria-label="Code from your authenticator app, or a recovery code"
+                       class="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                <button type="submit"
+                        class="px-4 py-2 rounded-md text-sm font-medium text-white bg-red-600 hover:bg-red-700">
+                    Turn off
+                </button>
+            </form>
+        </div>
+
+        {% else %}
+        <div class="px-6 py-5">
+            <p class="text-sm text-gray-700">
+                With it on, your password alone no longer signs anyone in.
+                You get recovery codes for the day your phone is not there,
+                and the person running this instance can turn it off from the
+                server with
+                <code class="bg-gray-100 px-1 rounded text-xs">./argus admin disable-2fa</code>.
+            </p>
+            {% if has_password %}
+            <form method="post" action="/dashboard/account/2fa/start" class="mt-4">
+                <button type="submit"
+                        class="px-4 py-2 rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
+                    Set up two-factor authentication
+                </button>
+            </form>
+            {% else %}
+            <p class="mt-4 text-sm text-gray-500">
+                This account has no password yet. Set one with "Forgot
+                password?" on the sign-in page, then come back.
+            </p>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
