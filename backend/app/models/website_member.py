@@ -46,7 +46,8 @@ class WebsiteMember(Base):
         invited_at: Timestamp when invitation was sent
         accepted_at: Timestamp when invitation was accepted (nullable)
         status: Current status (pending, active, revoked)
-        invite_token: Secure token for accepting invitation
+        invite_token: SHA-256 of the token in the invitation link (64 hex
+            characters). The token itself is never stored.
     """
 
     __tablename__ = "website_members"

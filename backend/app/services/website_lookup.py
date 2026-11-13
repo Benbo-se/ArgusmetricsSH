@@ -18,6 +18,8 @@ from typing import Optional
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from app.utils.security import hash_token
+
 logger = logging.getLogger(__name__)
 
 
@@ -188,7 +190,8 @@ def resolve_invite_token(db: Session, invite_token: str) -> Optional[PendingInvi
             "       invited_at, invitee_email "
             "FROM argus_resolve_invite_token(:token)"
         ),
-        {"token": invite_token},
+        # The table holds the digest of the token, never the token.
+        {"token": hash_token(invite_token)},
     ).first()
 
     if row is None:

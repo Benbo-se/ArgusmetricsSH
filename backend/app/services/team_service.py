@@ -54,7 +54,7 @@ ADMIN_ADDRESS_NOT_BY_INVITATION = (
     "is created on the server, not from an invitation."
 )
 
-from app.utils.security import mask_email, normalize_email  # addresses never go to the log in full (#144)
+from app.utils.security import hash_token, mask_email, normalize_email  # addresses never go to the log in full (#144)
 
 logger = logging.getLogger(__name__)
 
@@ -265,7 +265,9 @@ class TeamService:
             raise ValueError("Website not found")
 
         try:
-            # Generate secure invite token
+            # The token goes into the link and nowhere else. What is stored
+            # is its digest, as for account invitations and sessions: a copy
+            # of the table holds no working invitation.
             invite_token = secrets.token_urlsafe(32)
 
             if existing and existing.status == MemberStatus.REVOKED:
@@ -273,7 +275,7 @@ class TeamService:
                 existing.role = role
                 existing.invited_by = inviter_email
                 existing.status = MemberStatus.PENDING
-                existing.invite_token = invite_token
+                existing.invite_token = hash_token(invite_token)
                 existing.invited_at = datetime.now(timezone.utc)
                 existing.accepted_at = None
                 member = existing
@@ -285,7 +287,7 @@ class TeamService:
                     role=role,
                     invited_by=inviter_email,
                     status=MemberStatus.PENDING,
-                    invite_token=invite_token
+                    invite_token=hash_token(invite_token)
                 )
                 self.db.add(member)
 
@@ -507,7 +509,7 @@ class TeamService:
         accepter_email = normalize_email(accepter_email)
         try:
             member = self.db.query(WebsiteMember).filter(
-                WebsiteMember.invite_token == invite_token,
+                WebsiteMember.invite_token == hash_token(invite_token),
                 WebsiteMember.status == MemberStatus.PENDING
             ).first()
 

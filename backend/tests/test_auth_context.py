@@ -16,6 +16,7 @@ from sqlalchemy import text
 
 from app.database import RLS_INFO_KEY
 from app.services.token_service import TokenService
+from app.utils.security import hash_token
 from tests.conftest import ws_headers
 
 
@@ -57,7 +58,7 @@ class TestUnauthenticatedCredentials:
                 "  (website_id, user_email, role, invited_at, status, invite_token) "
                 "VALUES (:w, :e, 'viewer', now(), 'pending'::memberstatus, :t)"
             ),
-            {"w": website["id"], "e": "invitee@example.invalid", "t": token},
+            {"w": website["id"], "e": "invitee@example.invalid", "t": hash_token(token)},
         )
         db.commit()
 
@@ -79,7 +80,7 @@ class TestUnauthenticatedCredentials:
                 "  (website_id, user_email, role, invited_at, status, invite_token) "
                 "VALUES (:w, :e, 'viewer', now(), 'active'::memberstatus, :t)"
             ),
-            {"w": website["id"], "e": "accepted@example.invalid", "t": token},
+            {"w": website["id"], "e": "accepted@example.invalid", "t": hash_token(token)},
         )
         db.commit()
 
