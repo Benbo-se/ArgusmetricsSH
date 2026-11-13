@@ -18,6 +18,7 @@ than a refactor. Deliberately not written yet: an untested implementation of
 a security control is worse than a missing one, and RATE_LIMIT_BACKEND
 refuses anything it does not actually have.
 """
+import hashlib
 import time
 import threading
 import logging
@@ -36,6 +37,7 @@ class RateLimiter:
     # Hard cap on tracked keys: keys are attacker-controlled strings (emails,
     # IPs), so an unbounded map is a memory-exhaustion vector.
     MAX_KEYS = 50_000
+    MAX_KEY_LENGTH = 160
 
     def __init__(self):
         # key -> (window_seconds, [timestamps])
@@ -57,6 +59,13 @@ class RateLimiter:
             True if rate limited (request should be rejected)
         """
         now = time.monotonic()
+
+        # A key is built from what the request carried (an address, a token
+        # from the path), and MAX_KEYS bounds how many there are, not how
+        # large each one is. A long one is kept as its digest: the same key
+        # still maps to the same window, and no key costs more than this.
+        if len(key) > self.MAX_KEY_LENGTH:
+            key = "sha256:" + hashlib.sha256(key.encode("utf-8", "surrogatepass")).hexdigest()
 
         with self._lock:
             # Periodic cleanup of stale entries

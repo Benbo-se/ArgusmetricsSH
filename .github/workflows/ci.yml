@@ -469,6 +469,27 @@ jobs:
               echo "::error::access-loggen innehåller $SECRET"
               echo "$LOG" | tail -5; FAIL=1; }
           done
+
+          # Samma sak för en token som står i sökvägen i stället för i
+          # query-strängen: delningslänken, kontoinbjudan och lösenords-
+          # kontrollen för en delad dashboard. Raden ska finnas kvar med
+          # token struken, annars bevisar frånvaron ingenting.
+          for P in /public/synthetic-share-token /public/synthetic-share-token/pulse.json \
+                   /join/synthetic-join-token /api/v1/dashboard-password/check/synthetic-pw-token; do
+            curl -s -o /dev/null -H 'Host: argusmetrics.io' "http://127.0.0.1:18099$P"
+          done
+          sleep 1
+          LOG=$(docker logs nginx-headers 2>&1)
+          for KEPT in 'GET /public/- ' 'GET /public/-/pulse.json ' 'GET /join/- ' 'GET /api/v1/dashboard-password/check/- '; do
+            [[ "$LOG" == *"$KEPT"* ]] || {
+              echo "::error::access-loggen saknar raden '$KEPT', så kontrollen nedan bevisar ingenting"
+              echo "$LOG" | tail -8; FAIL=1; }
+          done
+          for SECRET in synthetic-share-token synthetic-join-token synthetic-pw-token; do
+            [[ "$LOG" == *"$SECRET"* ]] && {
+              echo "::error::access-loggen innehåller $SECRET"
+              echo "$LOG" | tail -8; FAIL=1; }
+          done
           docker stop nginx-headers >/dev/null
           [ "$FAIL" -eq 0 ]
 

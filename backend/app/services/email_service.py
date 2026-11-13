@@ -5,6 +5,7 @@ Supports generic SMTP (any provider), the legacy Lettermint HTTP API, and a stub
 """
 import logging
 import httpx
+from html import escape
 from typing import Optional
 from sqlalchemy.orm import Session
 
@@ -225,10 +226,10 @@ The {settings.APP_NAME} Team
     <div class="container">
         <h2>Welcome to {settings.APP_NAME}!</h2>
         <p>Please click the button below to verify your email address:</p>
-        <p><a href="{verify_url}" class="button">Verify Email</a></p>
+        <p><a href="{escape(str(verify_url))}" class="button">Verify Email</a></p>
         {code_html}
         <p>Button not working? Copy and paste this link into your browser:</p>
-        <p><a href="{verify_url}">{verify_url}</a></p>
+        <p><a href="{escape(str(verify_url))}">{escape(str(verify_url))}</a></p>
         <p class="footer">This link and code expire in 15 minutes. If you didn't request this, you can safely ignore this email.</p>
         <p class="footer">Thanks,<br>The {settings.APP_NAME} Team</p>
     </div>
@@ -258,9 +259,9 @@ The {settings.APP_NAME} Team
             return True
 
         # Lettermint failed
-        logger.error(f"Failed to send verification email to {to}")
-        logger.info("FALLBACK - VERIFICATION LINK (copy this to browser):")
-        logger.info(f"{verify_url}")
+        # As for invitations: with mail configured, a link that could not be
+        # sent is not put in the log instead.
+        logger.error("Failed to send verification email")
         logger.info("=" * 80)
         self._log_email(to, "verification", subject, False, "Lettermint send failed")
         return False
@@ -347,7 +348,7 @@ The {settings.APP_NAME} Team
 <body>
     <h2>Password Reset Request</h2>
     <p>You requested to reset your password.</p>
-    <p><a href="{reset_url}">Click here to reset your password</a></p>
+    <p><a href="{escape(str(reset_url))}">Click here to reset your password</a></p>
     <p>This link will expire in 15 minutes.</p>
     <p>If you didn't request this, you can safely ignore this email.</p>
     <p>Thanks,<br>The {settings.APP_NAME} Team</p>
@@ -390,14 +391,14 @@ and nothing happens.
 <html><body style="font-family: Arial, sans-serif; line-height: 1.6; color: #1f2937;">
 <div style="max-width: 560px; margin: 0 auto; padding: 24px;">
   <h1 style="font-size: 22px; margin: 0 0 16px;">You're invited to {settings.APP_NAME}</h1>
-  <p><strong>{invited_by}</strong> has invited you to {settings.APP_NAME}, cookieless web analytics.
+  <p><strong>{escape(str(invited_by))}</strong> has invited you to {settings.APP_NAME}, cookieless web analytics.
      Choose a password and add your own website.</p>
   <p style="margin: 28px 0;">
-    <a href="{join_url}" style="display: inline-block; padding: 12px 24px; background: #4550c8; color: #fff;
+    <a href="{escape(str(join_url))}" style="display: inline-block; padding: 12px 24px; background: #4550c8; color: #fff;
        text-decoration: none; border-radius: 6px; font-weight: bold;">Create my account</a>
   </p>
-  <p style="font-size: 13px; color: #6b7280;">Or open this link: <a href="{join_url}" style="color: #4550c8; word-break: break-all;">{join_url}</a></p>
-  <p style="font-size: 13px; color: #6b7280;">The link works once and for {days} days. If you did not expect this, ignore it and nothing happens.</p>
+  <p style="font-size: 13px; color: #6b7280;">Or open this link: <a href="{escape(str(join_url))}" style="color: #4550c8; word-break: break-all;">{escape(str(join_url))}</a></p>
+  <p style="font-size: 13px; color: #6b7280;">The link works once and for {escape(str(days))} days. If you did not expect this, ignore it and nothing happens.</p>
 </div>
 </body></html>
 """
@@ -517,25 +518,25 @@ The {settings.APP_NAME} Team
             <p style="margin: 10px 0 0 0; opacity: 0.9;">You've been invited to collaborate!</p>
         </div>
         <div class="content">
-            <p><strong>{invited_by}</strong> has invited you to join their team on <strong>{settings.APP_NAME}</strong>.</p>
+            <p><strong>{escape(str(invited_by))}</strong> has invited you to join their team on <strong>{settings.APP_NAME}</strong>.</p>
 
             <div class="website-info">
-                <h3 style="margin: 0 0 10px 0; font-size: 18px;">{website_name}</h3>
-                <p style="margin: 0; color: #6b7280; font-size: 14px;">{website_domain}</p>
-                <p style="margin: 10px 0 0 0;">Your role: <span class="role-badge">{role}</span></p>
+                <h3 style="margin: 0 0 10px 0; font-size: 18px;">{escape(str(website_name))}</h3>
+                <p style="margin: 0; color: #6b7280; font-size: 14px;">{escape(str(website_domain))}</p>
+                <p style="margin: 10px 0 0 0;">Your role: <span class="role-badge">{escape(str(role))}</span></p>
             </div>
 
             <div class="permissions">
-                <h3 style="font-size: 16px;">What you can do as a {role}:</h3>
+                <h3 style="font-size: 16px;">What you can do as a {escape(str(role))}:</h3>
                 {role_permissions}
             </div>
 
             <center>
-                <a href="{invite_url}" class="button">Accept Invitation</a>
+                <a href="{escape(str(invite_url))}" class="button">Accept Invitation</a>
             </center>
 
             <p style="font-size: 14px; color: #6b7280;">Or copy and paste this link into your browser:</p>
-            <p style="word-break: break-all; font-size: 12px; color: #9ca3af;"><a href="{invite_url}" style="color: #667eea;">{invite_url}</a></p>
+            <p style="word-break: break-all; font-size: 12px; color: #9ca3af;"><a href="{escape(str(invite_url))}" style="color: #667eea;">{escape(str(invite_url))}</a></p>
 
             <div class="footer">
                 <p>This invitation will expire in 7 days.</p>
@@ -556,9 +557,10 @@ The {settings.APP_NAME} Team
             return True
 
         # Lettermint failed
-        logger.error(f"Failed to send team invitation email to {to}")
-        logger.info("FALLBACK - INVITATION LINK (copy this to browser):")
-        logger.info(f"{invite_url}")
+        # The link is not written to the log here. With mail configured the
+        # log is not where an invitation travels, and the link is the whole
+        # credential.
+        logger.error("Failed to send team invitation email")
         logger.info("=" * 80)
         self._log_email(to, "team_invitation", subject, False, "Lettermint send failed")
         return False

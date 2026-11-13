@@ -41,11 +41,17 @@
                 {% for link in links %}
                 <tr class="hover:bg-gray-50 transition-colors">
                     <td class="px-4 py-3 text-sm text-gray-900 max-w-md">
+                        {# The address was sent by a visitor's browser. Only http(s)
+                           becomes a link; anything else is shown as the text it is. #}
+                        {% if link.url is web_address %}
                         <a href="{{ link.url }}" target="_blank" rel="noopener noreferrer"
                            class="text-blue-600 hover:text-blue-800 hover:underline truncate block"
                            title="{{ link.url }}">
                             {{ link.url }}
                         </a>
+                        {% else %}
+                        <span class="truncate block" title="{{ link.url }}">{{ link.url }}</span>
+                        {% endif %}
                     </td>
                     <td class="px-4 py-3 text-sm text-gray-700 max-w-xs truncate" title="{{ link.text }}">
                         {{ link.text }}
@@ -105,11 +111,15 @@
                 {% for download in downloads %}
                 <tr class="hover:bg-gray-50 transition-colors">
                     <td class="px-4 py-3 text-sm text-gray-900 max-w-md">
+                        {% if download.url is web_address %}
                         <a href="{{ download.url }}" target="_blank" rel="noopener noreferrer"
                            class="text-blue-600 hover:text-blue-800 hover:underline truncate block font-medium"
                            title="{{ download.filename }}">
                             {{ download.filename }}
                         </a>
+                        {% else %}
+                        <span class="truncate block font-medium" title="{{ download.filename }}">{{ download.filename }}</span>
+                        {% endif %}
                     </td>
                     <td class="px-4 py-3 whitespace-nowrap">
                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">

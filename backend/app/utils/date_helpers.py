@@ -387,4 +387,22 @@ def parse_api_window(
         start = _in_zone(datetime.fromisoformat(start_date.replace('Z', '+00:00')), tz)
     else:
         start = end - timedelta(days=30)
+    # One of the two may carry an offset and the other not (a naive value is
+    # UTC here), so they are compared as instants, and the start keeps the
+    # form it came in.
+    def instant(moment: datetime) -> datetime:
+        return moment if moment.tzinfo is not None else moment.replace(tzinfo=timezone.utc)
+
+    if instant(start) > instant(end):
+        raise ValueError("start_date is after end_date")
+    # The same ceiling as a custom range on the dashboard, and applied the
+    # same way: the range keeps its end and loses its beginning. Nothing is
+    # kept longer than that, and a series is built one point per day.
+    # The ceiling is measured back from the last moment that can hold data.
+    # "Everything up to 2099" is a common way to ask for everything, and it
+    # should get the most recent stretch, not two empty years of the future.
+    latest = min(instant(end), datetime.now(timezone.utc))
+    floor = latest - timedelta(days=MAX_CUSTOM_DAYS)
+    if instant(start) < floor:
+        start = floor if start.tzinfo is not None else floor.astimezone(timezone.utc).replace(tzinfo=None)
     return start, end

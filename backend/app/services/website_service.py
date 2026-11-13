@@ -638,6 +638,11 @@ class WebsiteService:
 
         if is_public and not website.public_share_token:
             website.public_share_token = _secrets.token_urlsafe(24)[:32]
+        elif not is_public:
+            # Switching sharing off is how a link is taken back. Keeping the
+            # token meant switching it on again brought every old link back
+            # to life, including the ones it was switched off to stop.
+            website.public_share_token = None
 
         self.db.commit()
         self.db.refresh(website)
