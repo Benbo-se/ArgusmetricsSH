@@ -79,54 +79,7 @@
 {%- endmacro %}
 {% macro arrow() -%}<span class="arr" aria-hidden="true">&rarr;</span>{%- endmacro %}
 
-<nav class="site-nav" id="site-nav" aria-label="Main">
-    <div class="wrap">
-        <a class="brand" href="/" aria-label="Argusmetrics, home"><span class="mark" data-mark><img src="/static/img/logo-96.png" alt="" width="34" height="34"></span><span>Argus<b>metrics</b></span></a>
-        <div class="nav-links">
-            <div class="nav-item">
-                <button class="nav-link" type="button" aria-haspopup="true">Product <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M1.5 3.5 5 7l3.5-3.5"/></svg></button>
-                <div class="nav-menu">
-                    <a href="#product">The dashboard <small>What it answers, with real screenshots</small></a>
-                    <a href="#visit">Privacy by design <small>What a visit is reduced to</small></a>
-                    <a href="#self-host">Self-host <small>Docker, one secret, a few minutes</small></a>
-                    <a href="/changelog">Changelog <small>What changed and when</small></a>
-                </div>
-            </div>
-            <div class="nav-item">
-                <button class="nav-link" type="button" aria-haspopup="true">Compare <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M1.5 3.5 5 7l3.5-3.5"/></svg></button>
-                <div class="nav-menu">
-                    <a href="/compare/google-analytics">vs Google Analytics</a>
-                    <a href="/compare/plausible">vs Plausible</a>
-                    <a href="/compare/matomo">vs Matomo</a>
-                </div>
-            </div>
-            <a class="nav-link" href="/docs/">Docs</a>
-            <a class="nav-link" href="https://github.com/Benbo-se/ArgusmetricsSH" rel="noopener noreferrer">GitHub</a>
-            <a class="nav-link" href="/login">Log in</a>
-            <a class="btn btn-go btn-sm nav-cta" href="#self-host">Run it yourself {{ arrow() }}</a>
-        </div>
-        <button class="nav-toggle" type="button" id="nav-toggle" aria-label="Menu" aria-expanded="false" aria-controls="nav-sheet">
-            <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M2 5h14M2 9h14M2 13h14"/></svg>
-        </button>
-    </div>
-    {# How far down the page you are, drawn as the month's traffic. #}
-    <svg class="progress" id="progress" viewBox="0 0 1000 14" preserveAspectRatio="none" aria-hidden="true"></svg>
-</nav>
-<div class="nav-sheet" id="nav-sheet">
-    <h4>Product</h4>
-    <a href="#product">The dashboard</a>
-    <a href="#visit">Privacy by design</a>
-    <a href="#self-host">Self-host</a>
-    <a href="/docs/">Documentation</a>
-    <a href="/changelog">Changelog</a>
-    <h4>Compare</h4>
-    <a href="/compare/google-analytics">vs Google Analytics</a>
-    <a href="/compare/plausible">vs Plausible</a>
-    <a href="/compare/matomo">vs Matomo</a>
-    <h4>Account</h4>
-    <a href="/login">Log in</a>
-    <a class="btn btn-go" href="#self-host">Run it yourself {{ arrow() }}</a>
-</div>
+{% include "_nav.html" %}
 
 <main>
 
@@ -518,47 +471,10 @@
     </section>
 </main>
 
-<footer class="site-foot">
-    <div class="wrap">
-        <div class="foot-grid">
-            <div>
-                <a class="brand" href="/"><span class="mark" data-mark><img src="/static/img/logo-96.png" alt="" width="34" height="34"></span><span>Argus<b>metrics</b></span></a>
-                <p>Simple, open-source, privacy-first web analytics. Made in Sweden.</p>
-            </div>
-            <div>
-                <h4>Product</h4>
-                <ul>
-                    <li><a href="#product">The dashboard</a></li>
-                    <li><a href="#self-host">Self-host</a></li>
-                    <li><a href="/data">Privacy by Design</a></li>
-                    <li><a href="/changelog">Changelog</a></li>
-                    <li><a href="/docs/">Documentation</a></li>
-                </ul>
-            </div>
-            <div>
-                <h4>Compare</h4>
-                <ul>
-                    <li><a href="/compare/google-analytics">vs Google Analytics</a></li>
-                    <li><a href="/compare/plausible">vs Plausible</a></li>
-                    <li><a href="/compare/matomo">vs Matomo</a></li>
-                </ul>
-            </div>
-            <div>
-                <h4>Company</h4>
-                <ul>
-                    <li><a href="/about">About</a></li>
-                    <li><a href="/contact">Contact</a></li>
-                    <li><a href="/privacy">Privacy Policy</a></li>
-                    <li><a href="/terms">Terms of Service</a></li>
-                    <li><a href="https://github.com/Benbo-se/ArgusmetricsSH" rel="noopener noreferrer">GitHub</a></li>
-                </ul>
-            </div>
-        </div>
-        <div class="foot-base"><span>&copy; 2026 Argusmetrics</span><span>No cookies were set in the making of this page.</span></div>
-    </div>
-</footer>
+{% include "_footer.html" %}
 
 <script src="{{ static('js/anim.js') }}" defer></script>
+<script src="{{ static('js/nav.js') }}" defer></script>
 <script src="{{ static('js/home.js') }}" defer></script>
 </body>
 </html>

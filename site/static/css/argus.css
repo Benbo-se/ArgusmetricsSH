@@ -119,13 +119,14 @@ body.argus {
     background: rgba(10, 13, 22, .82);
     -webkit-backdrop-filter: saturate(140%) blur(14px);
     backdrop-filter: saturate(140%) blur(14px);
+    border-bottom: 1px solid var(--night-line);
     color: var(--night-text);
     font-family: var(--f-body);
 }
 .site-nav .wrap { height: 100%; display: flex; align-items: center; gap: 28px; }
 .brand { display: inline-flex; align-items: center; gap: 10px; font-family: var(--f-display); font-weight: 700; font-size: 19px; letter-spacing: -.01em; color: var(--night-text); }
 .brand .mark { display: block; width: 46px; height: 29px; color: var(--night-text); }
-.brand .mark img { width: 29px; height: 29px; border-radius: 50%; }
+
 .mark svg, .big-mark svg { width: 100%; height: 100%; overflow: visible; }
 .mark-lid { fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linejoin: round; }
 .mark-bar { stroke: var(--peacock); stroke-width: 1.7; stroke-linecap: round; }
@@ -562,7 +563,19 @@ body.legacy main h3, body.legacy main h4 { font-family: var(--f-display); letter
 body.legacy main code, body.legacy main pre, body.legacy main kbd { font-family: var(--f-mono); }
 body.legacy .bg-gray-50, body.legacy .bg-gray-100 { background-color: var(--vellum) !important; }
 body.legacy .bg-white { background-color: var(--vellum-card) !important; }
-body.legacy [class*="from-blue-"], body.legacy [class*="from-indigo-"], body.legacy [class*="from-gray-50"] { background-image: none !important; background-color: var(--vellum-2) !important; }
+body.legacy [class*="from-blue-"], body.legacy [class*="from-indigo-"], body.legacy [class*="from-purple-"], body.legacy [class*="from-gray-50"] { background-image: none !important; background-color: var(--vellum-2) !important; }
+/* The strong gradients carried white text: they become night, not paper. */
+body.legacy [class*="from-blue-6"], body.legacy [class*="from-blue-7"], body.legacy [class*="from-blue-8"], body.legacy [class*="from-blue-9"],
+body.legacy [class*="from-blue-500"], body.legacy [class*="from-indigo-5"], body.legacy [class*="from-indigo-6"], body.legacy [class*="from-indigo-7"],
+body.legacy [class*="from-purple-5"], body.legacy [class*="from-purple-6"], body.legacy [class*="from-gray-8"], body.legacy [class*="from-gray-9"] {
+    background-image: radial-gradient(70% 90% at 85% 0%, rgba(31, 199, 179, .16), transparent 70%) !important;
+    background-color: var(--night) !important; color: var(--night-text) !important;
+}
+body.legacy [class*="from-blue-6"] .text-blue-100, body.legacy [class*="from-blue-6"] .text-blue-200, body.legacy [class*="from-indigo-6"] .text-blue-100 { color: var(--night-dim) !important; }
+body.legacy .bg-purple-50, body.legacy .bg-purple-100, body.legacy .bg-indigo-100 { background-color: rgba(10, 111, 105, .08) !important; }
+body.legacy .text-purple-600, body.legacy .text-purple-700, body.legacy .text-purple-800, body.legacy .text-purple-900, body.legacy .text-indigo-700, body.legacy .text-indigo-800 { color: var(--peacock-deep) !important; }
+body.legacy .border-purple-100, body.legacy .border-purple-200, body.legacy .border-indigo-100, body.legacy .border-indigo-200 { border-color: rgba(10, 111, 105, .3) !important; }
+body.legacy main a.text-blue-600, body.legacy main a.text-blue-700 { text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; }
 body.legacy .bg-blue-50, body.legacy .bg-indigo-50 { background-color: rgba(10, 111, 105, .08) !important; }
 body.legacy .bg-blue-100 { background-color: rgba(10, 111, 105, .13) !important; }
 body.legacy .bg-blue-600, body.legacy .bg-blue-700, body.legacy .bg-indigo-600 { background-color: var(--ink) !important; color: var(--vellum) !important; }
@@ -579,4 +592,5 @@ body.legacy .bg-gray-900 .text-gray-400, body.legacy .bg-gray-800 .text-gray-400
 body.legacy .bg-gray-900 .text-white, body.legacy .bg-gray-800 .text-white { color: var(--night-text) !important; }
 body.legacy .shadow-sm, body.legacy .shadow, body.legacy .shadow-md, body.legacy .shadow-lg { box-shadow: 0 1px 0 var(--vellum-line), 0 10px 30px rgba(21, 24, 38, .06) !important; }
 body.legacy .rounded-lg, body.legacy .rounded-xl { border-radius: 12px; }
-body.legacy main { padding-top: 0; }
+body.legacy .argus { font-family: var(--f-body); line-height: 1.55; }
+body.legacy .site-foot { margin-top: 0; }

@@ -48,18 +48,6 @@
     return { line: d, pts: pts };
   }
 
-  /* ---------------------------------------------------------------- nav */
-  var nav = $('site-nav'), toggle = $('nav-toggle'), sheet = $('nav-sheet');
-  if (nav && toggle) {
-    var setOpen = function (open) {
-      nav.classList.toggle('is-open', open);
-      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-      document.body.style.overflow = open ? 'hidden' : '';
-    };
-    toggle.addEventListener('click', function () { setOpen(!nav.classList.contains('is-open')); });
-    if (sheet) sheet.addEventListener('click', function (e) { if (e.target.closest('a')) setOpen(false); });
-  }
-
   /* ------------------------------------------------------------ arrivals */
   var seen = function (node) { node.classList.add('is-seen'); };
   var rises = all('.rise');
