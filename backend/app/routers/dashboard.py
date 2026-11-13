@@ -12,6 +12,7 @@ Provides endpoints for:
 - GET /dashboard/website/{id}/live-list - Live visitors list (HTMX partial)
 """
 import logging
+import re
 from typing import Optional
 from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, Request, HTTPException, status, Form
@@ -24,6 +25,7 @@ from app.services.analytics_service import AnalyticsService
 from app.services.website_service import WebsiteService
 from app.services.usage_service import get_usage
 from app.services import visitor_dimensions
+from app.services.country_names import country_name
 from app.services.site_activity import goal_activity, recent_activity
 from app.services.annotations_service import annotations_in_window
 from app.models.annotation import MAX_NOTE_LENGTH
@@ -148,6 +150,26 @@ def format_duration(seconds):
 
 templates.env.filters['format_number'] = format_number
 templates.env.filters['country_flag'] = country_flag
+templates.env.filters['country_name'] = country_name
+
+
+def referrer_name(referrer):
+    """A referrer as host and path: "google.com", "reddit.com/r/coffee".
+
+    The same reading as referrerName in alpine-components.js, which names the
+    rows of the referrer list; this one names the chip of an active referrer
+    filter, which the server renders. Anything that is not a web address is
+    returned as it was stored.
+    """
+    raw = str(referrer or "").strip()
+    match = re.match(r"https?://([^/?#]+)([^?#]*)", raw, re.I)
+    if not match:
+        return raw
+    host = re.sub(r":\d+$", "", re.sub(r"^www\.", "", match.group(1).lower()))
+    return host + match.group(2).rstrip("/")
+
+
+templates.env.filters['referrer_name'] = referrer_name
 templates.env.filters['format_duration'] = format_duration
 
 

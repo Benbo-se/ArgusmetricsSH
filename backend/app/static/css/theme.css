@@ -647,3 +647,308 @@ input::placeholder { color: var(--text-muted) !important; }
 }
 .stat-bump { animation: stat-bump .9s ease-out; }
 @media (prefers-reduced-motion: reduce) { .stat-bump { animation: none; } }
+
+/* === The analytics page (dashboard/website.html) ========================= */
+
+/* --- Head and toolbar ---------------------------------------------------- */
+.dash-head { min-width: 0; margin-bottom: 1rem; }
+
+/* One row holding everything that changes what the page shows. The children
+   are flat on purpose: on a phone they wrap into two tidy rows (quick ranges
+   and period, then comparison, filter and export), which nested groups
+   could not do without a row of their own each. */
+.dash-toolbar {
+    position: relative;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .5rem;
+    margin-bottom: 1.5rem;
+}
+.dash-toolbar .seg { height: 2.25rem; flex-shrink: 0; }
+.dash-toolbar .seg > button { padding: 0 .8rem; }
+.tool-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: .45rem;
+    height: 2.25rem;
+    min-width: 0;
+    padding: 0 .75rem;
+    border: 1px solid var(--border-strong);
+    border-radius: 9px;
+    background: var(--surface-card);
+    color: var(--text-secondary);
+    font-size: .8125rem;
+    font-weight: 600;
+    line-height: 1;
+    white-space: nowrap;
+    transition: background-color .15s ease, color .15s ease, border-color .15s ease;
+}
+.tool-btn:hover { background: var(--surface-hover); color: var(--text-primary); }
+.tool-btn > svg { color: var(--text-muted); }
+.tool-btn > .tool-caret { margin-left: auto; }
+/* The comparison is a real select, so a phone gets its own picker, dressed
+   as the buttons beside it: the label is the button and draws the caret,
+   and the select inside it is bare and reaches under the caret so that a
+   tap there opens it too. */
+.tool-compare { cursor: pointer; }
+.tool-compare > select {
+    appearance: none;
+    -webkit-appearance: none;
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 100%;
+    margin-right: -1.3rem;
+    padding: 0 1.3rem 0 0;
+    border: 0;
+    background: transparent !important;
+    background-image: none !important;
+    color: inherit !important;
+    font: inherit;
+    text-overflow: ellipsis;
+    cursor: pointer;
+}
+.tool-compare > select:focus { outline: none; box-shadow: none; }
+.tool-compare:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+.tool-compare > .tool-caret { pointer-events: none; }
+.tool-anchor { position: relative; min-width: 0; }
+.tool-end { margin-left: auto; }
+/* A panel that drops from a toolbar button. */
+.tool-pop {
+    position: absolute;
+    top: calc(100% + .5rem);
+    z-index: 50;
+    width: 20rem;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius);
+    background: var(--surface-card);
+    box-shadow: var(--shadow-lift);
+}
+.tool-pop.is-start { left: 0; }
+.tool-pop.is-end { right: 0; }
+@media (max-width: 639px) {
+    /* Row one: quick ranges and the period. Row two: the rest. The bases
+       are what forces the break: the comparison cannot fit beside the
+       period, so it starts the second row. */
+    .tool-range { flex: 1 1 8rem; }
+    .tool-range > .tool-btn { width: 100%; }
+    .tool-compare { flex: 1 1 9rem; }
+    .tool-compare > svg:first-child { display: none; }
+    .tool-end { margin-left: 0; }
+    .tool-wide { display: none; }
+    /* The panels hang from the toolbar, not from their button, so that
+       they are as wide as the screen allows and never off its edge. */
+    .tool-anchor { position: static; }
+    .tool-pop.is-start, .tool-pop.is-end { left: 0; right: 0; width: auto; }
+}
+
+/* --- Active filters ------------------------------------------------------ */
+.filter-chips {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .4rem;
+    margin: -.5rem 0 1.5rem;
+}
+.filter-chips-label {
+    margin-right: .15rem;
+    font-size: .72rem;
+    font-weight: 600;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+.chip {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    max-width: 100%;
+    height: 1.75rem;
+    padding: 0 .3rem 0 .7rem;
+    border-radius: 99px;
+    background: var(--brand-50);
+    font-size: .8125rem;
+}
+.chip-key { flex-shrink: 0; color: var(--text-muted); }
+.chip-value {
+    min-width: 0;
+    max-width: 16rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 600;
+    color: var(--brand-500);
+}
+.chip > button {
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    width: 1.25rem; height: 1.25rem;
+    border-radius: 50%;
+    color: var(--brand-500);
+    transition: background-color .15s ease, color .15s ease;
+}
+.chip > button:hover { background: var(--crit-soft); color: var(--crit); }
+.chip-clear {
+    padding: 0 .4rem;
+    font-size: .8125rem;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+.chip-clear:hover { color: var(--crit); }
+
+/* --- Breakdown cards ----------------------------------------------------- */
+.breakdown-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+.breakdown { min-width: 0; padding: 1.1rem 1.5rem 1.5rem; }
+.breakdown-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: .35rem 1.25rem;
+    margin-bottom: .9rem;
+}
+@media (min-width: 1024px) {
+    .breakdown-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .breakdown-grid > .is-full { grid-column: 1 / -1; }
+    /* Room for ten rows, so a card is the same height on every tab and
+       the page does not jump when one is chosen. */
+    .breakdown-body { min-height: 24rem; }
+}
+@media (max-width: 639px) {
+    .breakdown { padding: .9rem 1rem 1.1rem; }
+    /* The tabs always under the heading, so the four cards agree. */
+    .breakdown-head > .tab-strip { flex-basis: 100%; }
+}
+
+/* Tabs as words with a line under the chosen one. On a narrow card the
+   strip scrolls sideways, as the section row on the settings page does. */
+.tab-strip {
+    display: flex;
+    gap: 1.05rem;
+    max-width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+.tab-strip::-webkit-scrollbar { display: none; }
+.tab-strip > button {
+    position: relative;
+    flex-shrink: 0;
+    padding: .2rem 0 .4rem;
+    font-size: .8125rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    box-shadow: inset 0 -2px 0 transparent;
+    transition: color .15s ease, box-shadow .15s ease;
+}
+.tab-strip > button:hover { color: var(--text-primary); }
+.tab-strip > button[aria-selected="true"] {
+    color: var(--brand-500);
+    box-shadow: inset 0 -2px 0 var(--brand-500);
+}
+.tab-strip > button:focus-visible { outline-offset: -2px; }
+/* A tab whose list the page is filtered by carries a dot, so the filter can
+   be found again when another tab is in front. */
+.tab-strip > button.has-filter { padding-right: .55rem; }
+.tab-strip > button.has-filter::after {
+    content: "";
+    position: absolute;
+    top: .3rem; right: 0;
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: var(--brand-500);
+}
+
+/* --- Ranked lists -------------------------------------------------------- */
+/* What the columns are, in the voice of the stat labels. */
+.rank-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-bottom: .4rem;
+    font-size: .68rem;
+    font-weight: 600;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+.rank-head-pct { display: inline-block; width: 3.25rem; text-align: right; }
+.rank-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: 2px; }
+.rank-list > .rank-row {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    min-height: 2.125rem;
+    margin: 0 -.5rem;
+    padding: .3rem .5rem;
+    border-radius: 6px;
+    font-size: .875rem;
+}
+.rank-label {
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: .55rem;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+.rank-text {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.rank-icon {
+    flex: none;
+    display: inline-grid;
+    place-items: center;
+    width: 1.125rem;
+    font-size: .9rem;
+    color: var(--text-muted);
+}
+.rank-flag { flex: none; width: 1.125rem; font-size: 1.05rem; line-height: 1; text-align: center; }
+.rank-sub {
+    flex: none;
+    font-size: .75rem;
+    font-weight: 400;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+.rank-tag + .rank-tag { margin-left: .75rem; }
+.rank-count {
+    flex: none;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-primary);
+}
+.rank-pct {
+    flex: none;
+    width: 2.25rem;
+    text-align: right;
+    font-size: .75rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-muted);
+}
+.rank-pct.is-wide { width: 3.25rem; }
+.rank-row.is-unknown .rank-text { font-style: italic; font-weight: 400; color: var(--text-muted); }
+/* The row the page is filtered by. */
+.rank-row.is-active::after { background: color-mix(in srgb, var(--brand-500) 24%, var(--surface-card)); }
+.rank-row.is-active .rank-text { font-weight: 600; color: var(--brand-500); }
+.rank-empty {
+    padding: 2.5rem 1rem;
+    text-align: center;
+    font-size: .875rem;
+    color: var(--text-muted);
+}
+.rank-empty > span {
+    display: block;
+    max-width: 26rem;
+    margin: .5rem auto 0;
+    font-size: .8125rem;
+}

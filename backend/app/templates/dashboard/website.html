@@ -44,285 +44,184 @@
 <div class="dash-page max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" x-data="websitePage">
     {% if never_recorded %}{% include "dashboard/_first_visit.html" %}{% endif %}
     <div x-data="liveConversions" data-website-id="{{ website.id }}" hidden></div>
-    <!-- Active Filters Bar -->
-    <div x-show="hasFilters" class="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <div class="flex items-center justify-between">
-            <div class="flex items-center flex-wrap gap-2">
-                <span class="text-sm font-medium text-gray-700">Active Filters:</span>
-
-                <!-- Country Filter Badge -->
-                <template x-if="hasCountryFilter">
-                    <div class="inline-flex items-center gap-1.5 px-3 py-1 bg-white border border-gray-300 rounded-full text-sm">
-                        <span class="text-lg">🌍</span>
-                        <span class="font-medium" x-text="countryFilter"></span>
-                        <button @click="removeFilter" data-filter="country" class="ml-1 text-gray-500 hover:text-red-600">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                            </svg>
-                        </button>
-                    </div>
-                </template>
-
-                <!-- Device Filter Badge -->
-                <template x-if="hasDeviceFilter">
-                    <div class="inline-flex items-center gap-1.5 px-3 py-1 bg-white border border-gray-300 rounded-full text-sm">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/>
-                        </svg>
-                        <span class="font-medium capitalize" x-text="deviceFilter"></span>
-                        <button @click="removeFilter" data-filter="device" class="ml-1 text-gray-500 hover:text-red-600">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                            </svg>
-                        </button>
-                    </div>
-                </template>
-
-                <!-- Browser Filter Badge -->
-                <template x-if="hasBrowserFilter">
-                    <div class="inline-flex items-center gap-1.5 px-3 py-1 bg-white border border-gray-300 rounded-full text-sm">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"/>
-                        </svg>
-                        <span class="font-medium" x-text="browserFilter"></span>
-                        <button @click="removeFilter" data-filter="browser" class="ml-1 text-gray-500 hover:text-red-600">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                            </svg>
-                        </button>
-                    </div>
-                </template>
-
-                <!-- Page Filter Badge -->
-                <template x-if="hasPageFilter">
-                    <div class="inline-flex items-center gap-1.5 px-3 py-1 bg-white border border-gray-300 rounded-full text-sm max-w-xs">
-                        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
-                        </svg>
-                        <span class="font-medium truncate" x-text="pageFilter"></span>
-                        <button @click="removeFilter" data-filter="page" class="ml-1 text-gray-500 hover:text-red-600 flex-shrink-0">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                            </svg>
-                        </button>
-                    </div>
-                </template>
-
-                <!-- Referrer Filter Badge -->
-                <template x-if="hasReferrerFilter">
-                    <div class="inline-flex items-center gap-1.5 px-3 py-1 bg-white border border-gray-300 rounded-full text-sm max-w-xs">
-                        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
-                        </svg>
-                        <span class="font-medium truncate" x-text="referrerFilter"></span>
-                        <button @click="removeFilter" data-filter="referrer" class="ml-1 text-gray-500 hover:text-red-600 flex-shrink-0">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                            </svg>
-                        </button>
-                    </div>
-                </template>
-
-                <!-- Visitor dimension badges (#204). Rendered by the server,
-                     which knows the active filters, with the value as
-                     autoescaped text; the button names its filter the same
-                     way the ones above do. -->
-                {% for name, title in visitor_dimensions %}
-                {% if active_filters[name] %}
-                <div class="inline-flex items-center gap-1.5 px-3 py-1 bg-white border border-gray-300 rounded-full text-sm max-w-xs"
-                     data-dimension-chip="{{ name }}">
-                    <span class="text-gray-500">{{ title }}:</span>
-                    <span class="font-medium truncate">{{ active_filters[name] }}</span>
-                    <button @click="removeFilter" data-filter="{{ name }}" class="ml-1 text-gray-500 hover:text-red-600 flex-shrink-0">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                        </svg>
-                    </button>
-                </div>
-                {% endif %}
-                {% endfor %}
-
-                <!-- Property Filter Badges -->
-                <template x-for="(chip, index) in propertyChips" :key="index">
-                    <div class="inline-flex items-center gap-1.5 px-3 py-1 bg-purple-100 border border-purple-300 rounded-full text-sm">
-                        <svg class="w-4 h-4 flex-shrink-0 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
-                        </svg>
-                        <span class="font-medium text-purple-800"><span x-text="key"></span>: <span x-text="value"></span></span>
-                        <button @click="remove" class="ml-1 text-purple-600 hover:text-red-600 flex-shrink-0">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                            </svg>
-                        </button>
-                    </div>
-                </template>
-            </div>
-
-            <button @click="clearAllFilters" class="flex-shrink-0 px-3 py-1 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-md transition-colors">
-                Clear All
-            </button>
-        </div>
-    </div>
+    {# One path, in the icon family the sidebar uses: outline, 24 box, stroke 2. #}
+    {% macro icon(d, cls='w-4 h-4') -%}
+    <svg class="{{ cls }} flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ d }}"/></svg>
+    {%- endmacro %}
+    {% set icon_close = 'M6 18L18 6M6 6l12 12' %}
 
     <!-- Header -->
-    <div class="mb-2 flex flex-col md:flex-row md:items-center md:justify-between">
-        <div>
-            <h1 class="text-3xl font-bold text-gray-900">{{ website.name }}</h1>
-            <p class="mt-1 text-sm text-gray-500">{{ website.domain }}</p>
-        </div>
-        <a href="/dashboard/website/{{ website.id }}/export-csv?{{ range_query }}"
-           class="mt-4 md:mt-0 inline-flex items-center px-3 py-1.5 border border-blue-300 rounded-md text-sm font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 self-start"
-           title="Download analytics data as CSV">
-            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-            </svg>
-            Export CSV
-        </a>
+    <div class="dash-head">
+        <h1 class="text-2xl font-bold text-gray-900 truncate">{{ website.name }}</h1>
+        <p class="text-sm text-gray-500 truncate">{{ website.domain }}</p>
     </div>
 
-    <!-- Date range selector -->
-    <div class="mb-8 flex justify-end">
-        <div class="mt-4 md:mt-0">
-            <div class="flex items-center gap-2">
-                <!-- Quick select buttons -->
-                <div class="inline-flex rounded-md shadow-sm" role="group">
-                    <button @click="chooseRange" data-value="7d"
-                            :class="rangeClass"
-                            class="px-3 py-2 text-sm font-medium border hover:bg-gray-50 rounded-l-md transition-colors">
-                        7D
-                    </button>
-                    <button @click="chooseRange" data-value="30d"
-                            :class="rangeClass"
-                            class="px-3 py-2 text-sm font-medium border-t border-b border-r hover:bg-gray-50 transition-colors">
-                        30D
-                    </button>
-                    <button @click="chooseRange" data-value="90d"
-                            :class="rangeClass"
-                            class="px-3 py-2 text-sm font-medium border-t border-b border-r hover:bg-gray-50 rounded-r-md transition-colors">
-                        90D
-                    </button>
-                </div>
+    <!-- The one toolbar: period, comparison, filter and export. They used to
+         be spread over three rows, and on a phone the rows wrapped into
+         five. Everything in here changes what the whole page shows. -->
+    <div class="dash-toolbar" role="toolbar" aria-label="Period, comparison, filter and export">
+        <div class="seg" role="group" aria-label="Quick ranges">
+            <button type="button" @click="chooseRange" data-value="7d" :aria-pressed="rangePressed">7D</button>
+            <button type="button" @click="chooseRange" data-value="30d" :aria-pressed="rangePressed">30D</button>
+            <button type="button" @click="chooseRange" data-value="90d" :aria-pressed="rangePressed">90D</button>
+        </div>
 
-                <!-- More options dropdown -->
-                <div class="relative">
-                    <button @click="toggleDropdown"
-                            class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                        <span x-text="rangeText"></span>
-                        <svg class="ml-2 -mr-1 h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
-                        </svg>
-                    </button>
+        <!-- Every range, and the custom one -->
+        <div class="tool-anchor tool-range">
+            <button type="button" @click="toggleDropdown" class="tool-btn" aria-haspopup="true" title="Choose a period">
+                {{ icon('M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z') }}
+                <span class="truncate" x-text="rangeText">{{ range_label }}</span>
+                {{ icon('M19 9l-7 7-7-7', 'w-3.5 h-3.5 tool-caret') }}
+            </button>
 
-                <!-- Dropdown menu -->
-                <div x-show="dropdownOpen"
-                     @click.away="closeDropdown"
-                     x-transition:enter="transition ease-out duration-100"
-                     x-transition:enter-start="transform opacity-0 scale-95"
-                     x-transition:enter-end="transform opacity-100 scale-100"
-                     x-transition:leave="transition ease-in duration-75"
-                     x-transition:leave-start="transform opacity-100 scale-100"
-                     x-transition:leave-end="transform opacity-0 scale-95"
-                     class="origin-top-right absolute right-0 mt-2 w-80 rounded-md shadow-lg bg-white ring-1 ring-black/5 z-10">
-                    {# Today to year to date are whole days in the website's
-                       time zone. The "last N days" are the last N times 24
-                       hours, as they always were. #}
-                    <div class="py-1">
-                        {% for value, label in [
-                            ('today', 'Today'), ('yesterday', 'Yesterday'),
-                            ('7d', 'Last 7 days'), ('30d', 'Last 30 days'), ('90d', 'Last 90 days'),
-                            ('mtd', 'Month to date'), ('last_month', 'Last month'),
-                            ('ytd', 'Year to date'), ('365d', 'Last 12 months'),
-                        ] %}
-                        <button @click="chooseRange" data-value="{{ value }}"
-                                class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">{{ label }}</button>
-                        {% endfor %}
-                    </div>
-                    <div class="border-t border-gray-200 px-4 py-3">
-                        <p class="text-xs font-medium text-gray-500 mb-2">Custom range</p>
-                        <div class="flex items-center gap-2">
-                            <input type="date" x-model="customStart" :max="today"
-                                   aria-label="First day"
-                                   class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm">
-                            <span class="text-sm text-gray-500">to</span>
-                            <input type="date" x-model="customEnd" :max="today"
-                                   aria-label="Last day"
-                                   class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm">
-                        </div>
-                        <button type="button" @click="applyCustomRange"
-                                :disabled="customIncomplete"
-                                :class="customApplyClass"
-                                class="mt-3 w-full px-3 py-2 text-sm font-medium rounded-md text-white">
-                            Apply
-                        </button>
-                    </div>
+            <div x-show="dropdownOpen" x-cloak
+                 @click.away="closeDropdown"
+                 x-transition:enter="transition ease-out duration-100"
+                 x-transition:enter-start="transform opacity-0 scale-95"
+                 x-transition:enter-end="transform opacity-100 scale-100"
+                 x-transition:leave="transition ease-in duration-75"
+                 x-transition:leave-start="transform opacity-100 scale-100"
+                 x-transition:leave-end="transform opacity-0 scale-95"
+                 class="tool-pop is-start">
+                {# Today to year to date are whole days in the website's
+                   time zone. The "last N days" are the last N times 24
+                   hours, as they always were. #}
+                <div class="py-1">
+                    {% for value, label in [
+                        ('today', 'Today'), ('yesterday', 'Yesterday'),
+                        ('7d', 'Last 7 days'), ('30d', 'Last 30 days'), ('90d', 'Last 90 days'),
+                        ('mtd', 'Month to date'), ('last_month', 'Last month'),
+                        ('ytd', 'Year to date'), ('365d', 'Last 12 months'),
+                    ] %}
+                    <button @click="chooseRange" data-value="{{ value }}"
+                            class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">{{ label }}</button>
+                    {% endfor %}
                 </div>
+                <div class="border-t border-gray-200 px-4 py-3">
+                    <p class="text-xs font-medium text-gray-500 mb-2">Custom range</p>
+                    <div class="flex items-center gap-2">
+                        <input type="date" x-model="customStart" :max="today"
+                               aria-label="First day"
+                               class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm">
+                        <span class="text-sm text-gray-500">to</span>
+                        <input type="date" x-model="customEnd" :max="today"
+                               aria-label="Last day"
+                               class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm">
+                    </div>
+                    <button type="button" @click="applyCustomRange"
+                            :disabled="customIncomplete"
+                            :class="customApplyClass"
+                            class="mt-3 w-full px-3 py-2 text-sm font-medium rounded-md text-white">
+                        Apply
+                    </button>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- Comparison checkbox and Property filter -->
-    <div class="mb-6 flex items-center gap-6">
-        <label class="inline-flex items-center gap-2">
-            <span class="text-sm font-medium text-gray-700">Compare to</span>
-            <select x-model="compareChoice"
-                    @change="updateDashboard"
-                    class="rounded-md border-gray-300 shadow-sm text-sm text-gray-700 focus:border-blue-500 focus:ring-blue-500">
-                <option value=""{% if not compare_mode %} selected{% endif %}>Nothing</option>
-                <option value="previous"{% if compare_mode == 'previous' %} selected{% endif %}>Previous period</option>
-                <option value="year"{% if compare_mode == 'year' %} selected{% endif %}>Same period last year</option>
+        <label class="tool-btn tool-compare" title="Compare to">
+            {{ icon('M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4') }}
+            <select x-model="compareChoice" @change="updateDashboard" aria-label="Compare to">
+                <option value=""{% if not compare_mode %} selected{% endif %}>No comparison</option>
+                <option value="previous"{% if compare_mode == 'previous' %} selected{% endif %}>vs previous period</option>
+                <option value="year"{% if compare_mode == 'year' %} selected{% endif %}>vs last year</option>
             </select>
+            {{ icon('M19 9l-7 7-7-7', 'w-3.5 h-3.5 tool-caret') }}
         </label>
 
-        <!-- Property Filter Dropdown -->
-        <div class="relative" x-data="propertyFilterDialog">
-            <button @click="toggle"
-                    type="button"
-                    class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-purple-700 bg-purple-50 border border-purple-300 rounded-lg hover:bg-purple-100 focus:ring-2 focus:ring-purple-500">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
-                </svg>
-                Add Property Filter
+        <!-- Filter by a custom property. Every other filter is set by
+             clicking a row in the lists below. -->
+        <div class="tool-anchor tool-end" x-data="propertyFilterDialog">
+            <button @click="toggle" type="button" class="tool-btn" aria-haspopup="true"
+                    title="Filter by a custom property. To filter by anything else, click a row in the lists below.">
+                {{ icon('M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z') }}
+                Property filter
             </button>
 
-            <!-- Property input dialog -->
-            <div x-show="isOpen"
+            <div x-show="isOpen" x-cloak
                  @click.away="close"
                  x-transition
-                 class="absolute left-0 top-full mt-2 w-80 bg-white border border-gray-200 rounded-lg shadow-lg p-4 z-50">
-                <h3 class="text-sm font-semibold text-gray-900 mb-3">Filter by Custom Property</h3>
+                 class="tool-pop is-end p-4">
+                <h3 class="text-sm font-semibold text-gray-900 mb-3">Filter by custom property</h3>
 
                 <div class="space-y-3">
                     <div>
-                        <label class="block text-xs font-medium text-gray-700 mb-1">Property Key</label>
-                        <input type="text"
+                        <label for="property-key" class="block text-xs font-medium text-gray-700 mb-1">Property key</label>
+                        <input type="text" id="property-key"
                                x-model="propertyKey"
                                @keydown.enter="addProperty"
                                placeholder="e.g., userId, plan, experiment"
-                               class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                               class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                     </div>
 
                     <div>
-                        <label class="block text-xs font-medium text-gray-700 mb-1">Property Value</label>
-                        <input type="text"
+                        <label for="property-value" class="block text-xs font-medium text-gray-700 mb-1">Property value</label>
+                        <input type="text" id="property-value"
                                x-model="propertyValue"
                                @keydown.enter="addProperty"
                                placeholder="e.g., 123, pro, variant-A"
-                               class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                               class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                     </div>
 
                     <button @click="addProperty"
                             type="button"
-                            class="w-full px-3 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700 focus:ring-2 focus:ring-purple-500">
-                        Apply Filter
+                            class="w-full px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:ring-2 focus:ring-blue-500">
+                        Apply filter
                     </button>
                 </div>
             </div>
         </div>
+
+        <a href="/dashboard/website/{{ website.id }}/export-csv?{{ range_query }}"
+           class="tool-btn" aria-label="Export CSV"
+           title="Download analytics data as CSV">
+            {{ icon('M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z') }}
+            <span class="tool-wide">Export CSV</span>
+        </a>
+    </div>
+
+    <!-- Active filters, as chips under the toolbar. Rendered by the server,
+         which knows the active filters, with the value as autoescaped text:
+         a filter only ever changes by loading the page again. -->
+    <div x-show="hasFilters" x-cloak class="filter-chips" data-active-filters>
+        <span class="filter-chips-label">Filtered by</span>
+        {% for name, title in [('country', 'Country'), ('device', 'Device'), ('browser', 'Browser'),
+                               ('page', 'Page'), ('referrer', 'Referrer')] + (visitor_dimensions | list) %}
+        {% if active_filters[name] %}
+        <span class="chip" data-dimension-chip="{{ name }}">
+            <span class="chip-key">{{ title }}</span>
+            <span class="chip-value{{ ' capitalize' if name == 'device' }}" title="{{ active_filters[name] }}">
+                {%- if name == 'country' -%}
+                {{ active_filters[name] | country_name }}
+                {%- elif name == 'referrer' -%}
+                {{ active_filters[name] | referrer_name }}
+                {%- else -%}
+                {{ active_filters[name] }}
+                {%- endif -%}
+            </span>
+            <button type="button" @click="removeFilter" data-filter="{{ name }}"
+                    aria-label="Remove the {{ title | lower }} filter" title="Remove">
+                {{ icon(icon_close, 'w-3.5 h-3.5') }}
+            </button>
+        </span>
+        {% endif %}
+        {% endfor %}
+
+        <!-- Property filters -->
+        <template x-for="(chip, index) in propertyChips" :key="index">
+            <span class="chip" x-data="propertyChip">
+                <span class="chip-key" x-text="key"></span>
+                <span class="chip-value" x-text="value"></span>
+                <button type="button" @click="remove" aria-label="Remove this property filter" title="Remove">
+                    {{ icon(icon_close, 'w-3.5 h-3.5') }}
+                </button>
+            </span>
+        </template>
+
+        <button type="button" @click="clearAllFilters" class="chip-clear">Clear all</button>
     </div>
 
     <!-- Stats cards with auto-refresh -->
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-8">
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-6">
         <!-- The headline numbers -->
         <div id="stats-basic"
              hx-get="/dashboard/website/{{ website.id }}/stats-basic?{{ range_query }}&compare={{ compare_mode or 'false' }}{% if active_filters.country %}&country={{ active_filters.country|urlencode }}{% endif %}{% if active_filters.device %}&device={{ active_filters.device|urlencode }}{% endif %}{% if active_filters.browser %}&browser={{ active_filters.browser|urlencode }}{% endif %}{% if active_filters.page %}&page={{ active_filters.page|urlencode }}{% endif %}{% if active_filters.referrer %}&referrer={{ active_filters.referrer|urlencode }}{% endif %}{% for name, title in visitor_dimensions %}{% if active_filters[name] %}&{{ name }}={{ active_filters[name]|urlencode }}{% endif %}{% endfor %}"
@@ -350,7 +249,7 @@
     <!-- Anomaly Alerts: one quiet line while there is nothing to say, the
          list only when there is. It used to be a large green box announcing
          that nothing had happened. -->
-    <div class="bg-white rounded-lg shadow px-6 py-4 mb-8" x-data="anomalyPanel" data-website-id="{{ website.id }}">
+    <div class="bg-white rounded-lg shadow px-6 py-3 mb-6" x-data="anomalyPanel" data-website-id="{{ website.id }}">
         <div class="flex items-center justify-between gap-4">
             <h2 class="text-base font-semibold text-gray-900 flex items-center gap-2">
                 <svg class="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -434,7 +333,7 @@
     </div>
 
     <!-- Main graph -->
-    <div class="bg-white rounded-lg shadow p-6 mb-8">
+    <div class="bg-white rounded-lg shadow p-6 mb-6">
         <div class="flex items-center justify-between gap-4 mb-4">
             <div>
                 <h2 class="text-lg font-semibold text-gray-900">Over time</h2>
@@ -553,325 +452,448 @@
         </div>
     </div>
 
-    <!-- Two column layout -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-        <!-- Top Pages with Tabs -->
-        <div class="bg-white rounded-lg shadow p-6">
-            <div class="flex items-center justify-between mb-4">
-                <div class="flex gap-2">
-                    <button @click="selectTab" data-tab="top"
-                            :class="tabClass"
-                            class="px-3 py-1.5 text-sm font-medium rounded">
-                        Top Pages
-                    </button>
-                    <button @click="selectTab" data-tab="entry"
-                            :class="tabClass"
-                            class="px-3 py-1.5 text-sm font-medium rounded">
-                        Entry Pages
-                    </button>
-                    <button @click="selectTab" data-tab="exit"
-                            :class="tabClass"
-                            class="px-3 py-1.5 text-sm font-medium rounded">
-                        Exit Pages
-                    </button>
-                </div>
-                <span x-show="showsFilteredTopPages" class="text-sm font-normal text-blue-600">(filtered)</span>
-            </div>
+    {# ---- The breakdowns: four cards, each a set of tabs over one kind of
+       question. They were fifteen cards of equal weight down a page five
+       screens long. Nothing was removed, only grouped.
 
-            <!-- Top Pages Tab Content -->
-            <div x-show="isTabActive" data-tab="top">
-                {% if stats.top_pages and stats.top_pages|length > 0 %}
-                <!-- Visitor-controlled paths go through a JSON script island:
-                     |tojson does NOT escape double quotes, so putting it inside a
-                     double-quoted attribute lets a crafted path terminate the
-                     attribute and inject a native event handler (stored XSS).
-                     Script context is safe (tojson escapes </script>). -->
-                {{ '' }}<script type="application/json" id="top-pages-data">{{ stats.top_pages|tojson }}</script>
-                <div class="space-y-1" x-data="topPagesList" data-total-pageviews="{{ stats.total_pageviews }}">
-                    <template x-for="(row, index) in pageRows" :key="index">
-                        <div x-data="listRow" @click="applyFilter"
-                             class="rank-row flex items-center justify-between py-2 cursor-pointer rounded px-2 -mx-2"
-                             :class="activeClass" :style="barStyle">
-                            <div class="flex-1 min-w-0">
-                                <p class="text-sm font-medium text-gray-900 truncate" x-text="path"></p>
-                            </div>
-                            <div class="ml-4 flex items-center">
-                                <!-- How far down the page visitors got, averaged. Collected
-                                     on every pageview since the tracker was written and
-                                     displayed nowhere until now. A dash when no visitor on
-                                     that page reported a depth, which is not the same as 0%. -->
-                                <span class="mr-3 text-xs text-gray-400 tabular-nums"
-                                      :title="scrollTitle"
-                                      x-text="scroll"></span>
-                                <span class="text-sm font-semibold text-gray-900" x-text="views"></span>
-                                <span class="ml-2 text-xs text-gray-500"
-                                      x-text="share"></span>
-                            </div>
-                        </div>
-                    </template>
-                </div>
-                {% else %}
-                <p class="text-gray-500 text-center py-8">No page data yet</p>
-                {% endif %}
-            </div>
+       A tab is a button that names its card and itself; websitePage holds
+       which one each card shows and remembers it in the browser, because a
+       click on a row reloads the page and the card must not jump back. #}
+    {% macro tab(card, name, label, selected=false, title=none) -%}
+    <button type="button" role="tab" @click="selectTab" :aria-selected="tabSelected"
+            data-card="{{ card }}" data-tab="{{ name }}"
+            aria-selected="{{ 'true' if selected else 'false' }}"
+            {%- if title %} title="{{ title }}"{% endif %}
+            {%- if active_filters[name] %} class="has-filter"{% endif %}>{{ label }}</button>
+    {%- endmacro %}
 
-            <!-- Entry Pages Tab Content -->
-            <div x-show="isTabActive" data-tab="entry">
-                {% if stats.entry_pages and stats.entry_pages|length > 0 %}
-                <p class="text-xs text-gray-500 mb-2">The first page of a visit, by visits</p>
-                <div class="space-y-1">
-                    {% for page in stats.entry_pages %}
-                    <div class="rank-row flex items-center justify-between py-2 px-2 -mx-2 rounded"
-                         data-share="{{ (page.entries / stats.total_visits * 100) if stats.total_visits else 0 }}">
-                        <div class="flex-1 min-w-0">
-                            <p class="text-sm font-medium text-gray-900 truncate">{{ page.path }}</p>
-                        </div>
-                        <div class="ml-4 flex items-center">
-                            <span class="text-sm font-semibold text-gray-900">{{ page.entries }}</span>
-                            <span class="ml-2 text-xs text-gray-500">entries</span>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-                {% else %}
-                <p class="text-gray-500 text-center py-8">No entry page data yet</p>
-                {% endif %}
-            </div>
-
-            <!-- Exit Pages Tab Content -->
-            <div x-show="isTabActive" data-tab="exit">
-                {% if stats.exit_pages and stats.exit_pages|length > 0 %}
-                <p class="text-xs text-gray-500 mb-2">The last page before leaving, by visits</p>
-                <div class="space-y-1">
-                    {% for page in stats.exit_pages %}
-                    <div class="rank-row flex items-center justify-between py-2 px-2 -mx-2 rounded"
-                         data-share="{{ (page.exits / stats.total_visits * 100) if stats.total_visits else 0 }}">
-                        <div class="flex-1 min-w-0">
-                            <p class="text-sm font-medium text-gray-900 truncate">{{ page.path }}</p>
-                        </div>
-                        <div class="ml-4 flex items-center">
-                            <span class="text-sm font-semibold text-gray-900">{{ page.exits }}</span>
-                            <span class="ml-2 text-xs text-gray-500">exits</span>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-                {% else %}
-                <p class="text-gray-500 text-center py-8">No exit page data yet</p>
-                {% endif %}
-            </div>
-        </div>
-
-        <!-- Top Referrers -->
-        <div class="bg-white rounded-lg shadow p-6">
-            <h2 class="text-lg font-semibold text-gray-900 mb-4">
-                Top Referrers
-                <span x-show="hasReferrerFilter" class="ml-2 text-sm font-normal text-blue-600">(filtered)</span>
-            </h2>
-            {% if stats.top_referrers and stats.top_referrers|length > 0 %}
-            <!-- Same XSS rationale as the Top Pages island: never |tojson inside
-                 a double-quoted attribute. -->
-            {{ '' }}<script type="application/json" id="top-referrers-data">{{ stats.top_referrers|tojson }}</script>
-            <div class="space-y-1" x-data="topReferrersList" data-total-pageviews="{{ stats.total_pageviews }}">
-                <template x-for="(row, index) in referrerRows" :key="index">
-                    <div x-data="listRow" @click="applyFilter"
-                         class="rank-row flex items-center justify-between py-2 cursor-pointer rounded px-2 -mx-2"
-                         :class="activeClass" :style="barStyle">
-                        <div class="flex-1 min-w-0 flex items-center gap-2">
-                            <span class="text-lg flex-shrink-0" x-text="icon"></span>
-                            <p class="text-sm font-medium text-gray-900 truncate" x-text="referrer"></p>
-                        </div>
-                        <div class="ml-4 flex items-center">
-                            <span class="text-sm font-semibold text-gray-900" x-text="views"></span>
-                            <span class="ml-2 text-xs text-gray-500"
-                                  x-text="share"></span>
-                        </div>
-                    </div>
-                </template>
-            </div>
-            {% else %}
-            <p class="text-gray-500 text-center py-8">No referrer data yet</p>
-            {% endif %}
-        </div>
+    {# One row of a ranked list: label, bar behind it, count, share. With a
+       filter name it is clickable and filters the page by its value. The
+       value is read from the data attribute (autoescaped), never placed in
+       an Alpine expression. #}
+    {% macro row(views, total, filter=none, value=none, title=none, unknown=false) -%}
+    {%- set pct = (views / total * 100) if total else 0 -%}
+    <div class="rank-row{{ ' cursor-pointer' if filter }}{{ ' is-unknown' if unknown }}"
+         {%- if filter %} @click="applyFilterFromData" data-filter="{{ filter }}" data-value="{{ value }}" :class="serverRowClass"{% endif %}
+         {%- if title %} title="{{ title }}"{% endif %}
+         data-share="{{ pct }}">
+        <span class="rank-label">{{ caller() }}</span>
+        <span class="rank-count">{{ views | format_number }}</span>
+        <span class="rank-pct">{{ "%.0f" | format(pct) }}%</span>
     </div>
+    {%- endmacro %}
 
-    <!-- Traffic Channels -->
-    {% if stats.traffic_channels and stats.traffic_channels|length > 0 %}
-    <div class="bg-white rounded-lg shadow p-6 mb-8">
-        <h2 class="text-lg font-semibold text-gray-900 mb-4">Traffic Channels</h2>
-        <p class="text-sm text-gray-600 mb-4">Traffic grouped by source type</p>
-        <div class="space-y-1">
-            {% for channel in stats.traffic_channels %}
-            <div class="rank-row flex items-center justify-between py-3 px-2 -mx-2 rounded"
-                 data-share="{{ (channel.views / stats.total_pageviews * 100) if stats.total_pageviews else 0 }}">
-                <div class="flex items-center gap-3">
-                    {% if channel.channel == 'Organic Search' %}
-                    <span class="text-2xl">🔍</span>
-                    {% elif channel.channel == 'Social' %}
-                    <span class="text-2xl">📱</span>
-                    {% elif channel.channel == 'Direct' %}
-                    <span class="text-2xl">➡️</span>
-                    {% elif channel.channel == 'Email' %}
-                    <span class="text-2xl">📧</span>
-                    {% elif channel.channel == 'Paid' %}
-                    <span class="text-2xl">💰</span>
-                    {% elif channel.channel == 'AI Assistants' %}
-                    <span class="text-2xl">🤖</span>
-                    {% elif channel.channel == 'Referral' %}
-                    <span class="text-2xl">🔗</span>
-                    {% else %}
-                    <span class="text-2xl">🌐</span>
-                    {% endif %}
-                    <div>
-                        <p class="text-sm font-semibold text-gray-900">{{ channel.channel }}</p>
-                        <p class="text-xs text-gray-500">
-                            {% if channel.channel == 'Organic Search' %}From search engines (Google, Bing, etc)
-                            {% elif channel.channel == 'Social' %}From social media (Facebook, Twitter, LinkedIn)
-                            {% elif channel.channel == 'Direct' %}Direct visits (no referrer)
-                            {% elif channel.channel == 'Email' %}From email campaigns (utm_medium=email)
-                            {% elif channel.channel == 'Paid' %}From paid advertising (utm_medium=cpc/ppc)
-                            {% elif channel.channel == 'AI Assistants' %}From AI assistants (ChatGPT, Claude, Perplexity, Gemini)
-                            {% elif channel.channel == 'Referral' %}From other websites
-                            {% endif %}
-                        </p>
-                    </div>
-                </div>
-                <div class="text-right">
-                    <div class="text-sm font-bold text-gray-900">{{ channel.views }}</div>
-                    <div class="text-xs text-gray-500">
-                        {% if stats.total_pageviews > 0 %}{{ "%.1f"|format((channel.views / stats.total_pageviews) * 100) }}%{% else %}0%{% endif %}
-                    </div>
-                </div>
-            </div>
+    {# The six visitor dimensions (#204) differ only in name. Pageviews
+       recorded before these were collected have no value and are listed as
+       Unknown rather than left out. #}
+    {% macro dimension_panel(card, name, heading, selected=false) %}
+    {% set rows = stats.dimensions[name] if stats.dimensions else [] %}
+    <div role="tabpanel" x-show="isTabActive" data-card="{{ card }}" data-tab="{{ name }}"
+         data-dimension="{{ name }}"{% if not selected %} x-cloak{% endif %}>
+        {% if rows %}
+        <div class="rank-head"><span>{{ heading }}</span><span>Views</span></div>
+        <div class="rank-list">
+            {% for item in rows %}
+            {% call row(item.views, stats.total_pageviews, name, item.value, unknown=(item.value == 'Unknown')) %}
+            <span class="rank-text">{{ item.label }}</span>
+            {% endcall %}
             {% endfor %}
         </div>
-    </div>
-    {% endif %}
-
-    <!-- Campaign Sources (UTM Tracking) -->
-    {% if stats.utm_campaigns and stats.utm_campaigns|length > 0 %}
-    <div class="bg-white rounded-lg shadow p-6 mb-8">
-        <h2 class="text-lg font-semibold text-gray-900 mb-4">Campaign Sources</h2>
-        <div class="overflow-x-auto" x-data="sortableTable">
-            <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th @click="sortTable" data-column="0" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
-                            Source <span data-column="0" x-text="sortIcon"></span>
-                        </th>
-                        <th @click="sortTable" data-column="1" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
-                            Medium <span data-column="1" x-text="sortIcon"></span>
-                        </th>
-                        <th @click="sortTable" data-column="2" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
-                            Campaign <span data-column="2" x-text="sortIcon"></span>
-                        </th>
-                        <th @click="sortTable" data-column="3" data-numeric="true" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
-                            Views <span data-column="3" x-text="sortIcon"></span>
-                        </th>
-                        <th @click="sortTable" data-column="4" data-numeric="true" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
-                            Percentage <span data-column="4" x-text="sortIcon"></span>
-                        </th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
-                    {% for campaign in stats.utm_campaigns %}
-                    <tr>
-                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                            {{ campaign.utm_source or '-' }}
-                        </td>
-                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                            {{ campaign.utm_medium or '-' }}
-                        </td>
-                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                            {{ campaign.utm_campaign or '-' }}
-                        </td>
-                        <td class="px-4 py-3 whitespace-nowrap text-sm font-semibold text-gray-900 text-right">
-                            {{ campaign.views }}
-                        </td>
-                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500 text-right">
-                            {% if stats.total_pageviews > 0 %}{{ "%.1f"|format((campaign.views / stats.total_pageviews) * 100) }}%{% else %}0%{% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-    {% endif %}
-
-    <!-- Goals Section -->
-    {% if stats.goals and stats.goals|length > 0 %}
-    <div class="bg-white rounded-lg shadow p-6 mb-8">
-        <div class="flex items-center justify-between mb-4">
-            <h2 class="text-lg font-semibold text-gray-900">Goals & Conversions</h2>
-            <a href="/dashboard/website/{{ website.id }}/goals"
-               class="text-sm text-blue-600 hover:text-blue-800 font-medium">
-                Manage Goals →
-            </a>
-        </div>
-        <div class="overflow-x-auto" x-data="sortableTable">
-            <table class="min-w-full divide-y divide-gray-200">
-                <thead>
-                    <tr>
-                        <th @click="sortTable" data-column="0" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
-                            Goal Name <span data-column="0" x-text="sortIcon"></span>
-                        </th>
-                        <th @click="sortTable" data-column="1" data-numeric="true" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
-                            Conversions <span data-column="1" x-text="sortIcon"></span>
-                        </th>
-                        <th @click="sortTable" data-column="2" data-numeric="true" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
-                            Conversion Rate <span data-column="2" x-text="sortIcon"></span>
-                        </th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
-                    {% for goal in stats.goals %}
-                    <tr>
-                        <td class="px-4 py-3 whitespace-nowrap">
-                            <div class="text-sm font-medium text-gray-900">{{ goal.name }}</div>
-                            <div class="text-xs text-gray-500 font-mono">{{ goal.event_name }}</div>
-                        </td>
-                        <td class="px-4 py-3 whitespace-nowrap text-sm font-semibold text-gray-900 text-right">
-                            {{ goal.conversions }}
-                        </td>
-                        <td class="px-4 py-3 whitespace-nowrap text-sm text-right">
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if goal.conversion_rate >= 5 %}bg-green-100 text-green-800{% elif goal.conversion_rate >= 2 %}bg-yellow-100 text-yellow-800{% else %}bg-gray-100 text-gray-800{% endif %}">
-                                {{ goal.conversion_rate }}%
-                            </span>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-        {% if stats.total_visitors > 0 %}
-        <p class="mt-4 text-xs text-gray-500">
-            Based on {{ stats.total_visitors }} unique visitors in this period. The rate is the share of them who converted at least once.
-        </p>
+        {% else %}
+        <p class="rank-empty">No data yet</p>
         {% endif %}
     </div>
-    {% elif stats.goals is defined %}
-    <!-- Empty State for Goals -->
-    <div class="bg-white rounded-lg shadow p-6 mb-8">
-        <div class="text-center py-8">
-            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
-            </svg>
-            <h3 class="mt-2 text-sm font-medium text-gray-900">No goals configured</h3>
-            <p class="mt-1 text-sm text-gray-500">Track conversions by creating your first goal.</p>
-            <div class="mt-6">
+    {% endmacro %}
+
+    {% set channel_icons = {
+        'Organic Search': 'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z',
+        'Social': 'M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z',
+        'Direct': 'M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1',
+        'Email': 'M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z',
+        'Paid': 'M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z',
+        'AI Assistants': 'M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z',
+        'Referral': 'M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1',
+    } %}
+    {% set channel_notes = {
+        'Organic Search': 'From search engines (Google, Bing and so on)',
+        'Social': 'From social media (Facebook, X, LinkedIn and so on)',
+        'Direct': 'Direct visits, with no referrer',
+        'Email': 'From email campaigns (utm_medium=email)',
+        'Paid': 'From paid advertising (utm_medium=cpc or ppc)',
+        'AI Assistants': 'From AI assistants (ChatGPT, Claude, Perplexity, Gemini)',
+        'Referral': 'From other websites',
+    } %}
+    {% set icon_globe = 'M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9' %}
+
+    <div class="breakdown-grid">
+        <!-- Sources: where visitors came from -->
+        <section class="breakdown bg-white rounded-lg shadow" aria-labelledby="card-sources">
+            <div class="breakdown-head">
+                <h2 id="card-sources" class="text-base font-semibold text-gray-900">Sources</h2>
+                <div class="tab-strip" role="tablist" aria-labelledby="card-sources">
+                    {{ tab('sources', 'referrer', 'Referrers', selected=true) }}
+                    {{ tab('sources', 'channels', 'Channels', title='Traffic grouped by source type') }}
+                    {{ tab('sources', 'campaigns', 'Campaigns', title='Links tagged with utm_source, utm_medium or utm_campaign') }}
+                </div>
+            </div>
+            <div class="breakdown-body">
+                <div role="tabpanel" x-show="isTabActive" data-card="sources" data-tab="referrer">
+                    {% if stats.top_referrers and stats.top_referrers|length > 0 %}
+                    <!-- Visitor-controlled values go through a JSON script island:
+                         |tojson does NOT escape double quotes, so putting it inside a
+                         double-quoted attribute lets a crafted value terminate the
+                         attribute and inject a native event handler (stored XSS).
+                         Script context is safe (tojson escapes </script>). -->
+                    {{ '' }}<script type="application/json" id="top-referrers-data">{{ stats.top_referrers|tojson }}</script>
+                    <div class="rank-head"><span>Referrer</span><span>Views</span></div>
+                    <div class="rank-list" x-data="topReferrersList" data-total-pageviews="{{ stats.total_pageviews }}">
+                        <template x-for="(row, index) in referrerRows" :key="index">
+                            {# The name is the host and path; the stored address
+                               is the tooltip and the filter value. It is not a
+                               link: a referrer is whatever a visitor's browser
+                               sent, and an href bound to that is a place for a
+                               javascript: address to end up. #}
+                            <div x-data="listRow" @click="applyFilter"
+                                 class="rank-row cursor-pointer"
+                                 :class="activeClass" :style="barStyle" :title="referrer">
+                                <span class="rank-label">
+                                    <i class="rank-icon" :class="icon" aria-hidden="true"></i>
+                                    <span class="rank-text" x-text="name"></span>
+                                </span>
+                                <span class="rank-count" x-text="views"></span>
+                                <span class="rank-pct" x-text="share"></span>
+                            </div>
+                        </template>
+                    </div>
+                    {% else %}
+                    <p class="rank-empty">No referrer data yet</p>
+                    {% endif %}
+                </div>
+
+                <div role="tabpanel" x-show="isTabActive" data-card="sources" data-tab="channels" x-cloak>
+                    {% if stats.traffic_channels and stats.traffic_channels|length > 0 %}
+                    <div class="rank-head"><span>Channel</span><span>Views</span></div>
+                    <div class="rank-list">
+                        {% for channel in stats.traffic_channels %}
+                        {% call row(channel.views, stats.total_pageviews, title=channel_notes.get(channel.channel)) %}
+                        <span class="rank-icon">{{ icon(channel_icons.get(channel.channel, icon_globe)) }}</span>
+                        <span class="rank-text">{{ channel.channel }}</span>
+                        {% endcall %}
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="rank-empty">No channel data yet</p>
+                    {% endif %}
+                </div>
+
+                <div role="tabpanel" x-show="isTabActive" data-card="sources" data-tab="campaigns" x-cloak>
+                    {% if stats.utm_campaigns and stats.utm_campaigns|length > 0 %}
+                    <div class="rank-head"><span>Campaign tags</span><span>Views</span></div>
+                    <div class="rank-list">
+                        {# A row is one combination of the three tags. Only
+                           the tags a link carried are printed, each with its
+                           name, where the table printed a dash for the rest. #}
+                        {% for campaign in stats.utm_campaigns %}
+                        {% call row(campaign.views, stats.total_pageviews) %}
+                        <span class="rank-text">
+                            {%- for key, value in [('source', campaign.utm_source), ('medium', campaign.utm_medium), ('campaign', campaign.utm_campaign)] if value -%}
+                            <span class="rank-tag"><span class="rank-sub">{{ key }}</span> {{ value }}</span>
+                            {%- else -%}
+                            <span class="rank-sub">untagged</span>
+                            {%- endfor -%}
+                        </span>
+                        {% endcall %}
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="rank-empty">
+                        No campaign data yet
+                        <span>Links tagged with utm_source, utm_medium or utm_campaign are listed here.</span>
+                    </p>
+                    {% endif %}
+                </div>
+            </div>
+        </section>
+
+        <!-- Pages: what they looked at -->
+        <section class="breakdown bg-white rounded-lg shadow" aria-labelledby="card-pages">
+            <div class="breakdown-head">
+                <h2 id="card-pages" class="text-base font-semibold text-gray-900">Pages</h2>
+                <div class="tab-strip" role="tablist" aria-labelledby="card-pages">
+                    {{ tab('pages', 'page', 'Top pages', selected=true) }}
+                    {{ tab('pages', 'entry', 'Entry pages', title='The first page of a visit') }}
+                    {{ tab('pages', 'exit', 'Exit pages', title='The last page before leaving') }}
+                    {{ tab('pages', 'hostname', 'Hostnames') }}
+                </div>
+            </div>
+            <div class="breakdown-body">
+                <div role="tabpanel" x-show="isTabActive" data-card="pages" data-tab="page">
+                    {% if stats.top_pages and stats.top_pages|length > 0 %}
+                    <!-- Same XSS rationale as the referrers island: never
+                         |tojson inside a double-quoted attribute. -->
+                    {{ '' }}<script type="application/json" id="top-pages-data">{{ stats.top_pages|tojson }}</script>
+                    <div class="rank-head"><span>Page</span><span>Views</span></div>
+                    <div class="rank-list" x-data="topPagesList" data-total-pageviews="{{ stats.total_pageviews }}">
+                        <template x-for="(row, index) in pageRows" :key="index">
+                            <div x-data="listRow" @click="applyFilter"
+                                 class="rank-row cursor-pointer"
+                                 :class="activeClass" :style="barStyle">
+                                <span class="rank-label">
+                                    <span class="rank-text" x-text="path"></span>
+                                </span>
+                                <!-- How far down the page visitors got, averaged.
+                                     Nothing when no visitor on that page reported
+                                     a depth, which is not the same as 0%. -->
+                                <span x-show="hasScroll" class="rank-sub"
+                                      title="Visitors scrolled this far on average"
+                                      x-text="scroll"></span>
+                                <span class="rank-count" x-text="views"></span>
+                                <span class="rank-pct" x-text="share"></span>
+                            </div>
+                        </template>
+                    </div>
+                    {% else %}
+                    <p class="rank-empty">No page data yet</p>
+                    {% endif %}
+                </div>
+
+                <div role="tabpanel" x-show="isTabActive" data-card="pages" data-tab="entry" x-cloak>
+                    {% if stats.entry_pages and stats.entry_pages|length > 0 %}
+                    <div class="rank-head"><span>The first page of a visit</span><span>Visits</span></div>
+                    <div class="rank-list">
+                        {% for page in stats.entry_pages %}
+                        {% call row(page.entries, stats.total_visits) %}
+                        <span class="rank-text">{{ page.path }}</span>
+                        {% endcall %}
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="rank-empty">No entry page data yet</p>
+                    {% endif %}
+                </div>
+
+                <div role="tabpanel" x-show="isTabActive" data-card="pages" data-tab="exit" x-cloak>
+                    {% if stats.exit_pages and stats.exit_pages|length > 0 %}
+                    <div class="rank-head"><span>The last page before leaving</span><span>Visits</span></div>
+                    <div class="rank-list">
+                        {% for page in stats.exit_pages %}
+                        {% call row(page.exits, stats.total_visits) %}
+                        <span class="rank-text">{{ page.path }}</span>
+                        {% endcall %}
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="rank-empty">No exit page data yet</p>
+                    {% endif %}
+                </div>
+
+                {{ dimension_panel('pages', 'hostname', 'Hostname') }}
+            </div>
+        </section>
+
+        <!-- Locations: where they are -->
+        <section class="breakdown bg-white rounded-lg shadow" aria-labelledby="card-locations">
+            <div class="breakdown-head">
+                <h2 id="card-locations" class="text-base font-semibold text-gray-900">Locations</h2>
+                <div class="tab-strip" role="tablist" aria-labelledby="card-locations">
+                    {{ tab('locations', 'country', 'Countries', selected=true) }}
+                    {{ tab('locations', 'language', 'Languages') }}
+                </div>
+            </div>
+            <div class="breakdown-body">
+                <div role="tabpanel" x-show="isTabActive" data-card="locations" data-tab="country">
+                    {% if stats.top_countries and stats.top_countries|length > 0 %}
+                    <div class="rank-head"><span>Country</span><span>Views</span></div>
+                    <div class="rank-list">
+                        {# The name is for reading; the code stays the filter
+                           value and the tooltip. #}
+                        {% for country in stats.top_countries %}
+                        {% call row(country.views, stats.total_pageviews, 'country', country.country, title=country.country) %}
+                        <span class="rank-flag" aria-hidden="true">{{ country.country | country_flag }}</span>
+                        <span class="rank-text">{{ country.country | country_name }}</span>
+                        {% endcall %}
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    {% if geoip_available() %}
+                    <p class="rank-empty">No country data yet</p>
+                    {% else %}
+                    <div class="rank-empty">
+                        Country data is switched off on this instance.
+                        <span>
+                            Countries are resolved from a MaxMind database file on this
+                            server, so no visitor address is ever sent anywhere. Without
+                            the file there is nothing to resolve against.
+                            Run <code class="bg-gray-100 px-1 rounded">python -m app.ip_country refresh</code>
+                            to build the table from the internet registries' own
+                            published data, or point
+                            <code class="bg-gray-100 px-1 rounded">GEOIP_DB_PATH</code>
+                            at a MaxMind-format database instead.
+                        </span>
+                    </div>
+                    {% endif %}
+                    {% endif %}
+                </div>
+
+                {{ dimension_panel('locations', 'language', 'Language') }}
+            </div>
+        </section>
+
+        <!-- Devices: what they used -->
+        <section class="breakdown bg-white rounded-lg shadow" aria-labelledby="card-devices">
+            <div class="breakdown-head">
+                <h2 id="card-devices" class="text-base font-semibold text-gray-900">Devices</h2>
+                <div class="tab-strip" role="tablist" aria-labelledby="card-devices">
+                    {{ tab('devices', 'device', 'Type', selected=true, title='Device type') }}
+                    {{ tab('devices', 'browser', 'Browser', title='Browsers') }}
+                    {{ tab('devices', 'browser_version', 'Browser version', title='Browser versions') }}
+                    {{ tab('devices', 'os', 'OS', title='Operating systems') }}
+                    {{ tab('devices', 'os_version', 'OS version', title='OS versions') }}
+                    {{ tab('devices', 'screen', 'Screen', title='Screen sizes') }}
+                </div>
+            </div>
+            <div class="breakdown-body">
+                <div role="tabpanel" x-show="isTabActive" data-card="devices" data-tab="device">
+                    {% if stats.devices %}
+                    {% set device_total = stats.devices.values() | sum %}
+                    {% set device_icons = {'desktop': 'fa-desktop', 'mobile': 'fa-mobile-alt', 'tablet': 'fa-tablet-alt'} %}
+                    <div class="rank-head"><span>Device type</span><span>Views</span></div>
+                    <div class="rank-list">
+                        {% for device, count in stats.devices.items() | sort(attribute='1', reverse=True) %}
+                        {% call row(count, device_total, 'device', device) %}
+                        <i class="rank-icon fas {{ device_icons.get(device, 'fa-question') }}" aria-hidden="true"></i>
+                        <span class="rank-text capitalize">{{ device }}</span>
+                        {% endcall %}
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="rank-empty">No device data yet</p>
+                    {% endif %}
+                </div>
+
+                <div role="tabpanel" x-show="isTabActive" data-card="devices" data-tab="browser" x-cloak>
+                    {% if stats.top_browsers and stats.top_browsers|length > 0 %}
+                    <div class="rank-head"><span>Browser</span><span>Views</span></div>
+                    <div class="rank-list">
+                        {% for browser in stats.top_browsers %}
+                        {#- browser can be NULL for rows recorded without a
+                            parseable User-Agent; 'x' in None raises, and one
+                            such row would 500 the whole page. The name comes
+                            from the visitor's User-Agent, so it reaches the
+                            filter through the data attribute like every
+                            other row here. -#}
+                        {%- set b = browser.browser or '' -%}
+                        {% call row(browser.views, stats.total_pageviews, 'browser', browser.browser or 'Unknown', unknown=(not browser.browser)) %}
+                        {%- if 'Chrome' in b and 'Chromium' not in b -%}
+                            <i class="rank-icon fab fa-chrome icon-chrome" aria-hidden="true"></i>
+                        {%- elif 'Firefox' in b -%}
+                            <i class="rank-icon fab fa-firefox-browser icon-firefox" aria-hidden="true"></i>
+                        {%- elif 'Safari' in b -%}
+                            <i class="rank-icon fab fa-safari icon-safari" aria-hidden="true"></i>
+                        {%- elif 'Edge' in b -%}
+                            <i class="rank-icon fab fa-edge icon-edge" aria-hidden="true"></i>
+                        {%- elif 'Opera' in b -%}
+                            <i class="rank-icon fab fa-opera icon-opera" aria-hidden="true"></i>
+                        {%- elif 'Brave' in b -%}
+                            <i class="rank-icon fab fa-brave icon-brave" aria-hidden="true"></i>
+                        {%- elif 'Chromium' in b -%}
+                            <i class="rank-icon fas fa-circle-notch icon-chromium" aria-hidden="true"></i>
+                        {%- elif 'IE' in b or 'Internet Explorer' in b -%}
+                            <i class="rank-icon fab fa-internet-explorer icon-ie" aria-hidden="true"></i>
+                        {%- elif 'Android' in b -%}
+                            <i class="rank-icon fab fa-android icon-android" aria-hidden="true"></i>
+                        {%- elif 'Samsung' in b -%}
+                            <i class="rank-icon fas fa-mobile-alt icon-samsung" aria-hidden="true"></i>
+                        {%- else -%}
+                            <i class="rank-icon fas fa-globe" aria-hidden="true"></i>
+                        {%- endif -%}
+                        <span class="rank-text">{{ browser.browser or 'Unknown' }}</span>
+                        {% endcall %}
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="rank-empty">No browser data yet</p>
+                    {% endif %}
+                </div>
+
+                {{ dimension_panel('devices', 'browser_version', 'Browser version') }}
+                {{ dimension_panel('devices', 'os', 'Operating system') }}
+                {{ dimension_panel('devices', 'os_version', 'OS version') }}
+                {{ dimension_panel('devices', 'screen', 'Screen size') }}
+            </div>
+        </section>
+    </div>
+
+    <!-- Goals beside the live list: two short cards that each used to take
+         a full-width row. -->
+    <div class="breakdown-grid">
+        {% if stats.goals and stats.goals|length > 0 %}
+        <section class="breakdown bg-white rounded-lg shadow" aria-labelledby="card-goals">
+            <div class="breakdown-head">
+                <h2 id="card-goals" class="text-base font-semibold text-gray-900">Goals</h2>
                 <a href="/dashboard/website/{{ website.id }}/goals"
-                   class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
-                    Create Your First Goal
+                   class="text-sm text-blue-600 hover:text-blue-800 font-medium">Manage goals</a>
+            </div>
+            <div class="rank-head">
+                <span>Goal</span>
+                <span>Conversions <span class="rank-head-pct" title="The share of visitors who converted at least once">Rate</span></span>
+            </div>
+            <div class="rank-list">
+                {% for goal in stats.goals %}
+                <div class="rank-row" data-share="{{ goal.conversions }}">
+                    <span class="rank-label">
+                        <span class="rank-text">{{ goal.name }}</span>
+                        <span class="rank-sub font-mono">{{ goal.event_name }}</span>
+                    </span>
+                    <span class="rank-count">{{ goal.conversions | format_number }}</span>
+                    <span class="rank-pct is-wide">{{ goal.conversion_rate }}%</span>
+                </div>
+                {% endfor %}
+            </div>
+            {% if stats.total_visitors > 0 %}
+            <p class="mt-4 text-xs text-gray-500">
+                Based on {{ stats.total_visitors | format_number }} unique visitors in this period. The rate is the share of them who converted at least once.
+            </p>
+            {% endif %}
+        </section>
+        {% elif stats.goals is defined %}
+        <!-- Empty state for goals -->
+        <section class="breakdown bg-white rounded-lg shadow" aria-labelledby="card-goals">
+            <div class="breakdown-head">
+                <h2 id="card-goals" class="text-base font-semibold text-gray-900">Goals</h2>
+            </div>
+            <div class="rank-empty">
+                No goals configured
+                <span>Track conversions by creating your first goal.</span>
+                <a href="/dashboard/website/{{ website.id }}/goals"
+                   class="mt-4 inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+                    Create your first goal
                 </a>
             </div>
-        </div>
+        </section>
+        {% endif %}
+
+        <!-- Live visitors -->
+        <section class="breakdown bg-white rounded-lg shadow{{ ' is-full' if stats.goals is not defined }}" aria-labelledby="card-live">
+            <div class="breakdown-head">
+                <h2 id="card-live" class="text-base font-semibold text-gray-900 flex items-center gap-2">
+                    <span class="live-dot"></span>
+                    Live visitors
+                </h2>
+            </div>
+            <div id="live-visitors-list"
+                 hx-get="/dashboard/website/{{ website.id }}/live-list"
+                 hx-trigger="load, every 5s"
+                 hx-swap="innerHTML">
+                <!-- Filled by HTMX on load and every five seconds after -->
+                <div class="py-8"></div>
+            </div>
+        </section>
     </div>
-    {% endif %}
 
     <!-- Outbound Links Section -->
     {% if stats.outbound_links and stats.outbound_links|length > 0 %}
-    <div class="bg-white rounded-lg shadow p-6 mb-8">
+    <div class="bg-white rounded-lg shadow p-6 mb-6">
         <div class="flex items-center justify-between mb-4">
             <h2 class="text-lg font-semibold text-gray-900">Outbound Links</h2>
             <span class="text-sm text-gray-500">Top 20 external destinations</span>
@@ -932,7 +954,7 @@
 
     <!-- File Downloads Section -->
     {% if stats.file_downloads and stats.file_downloads|length > 0 %}
-    <div class="bg-white rounded-lg shadow p-6 mb-8">
+    <div class="bg-white rounded-lg shadow p-6 mb-6">
         <div class="flex items-center justify-between mb-4">
             <h2 class="text-lg font-semibold text-gray-900">File Downloads</h2>
             <span class="text-sm text-gray-500">Top 50 downloaded files</span>
@@ -995,7 +1017,7 @@
 
     <!-- Custom Events Section -->
     {% if custom_events and custom_events.events and custom_events.events|length > 0 %}
-    <div class="bg-white rounded-lg shadow p-6 mb-8">
+    <div class="bg-white rounded-lg shadow p-6 mb-6">
         <div class="flex items-center justify-between mb-4">
             <div>
                 <h2 class="text-lg font-semibold text-gray-900">Custom Events</h2>
@@ -1075,7 +1097,7 @@ argus.trackEvent('button_click', {
 
     <!-- 404 Errors Section -->
     {% if errors_404 and errors_404|length > 0 %}
-    <div class="bg-white rounded-lg shadow p-6 mb-8">
+    <div class="bg-white rounded-lg shadow p-6 mb-6">
         <h2 class="text-lg font-semibold text-gray-900 mb-4">404 Errors</h2>
         <p class="text-sm text-gray-600 mb-4">
             Pages that returned 404 errors. Fix broken links to improve user experience.
@@ -1137,189 +1159,6 @@ argus.trackEvent('button_click', {
         </div>
     </div>
     {% endif %}
-
-    <!-- Three column layout -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
-        <!-- Countries -->
-        <div class="bg-white rounded-lg shadow p-6">
-            <h2 class="text-lg font-semibold text-gray-900 mb-4">
-                Countries
-                <span x-show="hasCountryFilter" class="ml-2 text-sm font-normal text-blue-600">(filtered)</span>
-            </h2>
-            {% if stats.top_countries and stats.top_countries|length > 0 %}
-            <div class="space-y-1">
-                {% for country in stats.top_countries %}
-                <div @click="applyFilterFromData" data-filter="country" data-value="{{ country.country }}"
-                     data-share="{{ (country.views / stats.total_pageviews * 100) if stats.total_pageviews else 0 }}"
-                     class="rank-row flex items-center justify-between py-2 cursor-pointer rounded px-2 -mx-2"
-                     :class="serverRowClass">
-                    <div class="flex items-center space-x-2">
-                        <span class="text-xl">{{ country.country | country_flag }}</span>
-                        <span class="text-sm text-gray-700">{{ country.country }}</span>
-                    </div>
-                    <div class="text-sm font-semibold text-gray-900">
-                        {% if stats.total_pageviews > 0 %}{{ "%.0f"|format((country.views / stats.total_pageviews) * 100) }}%{% else %}0%{% endif %}
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
-            {% else %}
-            {% if geoip_available() %}
-            <p class="text-gray-500 text-center py-8">No country data yet</p>
-            {% else %}
-            <div class="text-center py-8 px-4">
-                <p class="text-gray-500">Country data is switched off on this instance.</p>
-                <p class="text-sm text-gray-400 mt-2">
-                    Countries are resolved from a MaxMind database file on this
-                    server, so no visitor address is ever sent anywhere. Without
-                    the file there is nothing to resolve against.
-                    Run <code class="bg-gray-100 px-1 rounded">python -m app.ip_country refresh</code>
-                    to build the table from the internet registries' own
-                    published data, or point
-                    <code class="bg-gray-100 px-1 rounded">GEOIP_DB_PATH</code>
-                    at a MaxMind-format database instead.
-                </p>
-            </div>
-            {% endif %}
-            {% endif %}
-        </div>
-
-        <!-- Devices -->
-        <div class="bg-white rounded-lg shadow p-6">
-            <h2 class="text-lg font-semibold text-gray-900 mb-4">
-                Devices
-                <span x-show="hasDeviceFilter" class="ml-2 text-sm font-normal text-blue-600">(filtered)</span>
-            </h2>
-            {% if stats.devices %}
-            {% set device_total = stats.devices.values() | sum %}
-            {% set device_icons = {'desktop': 'fa-desktop', 'mobile': 'fa-mobile-alt', 'tablet': 'fa-tablet-alt'} %}
-            <div class="space-y-1">
-                {% for device, count in stats.devices.items() | sort(attribute='1', reverse=True) %}
-                <div @click="applyFilterFromData" data-filter="device" data-value="{{ device }}"
-                     data-share="{{ (count / device_total * 100) if device_total else 0 }}"
-                     class="rank-row flex items-center justify-between text-sm py-2 px-2 -mx-2 cursor-pointer rounded"
-                     :class="serverRowClass">
-                    <span class="flex items-center gap-2 text-gray-700 capitalize">
-                        <i class="fas {{ device_icons.get(device, 'fa-question') }} w-4 text-center text-gray-500"></i>
-                        {{ device }}
-                    </span>
-                    <span>
-                        <span class="font-semibold text-gray-900">{{ count | format_number }}</span>
-                        <span class="ml-2 text-xs text-gray-500">{{ "%.0f"|format(count / device_total * 100) if device_total else 0 }}%</span>
-                    </span>
-                </div>
-                {% endfor %}
-            </div>
-            {% else %}
-            <p class="text-gray-500 text-center py-8">No device data yet</p>
-            {% endif %}
-        </div>
-
-        <!-- Browsers -->
-        <div class="bg-white rounded-lg shadow p-6">
-            <h2 class="text-lg font-semibold text-gray-900 mb-4">
-                Browsers
-                <span x-show="hasBrowserFilter" class="ml-2 text-sm font-normal text-blue-600">(filtered)</span>
-            </h2>
-            {% if stats.top_browsers and stats.top_browsers|length > 0 %}
-            <div class="space-y-1">
-                {% for browser in stats.top_browsers %}
-                <!-- Browser name comes from the visitor's User-Agent: read it from a
-                     data attribute (autoescape covers double-quoted attrs) instead of
-                     interpolating into the Alpine expression, where a decoded quote
-                     would break out of the JS string. -->
-                <div data-browser="{{ browser.browser or 'Unknown' }}"
-                     @click="applyFilterFromData" data-filter="browser"
-                     data-share="{{ (browser.views / stats.total_pageviews * 100) if stats.total_pageviews else 0 }}"
-                     class="rank-row flex items-center justify-between py-2 px-2 -mx-2 cursor-pointer rounded"
-                     :class="serverRowClass">
-                    <div class="flex items-center gap-2">
-                        {#- browser can be NULL for rows recorded without a
-                            parseable User-Agent; 'x' in None raises, and one
-                            such row would 500 the whole page. -#}
-                        {%- set b = browser.browser or '' -%}
-                        {%- if 'Chrome' in b and 'Chromium' not in b -%}
-                            <i class="fab fa-chrome text-lg icon-chrome"></i>
-                        {%- elif 'Firefox' in b -%}
-                            <i class="fab fa-firefox-browser text-lg icon-firefox"></i>
-                        {%- elif 'Safari' in b -%}
-                            <i class="fab fa-safari text-lg icon-safari"></i>
-                        {%- elif 'Edge' in b -%}
-                            <i class="fab fa-edge text-lg icon-edge"></i>
-                        {%- elif 'Opera' in b -%}
-                            <i class="fab fa-opera text-lg icon-opera"></i>
-                        {%- elif 'Brave' in b -%}
-                            <i class="fab fa-brave text-lg icon-brave"></i>
-                        {%- elif 'Chromium' in b -%}
-                            <i class="fas fa-circle-notch text-lg icon-chromium"></i>
-                        {%- elif 'IE' in b or 'Internet Explorer' in b -%}
-                            <i class="fab fa-internet-explorer text-lg icon-ie"></i>
-                        {%- elif 'Android' in b -%}
-                            <i class="fab fa-android text-lg icon-android"></i>
-                        {%- elif 'Samsung' in b -%}
-                            <i class="fas fa-mobile-alt text-lg icon-samsung"></i>
-                        {%- else -%}
-                            <i class="fas fa-globe text-lg text-gray-600"></i>
-                        {%- endif -%}
-                        <span class="text-sm text-gray-700">{{ browser.browser or 'Unknown' }}</span>
-                    </div>
-                    <span class="text-sm font-semibold text-gray-900">{{ browser.views }}</span>
-                </div>
-                {% endfor %}
-            </div>
-            {% else %}
-            <p class="text-gray-500 text-center py-8">No browser data yet</p>
-            {% endif %}
-        </div>
-    </div>
-
-    <!-- Operating systems, versions, languages, hostnames, screen sizes
-         (#204). One loop, since the six differ only in name and heading.
-         Pageviews recorded before these were collected have no value and
-         are listed as Unknown rather than left out. -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
-        {% for name, title in visitor_dimensions %}
-        {% set rows = stats.dimensions[name] if stats.dimensions else [] %}
-        <div class="bg-white rounded-lg shadow p-6" data-dimension="{{ name }}">
-            <h2 class="text-lg font-semibold text-gray-900 mb-4">
-                {{ title }}
-                {% if active_filters[name] %}<span class="ml-2 text-sm font-normal text-blue-600">(filtered)</span>{% endif %}
-            </h2>
-            {% if rows %}
-            <div class="space-y-1">
-                {% for row in rows %}
-                <div @click="applyFilterFromData" data-filter="{{ name }}" data-value="{{ row.value }}"
-                     data-share="{{ (row.views / stats.total_pageviews * 100) if stats.total_pageviews else 0 }}"
-                     class="rank-row flex items-center justify-between py-2 px-2 -mx-2 cursor-pointer rounded"
-                     :class="serverRowClass">
-                    <span class="text-sm truncate {{ 'text-gray-400 italic' if row.value == 'Unknown' else 'text-gray-700' }}">{{ row.label }}</span>
-                    <span class="flex-shrink-0 ml-2">
-                        <span class="text-sm font-semibold text-gray-900">{{ row.views | format_number }}</span>
-                        <span class="ml-2 text-xs text-gray-500">{% if stats.total_pageviews > 0 %}{{ "%.0f"|format((row.views / stats.total_pageviews) * 100) }}%{% else %}0%{% endif %}</span>
-                    </span>
-                </div>
-                {% endfor %}
-            </div>
-            {% else %}
-            <p class="text-gray-500 text-center py-8">No data yet</p>
-            {% endif %}
-        </div>
-        {% endfor %}
-    </div>
-
-    <!-- Live Visitors Section -->
-    <div class="bg-white rounded-lg shadow p-6">
-        <h2 class="text-lg font-semibold text-gray-900 mb-2 flex items-center gap-2">
-            <span class="live-dot"></span>
-            Live visitors
-        </h2>
-        <div id="live-visitors-list"
-             hx-get="/dashboard/website/{{ website.id }}/live-list"
-             hx-trigger="load, every 5s"
-             hx-swap="innerHTML">
-            <!-- Filled by HTMX on load and every five seconds after -->
-            <div class="py-8"></div>
-        </div>
     </div>
 </div>
 </div>
