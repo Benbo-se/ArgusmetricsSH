@@ -138,17 +138,22 @@
     if (!progress) return;
     var c = curve(state.days, 1000, 14, 2);
     progress.textContent = '';
+    /* The read part is the same line, shown through a window that widens.
+       Not a dash offset: with a stroke that does not scale, dashes are
+       measured on the screen and the line came out part drawn at the top. */
+    var clip = el('clipPath', { id: 'progress-clip' });
+    clip.appendChild(el('rect', { id: 'progress-window', x: '0', y: '-10', width: '0', height: '40' }));
+    progress.appendChild(clip);
     progress.appendChild(el('path', { 'class': 'progress-rail', d: c.line, 'vector-effect': 'non-scaling-stroke' }));
-    progress.appendChild(el('path', { 'class': 'progress-done', id: 'progress-done', d: c.line, pathLength: '1', 'vector-effect': 'non-scaling-stroke' }));
+    progress.appendChild(el('path', { 'class': 'progress-done', d: c.line, 'clip-path': 'url(#progress-clip)', 'vector-effect': 'non-scaling-stroke' }));
     onScroll();
   }
   function onScroll() {
-    var done = $('progress-done');
-    if (!done) return;
+    var pane = $('progress-window');
+    if (!pane) return;
     var room = document.documentElement.scrollHeight - window.innerHeight;
     var f = room > 0 ? Math.min(1, Math.max(0, window.scrollY / room)) : 0;
-    done.style.strokeDasharray = '1';
-    done.style.strokeDashoffset = String(1 - f);
+    pane.setAttribute('width', (f * 1000).toFixed(1));
   }
   window.addEventListener('scroll', onScroll, { passive: true });
 
