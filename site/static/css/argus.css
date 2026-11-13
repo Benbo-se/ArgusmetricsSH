@@ -147,7 +147,7 @@ body.argus {
 .mark-pupil { fill: var(--iris); }
 .progress { position: absolute; left: 0; right: 0; bottom: -8px; width: 100%; height: 14px; pointer-events: none; overflow: visible; }
 .progress-rail { fill: none; stroke: rgba(233, 236, 247, .14); stroke-width: 1; }
-.progress-done { fill: none; stroke: var(--peacock); stroke-width: 1.6; stroke-dasharray: 1; stroke-dashoffset: 1; }
+.progress-done { fill: none; stroke: var(--peacock); stroke-width: 1.6; }
 .brand b { font-weight: 700; color: var(--peacock); }
 .nav-links { display: flex; align-items: center; gap: 4px; margin-left: auto; }
 .nav-item { position: relative; }
