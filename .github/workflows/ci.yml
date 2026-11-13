@@ -376,6 +376,18 @@ jobs:
           # deploy/argus-host-nginx, som vägrar allt utanför en kort lista.
           # En vhost som spärren vägrar ska falla här, inte i deployen.
           deploy/argus-host-nginx --check deploy/nginx/argusmetrics.conf
+          # Och att spärren faktiskt spärrar. nginx öppnar fel-loggen som
+          # root, så en annan sökväg eller en pratigare nivå ska vägras.
+          for BAD in 's#argusmetrics-error.log crit#argusmetrics-error.log warn#' \
+                     's#/var/log/nginx/argusmetrics-error.log crit#/etc/cron.d/x crit#' \
+                     's#access_log off;#access_log /var/log/nginx/a.log;#'; do
+            sed "$BAD" deploy/nginx/argusmetrics.conf > /tmp/vhost-bad.conf
+            cmp -s deploy/nginx/argusmetrics.conf /tmp/vhost-bad.conf \
+              && { echo "::error::ändringen '$BAD' träffade ingenting, så kontrollen bevisar ingenting"; exit 1; }
+            if deploy/argus-host-nginx --check /tmp/vhost-bad.conf 2>/dev/null; then
+              echo "::error::spärren släppte igenom: $BAD"; exit 1
+            fi
+          done
           docker run --rm -v "$PWD/deploy/nginx/argusmetrics.conf:/etc/nginx/conf.d/argus.conf:ro" \
             --entrypoint sh nginx:1.27-alpine -c '
               set -e
