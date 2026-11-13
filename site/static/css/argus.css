@@ -125,7 +125,7 @@ body.argus {
 }
 .site-nav .wrap { height: 100%; display: flex; align-items: center; gap: 28px; }
 .brand { display: inline-flex; align-items: center; gap: 10px; font-family: var(--f-display); font-weight: 700; font-size: 19px; letter-spacing: -.01em; color: var(--night-text); }
-.brand svg { width: 30px; height: 18px; color: var(--iris); }
+.brand img { width: 34px; height: 34px; border-radius: 50%; }
 .brand b { font-weight: 700; color: var(--peacock); }
 .nav-links { display: flex; align-items: center; gap: 4px; margin-left: auto; }
 .nav-item { position: relative; }
@@ -195,15 +195,15 @@ body.argus {
 .band-vellum { background: var(--vellum); color: var(--ink); }
 .band-vellum-2 { background: var(--vellum-2); color: var(--ink); }
 
-/* The feather edge: a row of tips, each with its eye. It sits at the top of a
-   band and is painted in the colour of the band above it. */
-.feather { position: absolute; inset: 0 0 auto 0; height: 20px; pointer-events: none; }
-.feather::before, .feather::after { content: ""; position: absolute; inset: 0; background-repeat: repeat-x; background-size: 40px 20px; background-position: center top; }
-.feather::before { background-image: radial-gradient(circle at 50% 0, var(--edge) 0 19px, transparent 19.6px); }
-.feather::after { background-image: radial-gradient(circle at 50% 42%, var(--dot) 0 2.2px, transparent 2.9px); }
-.feather.from-night { --edge: var(--night); --dot: var(--iris); }
-.feather.from-vellum { --edge: var(--vellum); --dot: var(--peacock-deep); }
-.feather.from-vellum-2 { --edge: var(--vellum-2); --dot: var(--peacock-deep); }
+/* The seam between two bands is a ruler: this is a product that measures.
+   It sits at the top of a band, in that band's own ink. */
+.seam { position: absolute; inset: 0 0 auto 0; height: 16px; pointer-events: none; color: var(--tick);
+    background-image:
+        repeating-linear-gradient(90deg, currentColor 0 1px, transparent 1px 60px),
+        repeating-linear-gradient(90deg, currentColor 0 1px, transparent 1px 12px);
+    background-size: 100% 16px, 100% 7px; background-repeat: no-repeat; background-position: 0 0, 0 0; }
+.band-night > .seam { --tick: rgba(232, 185, 85, .55); }
+.band-vellum > .seam, .band-vellum-2 > .seam { --tick: rgba(21, 24, 38, .32); }
 
 .eyebrow-m {
     display: inline-flex; align-items: center; gap: 10px;
@@ -395,6 +395,16 @@ body.argus {
 .also li b { font-weight: 600; }
 .also li span { display: block; font-size: 13px; color: var(--ink-faint); }
 
+/* --- The animated scenes (engine in js/anim.js, drawn in css/anim.css) ---- */
+.scene { max-width: 980px; margin: 48px auto 0; }
+.scene .an-wrap { box-shadow: 0 30px 60px rgba(21, 24, 38, .16), 8px 8px 0 var(--vellum-2); }
+.band-vellum-2 .scene .an-wrap { box-shadow: 0 30px 60px rgba(21, 24, 38, .16), 8px 8px 0 #dfd8c6; }
+.band-night .scene .an-wrap { box-shadow: 0 40px 90px rgba(0, 0, 0, .5); border-color: rgba(151, 160, 238, .22); }
+.scene-note { margin: 18px auto 0; max-width: 980px; text-align: center; font-family: var(--f-mono); font-size: 11.5px; letter-spacing: .06em; color: var(--ink-faint); }
+.band-night .scene-note { color: var(--night-faint); }
+.tour-stage.is-scene { grid-template-columns: minmax(0, 300px) minmax(0, 1fr); }
+.tour-stage.is-scene .scene { margin: 0; max-width: none; }
+
 /* --- Ledger table -------------------------------------------------------- */
 .ledger { width: 100%; margin-top: 44px; border-collapse: collapse; font-size: 15.5px; }
 .ledger th, .ledger td { padding: 15px 16px; text-align: left; border-bottom: 1px solid var(--vellum-line); vertical-align: middle; }
@@ -444,12 +454,11 @@ body.argus {
 
 /* --- Closing ------------------------------------------------------------- */
 .closing { position: relative; overflow: hidden; text-align: center; padding: 120px 0 112px; }
-.closing .big-eye { width: 150px; height: 90px; margin: 0 auto 34px; color: var(--iris); }
-.closing .big-eye .eye-lid { stroke-width: .8; }
-.closing .big-eye .eye-iris { stroke-width: .8; stroke: var(--peacock); }
-.closing .big-eye .eye-pupil { fill: var(--peacock); }
-.closing .big-eye .lids { transform-origin: 20px 12px; animation: blink 7s infinite; }
-@keyframes blink { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(.05); } }
+.closing .big-logo { position: relative; width: 132px; height: 132px; margin: 0 auto 36px; }
+.closing .big-logo img { position: relative; width: 132px; height: 132px; border-radius: 50%; }
+.closing .big-logo::before, .closing .big-logo::after { content: ""; position: absolute; inset: -18px; border-radius: 50%; border: 1px solid rgba(31, 199, 179, .35); animation: ring 4.5s ease-out infinite; }
+.closing .big-logo::after { animation-delay: 2.25s; }
+@keyframes ring { 0% { transform: scale(.82); opacity: .9; } 100% { transform: scale(1.5); opacity: 0; } }
 .closing .h-section { margin-left: auto; margin-right: auto; max-width: 18ch; }
 .closing .lead { margin-left: auto; margin-right: auto; }
 .closing .hero-cta { justify-content: center; }
@@ -511,7 +520,7 @@ body.argus {
 
 @media (prefers-reduced-motion: reduce) {
     html { scroll-behavior: auto; }
-    .ticker-track, .closing .big-eye .lids, .panel-bar .live i { animation: none; }
+    .ticker-track, .closing .big-logo::before, .closing .big-logo::after, .panel-bar .live i { animation: none; }
     .rise { opacity: 1; transform: none; transition: none; }
     .eyefield .lids, .eyefield .ball, .weigh-row .bar, .term .line { transition: none; }
 }
