@@ -36,7 +36,7 @@ test.describe('About Page', () => {
 test.describe('Contact Page', () => {
   test('contact page loads with email', async ({ page }) => {
     await page.goto('/contact');
-    await expect(page.locator('text=reda@argusmetrics').first()).toBeVisible();
+    await expect(page.locator('text=reda@benbo.se').first()).toBeVisible();
   });
 });
 
