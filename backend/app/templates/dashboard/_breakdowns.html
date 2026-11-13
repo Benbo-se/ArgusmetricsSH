@@ -1,0 +1,247 @@
+{# The pieces of a breakdown card: the tab, the ranked row, and the lists
+   that read the same on the owner's analytics page (website.html) and on
+   the shared one (public.html). One copy, because the public page was a
+   second transcription of these lists and had stopped agreeing with the
+   first: raw referrer addresses, country codes, emoji for icons.
+
+   Import with context: `tab` reads active_filters when the page has them.
+
+   The lists take `clickable`. The owner's rows filter the page when
+   clicked. The shared page has no filters, so its rows are plain rows: no
+   handler, no pointer, no highlight. #}
+
+{# One path, in the icon family the sidebar uses: outline, 24 box, stroke 2. #}
+{% macro icon(d, cls='w-4 h-4') -%}
+<svg class="{{ cls }} flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ d }}"/></svg>
+{%- endmacro %}
+
+{# A tab is a button that names its card and itself; the page component
+   holds which one each card shows and remembers it in the browser, because
+   a click on a row reloads the page and the card must not jump back. #}
+{% macro tab(card, name, label, selected=false, title=none) -%}
+<button type="button" role="tab" @click="selectTab" :aria-selected="tabSelected"
+        data-card="{{ card }}" data-tab="{{ name }}"
+        aria-selected="{{ 'true' if selected else 'false' }}"
+        {%- if title %} title="{{ title }}"{% endif %}
+        {%- if active_filters is defined and active_filters[name] %} class="has-filter"{% endif %}>{{ label }}</button>
+{%- endmacro %}
+
+{# One row of a ranked list: label, bar behind it, count, share. With a
+   filter name it is clickable and filters the page by its value. The
+   value is read from the data attribute (autoescaped), never placed in
+   an Alpine expression. #}
+{% macro row(views, total, filter=none, value=none, title=none, unknown=false) -%}
+{%- set pct = (views / total * 100) if total else 0 -%}
+<div class="rank-row{{ ' cursor-pointer' if filter }}{{ ' is-unknown' if unknown }}"
+     {%- if filter %} @click="applyFilterFromData" data-filter="{{ filter }}" data-value="{{ value }}" :class="serverRowClass"{% endif %}
+     {%- if title %} title="{{ title }}"{% endif %}
+     data-share="{{ pct }}">
+    <span class="rank-label">{{ caller() }}</span>
+    <span class="rank-count">{{ views | format_number }}</span>
+    <span class="rank-pct">{{ "%.0f" | format(pct) }}%</span>
+</div>
+{%- endmacro %}
+
+{% set channel_icons = {
+    'Organic Search': 'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z',
+    'Social': 'M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z',
+    'Direct': 'M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1',
+    'Email': 'M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z',
+    'Paid': 'M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z',
+    'AI Assistants': 'M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z',
+    'Referral': 'M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1',
+} %}
+{% set channel_notes = {
+    'Organic Search': 'From search engines (Google, Bing and so on)',
+    'Social': 'From social media (Facebook, X, LinkedIn and so on)',
+    'Direct': 'Direct visits, with no referrer',
+    'Email': 'From email campaigns (utm_medium=email)',
+    'Paid': 'From paid advertising (utm_medium=cpc or ppc)',
+    'AI Assistants': 'From AI assistants (ChatGPT, Claude, Perplexity, Gemini)',
+    'Referral': 'From other websites',
+} %}
+{% set icon_globe = 'M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9' %}
+
+{# ---- Sources ---- #}
+
+{% macro referrer_list(referrers, total, clickable=true) %}
+<!-- Visitor-controlled values go through a JSON script island:
+     |tojson does NOT escape double quotes, so putting it inside a
+     double-quoted attribute lets a crafted value terminate the
+     attribute and inject a native event handler (stored XSS).
+     Script context is safe (tojson escapes </script>). -->
+{{ '' }}<script type="application/json" id="top-referrers-data">{{ referrers|tojson }}</script>
+<div class="rank-head"><span>Referrer</span><span>Views</span></div>
+<div class="rank-list" x-data="topReferrersList" data-total-pageviews="{{ total }}">
+    <template x-for="(row, index) in referrerRows" :key="index">
+        {# The name is the host and path; the stored address
+           is the tooltip and, on the owner's page, the filter
+           value. It is not a link: a referrer is whatever a
+           visitor's browser sent, and an href bound to that is a
+           place for a javascript: address to end up. #}
+        {% if clickable -%}
+        <div x-data="listRow" @click="applyFilter"
+             class="rank-row cursor-pointer"
+             :class="activeClass" :style="barStyle" :title="referrer">
+        {%- else -%}
+        <div x-data="plainRow" class="rank-row" :style="barStyle" :title="referrer">
+        {%- endif %}
+            <span class="rank-label">
+                <i class="rank-icon" :class="icon" aria-hidden="true"></i>
+                <span class="rank-text" x-text="name"></span>
+            </span>
+            <span class="rank-count" x-text="views"></span>
+            <span class="rank-pct" x-text="share"></span>
+        </div>
+    </template>
+</div>
+{% endmacro %}
+
+{% macro channel_list(channels, total) %}
+<div class="rank-head"><span>Channel</span><span>Views</span></div>
+<div class="rank-list">
+    {% for channel in channels %}
+    {% call row(channel.views, total, title=channel_notes.get(channel.channel)) %}
+    <span class="rank-icon">{{ icon(channel_icons.get(channel.channel, icon_globe)) }}</span>
+    <span class="rank-text">{{ channel.channel }}</span>
+    {% endcall %}
+    {% endfor %}
+</div>
+{% endmacro %}
+
+{% macro campaign_list(campaigns, total) %}
+<div class="rank-head"><span>Campaign tags</span><span>Views</span></div>
+<div class="rank-list">
+    {# A row is one combination of the three tags. Only
+       the tags a link carried are printed, each with its
+       name, where the table printed a dash for the rest. #}
+    {% for campaign in campaigns %}
+    {% call row(campaign.views, total) %}
+    <span class="rank-text">
+        {%- for key, value in [('source', campaign.utm_source), ('medium', campaign.utm_medium), ('campaign', campaign.utm_campaign)] if value -%}
+        <span class="rank-tag"><span class="rank-sub">{{ key }}</span> {{ value }}</span>
+        {%- else -%}
+        <span class="rank-sub">untagged</span>
+        {%- endfor -%}
+    </span>
+    {% endcall %}
+    {% endfor %}
+</div>
+{% endmacro %}
+
+{# ---- Pages ---- #}
+
+{# Entry and exit pages: a path and how many visits began or ended on it. #}
+{% macro visit_page_list(pages, count_key, total, heading) %}
+<div class="rank-head"><span>{{ heading }}</span><span>Visits</span></div>
+<div class="rank-list">
+    {% for page in pages %}
+    {% call row(page[count_key], total) %}
+    <span class="rank-text">{{ page.path }}</span>
+    {% endcall %}
+    {% endfor %}
+</div>
+{% endmacro %}
+
+{# ---- Locations ---- #}
+
+{# The empty state stays with each page: the owner is told which setting
+   turns country data on, a stranger holding a share link is not. #}
+{% macro country_list(countries, total, clickable=true) %}
+<div class="rank-head"><span>Country</span><span>Views</span></div>
+<div class="rank-list">
+    {# The name is for reading; the code stays the tooltip and, on the
+       owner's page, the filter value. #}
+    {% for country in countries %}
+    {% call row(country.views, total, 'country' if clickable else none, country.country, title=country.country) %}
+    <span class="rank-flag" aria-hidden="true">{{ country.country | country_flag }}</span>
+    <span class="rank-text">{{ country.country | country_name }}</span>
+    {% endcall %}
+    {% endfor %}
+</div>
+{% endmacro %}
+
+{# ---- Devices ---- #}
+
+{% macro device_list(devices, clickable=true) %}
+{% set device_total = devices.values() | sum %}
+{% set device_icons = {'desktop': 'fa-desktop', 'mobile': 'fa-mobile-alt', 'tablet': 'fa-tablet-alt'} %}
+<div class="rank-head"><span>Device type</span><span>Views</span></div>
+<div class="rank-list">
+    {% for device, count in devices.items() | sort(attribute='1', reverse=True) %}
+    {% call row(count, device_total, 'device' if clickable else none, device) %}
+    <i class="rank-icon fas {{ device_icons.get(device, 'fa-question') }}" aria-hidden="true"></i>
+    <span class="rank-text capitalize">{{ device }}</span>
+    {% endcall %}
+    {% endfor %}
+</div>
+{% endmacro %}
+
+{% macro browser_list(browsers, total, clickable=true) %}
+<div class="rank-head"><span>Browser</span><span>Views</span></div>
+<div class="rank-list">
+    {% for browser in browsers %}
+    {#- browser can be NULL for rows recorded without a
+        parseable User-Agent; 'x' in None raises, and one
+        such row would 500 the whole page. The name comes
+        from the visitor's User-Agent, so it reaches the
+        filter through the data attribute like every
+        other row here. -#}
+    {%- set b = browser.browser or '' -%}
+    {% call row(browser.views, total, 'browser' if clickable else none, browser.browser or 'Unknown', unknown=(not browser.browser)) %}
+    {%- if 'Chrome' in b and 'Chromium' not in b -%}
+        <i class="rank-icon fab fa-chrome icon-chrome" aria-hidden="true"></i>
+    {%- elif 'Firefox' in b -%}
+        <i class="rank-icon fab fa-firefox-browser icon-firefox" aria-hidden="true"></i>
+    {%- elif 'Safari' in b -%}
+        <i class="rank-icon fab fa-safari icon-safari" aria-hidden="true"></i>
+    {%- elif 'Edge' in b -%}
+        <i class="rank-icon fab fa-edge icon-edge" aria-hidden="true"></i>
+    {%- elif 'Opera' in b -%}
+        <i class="rank-icon fab fa-opera icon-opera" aria-hidden="true"></i>
+    {%- elif 'Brave' in b -%}
+        <i class="rank-icon fab fa-brave icon-brave" aria-hidden="true"></i>
+    {%- elif 'Chromium' in b -%}
+        <i class="rank-icon fas fa-circle-notch icon-chromium" aria-hidden="true"></i>
+    {%- elif 'IE' in b or 'Internet Explorer' in b -%}
+        <i class="rank-icon fab fa-internet-explorer icon-ie" aria-hidden="true"></i>
+    {%- elif 'Android' in b -%}
+        <i class="rank-icon fab fa-android icon-android" aria-hidden="true"></i>
+    {%- elif 'Samsung' in b -%}
+        <i class="rank-icon fas fa-mobile-alt icon-samsung" aria-hidden="true"></i>
+    {%- else -%}
+        <i class="rank-icon fas fa-globe" aria-hidden="true"></i>
+    {%- endif -%}
+    <span class="rank-text">{{ browser.browser or 'Unknown' }}</span>
+    {% endcall %}
+    {% endfor %}
+</div>
+{% endmacro %}
+
+{# ---- Goals ---- #}
+
+{# The rows and the note under them. The card and its heading stay with
+   the page: the owner's has a link to goal management beside it. #}
+{% macro goal_list(goals, total_visitors) %}
+<div class="rank-head">
+    <span>Goal</span>
+    <span>Conversions <span class="rank-head-pct" title="The share of visitors who converted at least once">Rate</span></span>
+</div>
+<div class="rank-list">
+    {% for goal in goals %}
+    <div class="rank-row" data-share="{{ goal.conversions }}">
+        <span class="rank-label">
+            <span class="rank-text">{{ goal.name }}</span>
+            <span class="rank-sub font-mono">{{ goal.event_name }}</span>
+        </span>
+        <span class="rank-count">{{ goal.conversions | format_number }}</span>
+        <span class="rank-pct is-wide">{{ goal.conversion_rate }}%</span>
+    </div>
+    {% endfor %}
+</div>
+{% if total_visitors > 0 %}
+<p class="mt-4 text-xs text-gray-500">
+    Based on {{ total_visitors | format_number }} unique visitors in this period. The rate is the share of them who converted at least once.
+</p>
+{% endif %}
+{% endmacro %}
