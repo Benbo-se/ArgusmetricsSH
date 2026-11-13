@@ -383,14 +383,21 @@ function crossDomainDashboard() {
         },
 
         getReferrerIcon(referrer) {
-            const lower = referrer.toLowerCase();
-            if (lower.includes('google')) return '/static/img/icons.svg#i-search';
-            if (lower.includes('facebook') || lower.includes('fb.com')) return '/static/img/icons.svg#i-share';
-            if (lower.includes('twitter') || lower.includes('t.co')) return '/static/img/icons.svg#i-share';
-            if (lower.includes('linkedin')) return '/static/img/icons.svg#i-share';
-            if (lower.includes('github')) return '/static/img/icons.svg#i-code';
-            if (referrer === '(Direct)' || referrer === 'Direct') return '/static/img/icons.svg#i-arrow';
-            return '/static/img/icons.svg#i-globe';
+            const icons = '/static/img/icons.svg#i-';
+            if (referrer === '(Direct)' || referrer === 'Direct') return icons + 'arrow';
+            // Matched on the host and its parent domains, never on a piece of
+            // the address: "fb.com" inside some other address is not Facebook.
+            let host = '';
+            try {
+                host = new URL(/^[a-z][a-z0-9+.-]*:\/\//i.test(referrer) ? referrer : 'https://' + referrer).hostname.toLowerCase();
+            } catch (e) {
+                return icons + 'globe';
+            }
+            const is = (...domains) => domains.some(d => host === d || host.endsWith('.' + d));
+            if (is('google.com', 'bing.com', 'duckduckgo.com') || /(^|\.)google\.[a-z.]{2,6}$/.test(host)) return icons + 'search';
+            if (is('facebook.com', 'fb.com', 'twitter.com', 'x.com', 't.co', 'linkedin.com', 'instagram.com', 'reddit.com')) return icons + 'share';
+            if (is('github.com')) return icons + 'code';
+            return icons + 'globe';
         },
 
         getCountryFlag(countryCode) {
