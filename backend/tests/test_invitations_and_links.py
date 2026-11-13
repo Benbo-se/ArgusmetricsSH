@@ -258,3 +258,52 @@ def test_a_stranger_cannot_spend_the_owners_sign_in_attempts(client, db, website
     client.cookies.set("known_device", known)
     assert client.post("/api/v1/auth/login", json={"email": other, "password": "x" * 12}).status_code == 429
     rate_limiter.reset()
+
+
+# --- what the table holds ----------------------------------------------------
+
+def test_the_table_holds_the_digest_of_an_invitation_never_the_token(db, website, stem, monkeypatch):
+    monkeypatch.setattr(email_service, "configured", False)
+    invited = f"e.{stem}@example.com"
+    result = TeamService(db).invite_member(website["id"], website["email"], invited, MemberRole.VIEWER)
+    token = result["invite_url"].split("token=")[1]
+
+    stored = db.execute(
+        text("SELECT invite_token FROM website_members WHERE user_email = :e"), {"e": invited}
+    ).scalar()
+    assert stored and stored != token
+    assert len(stored) == 64 and all(c in "0123456789abcdef" for c in stored)
+    # The digest itself opens nothing: it is not a token.
+    assert TeamService(db).get_invite_details(token)
+    with pytest.raises(ValueError):
+        TeamService(db).get_invite_details(stored)
+
+    # And the link still works end to end.
+    AuthService(db).create_account_from_invitation(invite_token=token, password=PASSWORD)
+    assert TeamService(db).check_website_access(invited, website["id"]) is not None
+
+
+def test_an_invitation_sent_before_the_change_still_opens(db, website, stem):
+    """What the migration does to a pending row, and that the old link survives it."""
+    old_token = "Zk3" + uuid.uuid4().hex + "abcdefgh"  # 43 characters, like token_urlsafe(32)
+    invited = f"f.{stem}@example.com"
+    db.execute(
+        text(
+            "INSERT INTO website_members (website_id, user_email, role, invited_at, status, invite_token) "
+            "VALUES (:w, :e, 'viewer', now(), 'pending'::memberstatus, :t)"
+        ),
+        {"w": website["id"], "e": invited, "t": old_token},
+    )
+    db.commit()
+    assert len(old_token) == 43
+
+    rewrite = text(
+        "UPDATE website_members SET invite_token = encode(sha256(convert_to(invite_token, 'UTF8')), 'hex') "
+        "WHERE invite_token IS NOT NULL AND length(invite_token) < 64"
+    )
+    db.execute(rewrite)
+    db.execute(rewrite)  # twice is the same as once
+    db.commit()
+
+    details = TeamService(db).get_invite_details(old_token)
+    assert details

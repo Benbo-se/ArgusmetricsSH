@@ -32,12 +32,11 @@ def _invite(owner_client, db, website, role="viewer"):
     )
     assert response.status_code in (200, 201), response.text[:300]
 
-    token = db.execute(
-        text("SELECT invite_token FROM website_members WHERE user_email = :e"),
-        {"e": email},
-    ).scalar()
-    assert token, "the invitation has no token"
-    return email, token
+    # From the answer, where the link is on an instance with no mail. The
+    # table holds only the digest of the token, which opens nothing.
+    link = response.json().get("invite_url")
+    assert link, "the invitation came back without its link"
+    return email, link.split("token=")[1]
 
 
 class TestAnInvitedPersonCanGetIn:
@@ -210,14 +209,9 @@ class TestSomebodyWhoAlreadyHasAnAccount:
         )
         assert response.status_code in (200, 201), response.text[:300]
 
-        second_token = db.execute(
-            text(
-                "SELECT invite_token FROM website_members "
-                " WHERE user_email = :e AND website_id = :w"
-            ),
-            {"e": email, "w": second_website["id"]},
-        ).scalar()
-        return email, second_token
+        link = response.json().get("invite_url")
+        assert link, "the second invitation came back without its link"
+        return email, link.split("token=")[1]
 
     def test_is_asked_to_sign_in_rather_than_offered_a_password(
         self, client, owner_client, db, website, second_website, monkeypatch

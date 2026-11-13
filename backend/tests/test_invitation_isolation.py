@@ -18,6 +18,7 @@ import uuid
 
 import pytest
 from app.config import pin_psycopg2
+from app.utils.security import hash_token
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 
@@ -103,7 +104,8 @@ def pending_invitation(engine):
                 "                             invited_by, invited_at) "
                 "VALUES (:w, :u, :o, 'viewer', 'pending', :t, :o, now())"
             ),
-            {"w": website_id, "u": invitee_email, "o": owner_email, "t": token},
+            # The table holds the digest; the fixture hands out the token.
+            {"w": website_id, "u": invitee_email, "o": owner_email, "t": hash_token(token)},
         )
 
     yield {"token": token, "invitee": invitee_email, "website_id": website_id}
