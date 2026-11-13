@@ -10,10 +10,11 @@
    be deleted. If a Tailwind class is simply absent, that is a different
    problem with a different fix: `npm run build:css`.
 
-   The identity is Argus Panoptes — the watchman who never fully sleeps. Deep
-   indigo "night" surfaces, a single awake cyan accent used sparingly for the
-   things that are actually live, and semantic colors kept separate from it so
-   "good/warning/critical" never competes with the brand hue.
+   The identity is Argus Panoptes, the watchman whose eyes ended up in the
+   peacock's tail. Vellum by day and night after dark, peacock green for what
+   is alive and what can be pressed, the gold of the iris for notes, and
+   semantic colours kept apart so "good/warning/critical" never competes with
+   the brand. The public site (site/static/css/argus.css) uses the same four.
    =========================================================================== */
 
 /* --- Inter, self-hosted (no CDN; tabular figures matter in analytics) ----- */
@@ -39,31 +40,48 @@
         U+A720-A7FF;
 }
 
+@font-face {
+    font-family: 'Familjen Grotesk';
+    font-style: normal;
+    font-weight: 400 700;
+    font-display: swap;
+    src: url('/static/webfonts/familjen-grotesk-latin-wght-normal.woff2') format('woff2');
+}
+@font-face {
+    font-family: 'JetBrains Mono';
+    font-style: normal;
+    font-weight: 400 700;
+    font-display: swap;
+    src: url('/static/webfonts/jetbrains-mono-latin-wght-normal.woff2') format('woff2');
+}
+
 /* --- Tokens -------------------------------------------------------------- */
 :root {
     /* Surfaces: neutrals carry a slight indigo bias so they read as chosen,
        not as the default grey every dashboard ships with. */
-    --surface-page: #f5f6fa;
-    --surface-card: #ffffff;
-    --surface-sunken: #eef0f6;
-    --surface-hover: #f8f9fc;
+    --surface-page: #f3efe6;
+    --surface-card: #fcfaf5;
+    --surface-sunken: #ebe6d9;
+    --surface-hover: #f7f4ec;
 
-    --border-subtle: #e3e6ef;
-    --border-strong: #cfd4e3;
+    --border-subtle: #e2dccd;
+    --border-strong: #cdc6b4;
 
-    --text-primary: #171b2e;
-    --text-secondary: #4d5473;
-    --text-muted: #767ea0;
+    --text-primary: #151826;
+    --text-secondary: #4b5063;
+    --text-muted: #7a7e8e;
 
-    /* Brand: deep watchman indigo + the awake accent */
-    --brand-900: #171b3d;
-    --brand-700: #2a3170;
-    --brand-500: #4550c8;
-    --brand-300: #97a0ee;
-    --brand-50: #eef0fe;
+    /* Brand: peacock, deep enough to carry white text */
+    --brand-900: #0a0d16;
+    --brand-700: #085a55;
+    --brand-500: #0a6f69;
+    --brand-300: #6fb9b0;
+    --brand-50: #e2efeb;
+    --on-brand: #ffffff;
 
-    --accent: #06a9c9;          /* "live / watching" — used sparingly */
-    --accent-soft: #e0f6fa;
+    --accent: #0f9c8d;          /* "live / watching": the bright end of the feather */
+    --accent-soft: #dcf1ed;
+    --iris: #9c6c12;
 
     /* Semantic, deliberately outside the brand ramp */
     --ok: #12855f;
@@ -82,24 +100,27 @@
 
 @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-        --surface-page: #0e1020;
-        --surface-card: #171a2e;
-        --surface-sunken: #1e2238;
-        --surface-hover: #1f2440;
+        --surface-page: #0a0d16;
+        --surface-card: #11151f;
+        --surface-sunken: #181d2b;
+        --surface-hover: #1a2030;
 
-        --border-subtle: #272c47;
-        --border-strong: #363d5e;
+        --border-subtle: #212738;
+        --border-strong: #303850;
 
-        --text-primary: #eef0f8;
-        --text-secondary: #b3b9d4;
-        --text-muted: #8189ab;
+        --text-primary: #e9ecf7;
+        --text-secondary: #a9b0c6;
+        --text-muted: #747b93;
 
-        --brand-500: #7c86e8;
-        --brand-300: #a7aef2;
-        --brand-50: #1d2144;
+        --brand-500: #1fc7b3;
+    --brand-700: #45dccb;
+    --on-brand: #04221f;
+    --iris: #e8b955;
+        --brand-300: #2b7f78;
+        --brand-50: #0f2a2a;
 
-        --accent: #35c6e2;
-        --accent-soft: #10303a;
+        --accent: #45dccb;
+        --accent-soft: #0f2a2a;
 
         --ok: #45c795;
         --ok-soft: #122c24;
@@ -115,20 +136,23 @@
 }
 
 :root[data-theme="dark"] {
-    --surface-page: #0e1020;
-    --surface-card: #171a2e;
-    --surface-sunken: #1e2238;
-    --surface-hover: #1f2440;
-    --border-subtle: #272c47;
-    --border-strong: #363d5e;
-    --text-primary: #eef0f8;
-    --text-secondary: #b3b9d4;
-    --text-muted: #8189ab;
-    --brand-500: #7c86e8;
-    --brand-300: #a7aef2;
-    --brand-50: #1d2144;
-    --accent: #35c6e2;
-    --accent-soft: #10303a;
+    --surface-page: #0a0d16;
+    --surface-card: #11151f;
+    --surface-sunken: #181d2b;
+    --surface-hover: #1a2030;
+    --border-subtle: #212738;
+    --border-strong: #303850;
+    --text-primary: #e9ecf7;
+    --text-secondary: #a9b0c6;
+    --text-muted: #747b93;
+    --brand-500: #1fc7b3;
+    --brand-700: #45dccb;
+    --on-brand: #04221f;
+    --iris: #e8b955;
+    --brand-300: #2b7f78;
+    --brand-50: #0f2a2a;
+    --accent: #45dccb;
+    --accent-soft: #0f2a2a;
     --ok: #45c795;
     --ok-soft: #122c24;
     --warn: #e0a44a;
@@ -168,6 +192,8 @@ body {
 
 .text-blue-600, .text-blue-700, .text-blue-800, .text-blue-900 { color: var(--brand-500) !important; }
 .bg-blue-600, .bg-blue-500 { background-color: var(--brand-500) !important; }
+.bg-blue-600.text-white, .bg-blue-500.text-white, .bg-indigo-600.text-white, .bg-purple-600.text-white,
+.bg-blue-600 .text-white, .bg-indigo-600 .text-white { color: var(--on-brand) !important; }
 .hover\:bg-blue-700:hover { background-color: var(--brand-700) !important; }
 .bg-blue-50, .bg-blue-100 { background-color: var(--brand-50) !important; }
 .border-blue-200, .border-blue-300, .border-blue-500, .border-blue-600 { border-color: var(--brand-300) !important; }
@@ -1058,4 +1084,32 @@ input::placeholder { color: var(--text-muted) !important; }
     justify-content: center;
     gap: .5rem;
     margin-bottom: 1.25rem;
+}
+
+
+/* --- The identity shared with the public site ----------------------------- */
+h1, h2, .text-2xl.font-bold, .text-3xl.font-bold, .text-3xl.font-extrabold, .text-xl.font-bold {
+    font-family: 'Familjen Grotesk', 'Inter', ui-sans-serif, system-ui, sans-serif;
+    letter-spacing: -.022em;
+}
+code, pre, kbd, .font-mono { font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace !important; }
+
+.argus-mark { display: block; overflow: visible; color: var(--text-primary); flex-shrink: 0; }
+.argus-mark.mark-nav { width: 42px; height: 26px; }
+.argus-mark.mark-foot { width: 30px; height: 19px; }
+.argus-mark.mark-hero { width: 150px; height: 94px; margin: 0 auto 18px; }
+.argus-mark .mark-lid { fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linejoin: round; }
+.argus-mark .mark-bar { stroke: var(--accent); stroke-width: 1.7; stroke-linecap: round; }
+.argus-mark .mark-bar.is-now { stroke: var(--iris); }
+.argus-mark .mark-bar.is-ahead { stroke: currentColor; opacity: .28; }
+.argus-mark .mark-pupil { fill: var(--iris); }
+.argus-mark.mark-hero .mark-lid { stroke-width: 1.2; }
+.argus-mark.mark-hero .mark-bar { stroke-width: 1.3; }
+
+/* The pages before the login (sign in, sign up, reset, invitations) stood on a
+   blue gradient of their own. They stand on the same page as everything else,
+   with the feather's green coming down from the top. */
+.bg-gradient-to-br.from-blue-50, .bg-gradient-to-br.from-indigo-50, .bg-gradient-to-br.from-gray-50 {
+    background-image: radial-gradient(70% 46% at 50% 0%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 72%) !important;
+    background-color: var(--surface-page) !important;
 }

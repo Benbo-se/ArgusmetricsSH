@@ -21,7 +21,7 @@ function themeAlpha(name, alpha, fallback) {
 }
 
 // Categorical series palette: distinct hues that stay legible on both themes.
-const SERIES_COLORS = ['#4550c8', '#06a9c9', '#7b4fd0', '#12855f', '#c2701a', '#b32739'];
+const SERIES_COLORS = ['#0a6f69', '#c8922a', '#4550c8', '#12855f', '#c2701a', '#b32739'];
 
 // Global chart instances
 let pageviewsChart = null;

@@ -18,7 +18,7 @@
 <header class="share-bar">
     <div class="share-bar-inner max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <a href="/" class="share-brand">
-            <img src="/static/img/ArgusEyefavicon3.png" alt="" class="h-7 w-7 flex-shrink-0">
+            {% with mark_class='mark-nav' %}{% include 'components/_mark.html' %}{% endwith %}
             <span class="font-bold text-gray-900 truncate">Argusmetrics</span>
         </a>
         <span class="dash-pill is-muted"
@@ -306,7 +306,7 @@
     <!-- Powered by footer -->
     <footer class="share-foot">
         <a href="https://argusmetrics.io" target="_blank" rel="noopener noreferrer">
-            <img src="/static/img/ArgusEyefavicon3.png" alt="" class="h-5 w-5">
+            {% with mark_class='mark-foot' %}{% include 'components/_mark.html' %}{% endwith %}
             <span>Powered by <strong>Argusmetrics</strong></span>
         </a>
         <p>Privacy-first analytics for modern websites</p>
