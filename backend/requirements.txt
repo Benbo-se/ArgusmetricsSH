@@ -46,7 +46,7 @@ pydantic==2.14.2
 pydantic-settings==2.16.2
 
 # Utilities
-python-dateutil==2.9.0.post0
+python-dateutil==4.0.0
 user-agents==2.2.0
 
 # AI & Chatbot
