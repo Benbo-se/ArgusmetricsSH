@@ -533,7 +533,8 @@ test.describe('The tracker counts once and keeps secrets out of the path', () =>
         }
 
         expect(sent.pageviews.map(p => p.path)).toEqual(['/a', '/b', '/c', '/d']);
-        expect(await page.evaluate(() => (window as any).argusTrackerLoaded),
+        // Truthy, not true: the build writes booleans as 1 and 0.
+        expect(await page.evaluate(() => Boolean((window as any).argusTrackerLoaded)),
             'the flag keeps its name in the built file, so two builds agree on it').toBe(true);
     });
 
