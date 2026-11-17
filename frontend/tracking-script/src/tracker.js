@@ -7,7 +7,8 @@
  * - No cookies
  * - Respects Do Not Track (DNT)
  * - fetch with keepalive, so reports survive the page being left
- * - About 8 KB minified, 3 KB gzipped
+ * - Tokens in a path are masked, and paths can be left out entirely
+ * - About 9.5 KB minified, 3.4 KB gzipped
  *
  * Usage:
  *   <script src="https://argusmetrics.io/static/tracker.min.js" data-tracking-code="YOUR_CODE" defer></script>
@@ -15,6 +16,29 @@
 
 (function() {
   'use strict';
+
+  /**
+   * Start once per page, however many times the script is run (#279).
+   *
+   * A second copy used to start a second tracker: its own pageview, and its
+   * own wrappers around history.pushState, so every later page change was
+   * counted once per copy. A single-page app that put the tag back in on each
+   * navigation gained a copy per page, and a visit to 7 pages was recorded as
+   * 46 pageviews. A tag manager firing twice, or the snippet pasted in two
+   * places, did the same on a smaller scale.
+   *
+   * The first copy keeps running and already follows the page changes, so the
+   * extra one has nothing to add and stops here, silently: the build removes
+   * every console call, so that the script never writes in a visitor's console.
+   *
+   * The name has no leading underscore on purpose. The build shortens
+   * properties that start with one, and a flag that is renamed between two
+   * builds does not stop an old cached copy and a new one from both starting.
+   */
+  if (window.argusTrackerLoaded) {
+    return;
+  }
+  window.argusTrackerLoaded = true;
 
   /**
    * Settings, from the script tag's data attributes or from window.argusConfig.
@@ -33,6 +57,8 @@
     'data-tracking-code': 'trackingCode',
     'data-api-endpoint': 'apiEndpoint',
     'data-exclude-outbound': 'excludeOutbound',
+    'data-exclude-paths': 'excludePaths',
+    'data-mask-path-tokens': 'maskPathTokens',
     'data-track-localhost': 'trackLocalhost'
   };
 
@@ -170,9 +196,120 @@
     'credential', 'otp', 'email', 'mail', 'hash'];
 
   /**
-   * Get current page path with sensitive query params stripped
+   * Whether nothing at all may be sent: the visitor asked not to be tracked,
+   * the page is on a developer's machine, or the browser is a crawler.
+   */
+  function isRefused() {
+    return isDNTEnabled() || isLocalDevelopment() || isAutomated();
+  }
+
+  /**
+   * Pages the site has asked to be left out, with data-exclude-paths (#280).
+   *
+   *     data-exclude-paths="/admin, /aktivera/*"
+   *
+   * A pattern without a star is that page and everything under it: /admin is
+   * /admin and /admin/users, not /administrator. A star stands for anything,
+   * slashes included. A trailing slash makes no difference on either side.
+   *
+   * Nothing is sent from a matching page: no pageview, no event, no scroll
+   * depth. Before this the only way to keep staff's own clicks in an admin
+   * area out of the statistics was to not load the script there, which a
+   * single-page app cannot do once it has loaded.
+   */
+  function isExcludedPath() {
+    var raw = setting('data-exclude-paths');
+    if (!raw) return false;
+
+    var path = window.location.pathname.replace(/\/+$/, '') || '/';
+    return raw.split(',').some(function(pattern) {
+      pattern = pattern.trim();
+      if (!pattern) return false;
+      if (pattern.charAt(0) !== '/' && pattern.charAt(0) !== '*') pattern = '/' + pattern;
+      pattern = pattern.replace(/\/+$/, '') || '/';
+
+      if (pattern.indexOf('*') === -1) {
+        return path === pattern || path.indexOf(pattern + '/') === 0;
+      }
+      var source = pattern.split('*').map(function(piece) {
+        return piece.replace(/[.+?^${}()|[\]\\]/g, '\\$&');
+      }).join('.*');
+      return new RegExp('^' + source + '$').test(path);
+    });
+  }
+
+  /**
+   * Whether one piece of a path looks like a secret rather than a name.
+   *
+   * Many applications put a one-time token in the path: /reset-password/<token>,
+   * /invite/<token>, /aktivera/<token>. The query string was cleaned of such
+   * things and the path was sent as it stood, so the token was stored as a
+   * page name (#280). This is the protection for a site that has configured
+   * nothing; data-exclude-paths is the deliberate one.
+   *
+   * A name is made of words, so its letters and digits come in runs. A random
+   * string changes between them all the time. Three shapes are caught:
+   *
+   * - a UUID;
+   * - a stretch of 16 or more letters and digits that goes between letters
+   *   and digits at least four times (hex digests, password-reset tokens);
+   * - 20 or more characters of the URL-safe base64 alphabet where at least
+   *   every other character is of another kind than the one before it
+   *   (lower case, upper case, digit), which is what token_urlsafe, nanoid
+   *   and a JWT part look like.
+   *
+   * "iphone-15-pro-max-256gb", "World_War_2_Eastern_Front_1941" and
+   * "blackfridaysale2024" are none of these. A 19-digit numeric id is not
+   * either: it has no letters to change to.
+   */
+  var UUID = /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
+
+  /** How many characters are of another kind than the one before. */
+  function kindChanges(text, caseMatters) {
+    var changes = 0;
+    var previous = -1;
+    for (var i = 0; i < text.length; i++) {
+      var code = text.charCodeAt(i);
+      var kind = code < 58 ? 0 : (code < 91 && caseMatters ? 1 : 2);
+      if (i && kind !== previous) changes++;
+      previous = kind;
+    }
+    return changes;
+  }
+
+  function looksLikeToken(segment) {
+    if (UUID.test(segment)) return true;
+
+    var runs = segment.split(/[^A-Za-z0-9]+/);
+    for (var i = 0; i < runs.length; i++) {
+      if (runs[i].length >= 16 && kindChanges(runs[i], false) >= 4) return true;
+    }
+
+    if (/^[\w-]{20,}$/.test(segment)) {
+      var bare = segment.replace(/[_-]/g, '');
+      return kindChanges(bare, true) * 2 >= bare.length - 1;
+    }
+    return false;
+  }
+
+  /**
+   * A path with anything that looks like a token replaced by ":token".
+   * data-mask-path-tokens="false" turns it off, for a site whose real page
+   * names happen to look like that.
+   */
+  function maskPath(pathname) {
+    if (!pathname || setting('data-mask-path-tokens') === 'false') return pathname;
+    return pathname.split('/').map(function(segment) {
+      return looksLikeToken(segment) ? ':token' : segment;
+    }).join('/');
+  }
+
+  /**
+   * Get current page path with sensitive query params stripped and tokens in
+   * the path itself masked
    */
   function getPath() {
+    var pathname = maskPath(window.location.pathname);
     var search = window.location.search;
     if (search) {
       var params = new URLSearchParams(search);
@@ -183,15 +320,16 @@
         }
       });
       var qs = cleaned.toString();
-      return window.location.pathname + (qs ? '?' + qs : '');
+      return pathname + (qs ? '?' + qs : '');
     }
-    return window.location.pathname;
+    return pathname;
   }
 
   /**
    * Strip sensitive query params from a URL string.
    * Keeps scheme+host+path and drops the query string entirely
-   * (most analytics only need the origin/path). Returns the input
+   * (most analytics only need the origin/path), and masks tokens in the
+   * path the same way as for the page's own address. Returns the input
    * unchanged if it cannot be parsed, and null/empty for empty input.
    */
   function sanitizeUrl(rawUrl) {
@@ -199,10 +337,10 @@
     try {
       var u = new URL(rawUrl);
       // Drop query string entirely (safest); keep scheme + host + path.
-      return u.protocol + '//' + u.host + u.pathname;
+      return u.protocol + '//' + u.host + maskPath(u.pathname);
     } catch (e) {
       // Not parseable as an absolute URL; strip any query/hash defensively.
-      return rawUrl.split('?')[0].split('#')[0];
+      return maskPath(rawUrl.split('?')[0].split('#')[0]);
     }
   }
 
@@ -242,12 +380,15 @@
    * @param {Object} properties - Optional custom properties (e.g., {userId: '123', plan: 'pro'})
    */
   function trackPageview(properties = null) {
-    // Check if DNT is enabled
-    if (isDNTEnabled()) {
+    if (isRefused()) {
       return;
     }
 
-    if (isLocalDevelopment() || isAutomated()) {
+    // An excluded page is still a page the visitor went to. Remembering it
+    // means coming back from it to the page before is counted as a new view,
+    // as coming back from any other page is.
+    if (isExcludedPath()) {
+      lastTrackedPath = getPath();
       return;
     }
 
@@ -295,12 +436,7 @@
    * @param {Object} properties - Optional key-value properties (e.g., {button: 'CTA', color: 'blue'})
    */
   function trackEvent(eventName, properties = {}) {
-    // Check if DNT is enabled
-    if (isDNTEnabled()) {
-      return;
-    }
-
-    if (isLocalDevelopment() || isAutomated()) {
+    if (isRefused() || isExcludedPath()) {
       return;
     }
 
@@ -359,11 +495,7 @@
    * @param {Object} data - Event data (revenue, product_name, transaction_id, etc.)
    */
   function trackEcommerce(eventType, data = {}) {
-    if (isDNTEnabled()) {
-      return;
-    }
-
-    if (isLocalDevelopment() || isAutomated()) {
+    if (isRefused() || isExcludedPath()) {
       return;
     }
 
@@ -720,6 +852,10 @@
    */
   let scrollPath = null;
 
+  /** Whether that page is one the site excluded, decided at the same moment
+   *  and for the same reason: the URL has changed by the time it is needed. */
+  let scrollExcluded = false;
+
   /**
    * Calculate the current scroll depth percentage
    */
@@ -811,7 +947,7 @@
     // The same two refusals as a pageview. Without them a visitor with Do
     // Not Track on, or a developer on localhost, sent no pageview but still
     // sent the path and depth the moment the page was hidden (#106).
-    if (isDNTEnabled() || isLocalDevelopment() || isAutomated()) return;
+    if (isRefused() || scrollExcluded) return;
 
     var trackingCode = getTrackingCode();
     if (!trackingCode) return;
@@ -860,6 +996,7 @@
     // without this the second page would inherit the first one's depth.
     maxScrollDepth = 0;
     scrollPath = getPath();
+    scrollExcluded = isExcludedPath();
     reportedScrollDepth = 0;
 
     // Add scroll listener

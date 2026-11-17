@@ -117,6 +117,9 @@
                         <a href="#outbound-links" class="block px-3 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-md">
                             Outbound Links
                         </a>
+                        <a href="#excluding-pages" class="block px-3 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-md">
+                            Excluding Pages
+                        </a>
                         <a href="#404-tracking" class="block px-3 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-md">
                             404 Error Tracking
                         </a>
@@ -998,6 +1001,41 @@ export default function Document() {
   src="https://your-argusmetrics-instance.com/static/tracker.min.js"
 &gt;&lt;/script&gt;</code></pre>
                         </div>
+                    </section>
+
+                    <!-- Excluding pages -->
+                    <section id="excluding-pages" class="mb-12">
+                        <h2 class="text-3xl font-bold text-gray-900 mb-4 pb-2 border-b-2 border-blue-600">Excluding Pages</h2>
+                        <p class="text-gray-700 mb-4">
+                            Some pages should not be in the statistics at all: an admin area, where your own staff's clicks would drown the visitors', or a page whose address carries a one-time link.
+                        </p>
+                        <div class="bg-gray-900 text-gray-100 p-4 rounded-lg mb-4 overflow-x-auto">
+                            <pre><code>&lt;script
+  defer
+  data-tracking-code="YOUR_CODE"
+  data-exclude-paths="/admin, /activate/*"
+  src="https://your-argusmetrics-instance.com/static/tracker.min.js"
+&gt;&lt;/script&gt;</code></pre>
+                        </div>
+                        <ul class="list-disc list-inside space-y-2 text-gray-700 ml-4 mb-4">
+                            <li>Nothing is sent from a matching page: no pageview, no event, no scroll depth.</li>
+                            <li>A pattern without a star is that page and everything under it: <code>/admin</code> covers <code>/admin/users</code>, not <code>/administrator</code>.</li>
+                            <li>A star stands for anything, slashes included.</li>
+                            <li>It works in a single-page app too, where the script is already loaded when the visitor gets there.</li>
+                        </ul>
+
+                        <h3 class="text-xl font-semibold text-gray-900 mb-3 mt-6">Tokens in the Path</h3>
+                        <p class="text-gray-700 mb-4">
+                            Many applications put a secret in the path itself, as in <code>/reset-password/&lt;token&gt;</code>. A part of a path that looks like one (a UUID, a long hex or base64 string) is sent as <code>:token</code>, in the page's own path and in the referrer, so it is never stored as a page name.
+                        </p>
+                        <p class="text-gray-700 mb-4">
+                            This is a guess made from the shape of the text. It is a safety net, not a guarantee: a short token can slip through. For pages you know carry one, exclude them as above. If your real page names look like tokens and you want them kept, set <code>data-mask-path-tokens="false"</code>.
+                        </p>
+
+                        <h3 class="text-xl font-semibold text-gray-900 mb-3 mt-6">The Script on a Page More Than Once</h3>
+                        <p class="text-gray-700 mb-4">
+                            The script starts once per page. A second copy, from a tag manager firing twice or a router that renders the tag again on each navigation, does nothing, so page views are not counted double.
+                        </p>
                     </section>
 
                     <!-- 404 Tracking -->

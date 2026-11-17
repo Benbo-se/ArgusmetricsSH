@@ -5,7 +5,9 @@ Privacy-first JavaScript tracking script for Argusmetrics analytics platform.
 ## Features
 
 - **Privacy-First**: No cookies, no localStorage, no PII stored
-- **Small**: 7.7KB minified, 2.5KB gzipped
+- **Small**: 9.5KB minified, 3.4KB gzipped
+- **Starts once**: a second copy of the script on the same page does nothing
+- **Keeps secrets out of paths**: token-like path segments are sent as `:token`, and `data-exclude-paths` leaves pages out entirely
 - **Reliable**: Uses `fetch` with `keepalive` for tracking (works even when page closes)
 - **Respects DNT**: Automatically respects Do Not Track browser setting
 - **SPA Support**: Automatically tracks route changes in Single Page Applications
@@ -93,6 +95,39 @@ data-api-endpoint="https://analytics.example.com/api/v1/analytics/track"
 ```
 
 Override the default API endpoint. Useful for self-hosted installations.
+
+### Excluding Pages (Optional)
+
+```html
+<script
+  src="https://analytics.your-domain.com/static/tracker.min.js"
+  data-tracking-code="abc123"
+  data-exclude-paths="/admin, /aktivera/*"
+  defer
+></script>
+```
+
+Nothing is sent from a matching page: no pageview, no event, no scroll depth.
+A pattern without a star is that page and everything under it (`/admin` covers
+`/admin/users`, not `/administrator`). A star stands for anything, slashes
+included. This also works in a single-page app, where the script is already
+loaded when the visitor reaches the page.
+
+### Tokens in the Path
+
+A path segment that looks like a secret (a UUID, a long hex or base64 string,
+as in `/reset-password/<token>`) is sent as `:token`, both in the page's own
+path and in the referrer. It is a guess made from the shape of the text, so it
+is a safety net and not a guarantee: a short token can slip through. For pages
+you know carry a token, use `data-exclude-paths`.
+
+If your real page names look like that and you want them as they are, turn it
+off with `data-mask-path-tokens="false"`.
+
+### Loaded More Than Once
+
+The script starts once per page. A second copy (a tag manager firing twice, a
+router that renders the tag again on each navigation) does nothing.
 
 ## Advanced Usage
 

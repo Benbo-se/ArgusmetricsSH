@@ -89,10 +89,10 @@ test('the weight bars carry the measured numbers, to scale', async ({ page }) =>
   const rows = page.locator('#weight .weigh-row');
   await expect(rows).toHaveCount(3);
   await expect(rows.nth(0).locator('.num')).toContainText('155');
-  await expect(rows.nth(1).locator('.num')).toContainText('2.9');
+  await expect(rows.nth(1).locator('.num')).toContainText('3.4');
   await expect(rows.nth(1)).toHaveClass(/is-us/);
   const widths = await rows.evaluateAll((els) => els.map((el) => (el as HTMLElement).style.getPropertyValue('--w')));
-  expect(widths.slice(0, 2)).toEqual(['100%', '1.85%']);
+  expect(widths.slice(0, 2)).toEqual(['100%', '2.18%']);
   // The bar itself is as wide as it says once the section has been seen.
   await rows.nth(0).scrollIntoViewIfNeeded();
   await expect(page.locator('#weight .weigh')).toHaveClass(/is-seen/);
