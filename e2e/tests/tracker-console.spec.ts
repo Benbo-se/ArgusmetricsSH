@@ -591,6 +591,60 @@ test.describe('The tracker counts once and keeps secrets out of the path', () =>
         expect(sent.depths.map(d => d.path), 'the depth carries the masked path too').toEqual(['/invite/:token']);
     });
 
+    /**
+     * Links are looked at when they are clicked, by one listener on the
+     * document, where there used to be a listener on every link and an
+     * observer for links added later. The page keeps the clicks from
+     * navigating, so everything can be clicked in one visit.
+     */
+    test('clicks on outbound links and downloads are reported, wherever the link came from', async ({ page }) => {
+        const sent = await site(page, 'data-exclude-outbound="partner.example"');
+        await page.goto('http://shop.test/links');
+        await page.evaluate(() => {
+            // On the window and in the capture phase, so it also holds for the
+            // link below that stops its click from going any further.
+            window.addEventListener('click', event => event.preventDefault(), true);
+            document.body.insertAdjacentHTML('afterbegin', `
+                <a id="out" href="https://elsewhere.example/page?secret=1">Elsewhere</a>
+                <a id="nested" href="https://nested.example/"><span id="inner"><img alt="A logo" src="data:,"></span></a>
+                <a id="quiet" href="https://quiet.example/">Quiet</a>
+                <a id="blank" href="/pricing" target="_blank">Pricing in a new tab</a>
+                <a id="file" href="/files/Handbook.PDF">The handbook</a>
+                <a id="named" href="/export" download="report.csv">An export</a>
+                <a id="inside" href="/about">About</a>
+                <a id="partner" href="https://shop.partner.example/">A partner</a>
+                <button id="nolink">Not a link</button>`);
+            // A site's own handler that keeps the click to itself.
+            document.getElementById('quiet')!.addEventListener('click', event => event.stopPropagation());
+        });
+        // Added after the tracker started, as a single-page app adds them.
+        await page.evaluate(() => document.body.insertAdjacentHTML('afterbegin',
+            '<a id="late" href="https://late.example/">Late</a>'));
+
+        for (const id of ['out', 'inner', 'quiet', 'blank', 'file', 'named', 'late', 'inside', 'partner', 'nolink']) {
+            await page.evaluate(target => document.getElementById(target)!.click(), id);
+        }
+        await page.waitForTimeout(400);
+
+        const outbound = sent.events.filter(e => e.event_name === 'Outbound Link').map(e => e.properties);
+        expect(outbound.map(p => p.url)).toEqual([
+            'https://elsewhere.example/page',
+            'https://nested.example/',
+            'https://quiet.example/',
+            'http://shop.test/pricing',
+            'https://late.example/',
+        ]);
+        expect(outbound.map(p => p.text)).toEqual(['Elsewhere', 'A logo', 'Quiet', 'Pricing in a new tab', 'Late']);
+        expect(outbound.every(p => p.from_page === '/links')).toBe(true);
+
+        const downloads = sent.events.filter(e => e.event_name === 'file_download').map(e => e.properties);
+        expect(downloads.map(p => [p.filename, p.file_type, p.url])).toEqual([
+            ['Handbook.PDF', 'pdf', 'http://shop.test/files/Handbook.PDF'],
+            ['report.csv', 'csv', 'http://shop.test/export'],
+        ]);
+        expect(sent.events.length, 'nothing for the inside link, the excluded domain or the button').toBe(7);
+    });
+
     test('the masking can be turned off', async ({ page }) => {
         const sent = await site(page, 'data-mask-path-tokens="false"');
 

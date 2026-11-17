@@ -5,7 +5,7 @@ Privacy-first JavaScript tracking script for Argusmetrics analytics platform.
 ## Features
 
 - **Privacy-First**: No cookies, no localStorage, no PII stored
-- **Small**: 9.5KB minified, 3.4KB gzipped
+- **Small**: 7.4KB minified, 3.1KB gzipped
 - **Starts once**: a second copy of the script on the same page does nothing
 - **Keeps secrets out of paths**: token-like path segments are sent as `:token`, and `data-exclude-paths` leaves pages out entirely
 - **Reliable**: Uses `fetch` with `keepalive` for tracking (works even when page closes)
