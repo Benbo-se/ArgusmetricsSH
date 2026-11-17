@@ -12,6 +12,12 @@ on:
     branches: [main]
     paths-ignore: ['**.md']
 
+# Read-only unless a job says otherwise. Without this a job gets whatever the
+# repository's default token permissions happen to be. build and cleanup ask
+# for packages: write themselves; nothing else needs more than the checkout.
+permissions:
+  contents: read
+
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
