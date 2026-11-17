@@ -79,15 +79,26 @@ def _single_runner(lock_key: int, job_name: str):
     every job would otherwise fire once per worker (duplicate cleanup runs,
     duplicate report emails). A Postgres advisory lock makes the first worker
     to arrive the only one that runs it.
+
+    The lock has a connection of its own, held for the whole job (#193). An
+    advisory lock belongs to the connection that took it, and a session gives
+    its connection back to the pool at every commit. Taken on the job's
+    session, the lock was therefore left behind at the first commit: on
+    whichever pooled connection that happened to be, where the unlock at the
+    end might not find it, or, without a pool, on a connection that was closed
+    at once, which released the lock while the job was still running.
     """
     from sqlalchemy import text
-    from app.database import SessionLocal, set_rls_context
+    from app.database import SessionLocal, engine, set_rls_context
 
+    lock_conn = engine.connect()
     db = SessionLocal()
     acquired = False
     started = time.monotonic()
     try:
-        acquired = bool(db.execute(text("SELECT pg_try_advisory_lock(:k)"), {"k": lock_key}).scalar())
+        acquired = bool(lock_conn.execute(text("SELECT pg_try_advisory_lock(:k)"), {"k": lock_key}).scalar())
+        # Ends the transaction, not the lock: it is held by the connection.
+        lock_conn.commit()
         if not acquired:
             logger.info(f"[SCHEDULED] Job {lock_key} already running in another worker - skipping")
             yield acquired
@@ -102,9 +113,16 @@ def _single_runner(lock_key: int, job_name: str):
             raise
         _record_success(db, job_name, started)
     finally:
-        if acquired:
-            db.execute(text("SELECT pg_advisory_unlock(:k)"), {"k": lock_key})
-            db.commit()
+        try:
+            if acquired:
+                lock_conn.execute(text("SELECT pg_advisory_unlock(:k)"), {"k": lock_key})
+                lock_conn.commit()
+            lock_conn.close()
+        except Exception:
+            # A connection that cannot say it let go must not go back to the
+            # pool holding the lock. Closing it for real releases the lock.
+            logger.exception(f"[SCHEDULED] Could not release the lock for {job_name}")
+            lock_conn.invalidate()
         db.close()
 
 
