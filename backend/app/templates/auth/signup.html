@@ -145,7 +145,7 @@ async function handleSignup(event) {
                 successMsg.innerHTML = `
                     <p class="font-bold mb-2"><svg class="ico" aria-hidden="true"><use href="{{ static_url('img/icons.svg') }}#i-warn"></use></svg> Development Mode</p>
                     <p class="text-sm mb-3">Email is not configured. Click the button below to verify your account:</p>
-                    <a href="${data.verify_url}"
+                    <a data-verify-link href="#"
                        class="inline-block px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors">
                         Click Here to Verify Account
                     </a>
@@ -153,16 +153,21 @@ async function handleSignup(event) {
                         <svg class="ico" aria-hidden="true"><use href="{{ static_url('img/icons.svg') }}#i-ban"></use></svg> This will NOT work in production! Configure email (SMTP) before deploying.
                     </p>
                 `;
+                // Set as a property, after the markup, so the value is an
+                // address and never a piece of the markup.
+                successMsg.querySelector('[data-verify-link]').href = data.verify_url;
             } else {
                 successMsg.innerHTML = `
                     <p class="font-bold mb-2"><svg class="ico" aria-hidden="true"><use href="{{ static_url('img/icons.svg') }}#i-check"></use></svg> Check your email!</p>
-                    <p class="text-sm mb-3">We've sent a verification link and a 6-digit code to <span class="font-semibold">${email}</span>.</p>
+                    <p class="text-sm mb-3">We've sent a verification link and a 6-digit code to <span class="font-semibold" data-sent-to></span>.</p>
                     <a href="/verify?email=${encodeURIComponent(email)}"
                        class="inline-block px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors">
                         Enter the code
                     </a>
                     <p class="text-xs mt-2 text-green-600">Link and code expire in 15 minutes.</p>
                 `;
+                // What was typed is shown as text, not read as markup.
+                successMsg.querySelector('[data-sent-to]').textContent = email;
             }
 
             successMsg.classList.remove('hidden');

@@ -14,6 +14,7 @@ Provides endpoints for:
 import logging
 import re
 from typing import Optional
+from urllib.parse import quote
 from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, Request, HTTPException, status, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -596,7 +597,9 @@ async def verify_page(
         pending_invite = request.cookies.get("pending_invite")
         if pending_invite:
             response = RedirectResponse(
-                url=f"/accept-invite?token={pending_invite}",
+                # A cookie is whatever the browser sends, so it goes into the
+                # address as one encoded value and nothing else.
+                url=f"/accept-invite?token={quote(pending_invite, safe='')}",
                 status_code=302
             )
             response.set_cookie(
@@ -1513,9 +1516,11 @@ async def public_dashboard_verify(
             detail="Public dashboard not found or has been disabled"
         )
 
-    redirect_url = f"/public/{share_token}"
+    # share_token was just looked up, so it is one that exists. range is
+    # whatever the form sent, and goes in as one encoded value.
+    redirect_url = f"/public/{quote(share_token, safe='')}"
     if range:
-        redirect_url += f"?range={range}"
+        redirect_url += f"?range={quote(range, safe='')}"
 
     # No password configured -> nothing to verify, just go to the dashboard.
     if not website.public_password_enabled or not website.public_password_hash:
