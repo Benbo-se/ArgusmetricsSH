@@ -11,13 +11,21 @@ arrival at each step is recorded (analytics_recording_service), so someone
 who looked at the cart, went back to the product and then checked out has a
 cart row older than the product row, and requiring the order would drop a
 visitor who did go through every step.
+
+With `filters`, the funnel is the one walked by visitors who have a matching
+pageview in the same period (FilterSet.visitor_conditions).
 """
 from datetime import datetime, timedelta, timezone
+from typing import Optional
 
 from app.models.funnel import Funnel, FunnelEvent
+from app.services.filters import FilterSet, visitor_conditions
 
 
-def funnel_stats(db, funnel: Funnel, days: int = 30, now: datetime = None) -> dict:
+def funnel_stats(
+    db, funnel: Funnel, days: int = 30, now: datetime = None,
+    filters: Optional[FilterSet] = None,
+) -> dict:
     now = now or datetime.now(timezone.utc)
     since = now - timedelta(days=days)
     steps = sorted(funnel.steps or [], key=lambda s: s.get("step") or 0)
@@ -26,6 +34,7 @@ def funnel_stats(db, funnel: Funnel, days: int = 30, now: datetime = None) -> di
     rows = db.query(FunnelEvent.visitor_id, FunnelEvent.step_number).filter(
         FunnelEvent.funnel_id == funnel.id,
         FunnelEvent.timestamp >= since,
+        *visitor_conditions(filters, FunnelEvent.visitor_id, funnel.website_id, since),
     ).distinct()
     for visitor, step in rows:
         reached.setdefault(visitor, set()).add(step)

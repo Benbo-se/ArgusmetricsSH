@@ -13,6 +13,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Request, Header, 
 
 from app.services.usage_service import LIMIT_MESSAGE
 from app.services import visitor_dimensions
+from app.services.filters import FilterSet
 from app.utils.date_helpers import as_utc, parse_api_window, site_timezone
 from app.utils.csv_safe import SafeWriter
 from sqlalchemy.orm import Session
@@ -534,6 +535,7 @@ MAX_HOURLY_DAYS = 31
 
 @router.get("/stats/{website_id}", response_model=DashboardStatsResponse)
 async def get_dashboard_stats(
+    request: Request,
     website_id: int,
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
@@ -550,6 +552,11 @@ async def get_dashboard_stats(
     default) or `hour`, which is offered for ranges of up to 31 days. An
     hourly point's `date` is the start of the hour in the website's zone,
     with its offset.
+
+    The dashboard's filters are query parameters here too, spelled the same
+    way: `country=SE`, `page__contains=/blog`, `referrer__not=...`,
+    `browser__not_contains=bot`, and `properties` as a JSON object. The
+    dimensions and operators are listed in app/services/filters.py.
     """
     logger.info(f"Dashboard stats request: website_id={website_id}, user={mask_email(current_user.email)}")
     
@@ -579,6 +586,7 @@ async def get_dashboard_stats(
     try:
         stats = analytics_service.get_dashboard_stats(
             website_id=website_id, start_date=start, end_date=end,
+            filters=FilterSet.from_query(request.query_params),
             tz=site_timezone(website), bucket=interval or "day")
         return DashboardStatsResponse(**stats)
     except Exception as e:
@@ -879,6 +887,7 @@ async def track_ecommerce(
 
 @router.get("/goals/{website_id}", response_model=GoalStatsResponse)
 async def get_goal_stats(
+    request: Request,
     website_id: int,
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
@@ -893,6 +902,9 @@ async def get_goal_stats(
     could otherwise only get them by logging in as a person. A token scoped to
     another website gets 404 from _enforce_token_scope below. Creating,
     changing and deleting goals stay session-only.
+
+    Takes the same filter parameters as /stats. The rate is then the share of
+    the filtered visitors who converted.
     """
     logger.info(f"Goal stats request: website_id={website_id}")
 
@@ -909,7 +921,9 @@ async def get_goal_stats(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid date format")
 
     # Get goal stats
-    stats = analytics_service.get_goal_stats(website_id, start, end)
+    stats = analytics_service.get_goal_stats(
+        website_id, start, end, filters=FilterSet.from_query(request.query_params)
+    )
     return GoalStatsResponse(**stats)
 
 
@@ -1292,6 +1306,7 @@ async def update_alert_settings(
 
 @router.get("/custom-events/{website_id}", response_model=CustomEventsSummary)
 async def get_custom_events_summary(
+    request: Request,
     website_id: int,
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
@@ -1299,7 +1314,11 @@ async def get_custom_events_summary(
     analytics_service: AnalyticsService = Depends(get_analytics_service),
     website_service: WebsiteService = Depends(get_website_service)
 ) -> CustomEventsSummary:
-    """Get custom events summary for a website."""
+    """Get custom events summary for a website.
+
+    Takes the same filter parameters as /stats: the events are then those of
+    visitors with a matching pageview in the range.
+    """
     logger.info(f"Custom events summary request: website_id={website_id}")
 
     # Verify website ownership
@@ -1315,12 +1334,15 @@ async def get_custom_events_summary(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid date format")
 
     # Get custom events summary
-    summary = analytics_service.get_custom_events_summary(website_id, start, end)
+    summary = analytics_service.get_custom_events_summary(
+        website_id, start, end, filters=FilterSet.from_query(request.query_params)
+    )
     return CustomEventsSummary(**summary)
 
 
 @router.get("/custom-events/{website_id}/{event_name}", response_model=CustomEventDetail)
 async def get_event_details(
+    request: Request,
     website_id: int,
     event_name: str,
     start_date: Optional[str] = None,
@@ -1329,7 +1351,10 @@ async def get_event_details(
     analytics_service: AnalyticsService = Depends(get_analytics_service),
     website_service: WebsiteService = Depends(get_website_service)
 ) -> CustomEventDetail:
-    """Get detailed information for a specific custom event."""
+    """Get detailed information for a specific custom event.
+
+    Takes the same filter parameters as /stats.
+    """
     logger.info(f"Event details request: website_id={website_id}, event={event_name}")
 
     # Verify website ownership
@@ -1345,7 +1370,10 @@ async def get_event_details(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid date format")
 
     # Get event details
-    details = analytics_service.get_event_details(website_id, event_name, start, end)
+    details = analytics_service.get_event_details(
+        website_id, event_name, start, end,
+        filters=FilterSet.from_query(request.query_params)
+    )
     return CustomEventDetail(**details)
 
 

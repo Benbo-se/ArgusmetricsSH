@@ -23,20 +23,10 @@
     'end_date': range_end,
     'today': site_today,
     'compare': compare_mode,
-    'filters': {
-        'country': active_filters.country or '',
-        'device': active_filters.device or '',
-        'browser': active_filters.browser or '',
-        'page': active_filters.page or '',
-        'referrer': active_filters.referrer or '',
-        'os': active_filters.os or '',
-        'os_version': active_filters.os_version or '',
-        'browser_version': active_filters.browser_version or '',
-        'language': active_filters.language or '',
-        'hostname': active_filters.hostname or '',
-        'screen': active_filters.screen or '',
-        'properties': active_filters.properties or {}
-    }
+    'filters': filter_state.active,
+    'filter_keys': filter_state['keys'],
+    'filter_suffixes': filter_state.suffixes,
+    'filter_operators': filter_state.operators
 } | tojson }}</script>
 {% set active = 'analytics' %}
 {% include 'components/sidebar.html' with context %}
@@ -128,41 +118,75 @@
             {{ icon('M19 9l-7 7-7-7', 'w-3.5 h-3.5 tool-caret') }}
         </label>
 
-        <!-- Filter by a custom property. Every other filter is set by
-             clicking a row in the lists below. -->
-        <div class="tool-anchor tool-end" x-data="propertyFilterDialog">
+        <!-- Filter by any dimension, with a condition other than "is" when
+             one is wanted. A click on a row in the lists below is still the
+             short way to "is". -->
+        <div class="tool-anchor tool-end" x-data="filterDialog">
             <button @click="toggle" type="button" class="tool-btn" aria-haspopup="true"
-                    title="Filter by a custom property. To filter by anything else, click a row in the lists below.">
+                    title="Filter the page by any dimension. A click on a row in the lists below filters by that row.">
                 {{ icon('M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z') }}
-                Property filter
+                Filter
             </button>
 
             <div x-show="isOpen" x-cloak
                  @click.away="close"
                  x-transition
-                 class="tool-pop is-end p-4">
-                <h3 class="text-sm font-semibold text-gray-900 mb-3">Filter by custom property</h3>
+                 class="tool-pop is-end p-4" data-filter-dialog>
+                <h3 class="text-sm font-semibold text-gray-900 mb-3">Add a filter</h3>
 
                 <div class="space-y-3">
                     <div>
+                        <label for="filter-dimension" class="block text-xs font-medium text-gray-700 mb-1">Dimension</label>
+                        <select id="filter-dimension"
+                                x-model="dimensionChoice" @change="dimensionChanged"
+                                class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            {% for dimension in filter_dimensions %}
+                            <option value="{{ dimension.name }}">{{ dimension.label }}</option>
+                            {% endfor %}
+                            <option value="property">Custom property</option>
+                        </select>
+                    </div>
+
+                    <!-- A custom property is a key the site chose itself, so
+                         it has to be named. -->
+                    <div x-show="isProperty" x-cloak>
                         <label for="property-key" class="block text-xs font-medium text-gray-700 mb-1">Property key</label>
                         <input type="text" id="property-key"
                                x-model="propertyKey"
-                               @keydown.enter="addProperty"
-                               placeholder="e.g., userId, plan, experiment"
+                               @keydown.enter="addFilter"
+                               placeholder="e.g., plan, experiment"
                                class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                     </div>
 
                     <div>
-                        <label for="property-value" class="block text-xs font-medium text-gray-700 mb-1">Property value</label>
-                        <input type="text" id="property-value"
-                               x-model="propertyValue"
-                               @keydown.enter="addProperty"
-                               placeholder="e.g., 123, pro, variant-A"
-                               class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <label for="filter-operator" class="block text-xs font-medium text-gray-700 mb-1">Condition</label>
+                        <select id="filter-operator"
+                                x-model="operatorChoice"
+                                class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            {# Every operator is listed and the ones the
+                               chosen dimension does not take are disabled:
+                               a country is a code, and "contains" on it
+                               would answer nothing anybody asked. #}
+                            {% for name, label in filter_operators %}
+                            <option value="{{ name }}" :disabled="operatorDisabled">{{ label }}</option>
+                            {% endfor %}
+                        </select>
                     </div>
 
-                    <button @click="addProperty"
+                    <div>
+                        <label for="filter-value" class="block text-xs font-medium text-gray-700 mb-1">Value</label>
+                        <input type="text" id="filter-value"
+                               x-model="valueField"
+                               @keydown.enter="addFilter"
+                               maxlength="2048"
+                               placeholder="e.g., /pricing"
+                               class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <p class="mt-1 text-xs text-gray-500">
+                            A country is its two-letter code. "Contains" ignores upper and lower case.
+                        </p>
+                    </div>
+
+                    <button @click="addFilter"
                             type="button"
                             class="w-full px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:ring-2 focus:ring-blue-500">
                         Apply filter
@@ -171,7 +195,7 @@
             </div>
         </div>
 
-        <a href="/dashboard/website/{{ website.id }}/export-csv?{{ range_query }}"
+        <a href="/dashboard/website/{{ website.id }}/export-csv?{{ range_query }}{% if filter_query %}&{{ filter_query }}{% endif %}"
            class="tool-btn" aria-label="Export CSV"
            title="Download analytics data as CSV">
             {{ icon('M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z') }}
@@ -184,26 +208,27 @@
          a filter only ever changes by loading the page again. -->
     <div x-show="hasFilters" x-cloak class="filter-chips" data-active-filters>
         <span class="filter-chips-label">Filtered by</span>
-        {% for name, title in [('country', 'Country'), ('device', 'Device'), ('browser', 'Browser'),
-                               ('page', 'Page'), ('referrer', 'Referrer')] + (visitor_dimensions | list) %}
-        {% if active_filters[name] %}
-        <span class="chip" data-dimension-chip="{{ name }}">
-            <span class="chip-key">{{ title }}</span>
-            <span class="chip-value{{ ' capitalize' if name == 'device' }}" title="{{ active_filters[name] }}">
-                {%- if name == 'country' -%}
-                {{ active_filters[name] | country_name }}
-                {%- elif name == 'referrer' -%}
-                {{ active_filters[name] | referrer_name }}
+        {# One chip per filter. "Country" alone still means "is", as it
+           did when that was the only condition; any other is spelled out. #}
+        {% for item in filters.filters %}
+        <span class="chip" data-dimension-chip="{{ item.dimension }}" data-operator="{{ item.operator }}">
+            <span class="chip-key">{{ item.label }}{% if item.operator != 'is' %} {{ item.operator_label }}{% endif %}</span>
+            <span class="chip-value{{ ' capitalize' if item.dimension == 'device' }}" title="{{ item.value }}">
+                {#- A name is for a whole value. A fragment somebody typed
+                    is shown as they typed it. -#}
+                {%- if item.dimension == 'country' -%}
+                {{ item.value | country_name }}
+                {%- elif item.dimension == 'referrer' and item.operator in ('is', 'is_not') -%}
+                {{ item.value | referrer_name }}
                 {%- else -%}
-                {{ active_filters[name] }}
+                {{ item.value }}
                 {%- endif -%}
             </span>
-            <button type="button" @click="removeFilter" data-filter="{{ name }}"
-                    aria-label="Remove the {{ title | lower }} filter" title="Remove">
+            <button type="button" @click="removeFilter" data-filter="{{ item.key }}"
+                    aria-label="Remove the {{ item.label | lower }} filter" title="Remove">
                 {{ icon(icon_close, 'w-3.5 h-3.5') }}
             </button>
         </span>
-        {% endif %}
         {% endfor %}
 
         <!-- Property filters -->
@@ -224,7 +249,7 @@
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-6">
         <!-- The headline numbers -->
         <div id="stats-basic"
-             hx-get="/dashboard/website/{{ website.id }}/stats-basic?{{ range_query }}&compare={{ compare_mode or 'false' }}{% if active_filters.country %}&country={{ active_filters.country|urlencode }}{% endif %}{% if active_filters.device %}&device={{ active_filters.device|urlencode }}{% endif %}{% if active_filters.browser %}&browser={{ active_filters.browser|urlencode }}{% endif %}{% if active_filters.page %}&page={{ active_filters.page|urlencode }}{% endif %}{% if active_filters.referrer %}&referrer={{ active_filters.referrer|urlencode }}{% endif %}{% for name, title in visitor_dimensions %}{% if active_filters[name] %}&{{ name }}={{ active_filters[name]|urlencode }}{% endif %}{% endfor %}"
+             hx-get="/dashboard/website/{{ website.id }}/stats-basic?{{ range_query }}&compare={{ compare_mode or 'false' }}{% if filter_query %}&{{ filter_query }}{% endif %}"
              hx-trigger="every 10s"
              hx-swap="innerHTML"
              class="contents">

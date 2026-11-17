@@ -25,6 +25,7 @@ from app.services.analytics_service import AnalyticsService
 from app.services.website_service import WebsiteService
 from app.services.usage_service import get_usage
 from app.services import visitor_dimensions
+from app.services.filters import DIMENSIONS, OPERATORS, FilterSet
 from app.services.country_names import country_name
 from app.services.site_activity import goal_activity, recent_activity
 from app.services.annotations_service import annotations_in_window
@@ -86,21 +87,44 @@ def _country_lookup_available() -> bool:
 templates.env.globals["geoip_available"] = _country_lookup_available
 
 
-def _dimension_filters(request: Request) -> dict:
-    """The visitor dimension filters present in the query string (#204).
+def _filter_context(filters: FilterSet) -> dict:
+    """What the analytics page needs to show its filters and to offer new ones.
 
-    Read from the request rather than declared one by one on each route: there
-    are six, two routes take them, and the list lives in one place.
+    The filters themselves are read from the request with
+    FilterSet.from_query rather than declared one by one on each route: the
+    list of dimensions and operators lives in app/services/filters.py, and a
+    route that named them would be a second copy of it.
     """
+    suffixes = {operator: suffix for operator, (suffix, _) in OPERATORS.items()}
     return {
-        name: request.query_params[name]
-        for name in visitor_dimensions.DIMENSION_NAMES
-        if request.query_params.get(name)
+        "filters": filters,
+        # Which dimensions are filtered, for the tab that holds their list.
+        "active_filters": filters.dimensions(),
+        # Ready for a URL: the ten-second refresh and the export ask for the
+        # same filtered numbers as the page they sit on.
+        "filter_query": filters.query_string(),
+        "filter_dimensions": list(DIMENSIONS.values()),
+        "filter_operators": [(name, label) for name, (_, label) in OPERATORS.items()],
+        # For the page's script: the active filters by query parameter, every
+        # parameter a filter can be written as, and which operators go with
+        # which dimension.
+        "filter_state": {
+            "active": {
+                **{f.key: f.value for f in filters.filters},
+                "properties": filters.properties,
+            },
+            "keys": [
+                dimension.name + suffixes[operator]
+                for dimension in DIMENSIONS.values()
+                for operator in dimension.operators
+            ],
+            "suffixes": suffixes,
+            "operators": {
+                dimension.name: list(dimension.operators)
+                for dimension in DIMENSIONS.values()
+            },
+        },
     }
-
-
-# The reports the template loops over: filter name and heading.
-templates.env.globals["visitor_dimensions"] = visitor_dimensions.DIMENSIONS
 
 # Stylesheets and scripts carry a hash of their own contents, so nginx can
 # cache them forever without a fix being unable to reach anyone. See
@@ -767,23 +791,14 @@ async def website_dashboard(
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
     compare: Optional[str] = None,
-    country: Optional[str] = None,
-    device: Optional[str] = None,
-    browser: Optional[str] = None,
-    page: Optional[str] = None,
-    referrer: Optional[str] = None,
-    properties: Optional[str] = None,
     current_user: User = Depends(get_current_user),
     analytics_service: AnalyticsService = Depends(get_analytics_service),
     website_service: WebsiteService = Depends(get_website_service)
 ):
     """Render website analytics dashboard."""
-    import json
-
     logger.info(
-        f"Website dashboard request: website_id={website_id}, user={current_user.email}, "
-        f"compare={compare}, filters: country={country}, device={device}, "
-        f"browser={browser}, page={page}, referrer={referrer}, properties={properties}"
+        f"Website dashboard request: website_id={website_id}, user={mask_email(current_user.email)}, "
+        f"compare={compare}, filters={FilterSet.from_query(request.query_params)}"
     )
 
     # Verify website ownership
@@ -800,13 +815,7 @@ async def website_dashboard(
     start, end = window.start, window.end
     mode = compare_mode(compare)
 
-    # Parse properties filter (JSON string to dict)
-    filter_properties = None
-    if properties:
-        try:
-            filter_properties = json.loads(properties)
-        except json.JSONDecodeError:
-            logger.warning(f"Invalid properties JSON: {properties}")
+    filters = FilterSet.from_query(request.query_params)
 
     # Get dashboard stats with filters
     try:
@@ -815,13 +824,7 @@ async def website_dashboard(
             start_date=start,
             end_date=end,
             compare=bool(mode),
-            filter_country=country,
-            filter_device=device,
-            filter_browser=browser,
-            filter_page=page,
-            filter_referrer=referrer,
-            filter_properties=filter_properties,
-            filter_dimensions=_dimension_filters(request),
+            filters=filters,
             tz=tz,
             bucket=window.bucket,
             previous=window.previous(mode) if mode else None
@@ -836,21 +839,24 @@ async def website_dashboard(
             website_id=website_id,
             start_date=start,
             end_date=end,
-            limit=20
+            limit=20,
+            filters=filters
         )
 
         # Get custom events summary
         custom_events = analytics_service.get_custom_events_summary(
             website_id=website_id,
             start_date=start,
-            end_date=end
+            end_date=end,
+            filters=filters
         )
 
         # Get file downloads
         file_downloads = analytics_service.get_file_downloads(
             website_id=website_id,
             start_date=start,
-            end_date=end
+            end_date=end,
+            filters=filters
         )
 
         # The team's notes on the days the graph shows, and whether this
@@ -873,22 +879,6 @@ async def website_dashboard(
             {"current_user": current_user, "website": website},
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
         )
-
-    # Build active filters dictionary
-    active_filters = {}
-    if country:
-        active_filters['country'] = country
-    if device:
-        active_filters['device'] = device
-    if browser:
-        active_filters['browser'] = browser
-    if page:
-        active_filters['page'] = page
-    if referrer:
-        active_filters['referrer'] = referrer
-    if filter_properties:
-        active_filters['properties'] = filter_properties
-    active_filters.update(_dimension_filters(request))
 
     # Add file_downloads to stats dictionary
     stats['file_downloads'] = file_downloads
@@ -913,7 +903,7 @@ async def website_dashboard(
         "can_annotate": can_annotate,
         "annotation_max_length": MAX_NOTE_LENGTH,
         **_range_context(window, mode),
-        "active_filters": active_filters
+        **_filter_context(filters),
     })
 
 
@@ -968,19 +958,12 @@ async def website_stats_basic_partial(
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
     compare: Optional[str] = None,
-    country: Optional[str] = None,
-    device: Optional[str] = None,
-    browser: Optional[str] = None,
-    page: Optional[str] = None,
-    referrer: Optional[str] = None,
-    properties: Optional[str] = None,
     current_user: User = Depends(get_current_user),
     analytics_service: AnalyticsService = Depends(get_analytics_service),
     website_service: WebsiteService = Depends(get_website_service)
 ):
     """The headline numbers, for the ten-second refresh."""
     from datetime import timezone
-    import json
 
     website = website_service.get_website_by_id(website_id, current_user.email)
     if not website:
@@ -995,13 +978,7 @@ async def website_stats_basic_partial(
     start, end = window.start, window.end
     mode = compare_mode(compare)
 
-    # Parse properties filter (JSON string to dict)
-    filter_properties = None
-    if properties:
-        try:
-            filter_properties = json.loads(properties)
-        except json.JSONDecodeError:
-            logger.warning(f"Invalid properties JSON: {properties}")
+    filters = FilterSet.from_query(request.query_params)
 
     # Get stats with filters
     try:
@@ -1010,13 +987,7 @@ async def website_stats_basic_partial(
             start_date=start,
             end_date=end,
             compare=bool(mode),
-            filter_country=country,
-            filter_device=device,
-            filter_browser=browser,
-            filter_page=page,
-            filter_referrer=referrer,
-            filter_properties=filter_properties,
-            filter_dimensions=_dimension_filters(request),
+            filters=filters,
             tz=tz,
             bucket=window.bucket,
             previous=window.previous(mode) if mode else None
@@ -1680,6 +1651,7 @@ async def website_revenue_dashboard(
 
 @router.get("/dashboard/website/{website_id}/export-csv")
 async def export_csv(
+    request: Request,
     website_id: int,
     range: str = "7d",
     start_date: Optional[str] = None,
@@ -1711,6 +1683,10 @@ async def export_csv(
     window = resolve_range(range, tz, start_date, end_date)
     start, end = window.start, window.end
 
+    # The filters of the page the button was on. A file of unfiltered numbers
+    # from a filtered page would be a different report from the one on screen.
+    filters = FilterSet.from_query(request.query_params)
+
     # Get analytics data
     analytics_service = AnalyticsService(db)
     stats = analytics_service.get_dashboard_stats(
@@ -1718,6 +1694,7 @@ async def export_csv(
         start_date=start,
         end_date=end,
         compare=False,
+        filters=filters,
         tz=tz,
         bucket=window.bucket
     )
@@ -1734,6 +1711,12 @@ async def export_csv(
     # website's zone.
     writer.writerow(['Date Range:', f"{local_date(start, tz).isoformat()} to {local_date(end, tz).isoformat()}"])
     writer.writerow(['Exported:', datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')])
+    # Only when there are any, and one per row, so the file says what it was
+    # narrowed to and an unfiltered export is the file it always was.
+    for item in filters.filters:
+        writer.writerow(['Filter:', f"{item.label} {item.operator_label}", item.value])
+    for key, value in filters.properties.items():
+        writer.writerow(['Filter:', f"Property {key} is", value])
     writer.writerow([])
     
     # Summary stats

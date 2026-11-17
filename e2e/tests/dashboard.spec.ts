@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { ApiHelper } from '../helpers/api';
 import { createVerifiedUser, createUserWithWebsite } from '../helpers/auth';
+import { track } from '../helpers/track';
 
 test.describe('Dashboard Access', () => {
   test('unauthenticated user redirected from dashboard', async ({ page }) => {
@@ -240,6 +241,90 @@ test.describe('Breakdown cards and toolbar', () => {
     await expect(page).toHaveURL(/referrer=https%3A%2F%2Fwww\.google\.com%2F/);
     await expect(page.locator('[data-dimension-chip="referrer"]')).toContainText('google.com');
     await expect(page.locator('[data-dimension-chip="referrer"]')).not.toContainText('https://');
+  });
+
+  // A click on a row can only say "is". The dialog in the toolbar is how the
+  // other conditions are reached, and how a dimension without a list of its
+  // own (a campaign tag, a custom property) is filtered at all.
+  test('the filter dialog sets a condition on any dimension, and its chip takes it off', async ({ page, request }) => {
+    // The whole suite sends from one address and /track is rate limited, so
+    // the seeding waits out a refusal (helpers/track.ts) instead of leaving
+    // an empty list to be discovered three assertions later.
+    test.setTimeout(120000);
+    const { sessionToken, websiteId, trackingCode } = await createUserWithWebsite(request);
+    for (const path of ['/blog/first', '/blog/second', '/pricing']) {
+      await track(request, { tracking_code: trackingCode, path, screen_width: 1920 });
+    }
+
+    await page.goto('/login');
+    await page.evaluate((token) => {
+      document.cookie = `session_token=${token}; path=/`;
+    }, sessionToken);
+    await page.goto(`/dashboard/website/${websiteId}?range=30d`);
+
+    const pages = page.locator('[data-card="pages"][data-tab="page"] .rank-row');
+    await expect(pages).toHaveCount(3);
+
+    const open = page.locator('.dash-toolbar').getByRole('button', { name: 'Filter', exact: true });
+    const dialog = page.locator('[data-filter-dialog]');
+    await expect(dialog).toBeHidden();
+    await open.click();
+    await expect(dialog).toBeVisible();
+
+    await dialog.locator('#filter-dimension').selectOption('page');
+    await dialog.locator('#filter-operator').selectOption('contains');
+    await dialog.locator('#filter-value').fill('/BLOG');
+    await dialog.getByRole('button', { name: 'Apply filter' }).click();
+
+    await expect(page).toHaveURL(/page__contains=%2FBLOG/);
+    const chip = page.locator('[data-dimension-chip="page"][data-operator="contains"]');
+    await expect(chip).toContainText('Page contains');
+    await expect(chip).toContainText('/BLOG');
+    await expect(pages).toHaveCount(2);
+    await expect(pages.filter({ hasText: '/pricing' })).toHaveCount(0);
+
+    // A country is a code: it takes "is" and "is not", and a condition left
+    // over from the dimension before falls back to "is".
+    await open.click();
+    await dialog.locator('#filter-operator').selectOption('contains');
+    await dialog.locator('#filter-dimension').selectOption('country');
+    await expect(dialog.locator('#filter-operator')).toHaveValue('is');
+    await expect(dialog.locator('#filter-operator option[value="contains"]')).toBeDisabled();
+    await expect(dialog.locator('#filter-operator option[value="is_not"]')).toBeEnabled();
+    await dialog.locator('#filter-operator').selectOption('is_not');
+    await dialog.locator('#filter-value').fill('ZZ');
+    await dialog.locator('#filter-value').press('Enter');
+
+    // Both hold at once, and nobody here is from ZZ.
+    await expect(page).toHaveURL(/country__not=ZZ/);
+    await expect(page).toHaveURL(/page__contains=%2FBLOG/);
+    await expect(page.locator('[data-dimension-chip="country"][data-operator="is_not"]')).toContainText('Country is not');
+    await expect(pages).toHaveCount(2);
+
+    await chip.locator('button').click();
+    await expect(page).not.toHaveURL(/page__contains/);
+    await expect(page).toHaveURL(/country__not=ZZ/);
+    await expect(pages).toHaveCount(3);
+
+    // A custom property asks for its key as well, and nothing here has one.
+    await open.click();
+    // The dialog first: a field inside a dialog that has not opened yet is
+    // hidden whatever the field itself would do.
+    await expect(dialog.locator('#filter-value')).toBeVisible();
+    await expect(dialog.locator('#property-key')).toBeHidden();
+    await dialog.locator('#filter-dimension').selectOption('property');
+    await expect(dialog.locator('#property-key')).toBeVisible();
+    await expect(dialog.locator('#filter-operator option[value="is_not"]')).toBeDisabled();
+    await dialog.locator('#property-key').fill('plan');
+    await dialog.locator('#filter-value').fill('pro');
+    await dialog.getByRole('button', { name: 'Apply filter' }).click();
+    await expect(page).toHaveURL(/properties=/);
+    await expect(page.locator('.filter-chips .chip', { hasText: 'plan' })).toContainText('pro');
+    await expect(pages).toHaveCount(0);
+
+    await page.getByRole('button', { name: 'Clear all' }).click();
+    await expect(page).not.toHaveURL(/country__not|properties=/);
+    await expect(pages).toHaveCount(3);
   });
 
   test('the toolbar fits a phone in two rows and its menus stay on the screen', async ({ page, request }) => {

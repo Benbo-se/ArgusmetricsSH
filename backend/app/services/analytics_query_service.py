@@ -15,7 +15,8 @@ from sqlalchemy import func, and_, case, distinct, select
 from app.models.pageview import Pageview
 from app.models.website import Website
 from app.services.traffic_sources import classify_channel, own_referrer_regex
-from app.services.visitor_dimensions import dimension_conditions, dimension_reports
+from app.services.filters import PAGE_PATH, FilterSet
+from app.services.visitor_dimensions import dimension_reports
 from app.utils.date_helpers import (
     DEFAULT_TIMEZONE, as_utc, hour_start, local_date, sql_local_day, sql_local_hour,
 )
@@ -27,17 +28,6 @@ logger = logging.getLogger(__name__)
 # comparable to what anyone reading them has seen elsewhere, and it matches the
 # window the scroll-depth completion already uses.
 VISIT_TIMEOUT_SECONDS = 1800
-
-# A page is its path. The tracker stores the query string too, so a campaign
-# click on /pricing is /pricing?fbclid=abc, and grouping on the raw column gives
-# every click its own row. Readers compare this instead; the stored path is left
-# as it was, which is why history needs no migration.
-#
-# Every dashboard query is bounded by website_id and a timestamp range, which
-# idx_pageviews_website_timestamp serves. The (website_id, path, timestamp)
-# index cannot serve an expression, and nothing here relied on it for more
-# than a narrower scan inside that range.
-PAGE_PATH = func.split_part(Pageview.path, "?", 1)
 
 
 class AnalyticsQueryService:
@@ -66,13 +56,7 @@ class AnalyticsQueryService:
         website_id: int,
         start_date: datetime,
         end_date: datetime,
-        filter_country: Optional[str] = None,
-        filter_device: Optional[str] = None,
-        filter_browser: Optional[str] = None,
-        filter_page: Optional[str] = None,
-        filter_referrer: Optional[str] = None,
-        filter_properties: Optional[Dict[str, str]] = None,
-        filter_dimensions: Optional[Dict[str, str]] = None
+        filters: Optional[FilterSet] = None
     ) -> List:
         """Which pageviews a set of numbers is allowed to see.
 
@@ -81,25 +65,9 @@ class AnalyticsQueryService:
         filtered week against an unfiltered one and pointed the wrong way,
         confidently.
         """
-        conditions = [
-            Pageview.website_id == website_id,
-            Pageview.timestamp >= start_date,
-            Pageview.timestamp <= end_date
-        ]
-
-        if filter_country:
-            conditions.append(Pageview.country == filter_country)
-        if filter_device:
-            conditions.append(Pageview.device_type == filter_device)
-        if filter_browser:
-            conditions.append(Pageview.browser == filter_browser)
-        if filter_page:
-            conditions.append(PAGE_PATH == filter_page)
-        if filter_referrer:
-            conditions.append(Pageview.referrer == filter_referrer)
-        if filter_properties:
-            conditions.append(Pageview.properties.contains(filter_properties))
-        conditions.extend(dimension_conditions(filter_dimensions))
+        conditions = self._range_conditions(website_id, start_date, end_date)
+        if filters:
+            conditions.extend(filters.conditions())
         return conditions
 
     def _get_visit_stats(
@@ -289,13 +257,7 @@ class AnalyticsQueryService:
         start_date: datetime,
         end_date: datetime,
         compare: bool = False,
-        filter_country: Optional[str] = None,
-        filter_device: Optional[str] = None,
-        filter_browser: Optional[str] = None,
-        filter_page: Optional[str] = None,
-        filter_referrer: Optional[str] = None,
-        filter_properties: Optional[Dict[str, str]] = None,
-        filter_dimensions: Optional[Dict[str, str]] = None,
+        filters: Optional[FilterSet] = None,
         tz: str = DEFAULT_TIMEZONE,
         bucket: str = "day",
         previous: Optional[Tuple[datetime, datetime]] = None
@@ -315,16 +277,12 @@ class AnalyticsQueryService:
         logger.info(
             f"Getting dashboard stats: website_id={website_id}, "
             f"start={start_date}, end={end_date}, compare={compare}, "
-            f"filters: country={filter_country}, device={filter_device}, "
-            f"browser={filter_browser}, page={filter_page}, referrer={filter_referrer}, "
-            f"properties={filter_properties}, dimensions={filter_dimensions}"
+            f"filters={filters}"
         )
 
         try:
             base_conditions = self._base_conditions(
-                website_id, start_date, end_date,
-                filter_country, filter_device, filter_browser, filter_page,
-                filter_referrer, filter_properties, filter_dimensions
+                website_id, start_date, end_date, filters
             )
 
             # Total pageviews
@@ -461,20 +419,24 @@ class AnalyticsQueryService:
             # Goal statistics (delegate to goals service)
             goals_stats = {"goals": [], "total_visitors": 0}
             if self._goals:
-                goals_stats = self._goals.get_goal_stats(website_id, start_date, end_date)
+                goals_stats = self._goals.get_goal_stats(
+                    website_id, start_date, end_date, filters=filters
+                )
 
             # Outbound links and file downloads (delegate to events service)
             outbound_links = []
             file_downloads = []
             if self._events:
-                outbound_links = self._events.get_outbound_links(website_id, start_date, end_date)
-                file_downloads = self._events.get_file_downloads(website_id, start_date, end_date)
+                outbound_links = self._events.get_outbound_links(
+                    website_id, start_date, end_date, filters=filters
+                )
+                file_downloads = self._events.get_file_downloads(
+                    website_id, start_date, end_date, filters=filters
+                )
 
             # Time series data
             timeseries = self._get_timeseries_data(
-                website_id, start_date, end_date,
-                filter_country, filter_device, filter_browser, filter_page, filter_referrer,
-                filter_properties, filter_dimensions, tz=tz, bucket=bucket
+                website_id, start_date, end_date, filters, tz=tz, bucket=bucket
             )
 
             visit_stats = self._get_visit_stats(base_conditions, range_conditions)
@@ -554,9 +516,8 @@ class AnalyticsQueryService:
                 prev_start_date, prev_end_date = previous
 
                 timeseries_previous = self._get_timeseries_data(
-                    website_id, prev_start_date, prev_end_date,
-                    filter_country, filter_device, filter_browser, filter_page, filter_referrer,
-                    filter_properties, filter_dimensions, tz=tz, bucket=bucket
+                    website_id, prev_start_date, prev_end_date, filters,
+                    tz=tz, bucket=bucket
                 )
                 stats['timeseries_previous'] = timeseries_previous
 
@@ -564,9 +525,7 @@ class AnalyticsQueryService:
                     website_id, start_date, end_date,
                     total_pageviews or 0, unique_visitors or 0,
                     visit_stats,
-                    filter_country, filter_device, filter_browser,
-                    filter_page, filter_referrer, filter_properties,
-                    filter_dimensions,
+                    filters,
                     previous=previous
                 )
                 stats.update(comparison_data)
@@ -586,38 +545,16 @@ class AnalyticsQueryService:
         website_id: int,
         start_date: datetime,
         end_date: datetime,
-        filter_country: Optional[str] = None,
-        filter_device: Optional[str] = None,
-        filter_browser: Optional[str] = None,
-        filter_page: Optional[str] = None,
-        filter_referrer: Optional[str] = None,
-        filter_properties: Optional[Dict[str, str]] = None,
-        filter_dimensions: Optional[Dict[str, str]] = None,
+        filters: Optional[FilterSet] = None,
         tz: str = DEFAULT_TIMEZONE,
         bucket: str = "day"
     ) -> List[Dict]:
         """Get pageviews over time (for graph), one point per day in `tz`, or
         per clock hour when `bucket` is 'hour'."""
         try:
-            conditions = [
-                Pageview.website_id == website_id,
-                Pageview.timestamp >= start_date,
-                Pageview.timestamp <= end_date
-            ]
-
-            if filter_country:
-                conditions.append(Pageview.country == filter_country)
-            if filter_device:
-                conditions.append(Pageview.device_type == filter_device)
-            if filter_browser:
-                conditions.append(Pageview.browser == filter_browser)
-            if filter_page:
-                conditions.append(PAGE_PATH == filter_page)
-            if filter_referrer:
-                conditions.append(Pageview.referrer == filter_referrer)
-            if filter_properties:
-                conditions.append(Pageview.properties.contains(filter_properties))
-            conditions.extend(dimension_conditions(filter_dimensions))
+            conditions = self._base_conditions(
+                website_id, start_date, end_date, filters
+            )
 
             if bucket == "hour":
                 return self._hourly_series(conditions, start_date, end_date, tz)
@@ -715,13 +652,7 @@ class AnalyticsQueryService:
         current_pageviews: int,
         current_visitors: int,
         current_visits: Optional[Dict] = None,
-        filter_country: Optional[str] = None,
-        filter_device: Optional[str] = None,
-        filter_browser: Optional[str] = None,
-        filter_page: Optional[str] = None,
-        filter_referrer: Optional[str] = None,
-        filter_properties: Optional[Dict[str, str]] = None,
-        filter_dimensions: Optional[Dict[str, str]] = None,
+        filters: Optional[FilterSet] = None,
         previous: Optional[Tuple[datetime, datetime]] = None
     ) -> Dict:
         """Get comparison data for previous period.
@@ -748,9 +679,7 @@ class AnalyticsQueryService:
             )
 
             prev_conditions = self._base_conditions(
-                website_id, prev_start_date, prev_end_date,
-                filter_country, filter_device, filter_browser, filter_page,
-                filter_referrer, filter_properties, filter_dimensions
+                website_id, prev_start_date, prev_end_date, filters
             )
 
             prev_pageviews = self.db.query(func.count(Pageview.id)).filter(

@@ -8,7 +8,7 @@ Provides endpoints for:
 """
 import logging
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -25,6 +25,7 @@ from app.routers.auth import get_current_user
 from app.routers.analytics import get_current_user_or_token, _enforce_token_scope
 from app.services.team_service import TeamService
 from app.services.funnel_stats import funnel_stats
+from app.services.filters import FilterSet
 
 logger = logging.getLogger(__name__)
 
@@ -134,6 +135,7 @@ async def list_funnels(
 
 @router.get("/{funnel_id}/stats", response_model=FunnelStatsResponse)
 async def get_funnel_stats(
+    request: Request,
     funnel_id: int,
     days: int = 30,
     current_user: User = Depends(get_current_user_or_token),
@@ -146,6 +148,9 @@ async def get_funnel_stats(
     no website id, so the token's scope can only be checked once the funnel
     is loaded; a funnel on another website answers 404, the same as one that
     does not exist, so a token cannot be used to find out which ids exist.
+
+    Takes the dashboard's filters as query parameters (country=SE,
+    page__contains=/blog and so on, see app/services/filters.py).
 
     Args:
         funnel_id: Funnel ID
@@ -179,7 +184,8 @@ async def get_funnel_stats(
             detail="Access denied"
         )
 
-    return FunnelStatsResponse(**funnel_stats(db, funnel, days))
+    filters = FilterSet.from_query(request.query_params)
+    return FunnelStatsResponse(**funnel_stats(db, funnel, days, filters=filters))
 
 
 @router.delete("/{funnel_id}")

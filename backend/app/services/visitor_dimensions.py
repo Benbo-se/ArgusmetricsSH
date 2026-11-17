@@ -5,7 +5,9 @@ hostname and screen size.
 
 Two halves. The first reduces what a request says about its sender to values
 coarse enough to report on and no finer; the second turns those columns into
-dashboard reports and filters.
+dashboard reports. Filtering on them is compiled in app/services/filters.py
+with every other filter, from pair_condition, pair_text and screen_condition
+below.
 
 The reduction is the part that matters. The visitor hash rotates every day so
 that nobody can be followed from one day to the next, and a row that also
@@ -182,12 +184,6 @@ DIMENSIONS: List[Tuple[str, str]] = [
 
 DIMENSION_NAMES = tuple(name for name, _ in DIMENSIONS)
 
-_SIMPLE = {
-    "os": Pageview.os,
-    "language": Pageview.language,
-    "hostname": Pageview.hostname,
-}
-
 # A version means nothing without what it is a version of, so these two are
 # reported and filtered as a pair: "Chrome 126", "Windows 10".
 _VERSIONED_PAIRS = {
@@ -235,7 +231,9 @@ def _screen_row(index: Optional[int], count: int) -> Dict:
     return _row(str(low), label, count)
 
 
-def _pair_condition(family_column, version_column, value: str):
+def pair_condition(name: str, value: str):
+    """A versioned pair equal to `value`: "Chrome 126", "Windows Unknown"."""
+    family_column, version_column = _VERSIONED_PAIRS[name]
     if value == UNKNOWN:
         return family_column.is_(None)
     family, _, version = value.rpartition(" ")
@@ -246,37 +244,26 @@ def _pair_condition(family_column, version_column, value: str):
     return and_(family_column == family, version_column == version)
 
 
-def dimension_conditions(filters: Optional[Dict[str, str]]) -> List:
-    """SQL conditions for the dimension filters that are set.
+def pair_text(name: str):
+    """A versioned pair as the text a report shows, for a "contains" filter."""
+    return func.concat_ws(" ", *_VERSIONED_PAIRS[name])
 
-    "Unknown" selects the rows without a value, so the row every report shows
-    for older pageviews can be clicked like any other.
-    """
-    conditions = []
-    for name, value in (filters or {}).items():
-        if not value:
-            continue
-        if name in _SIMPLE:
-            column = _SIMPLE[name]
-            conditions.append(column.is_(None) if value == UNKNOWN else column == value)
-        elif name in _VERSIONED_PAIRS:
-            conditions.append(_pair_condition(*_VERSIONED_PAIRS[name], value))
-        elif name == "screen":
-            if value == UNKNOWN:
-                conditions.append(Pageview.screen_width.is_(None))
-            elif value.isdigit() and int(value) in (0, *SCREEN_BOUNDS):
-                low, high = _screen_range(
-                    SCREEN_BOUNDS.index(int(value)) + 1 if int(value) else 0
-                )
-                conditions.append(Pageview.screen_width >= low)
-                if high is not None:
-                    conditions.append(Pageview.screen_width < high)
-            else:
-                # Not the start of a range. Matching nothing is the honest
-                # answer to a filter that cannot match; ignoring it would
-                # show everything under a chip that says it is filtered.
-                conditions.append(Pageview.id.is_(None))
-    return conditions
+
+def screen_condition(value: str):
+    """The screen range named by its lower bound, as every report names it."""
+    if value == UNKNOWN:
+        return Pageview.screen_width.is_(None)
+    if value.isdigit() and int(value) in (0, *SCREEN_BOUNDS):
+        low, high = _screen_range(
+            SCREEN_BOUNDS.index(int(value)) + 1 if int(value) else 0
+        )
+        if high is None:
+            return Pageview.screen_width >= low
+        return and_(Pageview.screen_width >= low, Pageview.screen_width < high)
+    # Not the start of a range. Matching nothing is the honest answer to a
+    # filter that cannot match; ignoring it would show everything under a
+    # chip that says it is filtered.
+    return Pageview.id.is_(None)
 
 
 def _row(value: str, label: str, views: int) -> Dict:

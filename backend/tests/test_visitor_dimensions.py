@@ -25,6 +25,8 @@ from datetime import datetime, timedelta, timezone
 import pytest
 from sqlalchemy import text
 
+from app.services.filters import FilterSet
+
 from app.services import visitor_dimensions as vd
 from app.services.analytics_query_service import AnalyticsQueryService
 
@@ -295,7 +297,7 @@ def stats(db, website):
             start_date=ANCHOR - timedelta(days=1),
             end_date=ANCHOR + timedelta(days=1),
             compare=compare,
-            **({"filter_dimensions": filters} if filters else {}),
+            filters=FilterSet.of(**filters),
         )
     return _stats
 
