@@ -108,6 +108,34 @@ registry was unreachable; running it again later is the whole fix.
 If `GEOIP_DB_PATH` is set, that file wins and the table is not consulted or
 refreshed at all. Check the file exists and is readable by the backend.
 
+## Crawlers are being counted, or visitors are not
+
+Pageviews from hosting providers are stored with a label and left out of the
+statistics. The ranges come from a table loaded from IPtoASN's public file.
+
+```bash
+./argus networks status
+./argus networks lookup 3.0.0.1
+```
+
+`status` empty means nothing is being labelled and every crawler counts. Load
+it:
+
+```bash
+./argus networks refresh
+./argus networks refresh --from-file /path/to/ip2asn-combined.tsv.gz   # no outbound access
+```
+
+The scheduler redoes this every Sunday at 04:10 UTC as
+`hosting_networks_refresh`. It is in `/health` like the other jobs, and in
+metrics as `argus_hosting_network_ranges`. "Refusing to install" in the log
+means the download was not the file and the old table is still in use.
+
+If real visitors are missing, look up one of their addresses. A site whose
+audience sits behind a cloud proxy turns the exclusion off under its own
+settings; `DATACENTER_FILTER=false` turns it off for the whole instance. The
+list of networks is `backend/app/hosting_asns.py`.
+
 ## The disk is filling
 
 The database and the backups share a disk. Copies are pulled off-host since

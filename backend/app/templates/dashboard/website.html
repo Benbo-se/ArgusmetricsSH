@@ -366,6 +366,17 @@
                     {{ range_label }}, by {{ 'hour' if stats.timeseries_bucket == 'hour' else 'day' }}
                     in {{ range_timezone }}
                 </p>
+                {# Said once and quietly, and only when there is something to
+                   say: what the numbers on this page leave out (#103). #}
+                {% if hosting_kept_out %}
+                <p class="text-sm text-gray-500" data-hosting-kept-out>
+                    {% if hosting_kept_out == 1 -%}
+                    1 pageview from a hosting provider is not counted
+                    {%- else -%}
+                    {{ hosting_kept_out | format_number }} pageviews from hosting providers are not counted
+                    {%- endif %}
+                </p>
+                {% endif %}
             </div>
             <div class="seg" role="group" aria-label="Metric shown in the chart">
                 <button type="button" data-chart-metric="visitors" aria-pressed="true">Visitors</button>

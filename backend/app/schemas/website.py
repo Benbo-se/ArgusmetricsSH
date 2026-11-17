@@ -137,6 +137,11 @@ class WebsiteResponse(BaseModel):
         description="IANA time zone the website counts its days in",
         example="Europe/Stockholm"
     )
+    exclude_datacenter: bool = Field(
+        True,
+        description="Whether traffic from hosting providers is kept out of the statistics",
+        example=True
+    )
     is_verified: bool = Field(
         ...,
         description="Whether domain ownership has been verified via DNS",
@@ -239,6 +244,8 @@ class WebsiteUpdate(BaseModel):
         name: Website name/label (optional)
         is_active: Whether tracking is active (optional)
         timezone: IANA time zone the website counts its days in (optional)
+        exclude_datacenter: Whether traffic from hosting providers is kept
+            out of the statistics (optional)
 
     Note: At least one field must be provided for update.
 
@@ -266,6 +273,12 @@ class WebsiteUpdate(BaseModel):
         description="IANA time zone name, for example Europe/Stockholm",
         max_length=64,
         example="Europe/Stockholm"
+    )
+
+    exclude_datacenter: Optional[bool] = Field(
+        None,
+        description="Keep traffic from hosting providers out of the statistics",
+        example=True
     )
 
     @field_validator('name', 'is_active')

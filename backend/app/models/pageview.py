@@ -41,6 +41,8 @@ class Pageview(Base):
         screen_height: Screen height in pixels
         scroll_depth: Maximum scroll depth percentage (0-100)
         properties: Custom key-value properties (JSONB) for segmentation
+        traffic_class: NULL for ordinary traffic, 'datacenter' when the
+            address belonged to a hosting provider at the time of the visit
     """
 
     __tablename__ = "pageviews"
@@ -95,6 +97,16 @@ class Pageview(Base):
 
     # Custom properties (Session 6) - for advanced filtering/segmentation
     properties = Column(JSONB, nullable=True)
+
+    # What kind of traffic this is, decided once at collection (#103). NULL is
+    # an ordinary visit, which is every row older than the column and nearly
+    # every row after it. 'datacenter' means the address belonged to a hosting
+    # provider on the list in app/hosting_asns.py. The answer is all that is
+    # kept: not the address, not the network, not the provider. Reports leave
+    # labelled rows out unless the website has turned that off (counted, in
+    # app/services/filters.py). No index: no query selects on it alone, it
+    # only narrows a scan already bounded by website and time.
+    traffic_class = Column(String(16), nullable=True)
 
     # Composite indexes for common query patterns
     __table_args__ = (

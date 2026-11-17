@@ -29,6 +29,13 @@ from app.utils.date_helpers import DEFAULT_TIMEZONE, day_start, local_date
 DAYS = 14
 ONLINE_WINDOW = timedelta(minutes=5)
 
+# Which pageviews a card counts: the rule of filters.counted(), spelled in
+# SQL because the queries below are. `p` is pageviews and `s` the website's
+# own row, joined so that a website whose row cannot be read gives NULL and
+# its labelled rows stay out. A card that showed crawlers as an upturn is
+# what #103 was opened for.
+COUNTED = "(p.traffic_class IS NULL OR s.exclude_datacenter IS FALSE)"
+
 # The sparkline's box, in SVG user units. The template scales it to the card.
 SPARK_W, SPARK_H = 140, 36
 
@@ -87,13 +94,14 @@ def recent_activity(
     # can leave old chunks alone before it looks at any site.
     per_day = db.execute(
         text(
-            """
+            f"""
             SELECT p.website_id, date(timezone(w.tz, p."timestamp")) AS day,
                    count(DISTINCT p.visitor_hash) AS visitors
             FROM unnest(CAST(:ids AS integer[]), CAST(:tzs AS text[]),
                         CAST(:sinces AS timestamptz[])) AS w(id, tz, since)
+            LEFT JOIN websites s ON s.id = w.id
             JOIN pageviews p ON p.website_id = w.id AND p."timestamp" >= w.since
-            WHERE p."timestamp" >= :earliest
+            WHERE p."timestamp" >= :earliest AND {COUNTED}
             GROUP BY p.website_id, date(timezone(w.tz, p."timestamp"))
             """
         ),
@@ -104,13 +112,16 @@ def recent_activity(
     # index lookup, where max() over a grouped hypertable reads all of it.
     latest = db.execute(
         text(
-            """
+            f"""
             SELECT w.id AS website_id,
-                   (SELECT p."timestamp" FROM pageviews p WHERE p.website_id = w.id
+                   (SELECT p."timestamp" FROM pageviews p
+                    WHERE p.website_id = w.id AND {COUNTED}
                     ORDER BY p."timestamp" DESC LIMIT 1) AS last_seen,
                    (SELECT count(DISTINCT p.visitor_hash) FROM pageviews p
-                    WHERE p.website_id = w.id AND p."timestamp" >= :online_since) AS online
+                    WHERE p.website_id = w.id AND p."timestamp" >= :online_since
+                      AND {COUNTED}) AS online
             FROM unnest(CAST(:ids AS integer[])) AS w(id)
+            LEFT JOIN websites s ON s.id = w.id
             """
         ),
         {"ids": ids, "online_since": now - ONLINE_WINDOW},

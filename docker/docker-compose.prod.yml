@@ -69,6 +69,7 @@ services:
       # (t.ex. lägg till Cloudflares ranges).
       TRUSTED_PROXIES: ${TRUSTED_PROXIES:-172.16.0.0/12}
       GEOIP_DB_PATH: ${GEOIP_DB_PATH:-}
+      DATACENTER_FILTER: ${DATACENTER_FILTER:-true}
       # 730 by default: twenty-four months, stated in the privacy policy.
       # The dashboard's 365 day view compares against the 365 days before it,
       # so anything less makes that comparison empty. The purge batches, so it

@@ -8,7 +8,7 @@ every row, and a websites row carries verification tokens, a share token and a
 password hash.
 
 These helpers go through SECURITY DEFINER functions instead, which return only
-the four fields the tracking path needs. See the migration
+the few fields the tracking path needs. See the migration
 e7b204c8d915 for the reasoning in full.
 """
 import logging
@@ -33,6 +33,10 @@ class TrackedWebsite:
     is_active: bool
     #: Whose account this is, for the monthly limit. Not shown to anyone.
     owner_email: str
+    #: Whether traffic from hosting providers is kept out of this website's
+    #: statistics (#103). Recording needs it to know whether anything may
+    #: follow from a labelled pageview.
+    exclude_datacenter: bool = True
 
 
 def _scope_tracking_context(db: Session, website_id: int) -> None:
@@ -70,7 +74,8 @@ def resolve_tracking_code(db: Session, tracking_code: str) -> Optional[TrackedWe
     """
     row = db.execute(
         text(
-            "SELECT id, domain, is_verified, is_active, owner_email "
+            "SELECT id, domain, is_verified, is_active, owner_email,"
+            "       exclude_datacenter "
             "FROM argus_resolve_tracking_code(:code)"
         ),
         {"code": tracking_code},
@@ -87,6 +92,7 @@ def resolve_tracking_code(db: Session, tracking_code: str) -> Optional[TrackedWe
         is_verified=row.is_verified,
         is_active=row.is_active,
         owner_email=row.owner_email,
+        exclude_datacenter=row.exclude_datacenter,
     )
 
 

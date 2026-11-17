@@ -68,6 +68,9 @@ argus - run this Argusmetrics instance
                             (count, list, export, remove, mark-notified)
   country ...               the IP-to-country table
                             (refresh, status, lookup <address>)
+  networks ...              the hosting-provider ranges that keep crawlers
+                            out of the statistics
+                            (refresh, status, lookup <address>)
   bootstrap                 create the first account on a closed instance
   delete-user --email ADDR  delete an account and everything it owns, on request
   test [args]               the backend suite, inside the container
@@ -316,6 +319,7 @@ case "$command" in
         TTY=""; [ -t 0 ] && [ -t 1 ] && TTY="-t"
         docker exec -i $TTY -w /app "$BACKEND_CONTAINER" python -m app.delete_user "$@" ;;
     country)   in_backend app.ip_country "$@" ;;
+    networks)  in_backend app.hosting_networks "$@" ;;
     test)
         # The suite runs where the application does, against the same Postgres,
         # so a pass here means the same thing a pass in CI means. Anything

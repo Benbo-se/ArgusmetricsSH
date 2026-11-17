@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, and_
 
 from app.models.pageview import Pageview
+from app.services.filters import counted
 from app.models.website import Website
 from app.models.user import User
 
@@ -53,6 +54,7 @@ class AnomalyDetectionService:
         # Get baseline pageview count
         baseline_count = self.db.query(func.count(Pageview.id)).filter(
             Pageview.website_id == website_id,
+            counted(website_id),
             Pageview.timestamp >= baseline_start
         ).scalar() or 0
 
@@ -62,6 +64,7 @@ class AnomalyDetectionService:
         # Get unique countries in baseline period
         unique_countries = self.db.query(func.count(func.distinct(Pageview.country))).filter(
             Pageview.website_id == website_id,
+            counted(website_id),
             Pageview.timestamp >= baseline_start,
             Pageview.country.isnot(None)
         ).scalar() or 0
@@ -72,6 +75,7 @@ class AnomalyDetectionService:
             func.count(Pageview.id).label('count')
         ).filter(
             Pageview.website_id == website_id,
+            counted(website_id),
             Pageview.timestamp >= baseline_start,
             Pageview.referrer.isnot(None)
         ).group_by(Pageview.referrer).order_by(func.count(Pageview.id).desc()).limit(10).all()
@@ -107,6 +111,7 @@ class AnomalyDetectionService:
 
         current_hour_count = self.db.query(func.count(Pageview.id)).filter(
             Pageview.website_id == website_id,
+            counted(website_id),
             Pageview.timestamp >= hour_start
         ).scalar() or 0
 
@@ -161,6 +166,7 @@ class AnomalyDetectionService:
             func.count(Pageview.id).label('count')
         ).filter(
             Pageview.website_id == website_id,
+            counted(website_id),
             Pageview.timestamp >= hour_start,
             Pageview.country.isnot(None)
         ).group_by(Pageview.country).all()
@@ -209,6 +215,7 @@ class AnomalyDetectionService:
             func.count(Pageview.id).label('count')
         ).filter(
             Pageview.website_id == website_id,
+            counted(website_id),
             Pageview.timestamp >= hour_start,
             Pageview.visitor_hash.isnot(None)
         ).group_by(Pageview.visitor_hash).having(
@@ -256,6 +263,7 @@ class AnomalyDetectionService:
         for pattern in spam_patterns:
             spam_count = self.db.query(func.count(Pageview.id)).filter(
                 Pageview.website_id == website_id,
+                counted(website_id),
                 Pageview.timestamp >= hour_start,
                 Pageview.referrer.ilike(f'%{pattern}%')
             ).scalar() or 0

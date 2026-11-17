@@ -401,11 +401,14 @@ async def update_website(
     require_website_role_or_404(db, current_user.email, website_id, MemberRole.ADMIN)
 
     # Validate that at least one field is provided
-    if request.name is None and request.is_active is None and request.timezone is None:
+    if (
+        request.name is None and request.is_active is None
+        and request.timezone is None and request.exclude_datacenter is None
+    ):
         logger.warning("No update fields provided")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="At least one field (name, is_active or timezone) must be provided for update"
+            detail="At least one field (name, is_active, timezone or exclude_datacenter) must be provided for update"
         )
 
     try:
@@ -414,7 +417,8 @@ async def update_website(
             user_email=current_user.email,
             name=request.name,
             is_active=request.is_active,
-            timezone=request.timezone
+            timezone=request.timezone,
+            exclude_datacenter=request.exclude_datacenter
         )
 
         logger.info(f"Website {website_id} updated successfully for user {mask_email(current_user.email)}")

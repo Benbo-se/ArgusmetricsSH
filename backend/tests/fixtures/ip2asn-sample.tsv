@@ -1,0 +1,16 @@
+1.0.0.0	1.0.0.255	13335	US	CLOUDFLARENET - Cloudflare, Inc.
+1.0.1.0	1.0.3.255	0	None	Not routed
+2.248.0.0	2.255.255.255	3301	SE	TELIANET-SWEDEN Telia Company AB
+3.0.0.0	3.0.255.255	16509	US	AMAZON-02 - Amazon.com, Inc.
+3.1.0.0	3.1.255.255	16509	US	AMAZON-02 - Amazon.com, Inc.
+3.2.0.0	3.2.0.255	14618	US	AMAZON-AES - Amazon.com, Inc.
+5.9.0.0	5.9.255.255	24940	DE	HETZNER-AS Hetzner Online GmbH
+5.10.0.0	5.10.63.255	3301	SE	TELIANET-SWEDEN Telia Company AB
+17.0.0.0	17.255.255.255	714	US	APPLE-ENGINEERING - Apple Inc.
+34.64.0.0	34.64.255.255	396982	US	GOOGLE-CLOUD-PLATFORM - Google LLC
+104.16.0.0	104.31.255.255	13335	US	CLOUDFLARENET - Cloudflare, Inc.
+2600:1f00::	2600:1fff:ffff:ffff:ffff:ffff:ffff:ffff	16509	US	AMAZON-02 - Amazon.com, Inc.
+2a00:801::	2a00:801:ffff:ffff:ffff:ffff:ffff:ffff	3301	SE	TELIANET-SWEDEN Telia Company AB
+2a01:4f8::	2a01:4f8:ffff:ffff:ffff:ffff:ffff:ffff	24940	DE	HETZNER-AS Hetzner Online GmbH
+2a01:4f9::	2a01:4f9:ffff:ffff:ffff:ffff:ffff:ffff	24940	DE	HETZNER-AS Hetzner Online GmbH
+this line is not a range

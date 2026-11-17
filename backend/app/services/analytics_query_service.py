@@ -15,7 +15,7 @@ from sqlalchemy import func, and_, case, distinct, select
 from app.models.pageview import Pageview
 from app.models.website import Website
 from app.services.traffic_sources import classify_channel, own_referrer_regex
-from app.services.filters import PAGE_PATH, FilterSet
+from app.services.filters import PAGE_PATH, FilterSet, counted, left_out
 from app.services.visitor_dimensions import dimension_reports
 from app.utils.date_helpers import (
     DEFAULT_TIMEZONE, as_utc, hour_start, local_date, sql_local_day, sql_local_hour,
@@ -153,12 +153,39 @@ class AnalyticsQueryService:
     def _range_conditions(
         website_id: int, start_date: datetime, end_date: datetime
     ) -> List:
-        """The site and the time range, and nothing a user can filter on."""
+        """The site and the time range, and nothing a user can filter on.
+
+        And the pageviews that are counted at all: traffic labelled as coming
+        from a hosting provider is left out here, so that it is left out of
+        the visits built from this as well as of every total (#103).
+        """
         return [
             Pageview.website_id == website_id,
             Pageview.timestamp >= start_date,
             Pageview.timestamp <= end_date,
+            counted(website_id),
         ]
+
+    def count_kept_out(
+        self, website_id: int, start_date: datetime, end_date: datetime
+    ) -> int:
+        """How many pageviews in the range were left out as hosting traffic.
+
+        For the one line on the dashboard that says so. Nought on a website
+        that has turned the exclusion off, where nothing is left out, and
+        nought when the count cannot be made: the line is a courtesy and must
+        not take the page down with it.
+        """
+        try:
+            return self.db.query(func.count(Pageview.id)).filter(
+                Pageview.website_id == website_id,
+                Pageview.timestamp >= start_date,
+                Pageview.timestamp <= end_date,
+                left_out(website_id),
+            ).scalar() or 0
+        except Exception:  # noqa: BLE001
+            self._abort("counting hosting-provider pageviews")
+            return 0
 
     @staticmethod
     def _numbered_visits(range_conditions: List, matching_conditions: List):
@@ -781,14 +808,16 @@ class AnalyticsQueryService:
             ).filter(
                 and_(
                     Pageview.website_id == website_id,
-                    Pageview.timestamp >= five_minutes_ago
+                    Pageview.timestamp >= five_minutes_ago,
+                    counted(website_id)
                 )
             ).scalar()
 
             recent_pageviews = self.db.query(func.count(Pageview.id)).filter(
                 and_(
                     Pageview.website_id == website_id,
-                    Pageview.timestamp >= one_hour_ago
+                    Pageview.timestamp >= one_hour_ago,
+                    counted(website_id)
                 )
             ).scalar()
 
@@ -801,7 +830,8 @@ class AnalyticsQueryService:
             ).filter(
                 and_(
                     Pageview.website_id == website_id,
-                    Pageview.timestamp >= one_hour_ago
+                    Pageview.timestamp >= one_hour_ago,
+                    counted(website_id)
                 )
             ).order_by(Pageview.timestamp.desc())\
              .limit(50)\

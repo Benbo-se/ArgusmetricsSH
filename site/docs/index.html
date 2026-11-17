@@ -120,6 +120,9 @@
                         <a href="#excluding-pages" class="block px-3 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-md">
                             Excluding Pages
                         </a>
+                        <a href="#hosting-traffic" class="block px-3 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-md">
+                            Crawlers & Hosting Traffic
+                        </a>
                         <a href="#404-tracking" class="block px-3 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-md">
                             404 Error Tracking
                         </a>
@@ -1038,6 +1041,43 @@ export default function Document() {
                         </p>
                     </section>
 
+                    <!-- Traffic from hosting providers -->
+                    <section id="hosting-traffic" class="mb-12">
+                        <h2 class="text-3xl font-bold text-gray-900 mb-4 pb-2 border-b-2 border-blue-600">Crawlers & Hosting Traffic</h2>
+                        <p class="text-gray-700 mb-4">
+                            A crawler that says what it is in its user agent is refused, by the script and again by the server. Many do not say: they run a real browser, execute JavaScript and send an ordinary Chrome user agent, and nothing in the request tells them from a visitor. What does tell them apart is where they run, which is in a rented server and not on a home or mobile connection.
+                        </p>
+                        <p class="text-gray-700 mb-4">
+                            So each pageview's address is checked against the networks of hosting providers: Amazon, Google Cloud, Microsoft, DigitalOcean, OVH, Hetzner, Alibaba, Tencent and about forty more. A pageview from one of them is stored with a label and left out of every number: totals, graphs, top lists, the live view, exports, email reports and public dashboards. The address is not stored and neither is the provider; the label is one word.
+                        </p>
+                        <ul class="list-disc list-inside space-y-2 text-gray-700 ml-4 mb-4">
+                            <li>The dashboard says how many pageviews were left out of the range you are looking at, when there are any.</li>
+                            <li>Nothing else follows from a labelled pageview: no funnel step, and nothing counted against a monthly limit.</li>
+                            <li>Custom events, goals, ecommerce events and scroll depth from those addresses are not recorded at all.</li>
+                        </ul>
+
+                        <h3 class="text-xl font-semibold text-gray-900 mb-3 mt-6">It Is a Guess</h3>
+                        <p class="text-gray-700 mb-4">
+                            The list says which network an address belongs to, not who is using it. A person browsing through a VPN, a company proxy or a remote desktop hosted at one of these providers is left out exactly as a crawler is. And a crawler on a home connection, or at a provider that is not listed, is still counted. It removes the bulk, not all of it.
+                        </p>
+                        <p class="text-gray-700 mb-4">
+                            Some networks are deliberately not on the list although crawlers come from them, because real people do too: Cloudflare, Akamai and Fastly carry iCloud Private Relay and Cloudflare WARP, and Google's and Apple's own networks carry their consumer services.
+                        </p>
+
+                        <h3 class="text-xl font-semibold text-gray-900 mb-3 mt-6">Turning It Off for a Website</h3>
+                        <p class="text-gray-700 mb-4">
+                            If your real audience reaches you through such a network, an owner or admin can turn the exclusion off under the website's Settings, in the section Traffic From Hosting Providers. The reports then include the labelled pageviews, the earlier ones as well, and it can be turned back on. Events and funnel steps that were not recorded while it was on do not come back.
+                        </p>
+                        <p class="text-gray-700 mb-4">
+                            The same applies if you send events from your own backend, as in the server-side ecommerce example below: a backend usually runs at a hosting provider, so those events are left out unless the exclusion is off for that website.
+                        </p>
+
+                        <h3 class="text-xl font-semibold text-gray-900 mb-3 mt-6">If You Host It Yourself</h3>
+                        <p class="text-gray-700 mb-4">
+                            The address ranges come from the public-domain file at <code>iptoasn.com</code>, which your server fetches once a week. No visitor address is sent anywhere: the file is downloaded and the lookup happens on your machine. Load it the first time with <code>./argus networks refresh</code>; until then nothing is labelled. Set <code>DATACENTER_FILTER=false</code> to turn both the download and the labelling off.
+                        </p>
+                    </section>
+
                     <!-- 404 Tracking -->
                     <section id="404-tracking" class="mb-12">
                         <h2 class="text-3xl font-bold text-gray-900 mb-4 pb-2 border-b-2 border-blue-600">404 Error Tracking</h2>
@@ -1187,7 +1227,7 @@ argus.trackEcommerce('purchase', {
 
                         <h3 class="text-xl font-semibold text-gray-900 mb-3 mt-6">Server-Side Tracking (API)</h3>
                         <p class="text-gray-700 mb-4">
-                            You can also send ecommerce events directly from your backend:
+                            You can also send ecommerce events directly from your backend. A backend at a hosting provider is treated as <a href="#hosting-traffic" class="text-blue-600 hover:underline">hosting traffic</a>, so turn that exclusion off for the website first, or the events are left out:
                         </p>
                         <div class="bg-gray-900 text-gray-100 p-4 rounded-lg mb-4 overflow-x-auto">
                             <pre><code>POST /api/v1/analytics/track-ecommerce
