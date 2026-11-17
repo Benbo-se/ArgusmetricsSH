@@ -8,7 +8,7 @@
  * - Respects Do Not Track (DNT)
  * - fetch with keepalive, so reports survive the page being left
  * - Tokens in a path are masked, and paths can be left out entirely
- * - About 9.5 KB minified, 3.4 KB gzipped
+ * - About 7.4 KB minified, 3.1 KB gzipped
  *
  * Usage:
  *   <script src="https://argusmetrics.io/static/tracker.min.js" data-tracking-code="YOUR_CODE" defer></script>
@@ -169,31 +169,23 @@
    * Set `data-track-localhost="true"` on the script tag to override, which is
    * what you want while testing the tracker itself.
    */
+  var LOCAL_HOST = /^(localhost|127\.0\.0\.1|\[::1\]|::1|)$|\.(localhost|local|test|internal)$/i;
+
   function isLocalDevelopment() {
     if (setting('data-track-localhost') === 'true') {
       return false;
     }
 
-    var host = window.location.hostname.toLowerCase();
-
-    return host === 'localhost' ||
-           host === '127.0.0.1' ||
-           host === '[::1]' ||
-           host === '::1' ||
-           host === '' ||                       // file:// has no hostname
-           host.endsWith('.localhost') ||
-           host.endsWith('.local') ||           // Bonjour and many dev setups
-           host.endsWith('.test') ||            // reserved for testing, RFC 6761
-           host.endsWith('.internal');
+    // localhost, the loopback addresses, no hostname at all (file://), and
+    // the endings used for development: .localhost, .local (Bonjour), .test
+    // (reserved for testing, RFC 6761) and .internal.
+    return LOCAL_HOST.test(window.location.hostname);
   }
 
   /**
    * Sensitive query parameters that should never be tracked
    */
-  var SENSITIVE_PARAMS = ['token', 'key', 'secret', 'password', 'pwd', 'passwd',
-    'auth', 'session', 'sid', 'code', 'api_key', 'apikey', 'access_token',
-    'refresh_token', 'private_token', 'nonce', 'signature', 'sig',
-    'credential', 'otp', 'email', 'mail', 'hash'];
+  var SENSITIVE_PARAM = /^(token|key|secret|password|pwd|passwd|auth|session|sid|code|api_?key|(access|refresh|private)_token|nonce|signature|sig|credential|otp|e?mail|hash)$/i;
 
   /**
    * Whether nothing at all may be sent: the visitor asked not to be tracked,
@@ -315,7 +307,7 @@
       var params = new URLSearchParams(search);
       var cleaned = new URLSearchParams();
       params.forEach(function(value, key) {
-        if (SENSITIVE_PARAMS.indexOf(key.toLowerCase()) === -1) {
+        if (!SENSITIVE_PARAM.test(key)) {
           cleaned.append(key, value);
         }
       });
@@ -363,13 +355,11 @@
    */
   function getUtmParameters() {
     const params = new URLSearchParams(window.location.search);
-    return {
-      utm_source: params.get('utm_source') || null,
-      utm_medium: params.get('utm_medium') || null,
-      utm_campaign: params.get('utm_campaign') || null,
-      utm_content: params.get('utm_content') || null,
-      utm_term: params.get('utm_term') || null
-    };
+    const utm = {};
+    ['source', 'medium', 'campaign', 'content', 'term'].forEach(function(name) {
+      utm['utm_' + name] = params.get('utm_' + name) || null;
+    });
+    return utm;
   }
 
   let pageviewsSent = 0;
@@ -424,9 +414,7 @@
     pageviewsSent++;
     lastTrackedPath = data.path;
 
-    // Use fetch with keepalive instead of sendBeacon to avoid CORS credential issues
-    // fetch with keepalive works even when page is unloading, just like sendBeacon
-    fallbackFetch(apiEndpoint, data);
+    send(apiEndpoint, data);
   }
 
   /**
@@ -473,20 +461,7 @@
       data.properties = properties;
     }
 
-    // Use fetch for event tracking
-    fetch(eventEndpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data),
-      keepalive: true,
-      credentials: 'omit',  // Don't send cookies to avoid CORS issues
-      mode: 'cors'  // Explicitly set CORS mode
-    })
-    .catch(error => {
-      console.warn(`[Argusmetrics] Event sent: ${eventName} (response validation failed)`);
-    });
+    send(eventEndpoint, data);
   }
 
   /**
@@ -517,53 +492,39 @@
       tracking_code: trackingCode,
       event_type: eventType,
       event_name: data.event_name || eventType,
-      transaction_id: data.transaction_id || null,
-      revenue: data.revenue || null,
       currency: data.currency || 'USD',
-      tax: data.tax || null,
-      shipping: data.shipping || null,
-      product_id: data.product_id || null,
-      product_name: data.product_name || null,
-      product_category: data.product_category || null,
-      product_brand: data.product_brand || null,
-      product_variant: data.product_variant || null,
       quantity: data.quantity || 1,
-      price: data.price || null,
-      properties: data.properties || null,
       ...utmParams
     };
-
-    fetch(ecomEndpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-      keepalive: true,
-      credentials: 'omit',
-      mode: 'cors'
-    })
-    .catch(error => {
-      console.warn(`[Argusmetrics] Ecommerce event sent: ${eventType} (response validation failed)`);
+    ['transaction_id', 'revenue', 'tax', 'shipping', 'product_id', 'product_name',
+     'product_category', 'product_brand', 'product_variant', 'price', 'properties'].forEach(function(field) {
+      payload[field] = data[field] || null;
     });
+
+    send(ecomEndpoint, payload);
   }
 
   /**
-   * Fallback to fetch if sendBeacon is not available
+   * The one place a report leaves from.
+   *
+   * fetch with keepalive, so it survives the page being left, and without
+   * credentials: sendBeacon with a JSON body always sends them, which the
+   * server's wildcard origin refuses (#166). Fire and forget: a report that
+   * never arrives is a missing value, not something to show a visitor.
    */
-  function fallbackFetch(apiEndpoint, data) {
-    fetch(apiEndpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data),
-      keepalive: true,  // Keep request alive even if page is closed
-      credentials: 'omit',  // Don't send cookies to avoid CORS issues
-      mode: 'cors'  // Explicitly set CORS mode
-    })
-    .catch(error => {
-      // Silently fail - tracking is fire-and-forget
-      console.warn('[Argusmetrics] Tracking request sent (response validation failed)');
-    });
+  function send(endpoint, data) {
+    try {
+      fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+        keepalive: true,
+        credentials: 'omit',
+        mode: 'cors'
+      }).catch(function() {});
+    } catch (e) {
+      // Nothing to do, and nobody to tell.
+    }
   }
 
   /**
@@ -646,93 +607,9 @@
   }
 
   /**
-   * Setup outbound link tracking for all links on the page
-   */
-  function setupOutboundTracking() {
-    // Get all links
-    const links = document.querySelectorAll('a');
-
-    links.forEach(link => {
-      // Skip if already tracked
-      if (link.hasAttribute('data-argus-tracked')) return;
-
-      // Check if it's an outbound link
-      if (isOutboundLink(link)) {
-        link.addEventListener('click', function(e) {
-          trackOutboundLink(link);
-        });
-
-        // Mark as tracked
-        link.setAttribute('data-argus-tracked', 'true');
-      }
-    });
-  }
-
-  /**
-   * Setup MutationObserver to track dynamically added links
-   */
-  function observeDynamicLinks() {
-    // Create observer to watch for new links
-    const observer = new MutationObserver(function(mutations) {
-      mutations.forEach(function(mutation) {
-        if (mutation.addedNodes.length) {
-          mutation.addedNodes.forEach(function(node) {
-            // Check if the node itself is a link
-            if (node.nodeType === 1 && node.tagName === 'A') {
-              if (isOutboundLink(node) && !node.hasAttribute('data-argus-tracked')) {
-                node.addEventListener('click', function(e) {
-                  trackOutboundLink(node);
-                });
-                node.setAttribute('data-argus-tracked', 'true');
-              }
-              if (isFileDownload(node) && !node.hasAttribute('data-argus-download-tracked')) {
-                node.addEventListener('click', function(e) {
-                  trackFileDownload(node);
-                });
-                node.setAttribute('data-argus-download-tracked', 'true');
-              }
-            }
-
-            // Check for links within the added node
-            if (node.querySelectorAll) {
-              const links = node.querySelectorAll('a');
-              links.forEach(function(link) {
-                if (isOutboundLink(link) && !link.hasAttribute('data-argus-tracked')) {
-                  link.addEventListener('click', function(e) {
-                    trackOutboundLink(link);
-                  });
-                  link.setAttribute('data-argus-tracked', 'true');
-                }
-                if (isFileDownload(link) && !link.hasAttribute('data-argus-download-tracked')) {
-                  link.addEventListener('click', function(e) {
-                    trackFileDownload(link);
-                  });
-                  link.setAttribute('data-argus-download-tracked', 'true');
-                }
-              });
-            }
-          });
-        }
-      });
-    });
-
-    // Start observing the document
-    observer.observe(document.body, {
-      childList: true,
-      subtree: true
-    });
-  }
-
-  /**
    * List of file extensions to track for downloads
    */
-  const DOWNLOAD_EXTENSIONS = [
-    '.pdf', '.zip', '.doc', '.docx', '.xls', '.xlsx',
-    '.ppt', '.pptx', '.txt', '.csv', '.rar', '.7z',
-    '.tar', '.gz', '.mp3', '.mp4', '.avi', '.mov',
-    '.png', '.jpg', '.jpeg', '.gif', '.svg', '.exe',
-    '.dmg', '.apk', '.deb', '.rpm'
-  ];
+  const DOWNLOAD_EXTENSION = /\.(pdf|zip|docx?|xlsx?|pptx?|txt|csv|rar|7z|tar|gz|mp[34]|avi|mov|png|jpe?g|gif|svg|exe|dmg|apk|deb|rpm)$/i;
 
   /**
    * Check if a link points to a downloadable file
@@ -743,10 +620,8 @@
 
     try {
       const url = new URL(link.href);
-      const pathname = url.pathname.toLowerCase();
-
       // Check if URL ends with a download extension
-      const hasDownloadExtension = DOWNLOAD_EXTENSIONS.some(ext => pathname.endsWith(ext));
+      const hasDownloadExtension = DOWNLOAD_EXTENSION.test(url.pathname);
 
       // Check if link has download attribute
       const hasDownloadAttribute = link.hasAttribute('download');
@@ -813,26 +688,21 @@
   }
 
   /**
-   * Setup file download tracking for all download links on the page
+   * One listener for every link on the page, now and later.
+   *
+   * There used to be a listener on each link, put there by a pass over the
+   * page at start, another after every single-page navigation, and a
+   * MutationObserver for links added in between. A click is looked at when it
+   * happens instead, which needs none of that and cannot miss a link.
+   *
+   * In the capture phase, so a site's own handler that stops the event from
+   * bubbling does not hide the click.
    */
-  function setupDownloadTracking() {
-    // Get all links
-    const links = document.querySelectorAll('a');
-
-    links.forEach(link => {
-      // Skip if already tracked
-      if (link.hasAttribute('data-argus-download-tracked')) return;
-
-      // Check if it's a file download
-      if (isFileDownload(link)) {
-        link.addEventListener('click', function(e) {
-          trackFileDownload(link);
-        });
-
-        // Mark as tracked
-        link.setAttribute('data-argus-download-tracked', 'true');
-      }
-    });
+  function onLinkClick(event) {
+    var link = event.target && event.target.closest ? event.target.closest('a') : null;
+    if (!link) return;
+    if (isOutboundLink(link)) trackOutboundLink(link);
+    if (isFileDownload(link)) trackFileDownload(link);
   }
 
   /**
@@ -953,27 +823,11 @@
     if (!trackingCode) return;
 
     var endpoint = getApiEndpoint().replace(/\/track$/, '/track-scroll');
-    var payload = JSON.stringify({
+    send(endpoint, {
       tracking_code: trackingCode,
       path: scrollPath || getPath(),
       depth: depth
     });
-
-    try {
-      fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: payload,
-        keepalive: true,
-        credentials: 'omit',
-        mode: 'cors'
-      }).catch(function() {
-        // Fire and forget, like the pageview.
-      });
-    } catch (e) {
-      // A depth that never arrives is a missing value, not an error worth
-      // showing to a visitor who has already left.
-    }
   }
 
   /**
@@ -1038,14 +892,8 @@
     // Setup scroll depth tracking
     setupScrollTracking();
 
-    // Setup outbound link tracking
-    setupOutboundTracking();
-
-    // Setup file download tracking
-    setupDownloadTracking();
-
-    // Observe for dynamically added links
-    observeDynamicLinks();
+    // Outbound links and downloads
+    document.addEventListener('click', onLinkClick, true);
 
     // Track pageviews on history changes (for SPAs)
     const originalPushState = history.pushState;
@@ -1058,10 +906,6 @@
       if (getPath() === lastTrackedPath) return;
 
       trackPageview();
-      // Re-setup outbound tracking for SPA page changes
-      setupOutboundTracking();
-      // Re-setup download tracking for SPA page changes
-      setupDownloadTracking();
       // Re-setup scroll tracking for new page
       reportScrollDepth();
       cleanupScrollTracking();
