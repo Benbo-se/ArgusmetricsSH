@@ -135,6 +135,9 @@
                         <a href="#api" class="block px-3 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-md">
                             API Reference
                         </a>
+                        <a href="#mcp" class="block px-3 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-md">
+                            AI Assistants (MCP)
+                        </a>
                     </nav>
                 </div>
             </aside>
@@ -1382,6 +1385,90 @@ Content-Type: application/json
   }
 }</code></pre>
                         </div>
+                    </section>
+
+                    <!-- MCP -->
+                    <section id="mcp" class="mb-12">
+                        <h2 class="text-3xl font-bold text-gray-900 mb-4 pb-2 border-b-2 border-blue-600">AI Assistants (MCP)</h2>
+                        <p class="text-gray-700 mb-4">
+                            Your instance can answer an AI assistant's questions about your traffic: "which pages did best last week", "where did visitors come from in October". It does this as an MCP server (Model Context Protocol), the way Claude and other assistants connect to outside tools. The assistant can read statistics and nothing else. There is no tool that creates, changes or deletes anything.
+                        </p>
+
+                        <h3 class="text-xl font-semibold text-gray-900 mb-3 mt-6">Turning It On</h3>
+                        <p class="text-gray-700 mb-4">
+                            It is off until you turn it on, and the address answers 404 while it is off. Set this in <code>docker/.env</code> and restart:
+                        </p>
+                        <div class="bg-gray-900 text-gray-100 p-4 rounded-lg mb-6 overflow-x-auto">
+                            <pre><code>MCP_ENABLED=true</code></pre>
+                        </div>
+                        <div class="bg-yellow-50 border-l-4 border-yellow-600 p-4 mb-6">
+                            <p class="text-sm text-yellow-900">
+                                <strong>Before you do:</strong> whatever the assistant reads is sent to the company that runs its model. Your visitors' statistics then leave your server, which they otherwise never do, and that can be a new processing under the GDPR with that company as your processor. Check that your agreement with them and your privacy policy cover it. This is why the setting is yours to make and not on by default.
+                            </p>
+                        </div>
+
+                        <h3 class="text-xl font-semibold text-gray-900 mb-3 mt-6">Address and Authentication</h3>
+                        <p class="text-gray-700 mb-4">
+                            The endpoint is <code>/api/mcp</code> on your instance, over Streamable HTTP. It takes the same API token as the REST API, sent as a bearer token:
+                        </p>
+                        <div class="bg-gray-900 text-gray-100 p-4 rounded-lg mb-6 overflow-x-auto">
+                            <pre><code>https://your-argusmetrics-instance.com/api/mcp
+Authorization: Bearer YOUR_API_TOKEN</code></pre>
+                        </div>
+                        <p class="text-gray-700 mb-4">
+                            The token decides what the assistant sees, exactly as it does for the REST API: one website, read-only, and "not found" for every other website, including others you own. Create a separate token for the assistant in your website settings, so you can delete it without touching anything else. A login session is not accepted here, only a token.
+                        </p>
+
+                        <h3 class="text-xl font-semibold text-gray-900 mb-3 mt-6">Connecting Claude Code</h3>
+                        <div class="bg-gray-900 text-gray-100 p-4 rounded-lg mb-6 overflow-x-auto">
+                            <pre><code>claude mcp add --transport http argusmetrics \
+  https://your-argusmetrics-instance.com/api/mcp \
+  --header "Authorization: Bearer YOUR_API_TOKEN"</code></pre>
+                        </div>
+                        <p class="text-gray-700 mb-4">
+                            Any other client that takes a URL and a request header works the same way. In a JSON configuration it looks like this:
+                        </p>
+                        <div class="bg-gray-900 text-gray-100 p-4 rounded-lg mb-6 overflow-x-auto">
+                            <pre><code>{
+  "mcpServers": {
+    "argusmetrics": {
+      "type": "http",
+      "url": "https://your-argusmetrics-instance.com/api/mcp",
+      "headers": { "Authorization": "Bearer YOUR_API_TOKEN" }
+    }
+  }
+}</code></pre>
+                        </div>
+
+                        <h3 class="text-xl font-semibold text-gray-900 mb-3 mt-6">Connecting claude.ai and Claude Desktop</h3>
+                        <p class="text-gray-700 mb-4">
+                            Connectors in claude.ai, Claude Desktop and the mobile apps sign in to a server with OAuth, which this endpoint does not offer yet. They can still connect if the <strong>Add custom connector</strong> dialog in your organization has a <strong>Request headers</strong> section, which Anthropic is rolling out as a beta: choose no sign-in, and add a header named <code>Authorization</code> with the value <code>Bearer YOUR_API_TOKEN</code>. If the dialog has no such section, use Claude Code or another client that sends a header until OAuth is supported here. Connectors call from Anthropic's servers, so the instance has to be reachable from the internet.
+                        </p>
+
+                        <h3 class="text-xl font-semibold text-gray-900 mb-3 mt-6">What the Assistant Can Ask For</h3>
+                        <div class="overflow-x-auto mb-6">
+                            <table class="min-w-full text-sm">
+                                <thead>
+                                    <tr class="bg-gray-100">
+                                        <th class="text-left px-4 py-2 font-semibold">Tool</th>
+                                        <th class="text-left px-4 py-2 font-semibold">Returns</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-200">
+                                    <tr><td class="px-4 py-2"><code>list_sites</code></td><td class="px-4 py-2">The website the token belongs to, with its time zone</td></tr>
+                                    <tr><td class="px-4 py-2"><code>get_overview</code></td><td class="px-4 py-2">Pageviews and unique visitors for a period, per day or per hour</td></tr>
+                                    <tr><td class="px-4 py-2"><code>get_top_pages</code></td><td class="px-4 py-2">The most viewed pages</td></tr>
+                                    <tr><td class="px-4 py-2"><code>get_sources</code></td><td class="px-4 py-2">Top referrers and UTM campaigns</td></tr>
+                                    <tr><td class="px-4 py-2"><code>get_countries</code></td><td class="px-4 py-2">Pageviews per country</td></tr>
+                                    <tr><td class="px-4 py-2"><code>get_devices</code></td><td class="px-4 py-2">Device types, browsers and operating systems</td></tr>
+                                    <tr><td class="px-4 py-2"><code>get_goals</code></td><td class="px-4 py-2">Goals with conversions and conversion rate</td></tr>
+                                    <tr><td class="px-4 py-2"><code>get_realtime</code></td><td class="px-4 py-2">Visitors in the last five minutes and the latest pageviews</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <p class="text-gray-700 mb-4">
+                            Periods work as in the REST API: <code>start_date</code> and <code>end_date</code> are days in the website's time zone, and without them a report covers the last 30 days. The numbers are the ones the REST API returns, because the tools call the same code. Requests are limited to 120 a minute per address.
+                        </p>
                     </section>
 
                     <!-- Support -->

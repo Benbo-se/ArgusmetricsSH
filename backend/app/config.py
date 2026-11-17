@@ -174,6 +174,17 @@ class Settings(BaseSettings):
         default=None,
         description="Bearer token for /metrics. Unset means the endpoint is off.",
     )
+    # The MCP endpoint at /api/mcp (app/routers/mcp_endpoint.py), which lets an
+    # AI assistant read a website's statistics with that website's API token.
+    # Off by default. It adds nothing a token holder could not already read
+    # through the REST API, but handing visitor statistics to an assistant
+    # means handing them to whoever runs its model, and that can be a new
+    # processing under the GDPR. That is the operator's decision to make, so
+    # it is not made for them.
+    MCP_ENABLED: bool = Field(
+        default=False,
+        description="Serve the read-only MCP endpoint at /api/mcp",
+    )
     SENTRY_DSN: Optional[str] = Field(default=None, description="Sentry DSN for error tracking")
     LOG_LEVEL: str = Field(default="INFO", description="Logging level")
 
@@ -320,6 +331,8 @@ OPERATOR_SETTINGS = frozenset({
     "SMTP_FROM_EMAIL", "SMTP_FROM_NAME", "SMTP_USE_TLS",
     # Operations
     "LOG_LEVEL", "LOG_FORMAT", "SENTRY_DSN", "METRICS_TOKEN",
+    # Integrations
+    "MCP_ENABLED",
     "DB_POOL_SIZE", "DB_MAX_OVERFLOW",
 })
 

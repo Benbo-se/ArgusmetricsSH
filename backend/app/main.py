@@ -109,7 +109,17 @@ async def lifespan(app: FastAPI):
 
     logger.info(f"{settings.APP_NAME} started successfully")
 
-    yield  # Application runs here
+    # The MCP endpoint's session manager lives exactly as long as the
+    # application does, and only on an instance that turned the endpoint on.
+    # Imported here so an instance with it off never builds the server.
+    if settings.MCP_ENABLED:
+        from app.routers.mcp_endpoint import mcp_runtime
+
+        async with mcp_runtime():
+            logger.info("MCP endpoint enabled at /api/mcp")
+            yield  # Application runs here
+    else:
+        yield  # Application runs here
 
     # Shutdown
     logger.info(f"Shutting down {settings.APP_NAME}...")
@@ -530,7 +540,7 @@ async def sitemap_xml():
 
 
 # Import and include routers
-from app.routers import waitlist, auth, websites, analytics, dashboard, websocket, dashboard_password, email_reports, revenue, funnels, anomaly, annotations, account
+from app.routers import waitlist, auth, websites, analytics, dashboard, websocket, dashboard_password, email_reports, revenue, funnels, anomaly, annotations, account, mcp_endpoint
 
 app.include_router(
     auth.router,
@@ -594,6 +604,13 @@ app.include_router(
 app.include_router(
     email_reports.router,
     tags=["Email Reports"],
+)
+
+# The MCP endpoint (/api/mcp): statistics for an AI assistant, read-only,
+# authenticated with a website's API token. Answers 404 unless MCP_ENABLED.
+app.include_router(
+    mcp_endpoint.router,
+    tags=["MCP"],
 )
 
 # Include WebSocket router
