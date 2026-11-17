@@ -20,6 +20,7 @@ from app.models.website import Website
 from app.models.user import User
 from app.routers.auth import get_current_user
 from app.services.ecommerce_service import EcommerceService
+from app.services.filters import FilterSet
 from app.services.website_service import WebsiteService
 from app.routers.analytics import check_track_rate_limit, use_tracking_context
 from app.utils.network import get_client_ip
@@ -85,6 +86,7 @@ async def track_revenue(
 
 @router.get("/{website_id}")
 async def get_revenue_stats(
+    request: Request,
     website_id: int,
     range: Optional[str] = "30d",
     currency: Optional[str] = None,  # None = the site's most-used currency
@@ -93,6 +95,10 @@ async def get_revenue_stats(
 ):
     """
     Get revenue statistics for a website.
+
+    Takes the dashboard's filters as query parameters (country=SE,
+    page__contains=/blog and so on, see app/services/filters.py): the
+    numbers are then those of visitors with a matching pageview in the range.
 
     Args:
         website_id: Website ID
@@ -126,20 +132,24 @@ async def get_revenue_stats(
     else:
         start = end - timedelta(days=30)
 
+    filters = FilterSet.from_query(request.query_params)
+
     # Get revenue stats
     ecommerce_service = EcommerceService(db)
     stats = ecommerce_service.get_revenue_stats(
         website_id=website_id,
         start_date=start,
         end_date=end,
-        currency=currency
+        currency=currency,
+        filters=filters
     )
 
     # Get conversion funnel
     funnel = ecommerce_service.get_conversion_funnel(
         website_id=website_id,
         start_date=start,
-        end_date=end
+        end_date=end,
+        filters=filters
     )
 
     # Combine results
@@ -153,6 +163,7 @@ async def get_revenue_stats(
 
 @router.get("/{website_id}/products")
 async def get_top_products(
+    request: Request,
     website_id: int,
     range: Optional[str] = "30d",
     limit: Optional[int] = 10,
@@ -203,12 +214,14 @@ async def get_top_products(
         start_date=start,
         end_date=end,
         limit=limit,
-        currency=currency
+        currency=currency,
+        filters=FilterSet.from_query(request.query_params)
     )
 
 
 @router.get("/{website_id}/chart")
 async def get_revenue_chart(
+    request: Request,
     website_id: int,
     range: Optional[str] = "30d",
     currency: Optional[str] = None,  # None = the site's most-used currency
@@ -257,5 +270,6 @@ async def get_revenue_chart(
         start_date=start,
         end_date=end,
         currency=currency,
-        tz=site_timezone(website)
+        tz=site_timezone(website),
+        filters=FilterSet.from_query(request.query_params)
     )

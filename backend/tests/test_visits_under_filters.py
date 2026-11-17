@@ -14,6 +14,8 @@ from datetime import datetime, timedelta, timezone
 import pytest
 from sqlalchemy import text
 
+from app.services.filters import FilterSet
+
 from app.services.analytics_query_service import (
     VISIT_TIMEOUT_SECONDS,
     AnalyticsQueryService,
@@ -39,12 +41,13 @@ def record(db, website):
 
 @pytest.fixture
 def stats(db, website):
-    def _stats(**filters):
+    def _stats(compare=False, **filters):
         return AnalyticsQueryService(db).get_dashboard_stats(
             website_id=website["id"],
             start_date=ANCHOR - timedelta(days=1),
             end_date=ANCHOR + timedelta(days=1),
-            **filters,
+            compare=compare,
+            filters=FilterSet.of(**filters),
         )
     return _stats
 
@@ -67,7 +70,7 @@ class TestAFilterPicksVisitsInsteadOfThinningThem:
         assert result["bounce_rate"] == pytest.approx(33.3, abs=0.1)
 
     def test_a_visit_that_touched_the_page_keeps_all_its_pages(self, stats):
-        result = stats(filter_page="/pricing")
+        result = stats(page="/pricing")
         assert result["total_visits"] == 2, "carol never saw /pricing"
         assert result["bounce_rate"] == 50.0, (
             "alice read six pages; building visits from the filtered rows made "
@@ -77,24 +80,24 @@ class TestAFilterPicksVisitsInsteadOfThinningThem:
         assert result["avg_visit_seconds"] == 150
 
     def test_the_headline_counts_still_follow_the_filter(self, stats):
-        result = stats(filter_page="/pricing")
+        result = stats(page="/pricing")
         assert result["total_pageviews"] == 2
         assert result["unique_visitors"] == 2
 
     def test_a_filter_matching_nothing_gives_no_visits(self, stats):
-        assert stats(filter_page="/nowhere")["total_visits"] == 0
+        assert stats(page="/nowhere")["total_visits"] == 0
 
     def test_the_same_holds_for_the_other_filters(self, record, stats):
         record("dora", 0, "/", device="mobile")
         record("dora", 60, "/more", device="desktop")
-        result = stats(filter_device="mobile")
+        result = stats(device="mobile")
         assert result["total_visits"] == 1
         assert result["bounce_rate"] == 0.0
 
     def test_the_previous_period_is_measured_the_same_way(self, record, stats):
         record("alice", -2 * 86400, "/pricing")
         record("alice", -2 * 86400 + 60, "/other")
-        result = stats(filter_page="/pricing", compare=True)
+        result = stats(page="/pricing", compare=True)
         assert result["comparison"]["prev_pageviews"] == 1
         # The earlier visit has two pages, so it was not a bounce (0%). The
         # current period's bounce is 50%, and a change from 0 reads as +100.
@@ -133,6 +136,6 @@ class TestEntryAndExitAreVisits:
         record("alice", 60, "/pricing")
         record("bob", 0, "/other")
 
-        result = stats(filter_page="/pricing")
+        result = stats(page="/pricing")
         assert [(e["path"], e["entries"]) for e in result["entry_pages"]] == [("/blog", 1)]
         assert [(e["path"], e["exits"]) for e in result["exit_pages"]] == [("/pricing", 1)]

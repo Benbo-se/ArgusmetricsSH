@@ -11,6 +11,8 @@ from datetime import datetime, timedelta, timezone
 import pytest
 from sqlalchemy import text
 
+from app.services.filters import FilterSet
+
 from app.database import set_rls_context
 from app.models.funnel import Funnel, FunnelEvent
 from app.services.analytics_query_service import AnalyticsQueryService
@@ -70,7 +72,7 @@ class TestReadersGroupOnThePath:
         record("b", 0, "/pricing?fbclid=abc")
         record("c", 0, "/other")
 
-        assert stats(db, website, filter_page="/pricing")["total_pageviews"] == 2
+        assert stats(db, website, filters=FilterSet.of(page="/pricing"))["total_pageviews"] == 2
 
     def test_the_raw_path_is_still_what_is_stored(self, db, website, record):
         record("a", 0, "/pricing?fbclid=abc")

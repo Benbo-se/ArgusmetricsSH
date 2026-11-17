@@ -3,6 +3,10 @@ Events query service for retrieving custom event analytics.
 
 Handles 404 errors, outbound links, file downloads, event summaries,
 and property breakdowns.
+
+Every report here takes filters. An event is kept when its visitor has a
+matching pageview in the range; why it is done through the visitor is
+explained on FilterSet.visitor_conditions.
 """
 import logging
 from typing import Optional, Dict, List
@@ -11,6 +15,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, and_, or_, distinct
 
 from app.models.custom_event import CustomEvent
+from app.services.filters import FilterSet, visitor_conditions
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +31,8 @@ class EventsQueryService:
         website_id: int,
         start_date: datetime,
         end_date: datetime,
-        limit: int = 20
+        limit: int = 20,
+        filters: Optional[FilterSet] = None
     ) -> List[Dict]:
         """Get 404 error statistics for a website."""
         logger.info(f"Getting 404 errors: website_id={website_id}, start={start_date}, end={end_date}")
@@ -45,7 +51,10 @@ class EventsQueryService:
                     CustomEvent.event_name == '404 Error',
                     CustomEvent.timestamp >= start_date,
                     CustomEvent.timestamp <= end_date,
-                    CustomEvent.properties['path'].astext.isnot(None)
+                    CustomEvent.properties['path'].astext.isnot(None),
+                    *visitor_conditions(
+                        filters, CustomEvent.visitor_hash, website_id, start_date, end_date
+                    ),
                 )
             ).group_by(
                 CustomEvent.properties['path'].astext
@@ -76,7 +85,8 @@ class EventsQueryService:
         self,
         website_id: int,
         start_date: datetime,
-        end_date: datetime
+        end_date: datetime,
+        filters: Optional[FilterSet] = None
     ) -> Dict:
         """Get custom events summary for dashboard."""
         logger.info(f"Getting custom events summary: website_id={website_id}")
@@ -90,7 +100,10 @@ class EventsQueryService:
                 and_(
                     CustomEvent.website_id == website_id,
                     CustomEvent.timestamp >= start_date,
-                    CustomEvent.timestamp <= end_date
+                    CustomEvent.timestamp <= end_date,
+                    *visitor_conditions(
+                        filters, CustomEvent.visitor_hash, website_id, start_date, end_date
+                    ),
                 )
             ).group_by(CustomEvent.event_name)\
              .order_by(func.count(CustomEvent.id).desc())\
@@ -104,7 +117,7 @@ class EventsQueryService:
                 avg_per_user = event.count / event.unique_users if event.unique_users > 0 else 0
 
                 top_properties = self._get_top_property_keys(
-                    website_id, event.event_name, start_date, end_date
+                    website_id, event.event_name, start_date, end_date, filters=filters
                 )
 
                 events_summary.append({
@@ -130,7 +143,8 @@ class EventsQueryService:
         event_name: str,
         start_date: datetime,
         end_date: datetime,
-        limit: int = 3
+        limit: int = 3,
+        filters: Optional[FilterSet] = None
     ) -> List[str]:
         """Get top property keys for an event."""
         try:
@@ -140,7 +154,10 @@ class EventsQueryService:
                     CustomEvent.event_name == event_name,
                     CustomEvent.timestamp >= start_date,
                     CustomEvent.timestamp <= end_date,
-                    CustomEvent.properties.isnot(None)
+                    CustomEvent.properties.isnot(None),
+                    *visitor_conditions(
+                        filters, CustomEvent.visitor_hash, website_id, start_date, end_date
+                    ),
                 )
             ).limit(100).all()
 
@@ -164,37 +181,35 @@ class EventsQueryService:
         event_name: str,
         start_date: datetime,
         end_date: datetime,
-        limit: int = 100
+        limit: int = 100,
+        filters: Optional[FilterSet] = None
     ) -> Dict:
         """Get detailed information for a specific custom event."""
         logger.info(f"Getting event details: website_id={website_id}, event={event_name}")
 
         try:
+            matching = [
+                CustomEvent.website_id == website_id,
+                CustomEvent.event_name == event_name,
+                CustomEvent.timestamp >= start_date,
+                CustomEvent.timestamp <= end_date,
+                *visitor_conditions(
+                    filters, CustomEvent.visitor_hash, website_id, start_date, end_date
+                ),
+            ]
             stats = self.db.query(
                 func.count(CustomEvent.id).label('total_count'),
                 func.count(distinct(CustomEvent.visitor_hash)).label('unique_users')
-            ).filter(
-                and_(
-                    CustomEvent.website_id == website_id,
-                    CustomEvent.event_name == event_name,
-                    CustomEvent.timestamp >= start_date,
-                    CustomEvent.timestamp <= end_date
-                )
-            ).first()
+            ).filter(and_(*matching)).first()
 
             events = self.db.query(CustomEvent).filter(
-                and_(
-                    CustomEvent.website_id == website_id,
-                    CustomEvent.event_name == event_name,
-                    CustomEvent.timestamp >= start_date,
-                    CustomEvent.timestamp <= end_date
-                )
+                and_(*matching)
             ).order_by(CustomEvent.timestamp.desc())\
              .limit(limit)\
              .all()
 
             property_breakdown = self._get_property_breakdown(
-                website_id, event_name, start_date, end_date
+                website_id, event_name, start_date, end_date, filters=filters
             )
 
             return {
@@ -235,7 +250,8 @@ class EventsQueryService:
         event_name: str,
         start_date: datetime,
         end_date: datetime,
-        limit: int = 10
+        limit: int = 10,
+        filters: Optional[FilterSet] = None
     ) -> List[Dict]:
         """Get property value breakdown for an event."""
         try:
@@ -245,7 +261,10 @@ class EventsQueryService:
                     CustomEvent.event_name == event_name,
                     CustomEvent.timestamp >= start_date,
                     CustomEvent.timestamp <= end_date,
-                    CustomEvent.properties.isnot(None)
+                    CustomEvent.properties.isnot(None),
+                    *visitor_conditions(
+                        filters, CustomEvent.visitor_hash, website_id, start_date, end_date
+                    ),
                 )
             ).all()
 
@@ -279,7 +298,8 @@ class EventsQueryService:
         self,
         website_id: int,
         start_date: datetime,
-        end_date: datetime
+        end_date: datetime,
+        filters: Optional[FilterSet] = None
     ) -> List[Dict]:
         """Get outbound link statistics for a website."""
         logger.info(f"Getting outbound links: website_id={website_id}")
@@ -296,7 +316,10 @@ class EventsQueryService:
                         CustomEvent.event_name.like('Outbound Link:%'),
                     ),
                     CustomEvent.timestamp >= start_date,
-                    CustomEvent.timestamp <= end_date
+                    CustomEvent.timestamp <= end_date,
+                    *visitor_conditions(
+                        filters, CustomEvent.visitor_hash, website_id, start_date, end_date
+                    ),
                 )
             ).all()
 
@@ -363,7 +386,8 @@ class EventsQueryService:
         self,
         website_id: int,
         start_date: datetime,
-        end_date: datetime
+        end_date: datetime,
+        filters: Optional[FilterSet] = None
     ) -> List[Dict]:
         """Get file download statistics for a website."""
         logger.info(f"Getting file downloads: website_id={website_id}")
@@ -374,7 +398,10 @@ class EventsQueryService:
                     CustomEvent.website_id == website_id,
                     CustomEvent.event_name == 'file_download',
                     CustomEvent.timestamp >= start_date,
-                    CustomEvent.timestamp <= end_date
+                    CustomEvent.timestamp <= end_date,
+                    *visitor_conditions(
+                        filters, CustomEvent.visitor_hash, website_id, start_date, end_date
+                    ),
                 )
             ).all()
 

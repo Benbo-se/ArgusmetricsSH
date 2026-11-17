@@ -10,6 +10,7 @@ from sqlalchemy import func, and_, distinct
 from app.models.pageview import Pageview
 from app.models.website import Website
 from app.models.goal import Goal, GoalConversion
+from app.services.filters import FilterSet, visitor_conditions
 from app.utils.security import generate_visitor_hash
 from app.services.website_lookup import resolve_tracking_code
 from app.services.usage_service import LIMIT_MESSAGE, may_record
@@ -22,6 +23,7 @@ def goal_conversion_stats(
     website_id: int,
     start_date: datetime,
     end_date: Optional[datetime] = None,
+    filters: Optional[FilterSet] = None,
 ) -> Dict:
     """Visitors, and per goal the conversions, converters and conversion rate.
 
@@ -33,6 +35,11 @@ def goal_conversion_stats(
     Returns {"visitors": int, "goals": {goal_id: {"conversions", "converters",
     "rate"}}} with a rate in percent to one decimal. Goals with no
     conversions in the period are absent.
+
+    With `filters`, both halves of the rate are narrowed the same way: the
+    visitors are the ones with a matching pageview, and the conversions are
+    theirs. Narrowing only one of them gives a rate of the filtered few over
+    everybody, or of everybody over the filtered few.
     """
     visitor_filters = [Pageview.website_id == website_id, Pageview.timestamp >= start_date]
     conversion_filters = [
@@ -42,6 +49,11 @@ def goal_conversion_stats(
     if end_date is not None:
         visitor_filters.append(Pageview.timestamp <= end_date)
         conversion_filters.append(GoalConversion.timestamp <= end_date)
+    if filters:
+        visitor_filters.extend(filters.conditions())
+        conversion_filters.extend(visitor_conditions(
+            filters, GoalConversion.visitor_hash, website_id, start_date, end_date
+        ))
 
     visitors = db.query(
         func.count(distinct(Pageview.visitor_hash))
@@ -179,7 +191,8 @@ class GoalsService:
         self,
         website_id: int,
         start_date: datetime,
-        end_date: datetime
+        end_date: datetime,
+        filters: Optional[FilterSet] = None
     ) -> Dict:
         """Get goal statistics for a website."""
         logger.info(f"Getting goal stats: website_id={website_id}")
@@ -189,7 +202,9 @@ class GoalsService:
                 Goal.website_id == website_id
             ).all()
 
-            shared = goal_conversion_stats(self.db, website_id, start_date, end_date)
+            shared = goal_conversion_stats(
+                self.db, website_id, start_date, end_date, filters
+            )
             total_visitors = shared["visitors"]
             quiet = {"conversions": 0, "converters": 0, "rate": 0.0}
 

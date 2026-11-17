@@ -23,6 +23,7 @@ from app.models.website import Website
 from app.utils.security import generate_visitor_hash
 from app.utils.date_helpers import DEFAULT_TIMEZONE, sql_local_day
 from app.services.website_lookup import resolve_tracking_code
+from app.services.filters import FilterSet, visitor_conditions
 from app.services.usage_service import LIMIT_MESSAGE, may_record
 
 logger = logging.getLogger(__name__)
@@ -348,10 +349,15 @@ class EcommerceService:
         website_id: int,
         start_date: datetime,
         end_date: datetime,
-        currency: Optional[str] = None
+        currency: Optional[str] = None,
+        filters: Optional[FilterSet] = None
     ) -> Dict:
         """
         Get revenue statistics for a date range.
+
+        `filters` narrows this, as it does every report in this service, to
+        the visitors with a matching pageview in the range
+        (FilterSet.visitor_conditions).
 
         Args:
             website_id: Website ID
@@ -387,7 +393,10 @@ class EcommerceService:
                     EcommerceEvent.timestamp >= start_date,
                     EcommerceEvent.timestamp <= end_date,
                     EcommerceEvent.currency == currency.upper(),
-                    EcommerceEvent.revenue.isnot(None)
+                    EcommerceEvent.revenue.isnot(None),
+                    *visitor_conditions(
+                        filters, EcommerceEvent.visitor_hash, website_id, start_date, end_date
+                    ),
                 )
             ).first()
 
@@ -433,7 +442,8 @@ class EcommerceService:
         start_date: datetime,
         end_date: datetime,
         limit: int = 10,
-        currency: Optional[str] = None
+        currency: Optional[str] = None,
+        filters: Optional[FilterSet] = None
     ) -> Dict:
         """
         Get top selling products.
@@ -470,7 +480,10 @@ class EcommerceService:
                     EcommerceEvent.timestamp >= start_date,
                     EcommerceEvent.timestamp <= end_date,
                     EcommerceEvent.currency == currency,
-                    EcommerceEvent.product_name.isnot(None)
+                    EcommerceEvent.product_name.isnot(None),
+                    *visitor_conditions(
+                        filters, EcommerceEvent.visitor_hash, website_id, start_date, end_date
+                    ),
                 )
             ).group_by(
                 EcommerceEvent.product_id,
@@ -490,7 +503,10 @@ class EcommerceService:
                     EcommerceEvent.timestamp >= start_date,
                     EcommerceEvent.timestamp <= end_date,
                     EcommerceEvent.currency == currency,
-                    EcommerceEvent.product_name.isnot(None)
+                    EcommerceEvent.product_name.isnot(None),
+                    *visitor_conditions(
+                        filters, EcommerceEvent.visitor_hash, website_id, start_date, end_date
+                    ),
                 )
             ).scalar() or 0
 
@@ -525,7 +541,8 @@ class EcommerceService:
         self,
         website_id: int,
         start_date: datetime,
-        end_date: datetime
+        end_date: datetime,
+        filters: Optional[FilterSet] = None
     ) -> Dict:
         """
         Get conversion funnel analysis.
@@ -547,7 +564,10 @@ class EcommerceService:
             base_conditions = [
                 EcommerceEvent.website_id == website_id,
                 EcommerceEvent.timestamp >= start_date,
-                EcommerceEvent.timestamp <= end_date
+                EcommerceEvent.timestamp <= end_date,
+                *visitor_conditions(
+                    filters, EcommerceEvent.visitor_hash, website_id, start_date, end_date
+                ),
             ]
 
             # Count unique visitors for each funnel stage
@@ -614,7 +634,8 @@ class EcommerceService:
         start_date: datetime,
         end_date: datetime,
         currency: Optional[str] = None,
-        tz: str = DEFAULT_TIMEZONE
+        tz: str = DEFAULT_TIMEZONE,
+        filters: Optional[FilterSet] = None
     ) -> Dict:
         """
         Get revenue over time (timeseries data), one row per day in `tz`,
@@ -650,7 +671,10 @@ class EcommerceService:
                     EcommerceEvent.timestamp >= start_date,
                     EcommerceEvent.timestamp <= end_date,
                     EcommerceEvent.currency == currency.upper(),
-                    EcommerceEvent.revenue.isnot(None)
+                    EcommerceEvent.revenue.isnot(None),
+                    *visitor_conditions(
+                        filters, EcommerceEvent.visitor_hash, website_id, start_date, end_date
+                    ),
                 )
             ).group_by(day_of).order_by(day_of).all()
 

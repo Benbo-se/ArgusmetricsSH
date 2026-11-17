@@ -21,6 +21,8 @@ from datetime import datetime, timedelta, timezone
 import pytest
 from sqlalchemy import text
 
+from app.services.filters import FilterSet
+
 from app.services.analytics_query_service import (
     VISIT_TIMEOUT_SECONDS,
     AnalyticsQueryService,
@@ -61,7 +63,7 @@ def visits(db, website):
             website["id"],
             ANCHOR - timedelta(days=1),
             ANCHOR + timedelta(days=1),
-            **filters,
+            FilterSet.of(**filters),
         )
         return service._get_visit_stats(conditions)
     return _visits
@@ -283,7 +285,7 @@ class TestTheComparisonMeasuresTheSameThing:
         )
         filtered = service._base_conditions(
             website["id"], ANCHOR, ANCHOR + timedelta(days=1),
-            filter_country="SE",
+            FilterSet.of(country="SE"),
         )
         assert len(filtered) == len(unfiltered) + 1
 
@@ -304,7 +306,7 @@ class TestTheComparisonMeasuresTheSameThing:
             start_date=ANCHOR - timedelta(hours=1),
             end_date=ANCHOR + timedelta(hours=1),
             compare=True,
-            filter_country="ZZ",
+            filters=FilterSet.of(country="ZZ"),
         )
 
         assert stats["total_pageviews"] == 0

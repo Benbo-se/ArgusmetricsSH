@@ -218,5 +218,5 @@ class TestTheSharedPage:
         assert "signup" in body, "the event table is not there; nothing below is tested"
         for acting in ('data-filter=', "applyFilter", "rank-row cursor-pointer", 'x-data="listRow"',
                        "/dashboard/website/", "export-csv", "Manage goals",
-                       "page-state-data", "propertyFilterDialog"):
+                       "page-state-data", "filterDialog", "data-filter-dialog"):
             assert acting not in body, f"{acting} is on a page that is read-only"

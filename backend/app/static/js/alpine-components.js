@@ -2125,16 +2125,20 @@ document.addEventListener('alpine:init', () => {
      * The chip now carries the filter name in a data attribute, which is both
      * what the CSP build needs and a little safer: the value no longer travels
      * through a JavaScript string literal rendered by Jinja.
+     *
+     * A filter is kept under the query parameter it is written as:
+     * filters.country for "country is", filters.page__contains for "page
+     * contains". Which parameters exist, and which conditions a dimension
+     * takes, comes from the server in the page state (filter_keys,
+     * filter_suffixes, filter_operators): the list lives in
+     * app/services/filters.py, and a second one here would be the one that
+     * is forgotten when a dimension is added.
      */
-    // The visitor dimension filters (#204). The names are the query
-    // parameters, and the same list the server keeps in
-    // app/services/visitor_dimensions.py.
-    const DIMENSION_FILTERS = [
-        'os', 'os_version', 'browser_version', 'language', 'hostname', 'screen',
-    ]
-
     Alpine.data('websitePage', () => composed(breakdownTabs(), {
-        state: { range: '7d', compare: '', filters: {} },
+        state: {
+            range: '7d', compare: '', filters: {},
+            filter_keys: [], filter_suffixes: {}, filter_operators: {},
+        },
         // '' for no comparison, 'previous' or 'year'.
         compareMode: '',
         // The two date fields of a custom range, as YYYY-MM-DD.
@@ -2161,6 +2165,7 @@ document.addEventListener('alpine:init', () => {
         set range(value) { this.state.range = value },
         get filters() { return this.state.filters },
         get properties() { return this.state.filters.properties || {} },
+        get filterKeys() { return this.state.filter_keys || [] },
 
         get propertyChips() {
             return Object.keys(this.properties).map((key) => ({
@@ -2194,11 +2199,8 @@ document.addEventListener('alpine:init', () => {
         /** Whether any filter is active at all, for the filter bar. */
         get hasFilters() {
             const f = this.filters
-            return !!(
-                f.country || f.device || f.browser || f.page || f.referrer ||
-                DIMENSION_FILTERS.some((name) => f[name]) ||
+            return this.filterKeys.some((key) => f[key]) ||
                 Object.keys(this.properties).length > 0
-            )
         },
 
         /**
@@ -2247,7 +2249,24 @@ document.addEventListener('alpine:init', () => {
             this.updateDashboard()
         },
 
+        /**
+         * Sets a filter typed into the filter dialog: a dimension, one of
+         * the conditions it takes, and a value.
+         */
+        applyTypedFilter(dimension, operator, value) {
+            const suffix = (this.state.filter_suffixes || {})[operator]
+            if (suffix === undefined) return
+            this.filters[dimension + suffix] = value
+            this.updateDashboard()
+        },
+
+        /** The conditions a dimension takes; a custom property only "is". */
+        operatorsFor(dimension) {
+            return (this.state.filter_operators || {})[dimension] || ['is']
+        },
+
         applyPropertyFilter(key, value) {
+            if (!this.state.filters.properties) this.state.filters.properties = {}
             this.state.filters.properties[key] = value
             this.updateDashboard()
         },
@@ -2261,12 +2280,7 @@ document.addEventListener('alpine:init', () => {
 
         clearAllFilters() {
             const f = this.state.filters
-            f.country = ''
-            f.device = ''
-            f.browser = ''
-            f.page = ''
-            f.referrer = ''
-            for (const name of DIMENSION_FILTERS) f[name] = ''
+            for (const key of this.filterKeys) f[key] = ''
             f.properties = {}
             this.updateDashboard()
         },
@@ -2287,10 +2301,10 @@ document.addEventListener('alpine:init', () => {
             if (this.compareMode) url.searchParams.set('compare', this.compareMode)
             else url.searchParams.delete('compare')
 
-            for (const name of ['country', 'device', 'browser', 'page', 'referrer', ...DIMENSION_FILTERS]) {
-                const value = this.filters[name]
-                if (value) url.searchParams.set(name, value)
-                else url.searchParams.delete(name)
+            for (const key of this.filterKeys) {
+                const value = this.filters[key]
+                if (value) url.searchParams.set(key, value)
+                else url.searchParams.delete(key)
             }
 
             if (Object.keys(this.properties).length > 0) {
@@ -2525,28 +2539,60 @@ document.addEventListener('alpine:init', () => {
         remove() { this.removePropertyFilter(this.chip.key) },
     }))
 
-    /** The "filter by property" dialog. */
-    Alpine.data('propertyFilterDialog', () => ({
-        open: false,
-        key: '',
-        value: '',
+    /**
+     * The filter dialog: a dimension, a condition and a value.
+     *
+     * "Custom property" is one of the dimensions. It takes a key as well,
+     * and only the condition "is": the server matches properties by
+     * containment, which has no "contains part of the value".
+     *
+     * The names are long because this sits inside websitePage and Alpine
+     * merges the two scopes: a plain `value` or `open` here would shadow
+     * whatever the page component calls the same thing.
+     */
+    Alpine.data('filterDialog', () => ({
+        filterOpen: false,
+        filterDimension: 'page',
+        filterOperator: 'is',
+        filterKey: '',
+        filterValue: '',
 
-        get propertyKey() { return modelFor(this, 'key') },
-        get propertyValue() { return modelFor(this, 'value') },
-        get isOpen() { return this.open },
+        get dimensionChoice() { return modelFor(this, 'filterDimension') },
+        get operatorChoice() { return modelFor(this, 'filterOperator') },
+        get propertyKey() { return modelFor(this, 'filterKey') },
+        get valueField() { return modelFor(this, 'filterValue') },
+        get isOpen() { return this.filterOpen },
+        get isProperty() { return this.filterDimension === 'property' },
 
-        toggle() { this.open = !this.open },
-        close() { this.open = false },
+        toggle() { this.filterOpen = !this.filterOpen },
+        close() { this.filterOpen = false },
 
-        addProperty() {
-            if (!this.key || !this.value) return
-            // applyPropertyFilter lives on the page component, which is up the
-            // scope chain. The old code reached for it through
-            // $el.closest('[x-data]').__x, an internal Alpine field.
-            this.applyPropertyFilter(this.key, this.value)
-            this.key = ''
-            this.value = ''
-            this.open = false
+        /** On an <option>: whether the chosen dimension takes this condition. */
+        get operatorDisabled() {
+            return !this.operatorsFor(this.filterDimension).includes(this.$el.value)
+        },
+
+        /** A condition the new dimension does not take falls back to "is". */
+        dimensionChanged() {
+            if (!this.operatorsFor(this.filterDimension).includes(this.filterOperator)) {
+                this.filterOperator = 'is'
+            }
+        },
+
+        addFilter() {
+            const value = this.filterValue.trim()
+            if (!value) return
+            // applyTypedFilter and applyPropertyFilter live on the page
+            // component, which is up the scope chain.
+            if (this.isProperty) {
+                const key = this.filterKey.trim()
+                if (!key) return
+                this.applyPropertyFilter(key, value)
+            } else {
+                if (!this.operatorsFor(this.filterDimension).includes(this.filterOperator)) return
+                this.applyTypedFilter(this.filterDimension, this.filterOperator, value)
+            }
+            this.filterOpen = false
         },
     }))
 
