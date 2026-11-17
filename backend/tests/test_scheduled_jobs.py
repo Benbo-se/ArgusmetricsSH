@@ -51,6 +51,51 @@ class TestAdvisoryLock:
             first.close()
             second.close()
 
+    def test_the_job_holds_its_lock_until_it_is_done(self):
+        """#193. The lock was taken on the job's session, which hands its
+        connection back at every commit, and the job commits when it notes
+        that it has started. From then on the lock sat on whatever connection
+        that was. Two things are checked through the real runner: another
+        worker is still refused while the job runs, also when the pool's
+        connections are in use meanwhile, and the lock is free afterwards.
+        """
+        from app import database, scheduled_tasks
+
+        key = 918_271_950
+        name = "lock_connection_check"
+        try_lock = text("SELECT pg_try_advisory_lock(:k)")
+        busy = []
+        try:
+            with scheduled_tasks._single_runner(key, name) as acquired:
+                assert acquired
+                # Requests arriving during the job take connections from the pool.
+                busy = [database.engine.connect() for _ in range(2)]
+                for connection in busy:
+                    connection.execute(text("SELECT 1"))
+
+                other_worker = database.engine.connect()
+                try:
+                    refused = other_worker.execute(try_lock, {"k": key}).scalar() is False
+                    other_worker.execute(text("SELECT pg_advisory_unlock_all()"))
+                    other_worker.commit()
+                finally:
+                    other_worker.close()
+                assert refused, "a second worker could start the job while it was running"
+
+            probe = database.engine.connect()
+            try:
+                free = probe.execute(try_lock, {"k": key}).scalar() is True
+                probe.execute(text("SELECT pg_advisory_unlock_all()"))
+                probe.commit()
+            finally:
+                probe.close()
+            assert free, "the lock was left held after the job, so it would never run again"
+        finally:
+            for connection in busy:
+                connection.close()
+            with database.engine.begin() as tidy:
+                tidy.execute(text("DELETE FROM job_runs WHERE job_name = :n"), {"n": name})
+
     def test_the_lock_keys_are_distinct(self):
         """One key for all three jobs would let cleanup block the reports."""
         import inspect
