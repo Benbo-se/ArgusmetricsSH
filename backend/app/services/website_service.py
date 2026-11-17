@@ -349,7 +349,8 @@ class WebsiteService:
         user_email: str,
         name: Optional[str] = None,
         is_active: Optional[bool] = None,
-        timezone: Optional[str] = None
+        timezone: Optional[str] = None,
+        exclude_datacenter: Optional[bool] = None
     ) -> Website:
         """
         Update a website's information.
@@ -363,6 +364,8 @@ class WebsiteService:
             name: New website name (optional)
             is_active: New active status (optional)
             timezone: New IANA time zone name (optional)
+            exclude_datacenter: Whether traffic from hosting providers is
+                kept out of the statistics (optional)
 
         Returns:
             Website: Updated website object
@@ -384,7 +387,10 @@ class WebsiteService:
         logger.info(f"Updating website {website_id} for user: {mask_email(user_email)}")
 
         # Validate that at least one field is being updated
-        if name is None and is_active is None and timezone is None:
+        if (
+            name is None and is_active is None and timezone is None
+            and exclude_datacenter is None
+        ):
             logger.warning("No update fields provided")
             raise ValueError("At least one field must be provided for update")
 
@@ -413,6 +419,18 @@ class WebsiteService:
                 # page load and applies to the history as well.
                 logger.debug(f"Updating website time zone: {website.timezone} -> {timezone}")
                 website.timezone = timezone
+
+            if exclude_datacenter is not None:
+                # Labels are written at collection whatever this says, so the
+                # reports follow it at once, in both directions and for the
+                # history. What does not come back is what was never
+                # recorded: the events and funnel steps of labelled visits
+                # while this was on.
+                logger.debug(
+                    "Updating hosting-traffic exclusion: "
+                    f"{website.exclude_datacenter} -> {exclude_datacenter}"
+                )
+                website.exclude_datacenter = exclude_datacenter
 
             self.db.commit()
             self.db.refresh(website)

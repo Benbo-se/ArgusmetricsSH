@@ -1,7 +1,7 @@
 """
 Website model for analytics tracking configuration.
 """
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Index
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Index, text
 from sqlalchemy.sql import func
 from app.database import Base
 
@@ -20,6 +20,8 @@ class Website(Base):
         updated_at: Timestamp when website was last updated
         is_active: Whether tracking is active for this website
         timezone: IANA time zone the website counts its days in
+        exclude_datacenter: Whether hosting-provider traffic is kept out of
+            the statistics
         is_public: Whether public dashboard is enabled
         public_share_token: Unique token for public dashboard access
     """
@@ -39,6 +41,12 @@ class Website(Base):
     is_active = Column(Boolean, default=True, nullable=False)
     # IANA zone name. A day in every statistic is a day in this zone.
     timezone = Column(String(64), nullable=False, default="UTC", server_default="UTC")
+    # Whether traffic from hosting providers is kept out of this website's
+    # statistics (#103). On unless someone turns it off, which is for a site
+    # whose real audience reaches it through a cloud proxy.
+    exclude_datacenter = Column(
+        Boolean, nullable=False, default=True, server_default=text("true")
+    )
 
     # Email Reports Configuration
     email_reports_enabled = Column(Boolean, default=False, nullable=False, index=True)

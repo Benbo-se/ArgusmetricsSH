@@ -10,7 +10,7 @@ from sqlalchemy import func, and_, distinct
 from app.models.pageview import Pageview
 from app.models.website import Website
 from app.models.goal import Goal, GoalConversion
-from app.services.filters import FilterSet, visitor_conditions
+from app.services.filters import FilterSet, counted, visitor_conditions
 from app.utils.security import generate_visitor_hash
 from app.services.website_lookup import resolve_tracking_code
 from app.services.usage_service import LIMIT_MESSAGE, may_record
@@ -41,7 +41,12 @@ def goal_conversion_stats(
     theirs. Narrowing only one of them gives a rate of the filtered few over
     everybody, or of everybody over the filtered few.
     """
-    visitor_filters = [Pageview.website_id == website_id, Pageview.timestamp >= start_date]
+    # The visitors a rate is a share of are the visitors the dashboard counts.
+    visitor_filters = [
+        Pageview.website_id == website_id,
+        Pageview.timestamp >= start_date,
+        counted(website_id),
+    ]
     conversion_filters = [
         GoalConversion.website_id == website_id,
         GoalConversion.timestamp >= start_date,

@@ -57,6 +57,13 @@ class Settings(BaseSettings):
         default=None,
         description="Path to a MaxMind GeoLite2-Country.mmdb. If unset/absent, country resolution is skipped (no third-party IP lookups)."
     )
+    # Traffic from hosting providers is labelled at collection and kept out
+    # of the statistics (#103). Off means no weekly fetch of the IPtoASN file
+    # and no classification: every pageview is counted, as before.
+    DATACENTER_FILTER: bool = Field(
+        default=True,
+        description="Label pageviews from hosting-provider networks and keep them out of statistics. Fetches https://iptoasn.com/data/ip2asn-combined.tsv.gz weekly."
+    )
     DATA_RETENTION_DAYS: int = Field(
         default=0,
         description="Delete analytics events older than this many days (0 = keep forever). Applied nightly."
@@ -294,6 +301,8 @@ OPERATOR_SETTINGS = frozenset({
     "SESSION_EXPIRY_DAYS", "MAGIC_TOKEN_EXPIRY_SECONDS",
     # Network trust
     "TRUSTED_PROXIES", "GEOIP_DB_PATH",
+    # What is counted as a visitor
+    "DATACENTER_FILTER",
     # Retention, which is a promise made in the privacy policy
     "DATA_RETENTION_DAYS", "RETENTION_BATCH_SIZE", "RETENTION_MAX_ROWS_PER_RUN",
     "EMAIL_LOG_RETENTION_DAYS",

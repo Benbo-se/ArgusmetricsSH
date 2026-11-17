@@ -15,6 +15,7 @@ from sqlalchemy import func
 
 from app.models.website import Website
 from app.models.pageview import Pageview
+from app.services.filters import counted
 from app.config import settings
 from app.services.traffic_sources import own_referrer_regex
 
@@ -55,12 +56,14 @@ class EmailReportsService:
         # Get total pageviews
         total_pageviews = self.db.query(func.count(Pageview.id)).filter(
             Pageview.website_id == website_id,
+            counted(website_id),
             Pageview.timestamp >= start_date
         ).scalar() or 0
 
         # Get unique visitors
         unique_visitors = self.db.query(func.count(func.distinct(Pageview.visitor_hash))).filter(
             Pageview.website_id == website_id,
+            counted(website_id),
             Pageview.timestamp >= start_date
         ).scalar() or 0
 
@@ -70,6 +73,7 @@ class EmailReportsService:
             func.count(Pageview.id).label('views')
         ).filter(
             Pageview.website_id == website_id,
+            counted(website_id),
             Pageview.timestamp >= start_date
         ).group_by(Pageview.path).order_by(func.count(Pageview.id).desc()).limit(10).all()
 
@@ -81,6 +85,7 @@ class EmailReportsService:
             func.count(Pageview.id).label('views')
         ).filter(
             Pageview.website_id == website_id,
+            counted(website_id),
             Pageview.timestamp >= start_date,
             Pageview.referrer.isnot(None),
             Pageview.referrer != '',
@@ -93,6 +98,7 @@ class EmailReportsService:
             func.count(Pageview.id).label('views')
         ).filter(
             Pageview.website_id == website_id,
+            counted(website_id),
             Pageview.timestamp >= start_date,
             Pageview.country.isnot(None)
         ).group_by(Pageview.country).order_by(func.count(Pageview.id).desc()).limit(10).all()
@@ -103,6 +109,7 @@ class EmailReportsService:
             func.count(Pageview.id).label('views')
         ).filter(
             Pageview.website_id == website_id,
+            counted(website_id),
             Pageview.timestamp >= start_date,
             Pageview.device_type.isnot(None)
         ).group_by(Pageview.device_type).order_by(func.count(Pageview.id).desc()).limit(5).all()
@@ -113,6 +120,7 @@ class EmailReportsService:
             func.count(Pageview.id).label('views')
         ).filter(
             Pageview.website_id == website_id,
+            counted(website_id),
             Pageview.timestamp >= start_date,
             Pageview.browser.isnot(None)
         ).group_by(Pageview.browser).order_by(func.count(Pageview.id).desc()).limit(5).all()

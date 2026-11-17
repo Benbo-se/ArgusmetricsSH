@@ -112,11 +112,54 @@ def _mmdb_reader():
     return reader
 
 
+def traffic_class_of(db: Session, ip_address: str) -> Optional[str]:
+    """'datacenter' when the address belongs to a listed hosting provider.
+
+    None for everything else, which includes: the classification turned off,
+    an address that is not public, and a table nobody has loaded yet. All
+    three leave an instance counting exactly as it did before this existed.
+
+    Takes the address in the form the country lookup takes it, whole and
+    before anything is truncated or hashed, and like the country lookup it
+    asks a table on this machine. The address is not stored and neither is
+    the network it belongs to: the answer is one word.
+    """
+    if not settings.DATACENTER_FILTER or not _is_routable(ip_address):
+        return None
+
+    from app.services import hosting_networks_service
+
+    return hosting_networks_service.lookup(db, ip_address)
+
+
+def kept_out(db: Session, tracking_code: str, ip_address: str) -> bool:
+    """Whether a request from this address is left out for this website.
+
+    For the endpoints that record something other than a pageview: a custom
+    event, a goal, a purchase, a scroll depth. From a hosting address those
+    are not recorded at all, unless the website has turned the exclusion off.
+
+    The address is classified first and the website only resolved for the few
+    that are labelled, so an ordinary visitor pays for one lookup here and no
+    more. An unknown tracking code is not this function's business: it says
+    False and the caller reports the code as it always has.
+    """
+    if traffic_class_of(db, ip_address) is None:
+        return False
+    website = resolve_tracking_code(db, tracking_code)
+    return bool(website and website.exclude_datacenter)
+
+
 class AnalyticsRecordingService:
     """Service for recording pageviews and custom events."""
 
     def __init__(self, db: Session):
         self.db = db
+        #: Whether the pageview this service last recorded was labelled and
+        #: left out of the statistics. The router reads it to decide what to
+        #: tell the open dashboards, because the answer to the client has to
+        #: be the same either way and so cannot carry it.
+        self.last_pageview_kept_out = False
 
 
     def complete_scroll_depth(
@@ -289,6 +332,7 @@ class AnalyticsRecordingService:
         """
         path = sanitize_path(path)
         logger.info(f"Recording pageview: tracking_code={tracking_code}, path={path}")
+        self.last_pageview_kept_out = False
 
         try:
             # Resolved through a SECURITY DEFINER function, so the tracking
@@ -322,6 +366,17 @@ class AnalyticsRecordingService:
             country = self._get_country_from_ip(ip_address)
             from_ua = visitor_dimensions.from_user_agent(user_agent)
 
+            # Labelled, not dropped: the row can be shown as what it is later
+            # and the label can be recounted, where a dropped row is gone.
+            # Classified here, beside the country, from the same address.
+            traffic_class = traffic_class_of(self.db, ip_address)
+            # The label is written whatever the website's setting, so the
+            # setting can be changed afterwards. What the setting decides is
+            # whether anything follows from the row.
+            self.last_pageview_kept_out = bool(
+                traffic_class and website.exclude_datacenter
+            )
+
             pageview = Pageview(
                 website_id=website.id,
                 path=path,
@@ -344,11 +399,15 @@ class AnalyticsRecordingService:
                 screen_width=screen_width,
                 screen_height=screen_height,
                 scroll_depth=scroll_depth,
-                properties=properties
+                properties=properties,
+                traffic_class=traffic_class
             )
 
             self.db.add(pageview)
-            self._record_funnel_steps(website.id, path, visitor_hash)
+            # A crawler walking /pricing then /signup is not a visitor moving
+            # through a funnel.
+            if not self.last_pageview_kept_out:
+                self._record_funnel_steps(website.id, path, visitor_hash)
             self.db.commit()
 
             logger.info(

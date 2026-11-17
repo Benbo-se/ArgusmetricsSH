@@ -321,6 +321,25 @@ JOB_MAX_AGE_SECONDS = {
     "traffic_alerts": 3 * 3600,     # runs hourly at :05
 }
 
+#: Sundays 04:10. Sixteen days is two missed runs: one is a restart or
+#: iptoasn.com having a bad morning, and the table it leaves behind is a week
+#: old, not wrong.
+HOSTING_NETWORKS_MAX_AGE_SECONDS = 16 * 24 * 3600
+
+
+def _expected_jobs() -> Dict[str, int]:
+    """The jobs this instance is supposed to be running, and how stale each
+    may get.
+
+    The hosting-network refresh is only expected where the classification is
+    on. With DATACENTER_FILTER off the job returns before it starts, and
+    listing it would report a healthy instance as degraded for ever.
+    """
+    jobs = dict(JOB_MAX_AGE_SECONDS)
+    if settings.DATACENTER_FILTER:
+        jobs["hosting_networks_refresh"] = HOSTING_NETWORKS_MAX_AGE_SECONDS
+    return jobs
+
 
 def _job_health(db) -> Dict[str, Any]:
     """When each scheduled job last succeeded, and whether that is too long ago.
@@ -352,7 +371,7 @@ def _job_health(db) -> Dict[str, Any]:
         return {}
 
     now = datetime.now(timezone.utc)
-    for name, max_age in JOB_MAX_AGE_SECONDS.items():
+    for name, max_age in _expected_jobs().items():
         row = rows.get(name)
         age = None
         if row is not None and row.last_success_at is not None:

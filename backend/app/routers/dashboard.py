@@ -894,10 +894,16 @@ async def website_dashboard(
         Pageview.website_id == website_id
     ).limit(1).first() is None
 
+    # How much was left out as hosting-provider traffic, for one quiet line
+    # under the graph. For the range, not for the filters: it is about what
+    # the page as a whole does not count.
+    hosting_kept_out = analytics_service.count_kept_out(website_id, start, end)
+
     return templates.TemplateResponse(request, "dashboard/website.html", {
         "current_user": current_user,
         "website": website,
         "never_recorded": never_recorded,
+        "hosting_kept_out": hosting_kept_out,
         "stats": stats,
         "live_visitors": live_visitors,
         "errors_404": errors_404,

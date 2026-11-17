@@ -11,13 +11,14 @@ compared with `==`. A new dimension meant touching five places, an operator
 other than equality had nowhere to go, and goals, events, funnels and revenue
 never saw a filter at all.
 
-Three things live here and nowhere else:
+Four things live here and nowhere else:
 
   - which dimensions exist and which operators each takes (DIMENSIONS)
   - how a filter is written in a query string, and read back (from_query,
     query_items), so the page, its ten-second refresh, the CSV export and the
     JSON API cannot disagree about it
   - how a filter becomes SQL (conditions, visitor_conditions)
+  - which pageviews are counted at all, before any filter is applied (counted)
 
 A value only ever reaches the database as a bound parameter. "contains"
 escapes the LIKE wildcards in it, so a search for "50%" finds a per cent sign
@@ -31,6 +32,7 @@ from urllib.parse import quote, urlencode
 from sqlalchemy import and_, false, func, not_, or_, select
 
 from app.models.pageview import Pageview
+from app.models.website import Website
 from app.services import visitor_dimensions
 from app.services.visitor_dimensions import UNKNOWN
 
@@ -44,6 +46,56 @@ from app.services.visitor_dimensions import UNKNOWN
 # index cannot serve an expression, and nothing here relied on it for more
 # than a narrower scan inside that range.
 PAGE_PATH = func.split_part(Pageview.path, "?", 1)
+
+
+def counted(website_id):
+    """The condition every number about visitors starts from (#103).
+
+    A pageview labelled at collection as coming from a hosting provider is
+    stored and not counted: not in a total, a graph, a top list, the live
+    view, an export or an email. Unless the website has turned that off, in
+    which case its labelled rows count like any other.
+
+    The setting is read inside the query, by a subquery on the website's own
+    row, so nothing has to carry it here: a caller that knows the website id
+    cannot get it wrong, and one written next year gets it by using this.
+    Postgres evaluates the subquery once per statement, and only if it meets
+    a labelled row at all.
+
+    It fails closed. Where the row cannot be read (a context without a policy
+    on websites, a website that is gone) the subquery is NULL, NULL is not
+    false, and labelled rows stay out. That is the default, so a mistake here
+    looks like the setting not taking effect, not like crawlers coming back.
+
+    `website_id` is a number, or a column to correlate with in a query over
+    several websites.
+
+    The raw SQL in site_activity.py spells the same rule by hand. A test
+    holds the two together.
+    """
+    excluded = (
+        select(Website.exclude_datacenter)
+        .where(Website.id == website_id)
+        .scalar_subquery()
+    )
+    return or_(Pageview.traffic_class.is_(None), excluded.is_(False))
+
+
+def left_out(website_id):
+    """The other side of counted(): labelled, on a website that excludes.
+
+    Only for saying how much was left out. Written out, not negated: NOT
+    (NULL OR false) is NULL, which would match nothing where the setting
+    could not be read, and the line on the dashboard would say nothing was
+    kept out while everything was.
+    """
+    excluded = (
+        select(Website.exclude_datacenter)
+        .where(Website.id == website_id)
+        .scalar_subquery()
+    )
+    return and_(Pageview.traffic_class.isnot(None), excluded.isnot(False))
+
 
 #: The operators, with the suffix each adds to the dimension's name in a query
 #: string and the words a person reads. "is" has no suffix, so the links that
@@ -251,7 +303,11 @@ class FilterSet:
         """
         if not self:
             return []
-        matching = [Pageview.website_id == website_id, Pageview.timestamp >= start]
+        matching = [
+            Pageview.website_id == website_id,
+            Pageview.timestamp >= start,
+            counted(website_id),
+        ]
         if end is not None:
             matching.append(Pageview.timestamp <= end)
         return [

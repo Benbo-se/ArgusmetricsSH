@@ -267,6 +267,46 @@ def ip_country_refresh_task():
         logger.error(f"[SCHEDULED] Error refreshing IP-to-country table: {e}", exc_info=True)
 
 
+def hosting_networks_refresh_task():
+    """Rebuild the hosting-provider ranges from the IPtoASN file, weekly.
+
+    Not at all when DATACENTER_FILTER is off: an operator who turned the
+    classification off has also said this server should not fetch the file.
+
+    Weekly because providers gain and lose ranges slowly. A week of drift
+    means a block a provider bought this week is counted until Sunday, and a
+    block it sold is kept out until then.
+    """
+    from app.config import settings
+
+    if not settings.DATACENTER_FILTER:
+        logger.info("[SCHEDULED] DATACENTER_FILTER is off; skipping the hosting-network refresh")
+        return
+
+    logger.info(f"[SCHEDULED] Refreshing hosting-network ranges at {datetime.now(timezone.utc)}")
+    try:
+        with _single_runner(918_271_005, "hosting_networks_refresh") as acquired:
+            if acquired:
+                from app.database import SessionLocal, set_rls_context
+                from app.services import hosting_networks_service
+
+                db = SessionLocal()
+                try:
+                    set_rls_context(db, context="job")
+                    result = hosting_networks_service.refresh(db)
+                    logger.info(
+                        f"[SCHEDULED] Loaded {result['ranges']} ranges from "
+                        f"{result['networks']} hosting networks"
+                    )
+                finally:
+                    db.close()
+    except Exception as e:
+        # Raised through _single_runner so the failure is recorded in job_runs
+        # and shows in /health. A refused refresh leaves the old table in
+        # place, so this is a table going stale, not one going empty.
+        logger.error(f"[SCHEDULED] Error refreshing hosting-network ranges: {e}", exc_info=True)
+
+
 def start_scheduler():
     """Initialize and start the background scheduler."""
     scheduler = BackgroundScheduler(timezone="UTC")
@@ -310,10 +350,21 @@ def start_scheduler():
         replace_existing=True
     )
 
+    # Sunday 04:10 UTC: after the country refresh has finished with the
+    # network, and again off the top of the hour.
+    scheduler.add_job(
+        hosting_networks_refresh_task,
+        trigger=CronTrigger(day_of_week="sun", hour=4, minute=10),
+        id="hosting_networks_refresh",
+        name="Rebuild the hosting-provider ranges from the IPtoASN file",
+        replace_existing=True
+    )
+
     scheduler.start()
     logger.info(
         "Background scheduler started - cleanup 02:00 UTC, email reports 07:00 UTC, "
-        "traffic-spike alerts hourly at :05, IP-to-country refresh Sundays 03:30 UTC"
+        "traffic-spike alerts hourly at :05, IP-to-country refresh Sundays 03:30 UTC, "
+        "hosting-network refresh Sundays 04:10 UTC"
     )
 
     return scheduler

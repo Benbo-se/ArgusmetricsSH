@@ -151,6 +151,16 @@ def render(db: Session, started_at: float) -> str:
             "Address ranges loaded for country lookup, zero if none",
         )
 
+    # The same silence, the other way round: zero here means nothing is being
+    # classified and every crawler on a hosting network counts as a visitor.
+    hosting = _scalar(db, "SELECT count(*) FROM hosting_network_ranges")
+    if hosting is not None:
+        out += _line(
+            "argus_hosting_network_ranges",
+            hosting,
+            "Address ranges loaded for hosting-provider classification, zero if none",
+        )
+
     chunks = _scalar(db, "SELECT count(*) FROM timescaledb_information.chunks")
     if chunks is not None:
         out += _line("argus_hypertable_chunks", chunks, "Chunks across all hypertables")

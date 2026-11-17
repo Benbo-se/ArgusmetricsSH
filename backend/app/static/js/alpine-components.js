@@ -1584,6 +1584,63 @@ document.addEventListener('alpine:init', () => {
         },
     }))
 
+    /**
+     * Whether traffic from hosting providers is left out of the statistics.
+     * One checkbox, saved through the same endpoint as the time zone.
+     */
+    Alpine.data('hostingTraffic', () => ({
+        on: true,
+        websiteId: '',
+        saving: false,
+        showSuccess: false,
+        errorMessage: '',
+
+        get excluded() { return modelFor(this, 'on') },
+
+        init() {
+            this.websiteId = this.$el.dataset.websiteId
+            this.on = this.$el.dataset.excluded !== 'false'
+        },
+
+        get isSaving() { return this.saving },
+        get isNotSaving() { return !this.saving },
+        get hasError() { return !!this.errorMessage },
+        get saved() { return this.showSuccess },
+        get saveClass() {
+            return this.saving
+                ? 'bg-gray-400 cursor-not-allowed'
+                : 'bg-blue-600 hover:bg-blue-700'
+        },
+
+        async saveHostingTraffic() {
+            this.saving = true
+            this.errorMessage = ''
+            this.showSuccess = false
+            try {
+                const response = await fetch(`/api/v1/websites/${this.websiteId}`, {
+                    method: 'PUT',
+                    credentials: 'same-origin',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ exclude_datacenter: this.on }),
+                })
+                const data = await response.json()
+                if (!response.ok) {
+                    this.errorMessage =
+                        data.message || data.detail || 'Failed to save the setting'
+                    return
+                }
+                this.on = data.exclude_datacenter
+                this.showSuccess = true
+                setTimeout(() => { this.showSuccess = false }, 3000)
+            } catch (error) {
+                console.error('Error saving the hosting traffic setting:', error)
+                this.errorMessage = 'Network error. Please try again.'
+            } finally {
+                this.saving = false
+            }
+        },
+    }))
+
     Alpine.data('trafficAlerts', () => ({
         alertsOn: false,
         spikeThreshold: 2.0,

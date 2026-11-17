@@ -43,6 +43,12 @@ class AnalyticsService:
     def record_pageview(self, *args, **kwargs) -> Tuple[bool, str]:
         return self._recording.record_pageview(*args, **kwargs)
 
+    @property
+    def last_pageview_kept_out(self) -> bool:
+        """Whether the pageview just recorded was from a hosting provider and
+        is left out of the statistics. See AnalyticsRecordingService."""
+        return self._recording.last_pageview_kept_out
+
     def record_custom_event(self, *args, **kwargs) -> Tuple[bool, str]:
         return self._recording.record_custom_event(*args, **kwargs)
 
@@ -56,6 +62,9 @@ class AnalyticsService:
 
     def get_realtime_stats(self, *args, **kwargs) -> Dict:
         return self._query.get_realtime_stats(*args, **kwargs)
+
+    def count_kept_out(self, *args, **kwargs) -> int:
+        return self._query.count_kept_out(*args, **kwargs)
 
     # --- Goals ---
 

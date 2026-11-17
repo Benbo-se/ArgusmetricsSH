@@ -47,6 +47,7 @@ None of it needs an external service.
 | Feature | Needs | Without it |
 |---|---|---|
 | Country statistics | One `./argus country refresh`, or `GEOIP_DB_PATH` | Country reads "Unknown". No third-party IP lookup happens either way |
+| Crawlers at hosting providers kept out of the statistics | One `./argus networks refresh`; the scheduler repeats it weekly | Nothing is labelled and every pageview is counted. No visitor address leaves the server either way. `DATACENTER_FILTER=false` turns it off |
 | Email (verification, password reset, invitations, reports) | `SMTP_*`, or a Lettermint API key | Verification links are printed to the backend log. Password login works regardless |
 
 ### Country data
@@ -204,7 +205,7 @@ because the refusal guards only the order in which things are created.
 cd e2e && npx playwright test
 ```
 
-883 backend tests and 168 end-to-end tests. They run against a real Postgres
+1101 backend tests and 168 end-to-end tests. They run against a real Postgres
 and a real browser; nothing important is mocked.
 
 Some of them are unusual and deliberate:

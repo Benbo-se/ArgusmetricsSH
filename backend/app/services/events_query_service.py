@@ -474,9 +474,11 @@ class EventsQueryService:
 
         try:
             from app.models.pageview import Pageview
+            from app.services.filters import counted
 
             pageviews_with_props = self.db.query(Pageview.properties).filter(
                 Pageview.website_id == website_id,
+                counted(website_id),
                 Pageview.timestamp >= start_date,
                 Pageview.timestamp <= end_date,
                 Pageview.properties.isnot(None)

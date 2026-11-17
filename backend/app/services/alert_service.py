@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import and_, func, or_
 
 from app.models.pageview import Pageview
+from app.services.filters import counted
 from app.models.website import Website
 from app.models.alert_settings import AlertSettings
 from app.services.email_service import email_service
@@ -82,6 +83,7 @@ class AlertService:
                 func.count(Pageview.id)
             ).filter(
                 Pageview.website_id == website_id,
+                counted(website_id),
                 Pageview.timestamp >= one_hour_ago
             ).scalar() or 0
 
@@ -100,6 +102,7 @@ class AlertService:
                 func.count(Pageview.id)
             ).filter(
                 Pageview.website_id == website_id,
+                counted(website_id),
                 same_hour_before,
             ).scalar() or 0
 

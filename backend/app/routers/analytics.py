@@ -13,7 +13,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Request, Header, 
 
 from app.services.usage_service import LIMIT_MESSAGE
 from app.services import visitor_dimensions
-from app.services.filters import FilterSet
+from app.services.filters import FilterSet, counted
 from app.utils.date_helpers import as_utc, parse_api_window, site_timezone
 from app.utils.csv_safe import SafeWriter
 from sqlalchemy.orm import Session
@@ -130,6 +130,39 @@ def bot_reason(user_agent: str) -> Optional[str]:
             return f"Bot: {ua.browser.family}"
     except Exception:
         pass
+    return None
+
+
+#: What the debug console says about a request left out for where it came
+#: from. Only the website's own logged-in console sees it. The response to
+#: the client does not say it: see hosting_reason.
+HOSTING_DETAIL = "Hosting provider address"
+
+
+def hosting_reason(db: Session, tracking_code: str, client_ip: str) -> Optional[str]:
+    """Why this request is left out on account of its address, or None.
+
+    The second check on every tracking endpoint except /track, after the user
+    agent. A crawler with a browser's user agent passes the first, and what
+    is left to go on is that it runs at a hosting provider (#103). Answered
+    the way a user-agent bot is answered, so the endpoints do not give two
+    different refusals for one kind of traffic.
+
+    /track does not use this. A pageview from such an address is stored with
+    a label instead, and the client is told exactly what a visitor is told.
+    """
+    from app.services.analytics_recording_service import kept_out
+
+    try:
+        if kept_out(db, tracking_code, client_ip):
+            return HOSTING_DETAIL
+    except Exception as e:  # noqa: BLE001
+        # Fails open, like the usage check: a lookup that cannot answer must
+        # not cost a real visitor their event. The rollback is what makes
+        # that true, since a failed statement aborts the transaction the
+        # event is about to be written in.
+        db.rollback()
+        logger.warning(f"Hosting-network check failed, recording anyway: {e}")
     return None
 
 
@@ -516,14 +549,27 @@ async def track_pageview(
         or visitor_dimensions.hostname_from_origin(request.headers.get("origin")),
     )
 
-    await tell("recorded" if success else "refused", None if success else message)
+    # Stored with a label and left out of the statistics. The website's own
+    # debug console is told, since "why is this visit not on my dashboard" is
+    # what it is for. The client is not: the response below is the one every
+    # pageview gets, so a crawler cannot find out which addresses are counted.
+    labelled = success and analytics_service.last_pageview_kept_out
+
+    await tell(
+        "recorded" if success else "refused",
+        (f"{HOSTING_DETAIL}: stored, not counted" if labelled else None)
+        if success else message,
+    )
 
     if not success:
         raise HTTPException(status_code=_failure_status(message), detail=message)
 
-    await _tell_live_dashboards(
-        analytics_service.db, track_request.tracking_code, "pageview", path=track_request.path
-    )
+    # The live view shows visitors, and so does the first-visit guide waiting
+    # for its first pageview.
+    if not labelled:
+        await _tell_live_dashboards(
+            analytics_service.db, track_request.tracking_code, "pageview", path=track_request.path
+        )
 
     return PageviewTrackResponse(success=True, message=message)
 
@@ -661,7 +707,9 @@ async def track_scroll(
         await tell("skipped", "Do Not Track")
         return {"success": True, "message": "Tracking skipped (DNT)"}
 
-    bot = bot_reason(user_agent)
+    bot = bot_reason(user_agent) or hosting_reason(
+        analytics_service.db, body.tracking_code, client_ip
+    )
     if bot:
         await tell("skipped", bot)
         return {"success": True, "message": "Tracking skipped (Bot)"}
@@ -747,7 +795,9 @@ async def track_event(
         )
         return GoalConversionResponse(success=True, message="Tracking skipped (DNT)")
 
-    bot = bot_reason(user_agent)
+    bot = bot_reason(user_agent) or hosting_reason(
+        analytics_service.db, event_request.tracking_code, client_ip
+    )
     if bot:
         await _tell_debug_console(
             analytics_service.db, event_request.tracking_code, "event", None,
@@ -849,6 +899,11 @@ async def track_ecommerce(
             return EcommerceEventResponse(success=True, message="Tracking skipped (Bot)")
     except Exception:
         pass
+
+    hosting = hosting_reason(db, event_data.tracking_code, client_ip)
+    if hosting:
+        await tell("skipped", hosting)
+        return EcommerceEventResponse(success=True, message="Tracking skipped (Bot)")
 
     ecommerce_service = EcommerceService(db)
     success, message, event_id = ecommerce_service.record_ecommerce_event(
@@ -1052,7 +1107,9 @@ async def export_csv(
         and_(
             Pageview.website_id == website_id,
             Pageview.timestamp >= start,
-            Pageview.timestamp <= end
+            Pageview.timestamp <= end,
+            # The rows the dashboard counts, so the file adds up to it (#103).
+            counted(website_id)
         )
     ).order_by(Pageview.timestamp.desc()).limit(10000).all()
 
@@ -1127,7 +1184,9 @@ async def export_json(
         and_(
             Pageview.website_id == website_id,
             Pageview.timestamp >= start,
-            Pageview.timestamp <= end
+            Pageview.timestamp <= end,
+            # The rows the dashboard counts, so the file adds up to it (#103).
+            counted(website_id)
         )
     ).order_by(Pageview.timestamp.desc()).limit(10000).all()
 
