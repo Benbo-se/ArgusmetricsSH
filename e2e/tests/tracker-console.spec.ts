@@ -453,3 +453,150 @@ test.describe('The tracker on a site that is not the instance', () => {
         expect(pageviews.map(p => p.referrer)).toEqual(['https://www.google.com/search', null, null]);
     });
 });
+
+/**
+ * #279 and #280, on a made-up site that answers every path, as a single-page
+ * app does. The tracker and the endpoints are served from that same origin
+ * (see the single-page test above for why), and what is asserted is what
+ * leaves the browser.
+ */
+test.describe('The tracker counts once and keeps secrets out of the path', () => {
+    const trackerJs = readFileSync('../backend/app/static/tracker.min.js', 'utf8');
+    const HEX = 'd41d8cd98f00b204e9800998ecf8427e';
+    const UUID = '550e8400-e29b-41d4-a716-446655440000';
+
+    type Sent = { pageviews: any[], events: any[], depths: any[] };
+
+    async function site(page: import('@playwright/test').Page, attributes = '', copies = 1): Promise<Sent> {
+        const sent: Sent = { pageviews: [], events: [], depths: [] };
+        const tag = `<script src="/tracker.min.js" data-tracking-code="once-check"
+            data-api-endpoint="http://shop.test/api/v1/analytics/track" data-track-localhost="true" ${attributes}></script>`;
+
+        await page.route('http://shop.test/**', route => {
+            const url = new URL(route.request().url());
+            if (url.pathname === '/tracker.min.js') {
+                return route.fulfill({ contentType: 'application/javascript', body: trackerJs });
+            }
+            if (url.pathname.startsWith('/api/')) {
+                return route.fulfill({ status: 200, body: '{"success":true}' });
+            }
+            return route.fulfill({
+                contentType: 'text/html',
+                body: `<!doctype html><html><body>
+                    <div style="height: 4000px">Tall enough to scroll.</div>
+                    <script>
+                        Object.defineProperty(navigator, 'webdriver', { get: () => false });
+                        Object.defineProperty(navigator, 'userAgent', { get: () => ${JSON.stringify(PERSON_UA)} });
+                    </script>
+                    ${tag.repeat(copies)}
+                </body></html>`,
+            });
+        });
+        page.on('request', request => {
+            const body = () => JSON.parse(request.postData() || '{}');
+            if (request.url().endsWith('/track')) sent.pageviews.push(body());
+            if (request.url().endsWith('/track-event')) sent.events.push(body());
+            if (request.url().endsWith('/track-scroll')) sent.depths.push(body());
+        });
+        return sent;
+    }
+
+    async function go(page: import('@playwright/test').Page, path: string) {
+        await page.evaluate(to => history.pushState({}, '', to), path);
+        await page.waitForTimeout(250);
+    }
+
+    /** What a router that renders the tag in its head does on each page change. */
+    async function addTagAgain(page: import('@playwright/test').Page) {
+        await page.evaluate(() => new Promise<void>(resolve => {
+            const tag = document.createElement('script');
+            tag.src = '/tracker.min.js';
+            tag.setAttribute('data-tracking-code', 'once-check');
+            tag.setAttribute('data-api-endpoint', 'http://shop.test/api/v1/analytics/track');
+            tag.setAttribute('data-track-localhost', 'true');
+            tag.onload = () => resolve();
+            document.head.appendChild(tag);
+        }));
+    }
+
+    test('a second copy of the script does not count anything twice (#279)', async ({ page }) => {
+        const sent = await site(page, '', 2);
+
+        await page.goto('http://shop.test/a');
+        await page.waitForTimeout(300);
+        expect(sent.pageviews.map(p => p.path), 'the tag twice in the page').toEqual(['/a']);
+
+        // The case from production: the tag put back in at every page change.
+        for (const path of ['/b', '/c', '/d']) {
+            await addTagAgain(page);
+            await go(page, path);
+        }
+
+        expect(sent.pageviews.map(p => p.path)).toEqual(['/a', '/b', '/c', '/d']);
+        // Truthy, not true: the build writes booleans as 1 and 0.
+        expect(await page.evaluate(() => Boolean((window as any).argusTrackerLoaded)),
+            'the flag keeps its name in the built file, so two builds agree on it').toBe(true);
+    });
+
+    test('excluded paths send nothing, and the pages around them still count (#280)', async ({ page }) => {
+        const sent = await site(page, 'data-exclude-paths="/admin, /aktivera/*"');
+
+        await page.goto('http://shop.test/admin/users');
+        await page.evaluate(() => window.scrollTo(0, 2000));
+        await page.waitForTimeout(400);
+        await page.evaluate(() => (window as any).argus.trackEvent('saved_user'));
+        await page.evaluate(() => (window as any).argus.track());
+        await go(page, '/pricing');
+        expect(sent.pageviews.map(p => p.path), 'leaving the admin area').toEqual(['/pricing']);
+        expect(sent.events, 'an event on an excluded page').toEqual([]);
+        expect(sent.depths, 'the depth of an excluded page').toEqual([]);
+
+        await page.evaluate(() => (window as any).argus.trackEvent('clicked_cta'));
+        await go(page, '/admin');
+        await go(page, '/pricing');
+        await go(page, `/aktivera/${HEX}`);
+        await go(page, '/aktivera');
+        await go(page, '/administrator');
+
+        expect(sent.pageviews.map(p => p.path))
+            .toEqual(['/pricing', '/pricing', '/aktivera', '/administrator']);
+        expect(sent.events.map(e => e.event_name), 'the control: events are sent elsewhere')
+            .toEqual(['clicked_cta']);
+    });
+
+    test('a token in the path is masked, in the page and in the referrer (#280)', async ({ page }) => {
+        const sent = await site(page);
+
+        await page.goto(`http://shop.test/reset-password/${HEX}?token=abc&ref=mail`,
+            { referer: `https://mail.example/invite/${UUID}/open?id=7` });
+        await page.waitForTimeout(300);
+        await go(page, '/blog/how-to-install-argusmetrics-on-your-own-server');
+        await go(page, '/shop/iphone-15-pro-max-256gb-black-titanium');
+        await go(page, '/orders/1234567890123456789');
+        await go(page, '/invite/V1StGXR8_Z5jdHi6B-myT4kq9XnLpW0c');
+
+        expect(sent.pageviews.map(p => p.path)).toEqual([
+            '/reset-password/:token?ref=mail',
+            '/blog/how-to-install-argusmetrics-on-your-own-server',
+            '/shop/iphone-15-pro-max-256gb-black-titanium',
+            '/orders/1234567890123456789',
+            '/invite/:token',
+        ]);
+        expect(sent.pageviews[0].referrer).toBe('https://mail.example/invite/:token/open');
+
+        await page.evaluate(() => window.scrollTo(0, 2000));
+        await page.waitForTimeout(400);
+        await page.evaluate(() => window.dispatchEvent(new Event('pagehide')));
+        await page.waitForTimeout(300);
+        expect(sent.depths.map(d => d.path), 'the depth carries the masked path too').toEqual(['/invite/:token']);
+    });
+
+    test('the masking can be turned off', async ({ page }) => {
+        const sent = await site(page, 'data-mask-path-tokens="false"');
+
+        await page.goto(`http://shop.test/commit/${HEX}`);
+        await page.waitForTimeout(300);
+
+        expect(sent.pageviews.map(p => p.path)).toEqual([`/commit/${HEX}`]);
+    });
+});

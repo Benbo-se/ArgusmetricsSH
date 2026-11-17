@@ -69,6 +69,14 @@ ___TEMPLATE_PARAMETERS___
     "simpleValueType": true,
     "help": "Comma-separated domains whose links are not counted as outbound, e.g. shop.your-domain.com, blog.your-domain.com",
     "valueValidators": []
+  },
+  {
+    "type": "TEXT",
+    "name": "excludePaths",
+    "displayName": "Exclude Paths (Optional)",
+    "simpleValueType": true,
+    "help": "Comma-separated paths that are not tracked at all, e.g. /admin, /activate/*. A path without a star covers everything under it.",
+    "valueValidators": []
   }
 ]
 
@@ -97,7 +105,8 @@ const scriptUrl = base + '/static/tracker.min.js';
 setInWindow('argusConfig', {
   trackingCode: data.trackingCode,
   apiEndpoint: base + '/api/v1/analytics/track',
-  excludeOutbound: data.excludeOutbound || ''
+  excludeOutbound: data.excludeOutbound || '',
+  excludePaths: data.excludePaths || ''
 }, true);
 
 if (queryPermission('inject_script', scriptUrl)) {
@@ -227,7 +236,8 @@ scenarios:
     const mockData = {
       trackingCode: 'k3x9q2ab',
       instanceUrl: 'https://analytics.example.com/',
-      excludeOutbound: 'shop.example.com'
+      excludeOutbound: 'shop.example.com',
+      excludePaths: '/admin'
     };
     let injected;
     let config;
@@ -238,6 +248,7 @@ scenarios:
     assertThat(config.trackingCode).isEqualTo('k3x9q2ab');
     assertThat(config.apiEndpoint).isEqualTo('https://analytics.example.com/api/v1/analytics/track');
     assertThat(config.excludeOutbound).isEqualTo('shop.example.com');
+    assertThat(config.excludePaths).isEqualTo('/admin');
     assertApi('gtmOnSuccess').wasCalled();
 
 

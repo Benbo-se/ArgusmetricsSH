@@ -36,12 +36,13 @@ function run(data, { allowed = true } = {}) {
 }
 
 // The normal case, with the trailing slash people paste.
-let r = run({ trackingCode: 'k3x9q2ab', instanceUrl: 'https://analytics.example.com/', excludeOutbound: 'shop.example.com' });
+let r = run({ trackingCode: 'k3x9q2ab', instanceUrl: 'https://analytics.example.com/', excludeOutbound: 'shop.example.com', excludePaths: '/admin, /activate/*' });
 assert.equal(r.injected, 'https://analytics.example.com/static/tracker.min.js');
 assert.deepEqual(r.globals.argusConfig, {
   trackingCode: 'k3x9q2ab',
   apiEndpoint: 'https://analytics.example.com/api/v1/analytics/track',
   excludeOutbound: 'shop.example.com',
+  excludePaths: '/admin, /activate/*',
 });
 assert.equal(r.success, 1);
 assert.equal(r.failure, 0);
@@ -50,6 +51,7 @@ assert.equal(r.failure, 0);
 r = run({ trackingCode: 'k3x9q2ab', instanceUrl: 'https://analytics.example.com' });
 assert.equal(r.injected, 'https://analytics.example.com/static/tracker.min.js');
 assert.equal(r.globals.argusConfig.excludeOutbound, '');
+assert.equal(r.globals.argusConfig.excludePaths, '');
 
 // The instance not allowed under Permissions: the tag fails, and says why.
 r = run({ trackingCode: 'k3x9q2ab', instanceUrl: 'https://analytics.example.com' }, { allowed: false });
@@ -60,7 +62,7 @@ assert.match(r.logs[0], /Permissions/);
 // The keys the tracker reads from window.argusConfig (CONFIG_KEYS in
 // tracker.js) are the keys this template writes.
 const tracker = readFileSync(new URL('../../frontend/tracking-script/src/tracker.js', import.meta.url), 'utf8');
-for (const key of ['trackingCode', 'apiEndpoint', 'excludeOutbound']) {
+for (const key of ['trackingCode', 'apiEndpoint', 'excludeOutbound', 'excludePaths']) {
   assert.ok(tracker.includes(`'${key}'`), `tracker.js does not read argusConfig.${key}`);
 }
 
