@@ -61,7 +61,8 @@ def test_the_report_says_which_way_the_week_went(sent):
     report = _every_mail(sent)[-1]
     assert "up 50% on the week before" in report
     assert "same as the week before" in report
-    assert "example.org" in report and "https://www.example.org/" not in report
+    names = re.findall(r'word-break:break-all;">([^<]+)</td>', report)
+    assert names == ["/", "example.org", "SE"], "a source is named as a person would say it"
 
 
 def test_a_code_and_a_name_are_escaped_by_the_pieces():
