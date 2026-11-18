@@ -123,6 +123,10 @@ services:
       # /metrics är avstängd utan denna. Den exponerar affärssiffror:
       # sidvisningar per timme, antal webbplatser, antal konton.
       METRICS_TOKEN: ${METRICS_TOKEN:-}
+      # MCP-endpointen på /api/mcp, som låter en AI-assistent läsa statistik
+      # med en webbplats API-token. Avstängd som standard: det assistenten
+      # läser skickas till den som kör modellen.
+      MCP_ENABLED: ${MCP_ENABLED:-false}
       DB_POOL_SIZE: ${DB_POOL_SIZE:-5}
       DB_MAX_OVERFLOW: ${DB_MAX_OVERFLOW:-10}
 

@@ -60,6 +60,20 @@ apscheduler==3.11.3
 # WebSocket (included in fastapi[all])
 websockets==17.4
 
+# MCP (Model Context Protocol), for the endpoint at /api/mcp that lets an AI
+# assistant read statistics (app/routers/mcp_endpoint.py). The official SDK
+# rather than a hand-written JSON-RPC handler: the protocol has two wire
+# formats in use at once (the initialize handshake up to 2025-11-25, and
+# 2026-07-28 without one) and the SDK serves both from one handler.
+#
+# It is not small. It brings mcp-types, sse-starlette, jsonschema (with
+# referencing, rpds-py and jsonschema-specifications), pyjwt,
+# opentelemetry-api, and httpx2 (with httpcore2 and truststore). The last
+# three groups serve its OAuth and client halves, which this application does
+# not use: nothing here makes an outbound request, and opentelemetry-api
+# without an SDK installed is a no-op.
+mcp==2.3.0
+
 # Development & Testing
 pytest==9.0.3
 httpx==0.28.1

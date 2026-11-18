@@ -18,13 +18,18 @@ import inspect
 import pytest
 
 from app.main import app
-from app.routers import analytics, auth
+from app.routers import analytics, auth, mcp_endpoint
 
 # Dependencies that declare a context for everything beneath them.
 DECLARING_DEPENDENCIES = {
     auth.get_current_user,
     analytics.get_current_user_or_token,
     analytics.use_tracking_context,
+    # Declares one by calling get_current_user_or_token as a function, with
+    # the API token it took from the request. Not visible to the walk below,
+    # which follows Depends, so it is named here; test_mcp.py asserts on the
+    # context the request actually ends up with.
+    mcp_endpoint.authenticate_mcp_token,
 }
 
 # Routes that legitimately declare nothing, each with the reason. A route
