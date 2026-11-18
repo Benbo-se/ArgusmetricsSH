@@ -25,6 +25,7 @@ from app.utils.security import (
     hash_token,
 )
 from app.services.email_service import email_service
+from app.services import email_layout
 from app.utils.password_rules import password_ok, failed_rules
 from app.services.two_factor import SecondFactorRequired
 from app.config import settings
@@ -172,17 +173,25 @@ class AuthService:
                         email_service.send_email(
                             to=email,
                             subject=f"You already have a {settings.APP_NAME} account",
-                            html_content=(
-                                f"<p>Someone (probably you) tried to create a {settings.APP_NAME} "
-                                f"account with this address, but it is already registered.</p>"
-                                f"<p><a href=\"{settings.BASE_URL}/login\">Sign in</a> — or use "
-                                f"\"Forgot password?\" on the login page if you can't get in.</p>"
-                                f"<p>If this wasn't you, you can safely ignore this email.</p>"
+                            html_content=email_layout.render(
+                                eyebrow="Sign-up",
+                                heading_html=f"You already {email_layout.aside('have an account')}.",
+                                preheader="This address is already registered. Sign in instead.",
+                                body=[
+                                    email_layout.text(
+                                        "Someone, probably you, tried to create an account with this address. "
+                                        "It is already registered, so nothing was created."),
+                                    email_layout.button("Sign in", f"{settings.BASE_URL}/login"),
+                                    email_layout.text(
+                                        "Cannot get in? Use \"Forgot password?\" on the sign-in page. "
+                                        "If this was not you, ignore this mail.", small=True),
+                                ],
+                                reason="You are getting this because this address was entered on the sign-up page.",
                             ),
                             text_content=(
                                 f"Someone (probably you) tried to create a {settings.APP_NAME} account "
                                 f"with this address, but it is already registered.\n\n"
-                                f"Sign in at {settings.BASE_URL}/login — or use \"Forgot password?\" "
+                                f"Sign in at {settings.BASE_URL}/login, or use \"Forgot password?\" "
                                 f"if you can't get in.\n\nIf this wasn't you, ignore this email."
                             ),
                         )

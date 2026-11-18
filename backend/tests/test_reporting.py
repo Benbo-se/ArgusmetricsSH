@@ -204,6 +204,33 @@ class TestTestReport:
         )
 
 
+    def test_the_days_in_the_report_add_up_to_its_total(self, db, website):
+        """The bars are drawn from one query and the headline from another.
+        Counted in calendar days they disagreed by whatever fell before
+        midnight a week ago; a reader adds them up."""
+        from app.services.email_reports_service import EmailReportsService
+
+        _add_pageviews(db, website["id"], ["/", "/a"], hours_ago=1)
+        _add_pageviews(db, website["id"], ["/b"], hours_ago=30)
+        _add_pageviews(db, website["id"], ["/c", "/d"], hours_ago=24 * 7 - 1)
+        _add_pageviews(db, website["id"], ["/old"] * 3, hours_ago=24 * 9)
+
+        data = EmailReportsService(db).generate_report_data(website["id"], "weekly")
+
+        assert data["total_pageviews"] == 5
+        assert [day["views"] for day in data["daily"]] == [2, 0, 0, 0, 0, 1, 2]
+        assert data["previous_pageviews"] == 3, "the week before is what this one is compared with"
+
+    def test_a_week_without_visits_says_so(self, db, website):
+        from app.services.email_reports_service import EmailReportsService
+
+        service = EmailReportsService(db)
+        site = type("Site", (), {"id": website["id"], "name": "Test site", "domain": website["domain"]})
+        page = service.generate_report_html(site, service.generate_report_data(website["id"], "weekly"))
+
+        assert "No visits were counted" in page
+
+
 class TestDomainVerification:
     def test_an_unverifiable_domain_is_reported_not_crashed(
         self, owner_client, db, website
@@ -243,8 +270,12 @@ class TestReportEmailLinks:
         data = service.generate_report_data(site.id, "weekly")
         body = service.generate_report_html(site, data)
 
-        links = [h for h in re.findall(r'href="([^"]+)"', body) if h.startswith(settings.BASE_URL)]
+        # The name in the frame and the line under it lead to the front page,
+        # which is not the app's to answer for here.
+        links = {h for h in re.findall(r'href="([^"]+)"', body)
+                 if h.startswith(settings.BASE_URL) and urlparse(h).path.strip("/")}
         assert len(links) == 2, links
+        assert any(link.endswith("/settings") for link in links), "the way to stop the reports is gone"
         for link in links:
             response = owner_client.get(urlparse(link).path, follow_redirects=False)
             assert response.status_code == 200, f"{link} answers {response.status_code}"

@@ -18,6 +18,7 @@ from app.models.pageview import Pageview
 from app.services.filters import counted
 from app.config import settings
 from app.services.traffic_sources import own_referrer_regex
+from app.services import email_layout
 
 logger = logging.getLogger(__name__)
 
@@ -45,13 +46,15 @@ class EmailReportsService:
         now = datetime.now(timezone.utc)
 
         if period == "weekly":
-            start_date = now - timedelta(days=7)
+            days = 7
             period_label = "Last 7 Days"
         elif period == "monthly":
-            start_date = now - timedelta(days=30)
+            days = 30
             period_label = "Last 30 Days"
         else:
             raise ValueError(f"Invalid period: {period}")
+        start_date = now - timedelta(days=days)
+        before_that = start_date - timedelta(days=days)
 
         # Get total pageviews
         total_pageviews = self.db.query(func.count(Pageview.id)).filter(
@@ -66,6 +69,32 @@ class EmailReportsService:
             counted(website_id),
             Pageview.timestamp >= start_date
         ).scalar() or 0
+
+        # The same two numbers for the stretch before, to say which way it went
+        previous = self.db.query(
+            func.count(Pageview.id),
+            func.count(func.distinct(Pageview.visitor_hash)),
+        ).filter(
+            Pageview.website_id == website_id,
+            counted(website_id),
+            Pageview.timestamp >= before_that,
+            Pageview.timestamp < start_date,
+        ).one()
+
+        # Pageviews per 24 hours counted back from now, so the bars add up to
+        # the total above whatever the hour the report is sent.
+        age = func.floor(func.extract('epoch', now - Pageview.timestamp) / 86400)
+        per_day = dict(self.db.query(age, func.count(Pageview.id)).filter(
+            Pageview.website_id == website_id,
+            counted(website_id),
+            Pageview.timestamp >= start_date,
+            Pageview.timestamp <= now,
+        ).group_by(age).all())
+        daily = [
+            {"date": (now - timedelta(days=back)).strftime("%Y-%m-%d"),
+             "views": int(per_day.get(back, 0))}
+            for back in range(days - 1, -1, -1)
+        ]
 
         # Get top pages
         top_pages = self.db.query(
@@ -131,6 +160,9 @@ class EmailReportsService:
             "end_date": now.strftime("%Y-%m-%d"),
             "total_pageviews": total_pageviews,
             "unique_visitors": unique_visitors,
+            "previous_pageviews": int(previous[0] or 0),
+            "previous_visitors": int(previous[1] or 0),
+            "daily": daily,
             "top_pages": [{"path": p.path, "views": p.views} for p in top_pages],
             "top_referrers": [{"referrer": r.referrer, "views": r.views} for r in top_referrers],
             "top_countries": [{"country": c.country, "views": c.views} for c in top_countries],
@@ -150,70 +182,71 @@ class EmailReportsService:
             str: HTML email content
         """
         dashboard_url = f"{settings.BASE_URL}/dashboard/website/{website.id}"
-        website_name = html.escape(str(website.name))
-        website_domain = html.escape(str(website.domain))
+        visitors = report_data['unique_visitors']
+        pageviews = report_data['total_pageviews']
+        daily = report_data.get('daily') or []
+        stretch = "week" if len(daily) <= 7 else "30 days"
 
-        report_html = f"""<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
-        body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }}
-        .header {{ background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 10px 10px 0 0; text-align: center; }}
-        .header h1 {{ margin: 0; font-size: 24px; }}
-        .header p {{ margin: 5px 0 0 0; opacity: 0.9; }}
-        .content {{ background: #f7f7f7; padding: 30px; border-radius: 0 0 10px 10px; }}
-        .metric-card {{ background: white; padding: 20px; margin: 15px 0; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }}
-        .metric-card h2 {{ margin: 0 0 10px 0; font-size: 36px; color: #667eea; }}
-        .metric-card p {{ margin: 0; color: #666; font-size: 14px; }}
-        .stat-grid {{ display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0; }}
-        .section {{ margin: 25px 0; }}
-        .section h3 {{ color: #333; font-size: 18px; margin-bottom: 15px; }}
-        .list-item {{ background: white; padding: 12px 15px; margin: 8px 0; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; }}
-        .list-item .name {{ font-weight: 500; }}
-        .list-item .count {{ color: #667eea; font-weight: 600; }}
-        .button {{ display: inline-block; background: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; margin: 20px 0; font-weight: 500; }}
-        .footer {{ text-align: center; color: #999; font-size: 12px; margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; }}
-    </style>
-</head>
-<body>
-    <div class="header">
-        <h1>{settings.APP_NAME} Analytics Report</h1>
-        <p>{website_name} - {report_data['period']}</p>
-    </div>
+        def against(now_value: int, then_value: Optional[int]) -> Optional[str]:
+            if not then_value:
+                return None
+            change = round(100 * (now_value - then_value) / then_value)
+            if change == 0:
+                return f"same as the {stretch} before"
+            return f"{'up' if change > 0 else 'down'} {abs(change)}% on the {stretch} before"
 
-    <div class="content">
-        <div class="stat-grid">
-            <div class="metric-card">
-                <h2>{report_data['total_pageviews']:,}</h2>
-                <p>Total Pageviews</p>
-            </div>
-            <div class="metric-card">
-                <h2>{report_data['unique_visitors']:,}</h2>
-                <p>Unique Visitors</p>
-            </div>
-        </div>
+        if len(daily) <= 7:
+            captions = [datetime.strptime(d["date"], "%Y-%m-%d").strftime("%a") for d in daily]
+        else:
+            # Thirty names do not fit under thirty bars: first, middle and last.
+            captions = [""] * len(daily)
+            for at in (0, len(daily) // 2, len(daily) - 1):
+                captions[at] = datetime.strptime(daily[at]["date"], "%Y-%m-%d").strftime("%-d/%-m")
 
-        {"<div class='section'><h3>📄 Top Pages</h3>" + "".join(f"<div class='list-item'><span class='name'>{html.escape(str(item['path']))}</span><span class='count'>{item['views']:,} views</span></div>" for item in report_data['top_pages'][:5]) + "</div>" if report_data['top_pages'] else ""}
+        if pageviews:
+            heading = (f"{visitors:,} {'person' if visitors == 1 else 'people'} came by "
+                       f"{email_layout.aside(website.name)}.")
+            body = [
+                email_layout.figures([
+                    ("Visitors", f"{visitors:,}", against(visitors, report_data.get('previous_visitors'))),
+                    ("Pageviews", f"{pageviews:,}", against(pageviews, report_data.get('previous_pageviews'))),
+                ]),
+                email_layout.chart([d["views"] for d in daily], captions) if daily else "",
+                email_layout.ranking("Most read pages",
+                                     [(i['path'], i['views']) for i in report_data['top_pages'][:5]]),
+                email_layout.ranking("Where they came from",
+                                     [(self._source_name(i['referrer']), i['views'])
+                                      for i in report_data['top_referrers'][:5]]),
+                email_layout.ranking("Countries",
+                                     [(i['country'], i['views']) for i in report_data['top_countries'][:5]]),
+                email_layout.button("Open the dashboard", dashboard_url),
+            ]
+        else:
+            heading = f"A quiet {stretch} for {email_layout.aside(website.name)}."
+            body = [
+                email_layout.text("No visits were counted. If that is not what you expected, check that the "
+                                  "tracking line is still on the pages."),
+                email_layout.button("Open the dashboard", dashboard_url),
+            ]
 
-        {"<div class='section'><h3>🔗 Top Referrers</h3>" + "".join(f"<div class='list-item'><span class='name'>{html.escape(str(item['referrer']))}</span><span class='count'>{item['views']:,} views</span></div>" for item in report_data['top_referrers'][:5]) + "</div>" if report_data['top_referrers'] else ""}
+        body.append(email_layout.text(
+            f"Reports for {html.escape(str(website.domain))} are switched on and off under "
+            f"<a href=\"{html.escape(dashboard_url)}/settings\" style=\"color:{email_layout.PEACOCK_DEEP};\">"
+            "the website's settings</a>.", small=True))
 
-        {"<div class='section'><h3>🌍 Top Countries</h3>" + "".join(f"<div class='list-item'><span class='name'>{html.escape(str(item['country']))}</span><span class='count'>{item['views']:,} views</span></div>" for item in report_data['top_countries'][:5]) + "</div>" if report_data['top_countries'] else ""}
+        return email_layout.render(
+            eyebrow=f"{report_data['period']} · {report_data['start_date']} to {report_data['end_date']}",
+            heading_html=heading,
+            preheader=f"{visitors:,} visitors and {pageviews:,} pageviews, {report_data['period'].lower()}.",
+            body=body,
+            reason="You are getting this because email reports are switched on for this website.",
+        )
 
-        <div style="text-align: center;">
-            <a href="{dashboard_url}" class="button">View Full Dashboard →</a>
-        </div>
-
-        <div class="footer">
-            <p>You're receiving this because you enabled email reports for {website_domain}</p>
-            <p>To change your email preferences, visit your <a href="{dashboard_url}/settings">website settings</a></p>
-        </div>
-    </div>
-</body>
-</html>"""
-
-        return report_html
+    @staticmethod
+    def _source_name(referrer: str) -> str:
+        """A referrer as a person would say it: the address without the scheme."""
+        name = str(referrer).split("://", 1)[-1].rstrip("/")
+        return name[4:] if name.startswith("www.") else name
 
     def send_report(self, website_id: int) -> bool:
         """
