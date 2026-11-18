@@ -193,11 +193,12 @@ def seed_traffic(db, website_id, marker):
     db.commit()
 
 
-def ask(token, conversation, era="auto"):
+def ask(token, conversation, era="auto", query=""):
     """Run `conversation(client)` against the application as an MCP client.
 
     The SDK client, over HTTP, to the real route: the token travels in the
-    Authorization header exactly as an assistant would send it.
+    Authorization header exactly as an assistant would send it. `query` is
+    put on the endpoint's own address.
     """
 
     async def main():
@@ -206,7 +207,7 @@ def ask(token, conversation, era="auto"):
                 transport=httpx2.ASGITransport(app=app),
                 headers={"Authorization": f"Bearer {token}"},
             ) as http:
-                transport = streamable_http_client(f"{ORIGIN}{MCP_PATH}", http_client=http)
+                transport = streamable_http_client(f"{ORIGIN}{MCP_PATH}{query}", http_client=http)
                 async with Client(transport, mode=era) as client:
                     return await conversation(client)
 
@@ -456,6 +457,20 @@ class TestTheNumbersAreTheRestApisNumbers:
         assert overview["total_pageviews"] == seeded["stats"]["total_pageviews"] == 3
         assert overview["unique_visitors"] == seeded["stats"]["unique_visitors"] == 2
         assert overview["timeseries"] == seeded["stats"]["timeseries"]
+
+    def test_the_endpoints_own_address_filters_nothing(self, seeded):
+        """The REST handlers read the dashboard's filters from the query
+        string of the request they are handed (#205). Handed the POST to
+        /api/mcp, a `?country=` on the endpoint's address would filter every
+        report without the assistant being told. They get an empty request."""
+
+        async def conversation(client):
+            return await client.call_tool("get_overview", {})
+
+        result = ask(seeded["token"], conversation, query="?country=ZZ&page__contains=nowhere")
+
+        assert not result.is_error, said(result)
+        assert result.structured_content["total_pageviews"] == seeded["stats"]["total_pageviews"] == 3
 
     def test_the_breakdowns(self, seeded):
         token, stats = seeded["token"], seeded["stats"]

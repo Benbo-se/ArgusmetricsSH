@@ -249,6 +249,20 @@ async def _from_rest(call):
         raise ToolError(str(exc.detail))
 
 
+def _unfiltered() -> Request:
+    """A request with nothing in its address, for the REST handlers.
+
+    Those handlers read the dashboard's filters from the query string of the
+    request they are given (#205). The request in hand here is the POST to
+    /api/mcp, whose query string is not a report's: passing it on would let
+    `?country=SE` on the endpoint's address filter every tool without the
+    assistant, or the person reading its answer, being told. So the handlers
+    get an empty one, and a tool reports on everyone until it has arguments
+    of its own for filtering.
+    """
+    return Request({"type": "http", "query_string": b"", "headers": []})
+
+
 async def _stats(
     website_id: Optional[int],
     start_date: Optional[str],
@@ -259,6 +273,7 @@ async def _stats(
     caller = _current_caller()
     return await _from_rest(
         analytics.get_dashboard_stats(
+            request=_unfiltered(),
             website_id=caller.website_id if website_id is None else website_id,
             start_date=start_date,
             end_date=end_date,
@@ -374,6 +389,7 @@ async def get_goals(
     caller = _current_caller()
     return await _from_rest(
         analytics.get_goal_stats(
+            request=_unfiltered(),
             website_id=caller.website_id if website_id is None else website_id,
             start_date=start_date,
             end_date=end_date,
