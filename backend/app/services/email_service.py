@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.database import SessionLocal
 from app.models.email_log import EmailLog
+from app.services import email_layout
 
 logger = logging.getLogger(__name__)
 
@@ -191,11 +192,6 @@ class EmailService:
         logger.info(f"Subject: Verify your email for {settings.APP_NAME}")
 
         code_text = f"\nOr enter this code on the verification page: {code}\n" if code else ""
-        code_html = (
-            f'<p>Or enter this code on the verification page:</p>'
-            f'<p style="font-size: 28px; letter-spacing: 6px; font-family: monospace; font-weight: bold;">{code}</p>'
-        ) if code else ""
-
         # Plain text version
         text = f"""Welcome to {settings.APP_NAME}!
 
@@ -212,30 +208,21 @@ The {settings.APP_NAME} Team
 """
 
         # HTML version
-        html = f"""<!DOCTYPE html>
-<html>
-<head>
-    <style>
-        body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
-        .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
-        .button {{ display: inline-block; padding: 12px 24px; background-color: #007bff; color: white; text-decoration: none; border-radius: 4px; }}
-        .footer {{ margin-top: 20px; font-size: 12px; color: #666; }}
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h2>Welcome to {settings.APP_NAME}!</h2>
-        <p>Please click the button below to verify your email address:</p>
-        <p><a href="{escape(str(verify_url))}" class="button">Verify Email</a></p>
-        {code_html}
-        <p>Button not working? Copy and paste this link into your browser:</p>
-        <p><a href="{escape(str(verify_url))}">{escape(str(verify_url))}</a></p>
-        <p class="footer">This link and code expire in 15 minutes. If you didn't request this, you can safely ignore this email.</p>
-        <p class="footer">Thanks,<br>The {settings.APP_NAME} Team</p>
-    </div>
-</body>
-</html>
-"""
+        html = email_layout.render(
+            eyebrow="Confirm your address",
+            heading_html=f"One click, and {email_layout.aside('you are in')}.",
+            preheader="Confirm your address to finish creating your account.",
+            body=[
+                email_layout.text(f"Someone asked for a {escape(settings.APP_NAME)} account with this address. "
+                                  "If that was you, confirm it here."),
+                email_layout.button("Confirm my address", verify_url),
+                *([email_layout.text("Reading this on another device? Type this code on the verification page instead."),
+                   email_layout.code(code)] if code else []),
+                email_layout.text("The link and the code work for 15 minutes. If you did not ask for this, "
+                                  "ignore it and no account is created.", small=True),
+            ],
+            reason="You are getting this because this address was entered on the sign-up page.",
+        )
 
         subject = f"Verify your email for {settings.APP_NAME}"
 
@@ -293,16 +280,17 @@ Thanks,
 The {settings.APP_NAME} Team
 """
 
-        html = f"""<!DOCTYPE html>
-<html>
-<body>
-    <h2>Welcome to {settings.APP_NAME}!</h2>
-    <p>Your email has been verified successfully.</p>
-    <p>You can now access your dashboard at: <a href="{settings.BASE_URL}">{settings.BASE_URL}</a></p>
-    <p>Thanks,<br>The {settings.APP_NAME} Team</p>
-</body>
-</html>
-"""
+        html = email_layout.render(
+            eyebrow="Welcome",
+            heading_html=f"Your address is confirmed. {email_layout.aside('Now the first visit.')}",
+            preheader="Your account is ready. Add a website to see its first visit.",
+            body=[
+                email_layout.text("Add a website, paste one line into its pages, and the first visit shows up "
+                                  "within seconds. No cookies are set and no banner is needed."),
+                email_layout.button("Open my dashboard", settings.BASE_URL),
+            ],
+            reason="You are getting this because you just created an account.",
+        )
 
         # Try Lettermint
         if self._deliver(to, subject, text, html):
@@ -343,18 +331,19 @@ Thanks,
 The {settings.APP_NAME} Team
 """
 
-        html = f"""<!DOCTYPE html>
-<html>
-<body>
-    <h2>Password Reset Request</h2>
-    <p>You requested to reset your password.</p>
-    <p><a href="{escape(str(reset_url))}">Click here to reset your password</a></p>
-    <p>This link will expire in 15 minutes.</p>
-    <p>If you didn't request this, you can safely ignore this email.</p>
-    <p>Thanks,<br>The {settings.APP_NAME} Team</p>
-</body>
-</html>
-"""
+        html = email_layout.render(
+            eyebrow="Password",
+            heading_html=f"Choose a {email_layout.aside('new password')}.",
+            preheader="A link to choose a new password. It works for 15 minutes.",
+            body=[
+                email_layout.text("Someone asked to reset the password for this account. If that was you, "
+                                  "choose a new one here."),
+                email_layout.button("Choose a new password", reset_url),
+                email_layout.text("The link works once and for 15 minutes. If you did not ask for this, ignore it "
+                                  "and your password stays as it is.", small=True),
+            ],
+            reason="You are getting this because a password reset was requested for this address.",
+        )
 
         # Try Lettermint
         if self._deliver(to, f"Reset your {settings.APP_NAME} password", text, html):
@@ -387,21 +376,20 @@ and nothing happens.
 
 {settings.APP_NAME}
 """
-        html = f"""<!DOCTYPE html>
-<html><body style="font-family: Arial, sans-serif; line-height: 1.6; color: #1f2937;">
-<div style="max-width: 560px; margin: 0 auto; padding: 24px;">
-  <h1 style="font-size: 22px; margin: 0 0 16px;">You're invited to {settings.APP_NAME}</h1>
-  <p><strong>{escape(str(invited_by))}</strong> has invited you to {settings.APP_NAME}, cookieless web analytics.
-     Choose a password and add your own website.</p>
-  <p style="margin: 28px 0;">
-    <a href="{escape(str(join_url))}" style="display: inline-block; padding: 12px 24px; background: #4550c8; color: #fff;
-       text-decoration: none; border-radius: 6px; font-weight: bold;">Create my account</a>
-  </p>
-  <p style="font-size: 13px; color: #6b7280;">Or open this link: <a href="{escape(str(join_url))}" style="color: #4550c8; word-break: break-all;">{escape(str(join_url))}</a></p>
-  <p style="font-size: 13px; color: #6b7280;">The link works once and for {escape(str(days))} days. If you did not expect this, ignore it and nothing happens.</p>
-</div>
-</body></html>
-"""
+        html = email_layout.render(
+            eyebrow="Invitation",
+            heading_html=f"An account of {email_layout.aside('your own')}.",
+            preheader=f"{invited_by} has invited you to {settings.APP_NAME}.",
+            body=[
+                email_layout.text(f"{email_layout.strong(invited_by)} has invited you to {escape(settings.APP_NAME)}, "
+                                  "web analytics that counts visits without cookies and without following anyone "
+                                  "around. Choose a password and add your own website."),
+                email_layout.button("Create my account", join_url),
+                email_layout.text(f"The link works once and for {escape(str(days))} days. If you did not expect this, "
+                                  "ignore it and nothing happens.", small=True),
+            ],
+            reason="You are getting this because someone with an account entered your address.",
+        )
         success = self._deliver(to, subject, text, html)
         self._log_email(to, "account_invitation", subject, success,
                         None if success else "delivery failed")
@@ -473,81 +461,34 @@ Thanks,
 The {settings.APP_NAME} Team
 """
 
-        # HTML version
-        role_permissions = ""
-        if role == 'admin':
-            role_permissions = """
-            <ul>
-                <li>View all analytics data</li>
-                <li>Configure website settings</li>
-                <li>Manage conversion goals</li>
-                <li>Invite other team members (as viewers)</li>
-            </ul>
-            """
-        else:  # viewer
-            role_permissions = """
-            <ul>
-                <li>View all analytics data</li>
-                <li>Access the dashboard</li>
-                <li>See reports and statistics</li>
-            </ul>
-            """
+        role_summary = (
+            "You can read every report, change the website's settings and goals, and invite others as viewers."
+            if role == 'admin' else
+            "You can read every report and the live dashboard. Nothing you do there changes anything."
+        )
 
-        html = f"""<!DOCTYPE html>
-<html>
-<head>
-    <style>
-        body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
-        .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
-        .header {{ background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 8px 8px 0 0; text-align: center; }}
-        .content {{ background: #ffffff; padding: 30px; border: 1px solid #e5e7eb; border-top: none; }}
-        .button {{ display: inline-block; padding: 14px 28px; background-color: #667eea; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 20px 0; }}
-        .button:hover {{ background-color: #5568d3; }}
-        .role-badge {{ display: inline-block; padding: 4px 12px; background-color: #f3f4f6; color: #374151; border-radius: 12px; font-size: 14px; font-weight: 600; text-transform: uppercase; }}
-        .website-info {{ background: #f9fafb; padding: 15px; border-left: 4px solid #667eea; margin: 20px 0; border-radius: 4px; }}
-        .permissions {{ background: #f0fdf4; padding: 15px; border-radius: 6px; margin: 20px 0; }}
-        .permissions h3 {{ margin-top: 0; color: #166534; }}
-        .permissions ul {{ margin: 10px 0; padding-left: 20px; }}
-        .footer {{ margin-top: 20px; padding-top: 20px; border-top: 1px solid #e5e7eb; font-size: 12px; color: #6b7280; text-align: center; }}
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1 style="margin: 0; font-size: 28px;">Team Invitation</h1>
-            <p style="margin: 10px 0 0 0; opacity: 0.9;">You've been invited to collaborate!</p>
-        </div>
-        <div class="content">
-            <p><strong>{escape(str(invited_by))}</strong> has invited you to join their team on <strong>{settings.APP_NAME}</strong>.</p>
-
-            <div class="website-info">
-                <h3 style="margin: 0 0 10px 0; font-size: 18px;">{escape(str(website_name))}</h3>
-                <p style="margin: 0; color: #6b7280; font-size: 14px;">{escape(str(website_domain))}</p>
-                <p style="margin: 10px 0 0 0;">Your role: <span class="role-badge">{escape(str(role))}</span></p>
-            </div>
-
-            <div class="permissions">
-                <h3 style="font-size: 16px;">What you can do as a {escape(str(role))}:</h3>
-                {role_permissions}
-            </div>
-
-            <center>
-                <a href="{escape(str(invite_url))}" class="button">Accept Invitation</a>
-            </center>
-
-            <p style="font-size: 14px; color: #6b7280;">Or copy and paste this link into your browser:</p>
-            <p style="word-break: break-all; font-size: 12px; color: #9ca3af;"><a href="{escape(str(invite_url))}" style="color: #667eea;">{escape(str(invite_url))}</a></p>
-
-            <div class="footer">
-                <p>This invitation will expire in 7 days.</p>
-                <p>If you didn't expect this invitation, you can safely ignore this email.</p>
-                <p>Thanks,<br>The {settings.APP_NAME} Team</p>
-            </div>
-        </div>
-    </div>
-</body>
-</html>
-"""
+        html = email_layout.render(
+            eyebrow="Invitation",
+            heading_html=f"Come and see how {email_layout.aside(website_name)} is doing.",
+            preheader=f"{invited_by} has invited you to the statistics for {website_name}.",
+            body=[
+                email_layout.text(f"{email_layout.strong(invited_by)} has opened the visitor statistics for this "
+                                  f"website to you on {escape(settings.APP_NAME)}."),
+                email_layout.ledger([
+                    ("Website", f"{email_layout.strong(website_name)}<br>"
+                                f"<span style=\"color:{email_layout.INK_FAINT};font-size:13px;\">"
+                                f"{escape(str(website_domain))}</span>"),
+                    ("Your role", f"{email_layout.strong(str(role).capitalize())}<br>"
+                                  f"<span style=\"color:{email_layout.INK_DIM};font-size:14px;\">"
+                                  f"{escape(role_summary)}</span>"),
+                    ("Invited by", escape(str(invited_by))),
+                ]),
+                email_layout.button("Accept the invitation", invite_url),
+                email_layout.text("The invitation is good for 7 days. If you did not expect it, ignore this mail "
+                                  "and nothing happens.", small=True),
+            ],
+            reason="You are getting this because someone invited this address to a website.",
+        )
 
         # Try Lettermint
         success = self._deliver(to, subject, text, html)

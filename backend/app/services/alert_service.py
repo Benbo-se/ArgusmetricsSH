@@ -15,6 +15,8 @@ from app.services.filters import counted
 from app.models.website import Website
 from app.models.alert_settings import AlertSettings
 from app.services.email_service import email_service
+from app.services import email_layout
+from app.config import settings
 
 from app.utils.security import mask_email  # addresses never go to the log in full (#144)
 
@@ -184,19 +186,24 @@ Argusmetrics
                 return False
 
             safe_website_name = escape(str(website_name))
-            html_body = f"""<!DOCTYPE html>
-<html>
-<body>
-    <h2>Traffic Spike Detected on {safe_website_name}</h2>
-    <p><strong>Current Hour:</strong> {spike_data['current_hour_views']} pageviews</p>
-    <p><strong>Typical Hour:</strong> {spike_data['typical_hourly']} pageviews (7-day average)</p>
-    <p><strong>Spike:</strong> {spike_data['spike_percentage']}% of typical traffic</p>
-    <p>This is {spike_data['spike_percentage'] / 100:.1f}x your normal traffic level.</p>
-    <p>View your dashboard for more details.</p>
-    <p>Argusmetrics</p>
-</body>
-</html>
-"""
+            times = email_layout.aside(f"{spike_data['spike_percentage'] / 100:.1f} times")
+            dashboard_url = f"{settings.BASE_URL}/dashboard/website/{website_id}"
+            html_body = email_layout.render(
+                eyebrow="Traffic alert",
+                heading_html=f"{safe_website_name} is at {times} its usual traffic.",
+                preheader=f"{spike_data['current_hour_views']} pageviews this hour against a usual "
+                          f"{spike_data['typical_hourly']}.",
+                body=[
+                    email_layout.comparison([
+                        ("A usual hour", round(spike_data['typical_hourly']), False),
+                        ("This hour", int(spike_data['current_hour_views']), True),
+                    ]),
+                    email_layout.text("The usual hour is the same hour of the day over the previous seven days. "
+                                      "The dashboard shows which pages and which sources the visits are on."),
+                    email_layout.button("See what is happening", dashboard_url),
+                ],
+                reason="You are getting this because traffic alerts are switched on for this website.",
+            )
 
             # Send via the email service
             success = email_service.send_email(
