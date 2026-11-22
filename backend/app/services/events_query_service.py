@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, and_, or_, distinct
 
 from app.models.custom_event import CustomEvent
+from app.utils.date_helpers import as_utc
 from app.services.filters import FilterSet, visitor_conditions
 
 logger = logging.getLogger(__name__)
@@ -128,10 +129,30 @@ class EventsQueryService:
                     'top_properties': top_properties
                 })
 
-            return {
+            # When the table starts later than the window, say so. Events
+            # without properties were dropped before #241, so a site that has
+            # tracked goals for months can have an empty-looking table beside
+            # a Goals panel counting every one of them. Without this the two
+            # panels simply disagree and the dashboard offers no reason.
+            # Only alongside a table there is something to explain. An empty
+            # one is empty for its own reasons -- a filter that matches nobody,
+            # a site that has never sent an event -- and a date there would be
+            # noise.
+            starts_at = None
+            if events_summary:
+                first = self.db.query(func.min(CustomEvent.timestamp)).filter(
+                    CustomEvent.website_id == website_id
+                ).scalar()
+                if first is not None and as_utc(first) > as_utc(start_date):
+                    starts_at = first
+
+            out = {
                 'events': events_summary,
                 'total_events': total_events
             }
+            if starts_at is not None:
+                out['starts_at'] = starts_at
+            return out
 
         except Exception as e:
             logger.error(f"Error getting custom events summary: {e}", exc_info=True)

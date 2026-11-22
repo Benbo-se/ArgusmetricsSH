@@ -43,6 +43,33 @@ def test_this_week_against_last_and_who_is_here_now(db, website):
     assert a["spark"]["line"].count(",") == 14
 
 
+def test_the_week_is_seven_times_twentyfour_hours_not_seven_calendar_days(db, website):
+    """The card and the website's own overview both say "last 7 days".
+
+    NOW is 2026-03-15 12:00, so the rolling week opens at 2026-03-08 12:00
+    while the seventh calendar bucket back opens at 2026-03-09 00:00. A visit
+    at 2026-03-08 18:00 sits between the two: inside the rolling window the
+    overview uses, outside the buckets the sparkline draws. Summing the bars
+    put it in the week before and the two screens disagreed.
+    """
+    w = website["id"]
+    put(db, w, "a", NOW - timedelta(days=6, hours=18))
+    a = recent_activity(db, [w], now=NOW)[w]
+    assert a["week"] == 1
+    assert a["change"] is None  # nothing in the week before it to compare with
+
+
+def test_the_week_before_is_the_matching_window(db, website):
+    """The comparison moves with the window it compares against: the seven
+    times twenty-four hours before this one, not the seven calendar days."""
+    w = website["id"]
+    put(db, w, "old", NOW - timedelta(days=13, hours=18))  # inside the previous window
+    put(db, w, "gone", NOW - timedelta(days=14, hours=6))  # older than both
+    put(db, w, "new", NOW - timedelta(days=1))
+    a = recent_activity(db, [w], now=NOW)[w]
+    assert (a["week"], a["change"]) == (1, 0.0)
+
+
 def test_an_old_visit_is_not_online_and_not_this_week(db, website):
     w = website["id"]
     put(db, w, "a", NOW - timedelta(days=40))
