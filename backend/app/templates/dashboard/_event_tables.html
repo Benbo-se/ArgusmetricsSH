@@ -161,6 +161,9 @@
             {% if owner %}
             <p class="text-sm text-gray-600 mt-1">Track custom events with flexible properties</p>
             {% endif %}
+            {% if custom_events.starts_at %}
+            <p class="text-sm text-amber-700 mt-1">Recorded from {{ custom_events.starts_at.strftime('%-d %b %Y') }}. Anything before that is not in this table, so a goal counting the same event can show a higher number.</p>
+            {% endif %}
         </div>
         <span class="text-sm text-gray-500">{{ custom_events.total_events }} total events</span>
     </div>

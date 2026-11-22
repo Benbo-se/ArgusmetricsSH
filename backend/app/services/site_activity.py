@@ -12,11 +12,18 @@ One query for every site on the page, not one per card: someone with twelve
 sites would otherwise wait for twelve.
 
 Visitors per day are distinct visitor hashes per day. The hash is rebuilt
-daily, so a week's visitors are the sum of its days, which is also what the
-dashboard's own seven-day number counts.
+daily, so a visitor who comes back tomorrow is counted again.
 
 A day is a day in each website's own time zone, so "today" on one card may
-have started hours before "today" on the next.
+have started hours before "today" on the next. That is true of the sparkline,
+which is drawn per calendar day.
+
+The week total is not. It is the last seven times twenty-four hours, which is
+what `range=7d` means everywhere else in the product, so that the card and the
+website's own overview answer "last 7 days" with the same number. Summing the
+sparkline's last seven bars would instead cover today plus six whole days, a
+shorter span, and the two screens would disagree by the hours of the eighth
+day -- most just after midnight, least just before.
 """
 from datetime import datetime, timedelta, timezone
 from typing import Dict, Iterable, Optional
@@ -28,6 +35,8 @@ from app.utils.date_helpers import DEFAULT_TIMEZONE, day_start, local_date
 
 DAYS = 14
 ONLINE_WINDOW = timedelta(minutes=5)
+# The rolling window the card reports, and `range=7d` elsewhere.
+WEEK = timedelta(days=7)
 
 # Which pageviews a card counts: the rule of filters.counted(), spelled in
 # SQL because the queries below are. `p` is pageviews and `s` the website's
@@ -108,6 +117,29 @@ def recent_activity(
         {"ids": ids, "tzs": tzs, "sinces": sinces, "earliest": min(sinces)},
     ).all()
 
+    # The week total and the one before it, as rolling windows rather than
+    # sums of the buckets above: a bucket is a calendar day and cannot express
+    # a window that cuts through one. Two counts in a single pass.
+    week_start = now - WEEK
+    rolling = db.execute(
+        text(
+            f"""
+            SELECT p.website_id,
+                   count(DISTINCT p.visitor_hash)
+                     FILTER (WHERE p."timestamp" >= :week_start) AS week,
+                   count(DISTINCT p.visitor_hash)
+                     FILTER (WHERE p."timestamp" < :week_start) AS prev
+            FROM pageviews p
+            LEFT JOIN websites s ON s.id = p.website_id
+            WHERE p.website_id = ANY(:ids)
+              AND p."timestamp" >= :fortnight_start AND {COUNTED}
+            GROUP BY p.website_id
+            """
+        ),
+        {"ids": ids, "week_start": week_start, "fortnight_start": now - 2 * WEEK},
+    ).all()
+    weeks = {r.website_id: r for r in rolling}
+
     # Per site rather than one GROUP BY: the latest row of each site is an
     # index lookup, where max() over a grouped hypertable reads all of it.
     latest = db.execute(
@@ -137,7 +169,8 @@ def recent_activity(
     out = {}
     for i in ids:
         days = counts[i]
-        week, prev = sum(days[7:]), sum(days[:7])
+        w = weeks.get(i)
+        week, prev = (w.week, w.prev) if w else (0, 0)
         r = seen.get(i)
         out[i] = {
             "days": days,
