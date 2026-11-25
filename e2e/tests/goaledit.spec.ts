@@ -18,7 +18,7 @@ async function signIn(page: any, request: any) {
 
 async function createGoal(page: any, name: string) {
   await page.getByRole('button', { name: /Create.*Goal/i }).first().click();
-  await page.locator('input').first().pressSequentially(name, { delay: 20 });
+  await page.locator('[data-goal-form] input').first().pressSequentially(name, { delay: 20 });
   await page.getByRole('button', { name: /^Create Goal$/ }).click();
   await expect(page.locator('.goal-card')).toHaveCount(1, { timeout: 8000 });
 }
@@ -30,7 +30,7 @@ test('Edit opens the dialog with the goal already in it', async ({ page, request
   await page.getByRole('button', { name: /^Edit$/i }).first().click();
   await page.waitForTimeout(400);
 
-  const values = await page.locator('form input').evaluateAll(
+  const values = await page.locator('[data-goal-form] input').evaluateAll(
     els => els.map(e => (e as HTMLInputElement).value));
   console.log('FALT_VID_EDIT=' + JSON.stringify(values));
 
@@ -43,11 +43,11 @@ test('typing an event name replaces the suggestion instead of appending',
     await signIn(page, request);
 
     await page.getByRole('button', { name: /Create.*Goal/i }).first().click();
-    await page.locator('input').first().pressSequentially('Quote Requested', { delay: 20 });
+    await page.locator('[data-goal-form] input').first().pressSequentially('Quote Requested', { delay: 20 });
 
     // The natural thing to do: it is a required field with a placeholder, so
     // people click it and type what they mean.
-    const eventField = page.locator('form input').nth(1);
+    const eventField = page.locator('[data-goal-form] input').nth(1);
     await eventField.click();
     await eventField.pressSequentially('quote_requested', { delay: 20 });
 
