@@ -705,7 +705,9 @@
         <section class="breakdown bg-white rounded-lg shadow" aria-labelledby="card-goals">
             <div class="breakdown-head">
                 <h2 id="card-goals" class="text-base font-semibold text-gray-900">Goals</h2>
-                <a href="/dashboard/website/{{ website.id }}/goals"
+                {# With the period and the filters, so the page behind the link
+                   answers the question this card was answering. #}
+                <a href="/dashboard/website/{{ website.id }}/goals?{{ range_query }}{% if filter_query %}&{{ filter_query }}{% endif %}"
                    class="text-sm text-blue-600 hover:text-blue-800 font-medium">Manage goals</a>
             </div>
             {{ goal_list(stats.goals, stats.total_visitors) }}

@@ -805,7 +805,7 @@ input::placeholder { color: var(--text-muted) !important; }
     font-weight: 600;
     color: var(--brand-500);
 }
-.chip > button {
+.chip > button, .chip > .chip-remove {
     flex-shrink: 0;
     display: grid;
     place-items: center;
@@ -814,7 +814,7 @@ input::placeholder { color: var(--text-muted) !important; }
     color: var(--brand-500);
     transition: background-color .15s ease, color .15s ease;
 }
-.chip > button:hover { background: var(--crit-soft); color: var(--crit); }
+.chip > button:hover, .chip > .chip-remove:hover { background: var(--crit-soft); color: var(--crit); }
 .chip-clear {
     padding: 0 .4rem;
     font-size: .8125rem;

@@ -21,8 +21,9 @@ have started hours before "today" on the next.
 from datetime import datetime, timedelta, timezone
 from typing import Dict, Iterable, Optional
 
-from sqlalchemy import text
+from sqlalchemy import and_, func, text
 
+from app.models.goal import GoalConversion
 from app.services.goals_service import goal_conversion_stats
 from app.utils.date_helpers import DEFAULT_TIMEZONE, day_start, local_date
 
@@ -154,46 +155,62 @@ GOAL_DAYS = 30
 
 
 def goal_activity(
-    db, website_id: int, now: Optional[datetime] = None, tz: str = DEFAULT_TIMEZONE
+    db, website_id: int, now: Optional[datetime] = None, tz: str = DEFAULT_TIMEZONE,
+    window=None, filters=None,
 ) -> dict:
-    """Per goal, the last thirty days: conversions, converters, a line.
+    """Per goal, over a period: conversions, converters, a line.
 
-    Days in `tz`, the website's time zone.
+    The period is `window` (a date_helpers.DateWindow, what the range in the
+    address resolves to), or the last thirty days when none is given. Days in
+    `tz`, the website's time zone.
 
     `rate` is the share of the period's visitors who converted at least once,
     which cannot pass 100%. The overview's table uses the same function
     (goals_service.goal_conversion_stats), over the range chosen there.
-    """
-    now = now or datetime.now(timezone.utc)
-    first = local_date(now, tz) - timedelta(days=GOAL_DAYS - 1)
-    since = day_start(first, tz)
 
-    shared = goal_conversion_stats(db, website_id, since)
+    With `filters`, everything here is about the visitors who have a matching
+    pageview in the period: the number of them, the conversions that are
+    theirs, and the line. The line is narrowed with the same rule as the
+    number beside it (FilterSet.visitor_conditions), because a line next to a
+    filtered number is read as the same people.
+    """
+    if window is not None:
+        since, until, tz = window.start, window.end, window.tz
+        first, last = local_date(since, tz), local_date(until, tz)
+    else:
+        now = now or datetime.now(timezone.utc)
+        last = local_date(now, tz)
+        first = last - timedelta(days=GOAL_DAYS - 1)
+        since, until = day_start(first, tz), None
+    span = (last - first).days + 1
+
+    shared = goal_conversion_stats(db, website_id, since, until, filters)
     visitors = shared["visitors"]
 
-    rows = db.execute(
-        text(
-            """
-            SELECT goal_id, date(timezone(:tz, "timestamp")) AS day,
-                   count(*) AS conversions
-            FROM goal_conversions
-            WHERE website_id = :w AND "timestamp" >= :since
-            GROUP BY 1, 2
-            """
-        ),
-        {"w": website_id, "since": since, "tz": tz},
-    ).all()
+    day = func.date(func.timezone(tz, GoalConversion.timestamp))
+    conditions = [GoalConversion.website_id == website_id, GoalConversion.timestamp >= since]
+    if until is not None:
+        conditions.append(GoalConversion.timestamp <= until)
+    if filters:
+        conditions.extend(
+            filters.visitor_conditions(GoalConversion.visitor_hash, website_id, since, until)
+        )
+    rows = db.query(
+        GoalConversion.goal_id, day.label("day"), func.count(GoalConversion.id).label("conversions")
+    ).filter(and_(*conditions)).group_by(GoalConversion.goal_id, day).all()
+
     days = {}
     for r in rows:
         offset = (r.day - first).days
-        if 0 <= offset < GOAL_DAYS:
-            days.setdefault(r.goal_id, [0] * GOAL_DAYS)[offset] = r.conversions
+        if 0 <= offset < span:
+            days.setdefault(r.goal_id, [0] * span)[offset] = r.conversions
 
     out = {}
     for goal_id, series in days.items():
         out[goal_id] = {
             "conversions": sum(series),
             "rate": shared["goals"][goal_id]["rate"] if visitors else None,
-            "spark": _spark(series),
+            # One day is a point, and a point is not a line.
+            "spark": _spark(series) if span > 1 else None,
         }
     return {"visitors": visitors, "goals": out}

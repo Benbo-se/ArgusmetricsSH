@@ -659,7 +659,8 @@ document.addEventListener('alpine:init', () => {
         // True for a moment after this goal converts (see liveConversions).
         justConverted: false,
         // Conversions that arrived while the page was open, on top of the
-        // thirty days the server counted.
+        // period the server counted. The page only listens when that period
+        // runs up to now and nothing is filtered (counts_live in the route).
         live: 0,
 
         init() {
