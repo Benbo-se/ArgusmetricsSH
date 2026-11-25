@@ -21,15 +21,19 @@
     <!-- JSON island: |tojson doesn't escape double quotes, so it must never
          sit inside a double-quoted attribute (attribute-breakout XSS). -->
     <script type="application/json" id="goals-data">{{ goals | tojson }}</script>
-    <div x-data="liveConversions" data-website-id="{{ website.id }}" hidden></div>
+    {# Conversions arriving now are added to the cards only when the cards
+       count everybody up to this moment: see counts_live in the route. #}
+    {% if counts_live %}<div x-data="liveConversions" data-website-id="{{ website.id }}" hidden></div>{% endif %}
     <div x-data="goalsPage">
 
         <!-- Header -->
         <div class="mb-6 flex flex-wrap items-end justify-between gap-4">
             <div>
                 <h1 class="text-3xl font-bold text-gray-900">Goals</h1>
-                <p class="mt-2 text-gray-600">
-                    {{ website.name }}: the last 30 days, out of {{ goal_visitors | format_number }} visitors
+                <p class="mt-2 text-gray-600" data-goal-basis>
+                    {{ website.name }}: {{ range_label | lower if selected_range != 'custom' else range_label }},
+                    out of {{ goal_visitors | format_number }}
+                    {{ 'matching ' if filters }}visitor{{ '' if goal_visitors == 1 else 's' }}
                 </p>
             </div>
             <button @click="openCreate"
@@ -37,6 +41,71 @@
                 Create New Goal
             </button>
         </div>
+
+        <!-- The period and the filters the cards below are counted over. The
+             same two the analytics page has, and a link from there brings
+             them along. Links and a plain form: nothing here needs script,
+             the page is loaded again with another address. -->
+        {% set carried = ('&' ~ filter_query) if filter_query else '' %}
+        <div class="dash-toolbar" role="toolbar" aria-label="Period">
+            <div class="seg" role="group" aria-label="Quick ranges">
+                {% for value, label in [('today', 'Today'), ('7d', '7D'), ('30d', '30D'), ('90d', '90D'), ('mtd', 'Month'), ('365d', '12M')] %}
+                <a href="?range={{ value }}{{ carried }}"{% if selected_range == value %} aria-current="true"{% endif %}>{{ label }}</a>
+                {% endfor %}
+            </div>
+            <form method="get" class="flex items-center gap-2" aria-label="Custom range">
+                <input type="hidden" name="range" value="custom">
+                {% for key, value in filters.query_items() %}
+                <input type="hidden" name="{{ key }}" value="{{ value }}">
+                {% endfor %}
+                <input type="date" name="start_date" value="{{ range_start }}" max="{{ site_today }}" aria-label="First day"
+                       class="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm">
+                <span class="text-sm text-gray-500">to</span>
+                <input type="date" name="end_date" value="{{ range_end }}" max="{{ site_today }}" aria-label="Last day"
+                       class="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm">
+                <button type="submit" class="tool-btn">Apply</button>
+            </form>
+            <a href="/dashboard/website/{{ website.id }}?{{ range_query }}{{ carried }}"
+               class="tool-btn tool-end" title="The analytics page, over the same period and filters">
+                {{ 'Change filters' if filters else 'Filter' }} on the analytics page
+            </a>
+        </div>
+
+        {% if filters %}
+        <div class="filter-chips" data-active-filters>
+            <span class="filter-chips-label">Filtered by</span>
+            {% for item in filters.filters %}
+            <span class="chip" data-dimension-chip="{{ item.dimension }}" data-operator="{{ item.operator }}">
+                <span class="chip-key">{{ item.label }}{% if item.operator != 'is' %} {{ item.operator_label }}{% endif %}</span>
+                <span class="chip-value{{ ' capitalize' if item.dimension == 'device' }}" title="{{ item.value }}">
+                    {%- if item.dimension == 'country' -%}
+                    {{ item.value | country_name }}
+                    {%- elif item.dimension == 'referrer' and item.operator in ('is', 'is_not') -%}
+                    {{ item.value | referrer_name }}
+                    {%- else -%}
+                    {{ item.value }}
+                    {%- endif -%}
+                </span>
+                <a href="{{ filter_links[item.key] }}" class="chip-remove"
+                   aria-label="Remove the {{ item.label | lower }} filter" title="Remove">&times;</a>
+            </span>
+            {% endfor %}
+            {% for key, value in filters.properties.items() %}
+            <span class="chip">
+                <span class="chip-key">{{ key }}</span>
+                <span class="chip-value" title="{{ value }}">{{ value }}</span>
+            </span>
+            {% endfor %}
+            {% if filters.properties %}
+            <a href="{{ filter_links['properties'] }}" class="chip-clear">Remove property filters</a>
+            {% endif %}
+            <a href="?{{ range_query }}" class="chip-clear">Clear all</a>
+        </div>
+        <p class="mb-6 text-xs text-gray-500">
+            A goal has no campaign or country of its own. A filter here means the visitors who
+            have a matching pageview in the period: the conversions and the lines are theirs.
+        </p>
+        {% endif %}
 
         <!-- One card per goal. Conversions and the line come from the server
              (site_activity.goal_activity) and the count goes up live as
@@ -132,7 +201,7 @@
 
                 <!-- Modal panel -->
                 <div class="relative inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-                    <form @submit.prevent="saveGoal">
+                    <form @submit.prevent="saveGoal" data-goal-form>
                         <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                             <h3 class="text-lg font-medium text-gray-900 mb-4" x-text="modalTitle"></h3>
 

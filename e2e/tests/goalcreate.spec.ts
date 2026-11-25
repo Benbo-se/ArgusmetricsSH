@@ -28,7 +28,7 @@ test('a goal typed character by character saves with the right event name',
 
     await page.goto(`/dashboard/website/${websiteId}/goals`);
     await page.getByRole('button', { name: /Create.*Goal/i }).first().click();
-    await page.locator('input').first().pressSequentially('Finding proven', { delay: 25 });
+    await page.locator('[data-goal-form] input').first().pressSequentially('Finding proven', { delay: 25 });
     await page.getByRole('button', { name: /^Create Goal$/ }).click();
     await page.waitForTimeout(2500);
 
@@ -48,9 +48,9 @@ test('typing immediately after opening does not lose the input',
     // No wait between opening and typing, which is what a fast typist does
     // and what the reset-on-open race needed to lose the first characters.
     await page.getByRole('button', { name: /Create.*Goal/i }).first().click();
-    await page.locator('input').first().pressSequentially('Checkout reached', { delay: 5 });
+    await page.locator('[data-goal-form] input').first().pressSequentially('Checkout reached', { delay: 5 });
 
-    await expect(page.locator('input').first()).toHaveValue('Checkout reached');
+    await expect(page.locator('[data-goal-form] input').first()).toHaveValue('Checkout reached');
   });
 
 /**
@@ -85,7 +85,7 @@ test('a Swedish goal name gives an event name without underscores for å ä ö',
     await page.goto(`/dashboard/website/${websiteId}/goals`);
 
     await page.getByRole('button', { name: /Create.*Goal/i }).first().click();
-    await page.locator('input').first().pressSequentially('Beställ via Wolt', { delay: 10 });
+    await page.locator('[data-goal-form] input').first().pressSequentially('Beställ via Wolt', { delay: 10 });
 
-    await expect(page.locator('form input').nth(1)).toHaveValue('bestall_via_wolt');
+    await expect(page.locator('[data-goal-form] input').nth(1)).toHaveValue('bestall_via_wolt');
   });

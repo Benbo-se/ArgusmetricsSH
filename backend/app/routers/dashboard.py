@@ -34,7 +34,7 @@ from app.models.annotation import MAX_NOTE_LENGTH
 from app.models.user import User
 from app.routers.auth import get_current_user
 from app.utils.date_helpers import (
-    DEFAULT_TIMEZONE, compare_mode, is_valid_timezone, local_date,
+    DEFAULT_TIMEZONE, RANGE_LABELS, compare_mode, is_valid_timezone, local_date,
     parse_date_range, resolve_range, site_timezone, timezone_choices,
 )
 from app.config import settings
@@ -1156,12 +1156,24 @@ async def live_visitors_list(
 async def website_goals(
     request: Request,
     website_id: int,
+    range: Optional[str] = "30d",
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
     current_user: User = Depends(get_current_user),
     analytics_service: AnalyticsService = Depends(get_analytics_service),
     website_service: WebsiteService = Depends(get_website_service)
 ):
-    """Render website goals management page."""
-    logger.info(f"Website goals request: website_id={website_id}, user={mask_email(current_user.email)}")
+    """The goals of a website, over the period and the filters in the address.
+
+    The same two things the analytics page reads, read the same way, so a
+    link from there with a campaign filter shows the campaign's conversions
+    here too and not the whole site's.
+    """
+    filters = FilterSet.from_query(request.query_params)
+    logger.info(
+        f"Website goals request: website_id={website_id}, user={mask_email(current_user.email)}, "
+        f"filters={filters}"
+    )
 
     # Verify website ownership
     website = website_service.get_website_by_id(website_id, current_user.email)
@@ -1171,9 +1183,15 @@ async def website_goals(
             detail="Website not found or access denied"
         )
 
+    # Anything not understood is the page's own thirty days, not the seven
+    # resolve_range falls back to for the analytics page.
+    if range not in RANGE_LABELS and range != "custom":
+        range = "30d"
+    window = resolve_range(range, site_timezone(website), start_date, end_date)
+
     # Get all goals for this website
     goals = analytics_service.get_goals_list(website_id)
-    activity = goal_activity(analytics_service.db, website_id, tz=site_timezone(website))
+    activity = goal_activity(analytics_service.db, website_id, window=window, filters=filters)
     quiet = {"conversions": 0, "rate": 0.0 if activity["visitors"] else None, "spark": None}
 
     # Convert goals to dict for JSON serialization
@@ -1188,6 +1206,21 @@ async def website_goals(
         for goal in goals
     ]
 
+    # A chip per filter, each with the address that is this page without it.
+    # Links and not script: a filter here only ever changes by loading again.
+    from urllib.parse import quote, urlencode
+    range_query = urlencode(window.params)
+    items = filters.query_items()
+
+    def without(key: str) -> str:
+        rest = urlencode([item for item in items if item[0] != key], safe="/", quote_via=quote)
+        return f"?{range_query}" + (f"&{rest}" if rest else "")
+
+    # A conversion arriving now belongs on a card only when the card counts
+    # everybody up to this moment. Under a filter nobody knows yet whether the
+    # visitor matches, and a period that has ended does not grow.
+    counts_live = not filters and window.end >= datetime.now(timezone.utc) - timedelta(minutes=1)
+
     # H16: do not expose the session token to JS. Templates authenticate API
     # calls via the httponly session_token cookie (SameSite=Lax mitigates CSRF).
     return templates.TemplateResponse(request, "dashboard/goals.html", {
@@ -1195,6 +1228,11 @@ async def website_goals(
         "website": website,
         "goals": goals_data,
         "goal_visitors": activity["visitors"],
+        "filters": filters,
+        "filter_query": filters.query_string(),
+        "filter_links": {item[0]: without(item[0]) for item in items},
+        "counts_live": counts_live,
+        **_range_context(window),
     })
 
 
